@@ -26,6 +26,14 @@ Die Detailkapitel 1-7 wurden zur Klarstellung nach `docs/archive/PROJECT_AUDIT.m
 - Backtesting Engine
 - Strategy Engine (regelbasiert/automatisiert)
 
+### Pre-8 Entscheidungsstand (15. Februar 2026)
+
+- **P&L History:** bereits teilweise in TypeScript vorhanden (`src/lib/orders/portfolio.ts` erzeugt `equityCurve` + Drawdown aus Fill-Historie). Naechster Schritt bleibt persistente Snapshot-Historie/Reporting.
+- **Risk Management:** kurzfristig in TypeScript (UI-Risk-Estimate, Paper-Flows), strategisch fuer Backtest/Execution in Go ueber GCT-Backtester-Portfolio-Manager.
+- **Trade Journal:** bleibt vorerst in TypeScript/Prisma (UI-nahe Notizen, Screenshots, Tags); kein Mehrwert im GCT-Core.
+- **Backtesting Engine:** klar in Go verorten (GCT-Backtester vorhanden); Gateway stellt spaeter nur stabile Produkt-Contracts bereit.
+- **Strategy Engine:** regelbasiert/ML-lastig in Python (FastAPI Service), nicht im Frontend und nicht direkt im GCT-Core.
+
 ### Noch offen aus Kapitel 7 (Geopolitical AI/ML)
 
 - Vollausbau `news_cluster` (z. B. Embeddings + fortgeschrittenes Clustering)
@@ -65,6 +73,7 @@ Hinweis: Diese offenen Punkte koennen ganz oder teilweise durch Referenz-Impleme
   - Pflicht-Quality-Gates fuer diesen Slice: `go test ./...`, `go vet ./...`, `go test -race ./...`.
   - Wichtiger Runner-Hinweis: fuer `go test -race` auf Windows muss `CGO_ENABLED=1` gesetzt sein und ein C-Compiler im `PATH` liegen (hier: `C:\msys64\ucrt64\bin\gcc.exe`).
   - Reproduzierbarer Test-Runner vorhanden: `go-backend/scripts/test-go.ps1` (fuehrt `test` + `vet` + optional `-race` in einem Schritt aus).
+  - Erster Nicht-Crypto-Adapter ist live: `exchange=ecb` + `assetType=forex` nutzt offiziellen ECB-FX-Feed (`eurofxref-daily.xml`) fuer stabile Forex-Quotes.
 
 ### 8.1 Warum drei Sprachen Sinn machen
 
@@ -337,6 +346,7 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 | 7b | Quote-Livepfad haerten (TLS, Canonical Exchange Mapping, Timestamp-Parsing, Tests) | **ERLEDIGT (15.02.2026)** | `/api/v1/quote` liefert im Minimal-Stack reproduzierbar `200` |
 | 7c | SSE-Livequote-Slice (Quote-Events statt Heartbeat-Stub) | **ERLEDIGT (15.02.2026)** | `/api/v1/stream/market` liefert `quote`-Events mit stabilem Contract |
 | 7d | SSE-Stream-Stabilisierung + Go-Test-Runner-Gates (`test`/`vet`/`race`) | **ERLEDIGT (15.02.2026)** | Stream bleibt offen (kein 4s-Deadline-Abbruch), Quality-Gates als Pflicht dokumentiert |
+| 7e | Erster Nicht-Crypto Adapter (ECB Forex) im Gateway-Quote-Contract | **ERLEDIGT (15.02.2026)** | `GET /api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=forex` liefert `200` mit Quelle `ecb` |
 | 8 | Portfolio Tracking UI bauen | **ERLEDIGT** | P&L, Drawdown, Positionen |
 
 ### Mittelfristig (3-6 Wochen, Go-Adapter + Python Microservice)
@@ -345,7 +355,7 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 
 | # | Aktion | Aufwand | Wirkung |
 |---|--------|---------|---------|
-| 9 | Stock/Forex Go-Adapter Planung (API-Mapping, Rate Limits) | 2-3 Tage | Grundlage fuer Migration der TS-Provider |
+| 9 | Stock/Forex Go-Adapter Planung (API-Mapping, Rate Limits) | **TEILWEISE ERLEDIGT (15.02.2026)** | Grundlage steht; erster produktiver Slice via ECB-Forex-Adapter im Gateway vorhanden |
 | 10 | Erster Go-Adapter: Finnhub REST + WS (Stocks) | 3-5 Tage | Ersetzt `src/lib/providers/finnhub.ts` |
 | 11 | News-Fetching Go-Adapter: RSS + GDELT + Finviz | 3-5 Tage | Rohdaten -> Python Pipeline |
 | 12 | Macro Data Go-Adapter: FRED + ECB | 2-3 Tage | Ersetzt `src/lib/providers/fred.ts` + `ecb.ts` |

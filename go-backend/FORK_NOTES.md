@@ -24,11 +24,10 @@
   - symbol normalization
   - endpoint exposure policy
 
-## Current blocker
+## Environment status
 
-- This environment has no `git` and no `go` in PATH:
-  - GitHub fork automation unavailable
-  - local Go build/test not executable in this session
+- `git` and `go` are available in this workspace.
+- Go toolchain and caches are configured for reproducible local runs.
 
 ## Next implementation slice
 
@@ -73,3 +72,9 @@ Conclusion:
   - Verified end-to-end against minimal profile (`Binance`, `BTC-USDT`): `/health` 200, `/api/v1/quote` 200, `/api/v1/stream/market` emits `ready` + `quote`.
   - Verified fallback behavior: with `GCT_PREFER_GRPC=false`, `/health` and `/api/v1/quote` still return 200 via HTTP JSON-RPC path.
   - Go quality gates executed for this slice: `go test ./...`, `go vet ./...`, `go test -race ./...` (`CGO_ENABLED=1`, `gcc` in PATH).
+
+## Gateway extension beyond fork
+
+- First non-crypto adapter added at gateway level:
+  - `exchange=ecb` + `assetType=forex` is served via official ECB daily FX feed (`eurofxref-daily.xml`).
+- This keeps GCT focused as crypto engine while the gateway starts handling multi-asset routing under one contract.

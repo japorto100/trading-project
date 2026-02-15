@@ -24,6 +24,7 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Go-Qualitaets-Runner fuer den Slice sind verifiziert: `go test ./...`, `go vet ./...`, `go test -race ./...`.
 - Hinweis fuer Windows-Race-Runner: `CGO_ENABLED=1` + `gcc` im `PATH` (z. B. `C:\msys64\ucrt64\bin`).
 - Team-Runner vorhanden: `go-backend/scripts/test-go.ps1` fuer reproduzierbare Quality-Gates.
+- Erster Nicht-Crypto-Adapter ist produktiv im Gateway: ECB-Forex-Quotes (`exchange=ecb`, `assetType=forex`) ueber offiziellen ECB-Feed.
 
 ---
 
@@ -54,6 +55,7 @@ Schnell-Navigator -- fuer jedes Kernthema die wichtigste Ressource auf einen Bli
 | **Groesste Multi-Exchange API** | [CCXT](https://github.com/ccxt/ccxt) | 100+ Boersen, Unified API, MIT, 40.900 Stars. **Uebergangs-Tool** bis Go-Adapter die TS-Provider ersetzen | **Nein**, `bun add ccxt` | 4 |
 | **HTTP Client mit Circuit-Breaker** | [ffetch](https://github.com/gkoos/ffetch) | **Uebergangs-Tool** fuer bestehende TS-Provider-Calls, Retry, Dedup, Zero Dependencies | **Nein**, `bun add @fetchkit/ffetch` | 4 |
 | **WebSocket Streaming (Stocks)** | [Finnhub WS](https://github.com/Alcapone-Fx/finnhub-websocket) | Referenz-Implementierung -- wird langfristig als Go-Adapter umgesetzt (Goroutines + persistente WS) | **Nein**, reines React + WS | 7 |
+| **Forex/Macro Basis ohne API-Key** | [ECB eurofxref-daily.xml](https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml) | Offizieller FX-Referenzfeed; bereits als erster Nicht-Crypto-Adapter im Go-Gateway integriert (`exchange=ecb`, `assetType=forex`) | **Nein**, direkte HTTP/XML Abfrage | 4.5 |
 
 > **Langfristig:** Alle Daten-Beschaffung (Crypto, Stocks, Forex, Macro, News) wandert in die Go-Schicht. Die TS-Tools CCXT und ffetch dienen als Uebergangs-Loesung bis eigene Go-Adapter sie ersetzen.
 

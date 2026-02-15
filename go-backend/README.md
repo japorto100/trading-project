@@ -30,11 +30,13 @@ This folder hosts the Go layer for Tradeview Fusion.
 - Local GCT fork base is present at `go-backend/vendor-forks/gocryptotrader`.
 - Gateway skeleton is in place with:
   - `GET /health`
-  - `GET /api/v1/quote` (minimal stable contract)
+  - `GET /api/v1/quote` (stable multi-source contract: GCT + ECB)
   - `GET /api/v1/stream/market` (SSE quote events via GCT connector)
 - Connector currently calls live GCT RPC endpoints:
   - `/v1/getinfo` for health reachability
   - `/v1/getticker` for quotes
+- First non-crypto adapter is active:
+  - `exchange=ecb` + `assetType=forex` routes to ECB daily FX feed (`eurofxref-daily.xml`)
 - Quote endpoint has strict input validation + explicit gateway/upstream error mapping (`400`, `502`, `504`).
 - SSE stream now emits:
   - `ready` event (resolved params)
@@ -52,6 +54,7 @@ Expected:
 
 - `http://127.0.0.1:9060/health`
 - `http://127.0.0.1:9060/api/v1/quote?symbol=BTC/USDT&exchange=binance&assetType=spot`
+- `http://127.0.0.1:9060/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=forex`
 
 ## Run (full local stack, minimal GCT profile)
 

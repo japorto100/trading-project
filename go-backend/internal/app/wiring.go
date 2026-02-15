@@ -7,9 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/ecb"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
+	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
 func NewServerFromEnv() (*Server, error) {
@@ -26,10 +28,15 @@ func NewServerFromEnv() (*Server, error) {
 		InsecureSkipVerifyTL: boolOr("GCT_JSONRPC_INSECURE_TLS", false),
 		PreferGRPC:           boolOr("GCT_PREFER_GRPC", true),
 	})
+	ecbClient := ecb.NewClient(ecb.Config{
+		RatesURL:       envOr("ECB_RATES_URL", ecb.DefaultRatesURL),
+		RequestTimeout: durationMsOr("ECB_HTTP_TIMEOUT_MS", 4000),
+	})
+	quoteClient := marketServices.NewQuoteClient(gctClient, ecbClient)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))
-	mux.HandleFunc("/api/v1/quote", httpHandlers.QuoteHandler(gctClient))
+	mux.HandleFunc("/api/v1/quote", httpHandlers.QuoteHandler(quoteClient))
 	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(gctClient))
 
 	return NewServer(host, port, mux), nil

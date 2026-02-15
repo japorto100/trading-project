@@ -88,6 +88,23 @@ func TestQuoteHandler_MapsUnauthorizedTo502(t *testing.T) {
 	}
 }
 
+func TestQuoteHandler_MapsUpstreamBadRequestTo400(t *testing.T) {
+	handler := QuoteHandler(&fakeQuoteClient{
+		err: &gct.RequestError{
+			Path:       "/ecb/daily-rates",
+			StatusCode: http.StatusBadRequest,
+		},
+	})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=EUR/XXX&exchange=ecb&assetType=forex", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", response.Code)
+	}
+}
+
 func TestQuoteHandler_ReturnsStableContract(t *testing.T) {
 	client := &fakeQuoteClient{
 		ticker: gct.Ticker{
@@ -147,6 +164,79 @@ func TestQuoteHandler_ReturnsStableContract(t *testing.T) {
 	}
 	if client.lastPair.Base != "BTC" || client.lastPair.Quote != "USDT" {
 		t.Fatalf("expected forwarded pair BTC/USDT, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
+	}
+}
+
+func TestQuoteHandler_ReturnsStableContractForECBForex(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700001111,
+			Last:        1.0912,
+			Bid:         1.0911,
+			Ask:         1.0913,
+			High:        1.0912,
+			Low:         1.0912,
+			Volume:      0,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=forex", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var body struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error"`
+		Data    struct {
+			Symbol    string `json:"symbol"`
+			Exchange  string `json:"exchange"`
+			AssetType string `json:"assetType"`
+			Source    string `json:"source"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if !body.Success {
+		t.Fatalf("expected success=true, got false with error: %s", body.Error)
+	}
+	if body.Data.Symbol != "EUR/USD" {
+		t.Fatalf("expected symbol EUR/USD, got %s", body.Data.Symbol)
+	}
+	if body.Data.Exchange != "ecb" {
+		t.Fatalf("expected exchange ecb, got %s", body.Data.Exchange)
+	}
+	if body.Data.AssetType != "forex" {
+		t.Fatalf("expected assetType forex, got %s", body.Data.AssetType)
+	}
+	if body.Data.Source != "ecb" {
+		t.Fatalf("expected source ecb, got %s", body.Data.Source)
+	}
+	if client.lastExchange != "ECB" {
+		t.Fatalf("expected forwarded exchange ECB, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "forex" {
+		t.Fatalf("expected forwarded asset forex, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "EUR" || client.lastPair.Quote != "USD" {
+		t.Fatalf("expected forwarded pair EUR/USD, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
+	}
+}
+
+func TestQuoteHandler_RejectsUnsupportedAssetTypeForExchange(t *testing.T) {
+	handler := QuoteHandler(&fakeQuoteClient{})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=spot", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", response.Code)
 	}
 }
 

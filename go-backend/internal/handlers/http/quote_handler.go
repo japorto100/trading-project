@@ -15,18 +15,65 @@ import (
 
 var symbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
 
-var allowedExchanges = map[string]string{
-	"binance":  "Binance",
-	"kraken":   "Kraken",
-	"coinbase": "Coinbase",
-	"okx":      "OKX",
-	"bybit":    "Bybit",
+type exchangeConfig struct {
+	upstream          string
+	source            string
+	allowedAssetTypes map[string]struct{}
 }
 
-var allowedAssetTypes = map[string]struct{}{
-	"spot":    {},
-	"margin":  {},
-	"futures": {},
+var allowedExchanges = map[string]exchangeConfig{
+	"binance": {
+		upstream: "Binance",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+	},
+	"kraken": {
+		upstream: "Kraken",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+	},
+	"coinbase": {
+		upstream: "Coinbase",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+	},
+	"okx": {
+		upstream: "OKX",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+	},
+	"bybit": {
+		upstream: "Bybit",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+	},
+	"ecb": {
+		upstream: "ECB",
+		source:   "ecb",
+		allowedAssetTypes: map[string]struct{}{
+			"forex": {},
+		},
+	},
 }
 
 type quoteClient interface {
@@ -47,7 +94,7 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 			})
 			return
 		}
-		gctExchange, ok := allowedExchanges[exchange]
+		exchangeCfg, ok := allowedExchanges[exchange]
 		if !ok {
 			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
 				Success: false,
@@ -55,7 +102,7 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 			})
 			return
 		}
-		if !isAllowed(allowedAssetTypes, assetType) {
+		if !isAllowed(exchangeCfg.allowedAssetTypes, assetType) {
 			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
 				Success: false,
 				Error:   "unsupported assetType",
@@ -63,7 +110,7 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 			return
 		}
 
-		ticker, err := client.GetTicker(r.Context(), gctExchange, pair, assetType)
+		ticker, err := client.GetTicker(r.Context(), exchangeCfg.upstream, pair, assetType)
 		if err != nil {
 			status := mapQuoteErrorToHTTP(err)
 			writeJSON(w, status, contracts.APIResponse[*contracts.Quote]{
@@ -89,7 +136,7 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 			Low:       ticker.Low,
 			Volume:    ticker.Volume,
 			Timestamp: timestamp,
-			Source:    "gct",
+			Source:    exchangeCfg.source,
 		}
 
 		writeJSON(w, http.StatusOK, contracts.APIResponse[*contracts.Quote]{
@@ -137,6 +184,8 @@ func mapQuoteErrorToHTTP(err error) int {
 
 	if status, ok := gct.StatusCode(err); ok {
 		switch status {
+		case http.StatusBadRequest, http.StatusNotFound:
+			return http.StatusBadRequest
 		case http.StatusUnauthorized, http.StatusForbidden:
 			return http.StatusBadGateway
 		case http.StatusRequestTimeout, http.StatusGatewayTimeout:

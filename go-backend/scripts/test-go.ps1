@@ -7,6 +7,7 @@ $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $goBackendDir = Resolve-Path (Join-Path $scriptDir "..")
+Set-Location $goBackendDir
 
 $gccPath = Join-Path $GccBin "gcc.exe"
 if (Test-Path $gccPath) {
