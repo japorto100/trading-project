@@ -4,8 +4,10 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from math import log2
+import os
 from typing import Literal
 
+import httpx
 from pydantic import BaseModel, Field
 
 try:
@@ -110,6 +112,19 @@ COUNTRY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "IL": ("israel", "jerusalem", "tel aviv"),
 }
 
+SOURCE_RELIABILITY: dict[str, tuple[SourceTier, float]] = {
+    "reuters": ("A", 0.88),
+    "bloomberg": ("A", 0.86),
+    "ft": ("A", 0.84),
+    "ap": ("A", 0.82),
+    "wsj": ("A", 0.84),
+    "cnbc": ("B", 0.74),
+    "marketwatch": ("B", 0.72),
+    "x.com": ("C", 0.52),
+    "twitter": ("C", 0.52),
+    "reddit": ("C", 0.5),
+}
+
 
 def normalize_text(value: str | None) -> str:
     if not value:
@@ -133,18 +148,71 @@ def parse_iso(value: str) -> datetime:
 
 
 def source_ref(article: ArticleInput, provider_prefix: str) -> SourceRefOutput:
+    source_key = normalize_text(article.source)
+    tier, reliability = SOURCE_RELIABILITY.get(source_key, ("C", 0.62))
     return SourceRefOutput(
         provider=f"{provider_prefix}:{article.source}",
         url=article.url,
         title=article.title,
         publishedAt=article.publishedAt,
-        sourceTier="C",
-        reliability=0.62,
+        sourceTier=tier,
+        reliability=reliability,
     )
 
 
 def confidence_from_count(count: int, base: float = 0.42) -> float:
     return max(0.0, min(1.0, base + min(0.28, count * 0.04)))
+
+
+def recency_boost(published_at: str) -> float:
+    published = parse_iso(published_at)
+    age_hours = max(0.0, (datetime.now(timezone.utc) - published).total_seconds() / 3600.0)
+    return max(0.0, 0.14 - min(0.14, age_hours * 0.004))
+
+
+def finbert_polarity_score(text: str) -> float | None:
+    token = os.getenv("FINBERT_HF_API_TOKEN", "").strip()
+    if not token:
+        return None
+    api_url = os.getenv(
+        "FINBERT_HF_API_URL", "https://api-inference.huggingface.co/models/ProsusAI/finbert"
+    ).strip()
+    if not api_url:
+        return None
+
+    try:
+        with httpx.Client(timeout=2.5) as client:
+            response = client.post(
+                api_url,
+                headers={"Authorization": f"Bearer {token}"},
+                json={"inputs": text[:800]},
+            )
+            if response.status_code >= 400:
+                return None
+            payload = response.json()
+            labels = payload[0] if isinstance(payload, list) and payload else []
+            if not isinstance(labels, list):
+                return None
+            positive = 0.0
+            negative = 0.0
+            neutral = 0.0
+            for item in labels:
+                if not isinstance(item, dict):
+                    continue
+                label = normalize_text(str(item.get("label", "")))
+                score = float(item.get("score", 0.0))
+                if "positive" in label:
+                    positive = score
+                elif "negative" in label:
+                    negative = score
+                elif "neutral" in label:
+                    neutral = score
+            if positive == 0.0 and negative == 0.0 and neutral == 0.0:
+                return None
+            # [-1, 1] where positive is bullish and negative is bearish.
+            return max(-1.0, min(1.0, positive - negative))
+    except Exception:
+        return None
 
 
 def article_text(article: ArticleInput) -> str:
@@ -191,14 +259,18 @@ def build_news_cluster_ml(payload: SignalRequest) -> SignalResponse | None:
         primary = sorted(group, key=lambda item: parse_iso(item.publishedAt), reverse=True)[0]
         text = article_text(primary)
         theme = classify_theme(text)
+        unique_sources = len({normalize_text(item.source) for item in group})
+        confidence = confidence_from_count(len(group), 0.5) + min(0.1, unique_sources * 0.02)
+        confidence += recency_boost(primary.publishedAt)
+        refs = [source_ref(item, "news_cluster") for item in group[:2]]
         candidates.append(
             CandidateOutput(
                 headline=f"{theme.key.title()} cluster detected: {primary.title}",
-                confidence=confidence_from_count(len(group), 0.5),
+                confidence=max(0.0, min(1.0, confidence)),
                 severityHint=theme.severity,
                 regionHint="global",
                 countryHints=detect_countries(text),
-                sourceRefs=[source_ref(primary, "news_cluster")],
+                sourceRefs=refs,
                 symbol=theme.symbol,
                 category=theme.category,
             )
@@ -229,14 +301,18 @@ def build_news_cluster(payload: SignalRequest) -> SignalResponse:
         primary = grouped[0]
         text = normalize_text(f"{primary.title} {primary.summary or ''}")
         countries = detect_countries(text)
+        unique_sources = len({normalize_text(item.source) for item in grouped})
+        confidence = confidence_from_count(len(grouped), 0.48) + min(0.08, unique_sources * 0.02)
+        confidence += recency_boost(primary.publishedAt)
+        refs = [source_ref(item, "news_cluster") for item in grouped[:2]]
         candidates.append(
             CandidateOutput(
                 headline=f"{rule.key.title()} cluster detected: {primary.title}",
-                confidence=confidence_from_count(len(grouped), 0.48),
+                confidence=max(0.0, min(1.0, confidence)),
                 severityHint=rule.severity,
                 regionHint="global",
                 countryHints=countries,
-                sourceRefs=[source_ref(primary, "news_cluster")],
+                sourceRefs=refs,
                 symbol=rule.symbol,
                 category=rule.category,
             )
@@ -260,20 +336,29 @@ def build_social_surge(payload: SignalRequest) -> SignalResponse:
     if not surge_articles:
         return SignalResponse(candidates=[])
 
+    distinct_sources = len({normalize_text(article.source) for article in surge_articles})
     top = sorted(surge_articles, key=lambda item: parse_iso(item.publishedAt), reverse=True)[: payload.maxCandidates]
-    candidates = [
-        CandidateOutput(
-            headline=f"Social surge: {article.title}",
-            confidence=confidence_from_count(len(surge_articles) + source_counter[article.source.lower()], 0.44),
-            severityHint=2,
-            regionHint="global",
-            countryHints=detect_countries(normalize_text(f"{article.title} {article.summary or ''}")),
-            sourceRefs=[source_ref(article, "social_surge")],
-            symbol="message-circle-warning",
-            category="social_chatter_surge",
+    candidates: list[CandidateOutput] = []
+    for article in top:
+        text = normalize_text(f"{article.title} {article.summary or ''}")
+        confidence = confidence_from_count(len(surge_articles) + source_counter[article.source.lower()], 0.44)
+        confidence += min(0.08, distinct_sources * 0.015)
+        confidence += recency_boost(article.publishedAt)
+        finbert = finbert_polarity_score(text)
+        if finbert is not None:
+            confidence += min(0.06, abs(finbert) * 0.06)
+        candidates.append(
+            CandidateOutput(
+                headline=f"Social surge: {article.title}",
+                confidence=max(0.0, min(1.0, confidence)),
+                severityHint=2 if finbert is None else (3 if abs(finbert) > 0.45 else 2),
+                regionHint="global",
+                countryHints=detect_countries(text),
+                sourceRefs=[source_ref(article, "social_surge")],
+                symbol="message-circle-warning",
+                category="social_chatter_surge",
+            )
         )
-        for article in top
-    ]
 
     return SignalResponse(candidates=candidates)
 
@@ -333,20 +418,26 @@ def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
     top_articles = sorted(payload.articles, key=lambda item: parse_iso(item.publishedAt), reverse=True)
     candidates: list[CandidateOutput] = []
     for token in common[: payload.maxCandidates]:
-        anchor = next(
-            (article for article in top_articles if token in normalize_text(f"{article.title} {article.summary or ''}")),
-            None,
-        )
+        token_articles = [
+            article
+            for article in top_articles
+            if token in normalize_text(f"{article.title} {article.summary or ''}")
+        ]
+        anchor = token_articles[0] if token_articles else None
         if anchor is None:
             continue
+        source_count = len({normalize_text(article.source) for article in token_articles})
+        confidence = max(0.35, min(0.95, 0.35 + drift_score * 0.5 + min(0.2, newer_counter[token] * 0.03)))
+        confidence += min(0.08, source_count * 0.02)
+        confidence += recency_boost(anchor.publishedAt)
         candidates.append(
             CandidateOutput(
                 headline=f"Narrative shift around '{token}'",
-                confidence=max(0.35, min(0.95, 0.35 + drift_score * 0.5 + min(0.2, newer_counter[token] * 0.03))),
+                confidence=max(0.0, min(1.0, confidence)),
                 severityHint=2,
                 regionHint="global",
                 countryHints=detect_countries(normalize_text(f"{anchor.title} {anchor.summary or ''}")),
-                sourceRefs=[source_ref(anchor, "narrative_shift")],
+                sourceRefs=[source_ref(article, "narrative_shift") for article in token_articles[:2]],
                 symbol="brain-circuit",
                 category="narrative_shift",
             )

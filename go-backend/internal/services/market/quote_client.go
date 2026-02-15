@@ -46,9 +46,13 @@ func NewQuoteClient(
 }
 
 func (c *QuoteClient) GetTicker(ctx context.Context, exchange string, pair gct.Pair, assetType string) (gct.Ticker, error) {
-	if strings.EqualFold(exchange, "FRED") {
+	if strings.EqualFold(exchange, "FRED") || strings.EqualFold(exchange, "FED") || strings.EqualFold(exchange, "BOJ") || strings.EqualFold(exchange, "SNB") {
 		if c.macroClient == nil {
 			return gct.Ticker{}, fmt.Errorf("macro client unavailable")
+		}
+		pair.Base = ResolveMacroSeries(exchange, pair.Base)
+		if pair.Quote == "" {
+			pair.Quote = "USD"
 		}
 		return c.macroClient.GetTicker(ctx, pair, assetType)
 	}

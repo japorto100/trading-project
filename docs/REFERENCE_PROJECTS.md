@@ -27,12 +27,16 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Erster Nicht-Crypto-Adapter ist produktiv im Gateway: ECB-Forex-Quotes (`exchange=ecb`, `assetType=forex`) ueber offiziellen ECB-Feed.
 - Finnhub-Referenz ist jetzt weitgehend produktiv umgesetzt: Go-Gateway liefert Equity-Quotes (`/api/v1/quote`) und Equity-Streams (`/api/v1/stream/market` via Finnhub-WS mit Polling-Fallback) fuer `exchange=finnhub`.
 - FRED/ECB-Referenz ist jetzt erweitert produktiv umgesetzt: Go-Gateway liefert Macro-/Forex-Quotes und History (`GET /api/v1/macro/history`), ingest-orientierte Persistenz folgt.
+- Macro-Referenz ist auf FED/BOJ/SNB erweitert: `exchange=fed|fred|boj|snb` nutzt denselben Macro-Contract (Series-basiert), BOJ/SNB aktuell als FRED-Series-Alias-Layer.
+- Macro-Ingest-Basis ist live: optionaler Scheduled Snapshot-Runner persistiert FED/ECB/BOJ/SNB unter `go-backend/data/macro`.
 - News-Referenzen (RSS/GDELT/Finviz) sind produktiv inkl. Hardening aktiv: `GET /api/v1/news/headlines` mit Retries, Normalisierung, Dedup und Source-Quota-Balancing.
 - Pre-8 Portfolio-Slices sind im Next.js-Backend produktiv: persistente P&L-History (`/api/fusion/portfolio/history`), Risk-Sizing (`/api/fusion/risk/position-size`) und Trade-Journal (`/api/fusion/trade-journal`).
 - GCT-Backtester-Referenz ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet vorhandene `*.strat`-Beispiele aus dem Fork.
 - Python Soft-Signal-Referenzen sind produktiv angebunden: `cluster-headlines`, `social-surge`, `narrative-shift` via `python-backend/services/geopolitical-soft-signals`.
+- Soft-Signal-Basis wurde erweitert: Source-/Recency-Gewichtung und optionaler FinBERT-HF-Boost im `social-surge` Adapter (Token-gesteuert).
 - Python Indicator-Referenzen sind als baseline-Slice produktiv angebunden: `signals/composite`, `patterns/*`, `indicators/exotic-ma`, `indicators/ks-collection`, `evaluate/strategy`.
 - Doppelarbeit-Prinzip ist festgelegt: Backtesting/Portfolio/Order-Execution bleiben im GCT-Fork; eigene Services liefern Contracts/Validation statt Engine-Rebuild.
+- Backtest-Referenz ist auf Run-Management erweitert: `POST/GET /api/v1/backtest/runs` + `GET /api/v1/backtest/runs/{id}` (Progress/Result-Store-Baseline).
 
 ---
 

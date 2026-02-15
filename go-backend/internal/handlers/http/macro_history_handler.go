@@ -8,9 +8,11 @@ import (
 	"strings"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
 var macroSymbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
+var macroSeriesPattern = regexp.MustCompile(`^[A-Z0-9_]{2,40}$`)
 
 type macroHistoryClient interface {
 	History(ctx context.Context, exchange string, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error)
@@ -41,7 +43,7 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid symbol format"})
 			return
 		}
-		if exchange == "fred" && assetType != "macro" {
+		if (exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb") && assetType != "macro" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unsupported assetType"})
 			return
 		}
@@ -79,14 +81,19 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 func parseMacroSymbol(symbol, exchange string) (gct.Pair, string, bool) {
 	normalized := strings.TrimSpace(strings.ToUpper(symbol))
 	normalized = strings.ReplaceAll(normalized, "-", "/")
-	normalized = strings.ReplaceAll(normalized, "_", "/")
 
-	if exchange == "fred" {
+	if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" {
 		trimmed := strings.ReplaceAll(normalized, "/", "")
-		if !macroSymbolPartPattern.MatchString(trimmed) {
+		trimmed = strings.ReplaceAll(trimmed, "-", "_")
+		trimmed = strings.ReplaceAll(trimmed, " ", "_")
+		if !macroSeriesPattern.MatchString(trimmed) {
 			return gct.Pair{}, "", false
 		}
-		return gct.Pair{Base: trimmed, Quote: "USD"}, trimmed, true
+		seriesID := marketServices.ResolveMacroSeries(strings.ToUpper(exchange), trimmed)
+		if seriesID == "" {
+			return gct.Pair{}, "", false
+		}
+		return gct.Pair{Base: seriesID, Quote: "USD"}, seriesID, true
 	}
 
 	parts := strings.Split(normalized, "/")

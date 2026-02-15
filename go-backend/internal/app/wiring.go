@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	newsConnectors "tradeviewfusion/go-backend/internal/connectors/news"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
+	backtestServices "tradeviewfusion/go-backend/internal/services/backtest"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -66,6 +68,7 @@ func NewServerFromEnv() (*Server, error) {
 	})
 	newsService := marketServices.NewNewsService(rssClient, gdeltClient, finvizClient)
 	strategyExamplesDir := envOr("GCT_STRATEGY_EXAMPLES_DIR", "vendor-forks/gocryptotrader/backtester/config/strategyexamples")
+	backtestManager := backtestServices.NewManager(strategyExamplesDir)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))
@@ -74,6 +77,27 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient))
 	mux.HandleFunc("/api/v1/news/headlines", httpHandlers.NewsHandler(newsService))
 	mux.HandleFunc("/api/v1/backtest/capabilities", httpHandlers.BacktestCapabilitiesHandler(strategyExamplesDir))
+	mux.HandleFunc("/api/v1/backtest/runs", httpHandlers.BacktestRunsHandler(backtestManager))
+	mux.HandleFunc("/api/v1/backtest/runs/", httpHandlers.BacktestRunByIDHandler(backtestManager))
+
+	if boolOr("MACRO_INGEST_ENABLED", false) {
+		macroIngest := marketServices.NewMacroIngestService(
+			macroService,
+			envOr("MACRO_INGEST_OUTPUT_DIR", "data/macro"),
+			durationMsOr("MACRO_INGEST_REQUEST_TIMEOUT_MS", 8000),
+		)
+		targets := macroTargetsOr(os.Getenv("MACRO_INGEST_TARGETS"), []marketServices.MacroIngestTarget{
+			{Exchange: "FED", Symbol: "POLICY_RATE", Asset: "macro", Limit: 180},
+			{Exchange: "ECB", Symbol: "EUR/USD", Asset: "forex", Limit: 180},
+			{Exchange: "BOJ", Symbol: "POLICY_RATE", Asset: "macro", Limit: 180},
+			{Exchange: "SNB", Symbol: "POLICY_RATE", Asset: "macro", Limit: 180},
+		})
+		macroIngest.StartBackground(
+			context.Background(),
+			durationMsOr("MACRO_INGEST_INTERVAL_MS", 30*60*1000),
+			targets,
+		)
+	}
 
 	return NewServer(host, port, mux), nil
 }
@@ -140,4 +164,43 @@ func csvOr(key string, fallback []string) []string {
 		return fallback
 	}
 	return result
+}
+
+func macroTargetsOr(value string, fallback []marketServices.MacroIngestTarget) []marketServices.MacroIngestTarget {
+	raw := strings.TrimSpace(value)
+	if raw == "" {
+		return fallback
+	}
+
+	items := strings.Split(raw, ";")
+	targets := make([]marketServices.MacroIngestTarget, 0, len(items))
+	for _, item := range items {
+		part := strings.TrimSpace(item)
+		if part == "" {
+			continue
+		}
+		fields := strings.Split(part, "|")
+		if len(fields) < 3 {
+			continue
+		}
+		target := marketServices.MacroIngestTarget{
+			Exchange: strings.ToUpper(strings.TrimSpace(fields[0])),
+			Symbol:   strings.TrimSpace(fields[1]),
+			Asset:    strings.ToLower(strings.TrimSpace(fields[2])),
+			Limit:    180,
+		}
+		if len(fields) >= 4 {
+			if parsed, err := strconv.Atoi(strings.TrimSpace(fields[3])); err == nil && parsed > 0 {
+				target.Limit = parsed
+			}
+		}
+		if target.Exchange == "" || target.Symbol == "" || target.Asset == "" {
+			continue
+		}
+		targets = append(targets, target)
+	}
+	if len(targets) == 0 {
+		return fallback
+	}
+	return targets
 }

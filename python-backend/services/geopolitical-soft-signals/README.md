@@ -42,6 +42,14 @@ uv sync --python .\.venv\Scripts\python.exe --extra ml
 
 With the `ml` extra, `news_cluster` switches to TF-IDF + MiniBatchKMeans clustering.
 
+Optional FinBERT (HuggingFace Inference API) for `social_surge` confidence boosting:
+
+```env
+FINBERT_HF_API_TOKEN=
+# optional override (default shown)
+# FINBERT_HF_API_URL=https://api-inference.huggingface.co/models/ProsusAI/finbert
+```
+
 ## Ingestion Trigger
 
 With both services running:

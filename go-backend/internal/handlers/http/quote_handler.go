@@ -14,6 +14,7 @@ import (
 )
 
 var symbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
+var macroInstrumentPattern = regexp.MustCompile(`^[A-Z0-9_]{2,40}$`)
 
 type exchangeConfig struct {
 	upstream          string
@@ -104,7 +105,34 @@ var allowedExchanges = map[string]exchangeConfig{
 			"macro": {},
 		},
 		defaultQuote: "USD",
-		symbolFormat: "instrument_or_pair",
+		symbolFormat: "instrument",
+	},
+	"fed": {
+		upstream: "FED",
+		source:   "fred",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"boj": {
+		upstream: "BOJ",
+		source:   "fred",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"snb": {
+		upstream: "SNB",
+		source:   "fred",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
 	},
 }
 
@@ -214,8 +242,29 @@ func parseInstrumentSymbol(symbol string) (string, bool) {
 	return normalized, true
 }
 
+func parseMacroInstrumentSymbol(symbol string) (string, bool) {
+	normalized := strings.TrimSpace(strings.ToUpper(symbol))
+	normalized = strings.ReplaceAll(normalized, "-", "_")
+	normalized = strings.ReplaceAll(normalized, " ", "_")
+	normalized = strings.ReplaceAll(normalized, "__", "_")
+	if !macroInstrumentPattern.MatchString(normalized) {
+		return "", false
+	}
+	return normalized, true
+}
+
 func resolveSymbol(symbol string, cfg exchangeConfig) (gct.Pair, string, bool) {
 	switch cfg.symbolFormat {
+	case "instrument":
+		instrument, ok := parseMacroInstrumentSymbol(symbol)
+		if !ok {
+			return gct.Pair{}, "", false
+		}
+		quote := cfg.defaultQuote
+		if quote == "" {
+			quote = "USD"
+		}
+		return gct.Pair{Base: instrument, Quote: strings.ToUpper(quote)}, instrument, true
 	case "instrument_or_pair":
 		if pair, ok := parseSymbol(symbol); ok {
 			return pair, strings.ToUpper(pair.Base + "/" + pair.Quote), true

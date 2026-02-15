@@ -43,6 +43,7 @@ func BacktestCapabilitiesHandler(strategyDir string) http.HandlerFunc {
 				"portfolio-management",
 				"risk-sizing-modules",
 				"grpc-jsonrpc-gateway",
+				"run-orchestration",
 			},
 		}
 

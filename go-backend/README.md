@@ -30,10 +30,13 @@ This folder hosts the Go layer for Tradeview Fusion.
 - Local GCT fork base is present at `go-backend/vendor-forks/gocryptotrader`.
 - Gateway skeleton is in place with:
   - `GET /health`
-- `GET /api/v1/quote` (stable multi-source contract: GCT + ECB)
-- `GET /api/v1/macro/history` (historical macro/forex points via FRED/ECB)
-- `GET /api/v1/news/headlines` (RSS + GDELT + Finviz aggregation contract)
+  - `GET /api/v1/quote` (stable multi-source contract: GCT + ECB + FINNHUB + FRED/FED/BOJ/SNB)
+  - `GET /api/v1/macro/history` (historical macro/forex points via FRED/FED/BOJ/SNB/ECB)
+  - `GET /api/v1/news/headlines` (RSS + GDELT + Finviz aggregation contract)
   - `GET /api/v1/backtest/capabilities` (GCT backtester capabilities + strategy example discovery)
+  - `POST /api/v1/backtest/runs` (create run, queued/running/completed lifecycle)
+  - `GET /api/v1/backtest/runs` (list latest runs)
+  - `GET /api/v1/backtest/runs/{id}` (single run status/result)
   - `GET /api/v1/stream/market` (SSE quote events via GCT connector)
 - Connector currently calls live GCT RPC endpoints:
   - `/v1/getinfo` for health reachability
@@ -46,6 +49,11 @@ This folder hosts the Go layer for Tradeview Fusion.
   - `GET /api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity` routes to Finnhub WebSocket (`trade` events), with polling fallback via quote endpoint
 - Third non-crypto adapter slice is active:
   - `exchange=fred` + `assetType=macro` routes to FRED latest observation endpoint
+- Macro central-bank extension is active:
+  - `exchange=fed|fred|boj|snb` + `assetType=macro` share the same stable contract
+  - BOJ/SNB policy-rate defaults are resolved via FRED-series aliases (`POLICY_RATE`)
+- Optional macro ingest/ETL baseline is active:
+  - `MACRO_INGEST_ENABLED=true` runs periodic snapshots to `go-backend/data/macro`
 - Quote endpoint has strict input validation + explicit gateway/upstream error mapping (`400`, `502`, `504`).
 - SSE stream now emits:
   - `ready` event (resolved params)
@@ -66,11 +74,17 @@ Expected:
 - `http://127.0.0.1:9060/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=forex`
 - `http://127.0.0.1:9060/api/v1/quote?symbol=AAPL&exchange=finnhub&assetType=equity`
 - `http://127.0.0.1:9060/api/v1/quote?symbol=CPIAUCSL&exchange=fred&assetType=macro`
+- `http://127.0.0.1:9060/api/v1/quote?symbol=POLICY_RATE&exchange=boj&assetType=macro`
+- `http://127.0.0.1:9060/api/v1/quote?symbol=POLICY_RATE&exchange=snb&assetType=macro`
 - `http://127.0.0.1:9060/api/v1/macro/history?symbol=CPIAUCSL&exchange=fred&assetType=macro&limit=30`
 - `http://127.0.0.1:9060/api/v1/macro/history?symbol=EUR/USD&exchange=ecb&assetType=forex&limit=30`
+- `http://127.0.0.1:9060/api/v1/macro/history?symbol=POLICY_RATE&exchange=fed&assetType=macro&limit=30`
+- `http://127.0.0.1:9060/api/v1/macro/history?symbol=POLICY_RATE&exchange=boj&assetType=macro&limit=30`
+- `http://127.0.0.1:9060/api/v1/macro/history?symbol=POLICY_RATE&exchange=snb&assetType=macro&limit=30`
 - `http://127.0.0.1:9060/api/v1/news/headlines?symbol=AAPL&limit=3`
 - `http://127.0.0.1:9060/api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity`
 - `http://127.0.0.1:9060/api/v1/backtest/capabilities`
+- `curl -s -X POST http://127.0.0.1:9060/api/v1/backtest/runs -H \"Content-Type: application/json\" -d '{\"strategy\":\"dca-api-candles.strat\",\"symbol\":\"BTC/USDT\",\"exchange\":\"binance\",\"assetType\":\"spot\"}'`
 
 Environment for Finnhub:
 
@@ -85,6 +99,12 @@ Environment for FRED:
 - `FRED_API_KEY`
 - `FRED_HTTP_TIMEOUT_MS` (default: `4000`)
 
+BOJ/SNB/FED series aliases (same FRED connector):
+
+- `exchange=fed` + `symbol=POLICY_RATE` -> `FEDFUNDS`
+- `exchange=boj` + `symbol=POLICY_RATE` -> `IRSTCI01JPM156N`
+- `exchange=snb` + `symbol=POLICY_RATE` -> `IR3TIB01CHM156N`
+
 Environment for News:
 
 - `NEWS_HTTP_TIMEOUT_MS` (default: `4000`)
@@ -96,6 +116,14 @@ Environment for News:
 Environment for Backtest capability discovery:
 
 - `GCT_STRATEGY_EXAMPLES_DIR` (default: `vendor-forks/gocryptotrader/backtester/config/strategyexamples`)
+
+Environment for macro ingest snapshots:
+
+- `MACRO_INGEST_ENABLED` (default: `false`)
+- `MACRO_INGEST_INTERVAL_MS` (default: `1800000`)
+- `MACRO_INGEST_REQUEST_TIMEOUT_MS` (default: `8000`)
+- `MACRO_INGEST_OUTPUT_DIR` (default: `data/macro`)
+- `MACRO_INGEST_TARGETS` (optional; format: `EXCHANGE|SYMBOL|ASSET|LIMIT;...`)
 
 ## Run (full local stack, minimal GCT profile)
 

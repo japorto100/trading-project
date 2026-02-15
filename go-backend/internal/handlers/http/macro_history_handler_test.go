@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
 type fakeMacroHistoryService struct {
@@ -74,5 +75,25 @@ func TestMacroHistoryHandler_RejectsInvalidAssetType(t *testing.T) {
 	handler.ServeHTTP(res, req)
 	if res.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d", res.Code)
+	}
+}
+
+func TestMacroHistoryHandler_MapsBojPolicyAlias(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 0.1}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=POLICY_RATE&exchange=boj&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "BOJ" {
+		t.Fatalf("expected exchange BOJ, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base != marketServices.DefaultBojPolicySeries {
+		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBojPolicySeries, service.lastPair.Base)
 	}
 }

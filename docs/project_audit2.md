@@ -32,7 +32,7 @@ Die Detailkapitel 1-7 wurden zur Klarstellung nach `docs/archive/PROJECT_AUDIT.m
 - **Risk Management:** minimaler produktiver Sizing-Contract ist live (`POST /api/fusion/risk/position-size`, inkl. ATR-basiertem Stop-Distance-Ansatz).
 - **Trade Journal:** TypeScript/Prisma-Slice ist live (`/api/fusion/trade-journal`, `/api/fusion/trade-journal/[entryId]`) mit Notiz/Tags/Context/Screenshot-URL.
 - **Backtesting Engine:** klar in Go verorten (GCT-Backtester vorhanden); Gateway zeigt Capability bereits produktiv (`GET /api/v1/backtest/capabilities`), naechster Schritt ist echte Run/Job-Anbindung.
-- **Strategy Engine:** regelbasiert/ML-lastig in Python (FastAPI Service), nicht im Frontend und nicht direkt im GCT-Core; baseline endpoints fuer Composite/Patterns/Evaluation sind jetzt live.
+- **Strategy Engine:** regelbasiert/ML-lastig in Python (FastAPI Service), nicht im Frontend und nicht direkt im GCT-Core; Next.js nutzt dafuer Gateway-Proxy-Routen (`/api/fusion/strategy/composite`, `/api/fusion/strategy/evaluate`).
 
 ### Noch offen aus Kapitel 7 (Geopolitical AI/ML)
 
@@ -80,7 +80,10 @@ Hinweis: Diese offenen Punkte koennen ganz oder teilweise durch Referenz-Impleme
   - News-Adapter-Slice ist live: neuer Endpoint `GET /api/v1/news/headlines` aggregiert RSS + GDELT + Finviz unter einem stabilen Gateway-Contract.
   - News-Hardening ist umgesetzt: Retries (`NEWS_HTTP_RETRIES`), normalisierte Headlines und Source-Quota-Balancing im Aggregator.
   - Macro-History-Slice ist live: `GET /api/v1/macro/history` liefert FRED-Historie sowie ECB-Forex-History-Punkte im Gateway-Contract.
+  - Macro-Exchange-Ausbau ist live: `exchange=fed|fred|boj|snb` (macro) und `exchange=ecb` (forex) sind im selben Contract verfuegbar; BOJ/SNB laufen als FRED-Series-Aliases.
+  - Macro-Scheduled-Ingest ist live: optionaler Snapshot-Runner (`MACRO_INGEST_ENABLED`) persistiert FED/ECB/BOJ/SNB Daten nach `go-backend/data/macro`.
   - Backtester-Fork-Capability ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet verfuegbare GCT-Strategiebeispiele (`*.strat`) und vermeidet Doppelimplementierung.
+  - Backtest-Run-Orchestrierung als naechster Slice ist live: `POST/GET /api/v1/backtest/runs` + `GET /api/v1/backtest/runs/{id}` (queued/running/completed + Result-Store).
   - Doppelarbeit-Fork-Check abgeschlossen: Portfolio/Order/Backtesting bleiben bewusst in GCT; Gateway und Python liefern nur stabile Produkt-Contracts davor (kein Rebuild der GCT-Engine).
   - Python Soft-Signal-Service ist produktiv als Basis vorhanden (`/api/v1/cluster-headlines`, `/api/v1/social-surge`, `/api/v1/narrative-shift`), Smoke-Test verifiziert.
   - Python Indicator-Service Vertical Slice ist produktiv vorhanden (`/api/v1/signals/composite`, `/api/v1/patterns/*`, `/api/v1/indicators/exotic-ma`, `/api/v1/indicators/ks-collection`, `/api/v1/evaluate/strategy`, `/api/v1/fibonacci/levels`, `/api/v1/charting/transform`), Smoke-Test verifiziert.
@@ -340,11 +343,11 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 
 | # | Aktion | Aufwand | Wirkung |
 |---|--------|---------|---------|
-| 1 | **Indikator-Konsolidierung**: `chart/indicators/` loeschen, alles aus `lib/indicators/` nutzen | 2-3h | 1650 Zeilen toter Code weg |
-| 2 | **chartData.ts Legacy entfernen**: SMA/EMA/RSI nach `lib/indicators/` migrieren | 1h | Duplikate weg |
-| 3 | **IndicatorPanel erweitern**: Ichimoku, ADX, Parabolic SAR, Keltner, etc. aus `lib/indicators/` hinzufuegen | 4-6h | 9 weitere Indikatoren im UI |
-| 4 | **Volume Profile Visualisierung**: `calculateVolumeProfile()` an Chart-Overlay anbinden | 3-4h | Wichtiger Volume-Indikator sichtbar |
-| 5 | **Support/Resistance Overlay**: `findSupportResistance()` als horizontale Linien rendern | 2-3h | Direkt nuetzlich fuer Trading |
+| 1 | **Indikator-Konsolidierung**: `chart/indicators/` loeschen, alles aus `lib/indicators/` nutzen | **ERLEDIGT** | Altes `src/chart/indicators/*` entfernt; `src/lib/indicators` ist alleinige Quelle |
+| 2 | **chartData.ts Legacy entfernen**: SMA/EMA/RSI nach `lib/indicators/` migrieren | **ERLEDIGT** | `src/lib/chartData.ts` enthaelt nur noch Demo-/Format-Helfer, keine Indicator-Duplikate |
+| 3 | **IndicatorPanel erweitern**: Ichimoku, ADX, Parabolic SAR, Keltner, etc. aus `lib/indicators/` hinzufuegen | **ERLEDIGT** | Panel + Actions + Series-Wiring fuer Ichimoku/ADX/SAR/Keltner/HMA/ATR-Channel aktiv |
+| 4 | **Volume Profile Visualisierung**: `calculateVolumeProfile()` an Chart-Overlay anbinden | **ERLEDIGT** | Volume-Profile-Linien werden aus `calculateVolumeProfile()` im Chart gerendert |
+| 5 | **Support/Resistance Overlay**: `findSupportResistance()` als horizontale Linien rendern | **ERLEDIGT** | Support/Resistance-Linien inkl. Strength/Farbkodierung aktiv |
 
 ### Kurzfristig (1-2 Wochen, Go Backend Setup)
 
@@ -368,10 +371,10 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 
 | # | Aktion | Aufwand | Wirkung |
 |---|--------|---------|---------|
-| 9 | Stock/Forex Go-Adapter Planung (API-Mapping, Rate Limits) | **TEILWEISE ERLEDIGT (15.02.2026)** | Grundlage steht; erster produktiver Slice via ECB-Forex-Adapter im Gateway vorhanden |
+| 9 | Stock/Forex Go-Adapter Planung (API-Mapping, Rate Limits) | **ERLEDIGT (15.02.2026, baseline)** | Routing/Validation/Rate-Layer fuer Finnhub+ECB stabil, Erweiterungspfade dokumentiert |
 | 10 | Erster Go-Adapter: Finnhub REST + WS (Stocks) | **ERLEDIGT (15.02.2026)** | REST-Quote + WS-SSE-Slice live (`/api/v1/quote` + `/api/v1/stream/market` fuer `exchange=finnhub`) |
 | 11 | News-Fetching Go-Adapter: RSS + GDELT + Finviz | **ERLEDIGT (15.02.2026)** | Aggregations-Endpoint + Hardening (Retries/Quotas/Normalization) im Gateway live |
-| 12 | Macro Data Go-Adapter: FRED + ECB | **TEILWEISE ERLEDIGT (15.02.2026)** | ECB+FRED Quote-Slices + `GET /api/v1/macro/history` live; scheduled ingest/persistente ETL noch offen |
+| 12 | Macro Data Go-Adapter: FRED + ECB | **ERLEDIGT (15.02.2026, baseline+)** | `fed/fred/boj/snb/ecb` im Macro-Contract + optionaler Scheduled-Ingest (Snapshot-ETL) live |
 | 12a | GCT-Backtester Capability Slice im Gateway | **ERLEDIGT (15.02.2026)** | `GET /api/v1/backtest/capabilities` zeigt vorhandene Fork-Strategiebeispiele und dokumentiert wiederverwendbare Engine-Flaechen |
 
 **Python Rolle 1: AI/ML Soft-Signal Adapter (empfaengt Daten von Go)**
@@ -379,8 +382,8 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 | # | Aktion | Aufwand | Wirkung |
 |---|--------|---------|---------|
 | 13 | FastAPI Microservice aufsetzen (Basis fuer BEIDE Rollen) | **ERLEDIGT (15.02.2026)** | `geopolitical-soft-signals` + `indicator-service` laufen lokal reproduzierbar inkl. Smoke-Runner |
-| 14 | news_cluster Adapter implementieren (HDBSCAN + Embeddings) | **TEILWEISE ERLEDIGT (15.02.2026)** | Kandidaten-Adapter produktiv; ML-Pfad mit TF-IDF + MiniBatchKMeans aktiv, tieferes Embedding-Tuning offen |
-| 15 | social_surge Adapter implementieren (FinBERT) | **TEILWEISE ERLEDIGT (15.02.2026)** | Produktiver Social-Surge Adapter live; FinBERT/Fine-Tuning bleibt optionaler Ausbau |
+| 14 | news_cluster Adapter implementieren (HDBSCAN + Embeddings) | **TEILWEISE ERLEDIGT (15.02.2026)** | TF-IDF + MiniBatchKMeans plus Recency/Source-Weighting aktiv; Embedding-Modelle bleiben optional |
+| 15 | social_surge Adapter implementieren (FinBERT) | **TEILWEISE ERLEDIGT (15.02.2026)** | Heuristik + Source/Recency + optionaler FinBERT-HF-Boost aktiv (Token-basiert), Fine-Tuning offen |
 
 **Python Rolle 2: Indicator Service (Buch "Mastering Financial Markets")**
 
@@ -395,8 +398,9 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 | 22 | Backtesting mit GoCryptoTrader integrieren | **TEILWEISE ERLEDIGT (15.02.2026)** | Strategy-Validierung |
 
 Status-Detail zu 21/22:
-- `POST /api/v1/evaluate/strategy` liefert bereits produktive Kernmetriken (Net Return, Hit Ratio, RRR, Expectancy, Profit Factor, Sharpe, Sortino).
-- Vollstaendige GCT-Run-Orchestrierung (Backtest-Job starten, Progress/Result-Store) bleibt als naechster Integrationsschritt offen.
+- `POST /api/v1/evaluate/strategy` liefert produktive Kernmetriken (Net Return, Hit Ratio, RRR, Expectancy, Profit Factor, Sharpe, Sortino).
+- Backtest-Orchestrierung ist als Gateway-Slice live (`POST/GET /api/v1/backtest/runs`, `GET /api/v1/backtest/runs/{id}`) mit Progress/Result-Store.
+- Vollstaendige GCT-Executor-Anbindung (echter Backtest-Run gegen Fork-Engine statt simulierter Run-Result-Berechnung) bleibt offen.
 
 > **Detaillierter Plan mit 34 Todos, Phasen A-E, und allen Buch-Zeilennummern:** Siehe [`docs/INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sektion 8.
 
@@ -409,11 +413,11 @@ Status-Detail zu 21/22:
 | `src/lib/indicators/index.ts` | 824 | AKTIV | BEHALTEN - primaere Quelle |
 | `src/chart/indicators/advanced.ts` | 616 | TOT | LOESCHEN - Code nach lib/indicators/ migrieren |
 | `src/chart/indicators/index.ts` | 1033 | TOT | LOESCHEN - Registry-Konzept uebernehmen, Rest weg |
-| `src/lib/chartData.ts` | ~80 (Indikatoren) | LEGACY | LOESCHEN - durch lib/indicators/ ersetzen |
+| `src/lib/chartData.ts` | Generator-Utilities | AKTIV | BEHALTEN - Demo-/Fixture-Utilities, keine Indikator-Duplikate mehr |
 | `src/chart/engine/ChartEngine.ts` | 580 | TEILAKTIV | BEHALTEN - Custom Engine hat Wert |
 | `src/chart/engine/Layers.ts` | 810+ | TEILAKTIV | BEHALTEN - IndicatorLayer anschliessen |
 | `src/lib/providers/index.ts` | 456 | AKTIV | UEBERGANG - langfristig durch Go-Adapter ersetzen |
-| `src/lib/geopolitical/adapters/soft-signals.ts` | 34 | SCAFFOLD | ERWEITERN - Python Integration |
+| `src/lib/geopolitical/adapters/soft-signals.ts` | 280+ | AKTIV | BEHALTEN - Python-Service-Integration inkl. Budget/Timeout/Contract-Mapping |
 | `src/features/trading/SignalInsightsBar.tsx` | 103 | AKTIV | BEHALTEN + erweitern |
 | `src/components/IndicatorPanel.tsx` | 499 | AKTIV | ERWEITERN - mehr Indikatoren |
 | `src/lib/orders/types.ts` | 31 | AKTIV | ERWEITERN - Portfolio, Positions |
@@ -429,13 +433,9 @@ lib/indicators/index.ts:     OHLCV -> IndicatorData[]
 chart/indicators/index.ts:   Candle -> IndicatorPoint[]
                               (time: number, value: number)
                               Candle hat dieselben Felder wie OHLCV, nur andere Benamsung
-
-lib/chartData.ts:            CandleData -> IndicatorData[]
-                              CandleData = { time: Time, open, high, low, close, volume }
-                              Time = string | BusinessDay (Lightweight Charts spezifisch)
 ```
 
-**Loesung:** Einen einheitlichen `OHLCV`-Typ festlegen. Alle Indikatoren verwenden `OHLCV -> IndicatorData[]`. Adapter-Funktionen fuer LWC-spezifische Time-Formate.
+**Loesung:** Einen einheitlichen `OHLCV`-Typ festlegen. Alle Indikatoren verwenden `OHLCV -> IndicatorData[]`. `src/lib/chartData.ts` bleibt als Demo-/Fixture-Generator ohne eigene Indikator-Typen.
 
 ---
 

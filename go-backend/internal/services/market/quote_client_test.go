@@ -134,3 +134,19 @@ func TestQuoteClient_RoutesFredToMacroClient(t *testing.T) {
 		t.Fatalf("expected crypto client not called, got exchange %s", crypto.lastExchange)
 	}
 }
+
+func TestQuoteClient_RoutesBojWithPolicyAlias(t *testing.T) {
+	crypto := &fakeCryptoTickerClient{}
+	stock := &fakeFinnhubTickerClient{}
+	macro := &fakeFredTickerClient{ticker: gct.Ticker{Last: 0.1}}
+	forex := &fakeForexTickerClient{}
+	client := NewQuoteClient(crypto, stock, macro, forex)
+
+	_, err := client.GetTicker(context.Background(), "BOJ", gct.Pair{Base: "POLICY_RATE", Quote: "USD"}, "macro")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if macro.lastPair.Base != DefaultBojPolicySeries {
+		t.Fatalf("expected BOJ alias to %s, got %s", DefaultBojPolicySeries, macro.lastPair.Base)
+	}
+}

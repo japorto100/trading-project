@@ -85,9 +85,17 @@ Conclusion:
   - `exchange=fred` + `assetType=macro` routes to FRED `/series/observations` (API key based).
 - Macro-history slice added at gateway level:
   - `GET /api/v1/macro/history` exposes FRED historical observations and ECB forex history points under one contract.
+  - Macro exchange set now includes `FED`/`BOJ`/`SNB` aliases (`assetType=macro`) on the same contract.
+  - BOJ/SNB policy-rate baseline uses FRED-series aliases (`POLICY_RATE` -> `IRSTCI01JPM156N` / `IR3TIB01CHM156N`).
+  - Optional scheduled macro ingest baseline available via env (`MACRO_INGEST_ENABLED`) to persist snapshots in `go-backend/data/macro`.
 - News aggregation slice added at gateway level:
   - `GET /api/v1/news/headlines` merges RSS + GDELT + Finviz feeds into one contract.
   - Hardening added: connector retries (`NEWS_HTTP_RETRIES`), response normalization, dedup, and source-balancing quotas in aggregation.
 - Backtester capability slice added at gateway level:
   - `GET /api/v1/backtest/capabilities` exposes available fork strategy example files (`backtester/config/strategyexamples/*.strat`) and confirms GCT backtester feature surface without re-implementing engine logic.
+  - Backtest run orchestration slice is now present:
+    - `POST /api/v1/backtest/runs`
+    - `GET /api/v1/backtest/runs`
+    - `GET /api/v1/backtest/runs/{id}`
+  - Current run result is deterministic simulation baseline; full executor binding to real GCT backtester process remains the next step.
 - This keeps GCT focused as crypto engine while the gateway starts handling multi-asset routing under one contract.

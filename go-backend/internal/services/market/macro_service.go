@@ -37,9 +37,13 @@ func (s *MacroService) History(ctx context.Context, exchange string, pair gct.Pa
 	}
 
 	switch strings.ToUpper(strings.TrimSpace(exchange)) {
-	case "FRED":
+	case "FRED", "FED", "BOJ", "SNB":
 		if s.macroClient == nil {
 			return nil, fmt.Errorf("macro client unavailable")
+		}
+		pair.Base = ResolveMacroSeries(exchange, pair.Base)
+		if pair.Quote == "" {
+			pair.Quote = "USD"
 		}
 		return s.macroClient.GetSeries(ctx, pair, assetType, limit)
 	case "ECB":

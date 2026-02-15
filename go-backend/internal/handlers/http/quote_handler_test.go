@@ -338,6 +338,37 @@ func TestQuoteHandler_ReturnsStableContractForFredMacro(t *testing.T) {
 	}
 }
 
+func TestQuoteHandler_ReturnsStableContractForBojMacroAlias(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700004444,
+			Last:        0.1,
+			Bid:         0.1,
+			Ask:         0.1,
+			High:        0.1,
+			Low:         0.1,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=POLICY_RATE&exchange=boj&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	if client.lastExchange != "BOJ" {
+		t.Fatalf("expected forwarded exchange BOJ, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "POLICY_RATE" {
+		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
+	}
+}
+
 func TestQuoteHandler_RejectsUnsupportedAssetTypeForExchange(t *testing.T) {
 	handler := QuoteHandler(&fakeQuoteClient{})
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=spot", nil)
