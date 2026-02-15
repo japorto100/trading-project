@@ -45,6 +45,9 @@ func BacktestCapabilitiesHandler(strategyDir string) http.HandlerFunc {
 				"grpc-jsonrpc-gateway",
 				"run-orchestration",
 				"real-executor-optional",
+				"run-cancel",
+				"run-progress-sse",
+				"report-result-extraction-baseline",
 			},
 		}
 

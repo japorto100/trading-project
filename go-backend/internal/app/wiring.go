@@ -77,6 +77,7 @@ func NewServerFromEnv() (*Server, error) {
 			InsecureSkipVerifyTLS: boolOr("GCT_BACKTEST_INSECURE_TLS", false),
 			RequestTimeout:        durationMsOr("GCT_BACKTEST_REQUEST_TIMEOUT_MS", 8000),
 			PollInterval:          durationMsOr("GCT_BACKTEST_POLL_INTERVAL_MS", 750),
+			ReportOutputDir:       envOr("GCT_BACKTEST_REPORT_OUTPUT_DIR", "vendor-forks/gocryptotrader/backtester/results"),
 		})
 		if err != nil {
 			return nil, err

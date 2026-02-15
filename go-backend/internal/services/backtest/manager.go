@@ -3,6 +3,7 @@ package backtest
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"math"
@@ -17,10 +18,17 @@ import (
 type RunStatus string
 
 const (
-	RunStatusQueued    RunStatus = "queued"
-	RunStatusRunning   RunStatus = "running"
-	RunStatusCompleted RunStatus = "completed"
-	RunStatusFailed    RunStatus = "failed"
+	RunStatusQueued          RunStatus = "queued"
+	RunStatusRunning         RunStatus = "running"
+	RunStatusCancelRequested RunStatus = "cancel_requested"
+	RunStatusCanceled        RunStatus = "canceled"
+	RunStatusCompleted       RunStatus = "completed"
+	RunStatusFailed          RunStatus = "failed"
+)
+
+var (
+	ErrRunNotFound      = errors.New("run not found")
+	ErrRunNotCancelable = errors.New("run not cancelable")
 )
 
 type RunRequest struct {
@@ -59,6 +67,8 @@ type Manager struct {
 	executionTimeout time.Duration
 	mu               sync.RWMutex
 	runs             map[string]Run
+	runCancels       map[string]context.CancelFunc
+	cancelRequested  map[string]bool
 }
 
 func NewManager(strategyDir string) *Manager {
@@ -77,6 +87,8 @@ func NewManagerWithExecutor(strategyDir string, executor Executor, executionTime
 		executor:         executor,
 		executionTimeout: executionTimeout,
 		runs:             make(map[string]Run),
+		runCancels:       make(map[string]context.CancelFunc),
+		cancelRequested:  make(map[string]bool),
 	}
 }
 
@@ -121,6 +133,57 @@ func (m *Manager) Get(id string) (Run, bool) {
 	defer m.mu.RUnlock()
 	run, ok := m.runs[id]
 	return run, ok
+}
+
+func (m *Manager) Cancel(id string) (Run, error) {
+	var cancel context.CancelFunc
+	m.mu.Lock()
+	run, ok := m.runs[id]
+	if !ok {
+		m.mu.Unlock()
+		return Run{}, ErrRunNotFound
+	}
+
+	switch run.Status {
+	case RunStatusQueued:
+		run.Status = RunStatusCanceled
+		run.Progress = 100
+		run.CompletedAt = time.Now().Unix()
+		run.Error = "canceled by user"
+		m.runs[id] = run
+		if fn, hasCancel := m.runCancels[id]; hasCancel {
+			cancel = fn
+		}
+	case RunStatusRunning:
+		run.Status = RunStatusCancelRequested
+		if run.Progress < 95 {
+			run.Progress = 95
+		}
+		m.runs[id] = run
+		m.cancelRequested[id] = true
+		if fn, hasCancel := m.runCancels[id]; hasCancel {
+			cancel = fn
+		}
+	case RunStatusCancelRequested:
+		m.cancelRequested[id] = true
+		if fn, hasCancel := m.runCancels[id]; hasCancel {
+			cancel = fn
+		}
+	case RunStatusCanceled, RunStatusCompleted, RunStatusFailed:
+		m.mu.Unlock()
+		return Run{}, ErrRunNotCancelable
+	default:
+		m.mu.Unlock()
+		return Run{}, ErrRunNotCancelable
+	}
+
+	updated := m.runs[id]
+	m.mu.Unlock()
+
+	if cancel != nil {
+		cancel()
+	}
+	return updated, nil
 }
 
 func (m *Manager) List(limit int) []Run {
@@ -186,6 +249,9 @@ func (m *Manager) execute(runID string) {
 	if !ok {
 		return
 	}
+	if isTerminalStatus(run.Status) {
+		return
+	}
 
 	strategyPath, err := m.validateStrategy(run.Request.Strategy)
 	if err != nil {
@@ -198,21 +264,27 @@ func (m *Manager) execute(runID string) {
 		return
 	}
 
-	m.update(runID, func(run *Run) {
-		run.Status = RunStatusRunning
-		run.Progress = 30
-		run.StartedAt = time.Now().Unix()
-	})
-
 	ctx, cancel := context.WithTimeout(context.Background(), m.executionTimeout)
-	defer cancel()
+	m.setRunCancel(runID, cancel)
+	defer m.clearRunCancel(runID)
+
+	if !m.transitionToRunning(runID) {
+		cancel()
+		return
+	}
 
 	outcome, err := m.executor.Execute(ctx, run.Request, strategyPath)
 	if err != nil {
+		canceledByUser := errors.Is(err, context.Canceled) && m.isCancelRequested(runID)
 		m.update(runID, func(run *Run) {
-			run.Status = RunStatusFailed
 			run.Progress = 100
 			run.CompletedAt = time.Now().Unix()
+			if canceledByUser {
+				run.Status = RunStatusCanceled
+				run.Error = "canceled by user"
+				return
+			}
+			run.Status = RunStatusFailed
 			run.Error = err.Error()
 		})
 		return
@@ -227,6 +299,32 @@ func (m *Manager) execute(runID string) {
 	})
 }
 
+func (m *Manager) transitionToRunning(runID string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	run, ok := m.runs[runID]
+	if !ok {
+		return false
+	}
+	if run.Status == RunStatusCanceled {
+		return false
+	}
+	if run.Status == RunStatusCancelRequested {
+		if fn, hasCancel := m.runCancels[runID]; hasCancel && fn != nil {
+			fn()
+		}
+		return false
+	}
+	if run.Status != RunStatusQueued && run.Status != RunStatusRunning {
+		return false
+	}
+	run.Status = RunStatusRunning
+	run.Progress = 30
+	run.StartedAt = time.Now().Unix()
+	m.runs[runID] = run
+	return true
+}
+
 func (m *Manager) update(runID string, apply func(run *Run)) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -236,6 +334,34 @@ func (m *Manager) update(runID string, apply func(run *Run)) {
 	}
 	apply(&run)
 	m.runs[runID] = run
+}
+
+func (m *Manager) setRunCancel(runID string, cancel context.CancelFunc) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.runCancels[runID] = cancel
+}
+
+func (m *Manager) clearRunCancel(runID string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.runCancels, runID)
+	delete(m.cancelRequested, runID)
+}
+
+func (m *Manager) isCancelRequested(runID string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.cancelRequested[runID]
+}
+
+func isTerminalStatus(status RunStatus) bool {
+	switch status {
+	case RunStatusCompleted, RunStatusFailed, RunStatusCanceled:
+		return true
+	default:
+		return false
+	}
 }
 
 func simulateResult(req RunRequest) RunResult {

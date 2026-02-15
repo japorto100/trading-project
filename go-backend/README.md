@@ -34,9 +34,11 @@ This folder hosts the Go layer for Tradeview Fusion.
   - `GET /api/v1/macro/history` (historical macro/forex points via FRED/FED/BOJ/SNB/ECB)
   - `GET /api/v1/news/headlines` (RSS + GDELT + Finviz aggregation contract)
   - `GET /api/v1/backtest/capabilities` (GCT backtester capabilities + strategy example discovery)
-  - `POST /api/v1/backtest/runs` (create run, queued/running/completed lifecycle)
+  - `POST /api/v1/backtest/runs` (create run lifecycle)
   - `GET /api/v1/backtest/runs` (list latest runs)
   - `GET /api/v1/backtest/runs/{id}` (single run status/result)
+  - `POST /api/v1/backtest/runs/{id}/cancel` (cancel queued/running run)
+  - `GET /api/v1/backtest/runs/{id}/stream` (SSE progress stream: `ready`, `run`, `heartbeat`, `done`)
   - `GET /api/v1/stream/market` (SSE quote events via GCT connector)
 - Connector currently calls live GCT RPC endpoints:
   - `/v1/getinfo` for health reachability
@@ -57,6 +59,7 @@ This folder hosts the Go layer for Tradeview Fusion.
 - Optional real backtest executor is active (env-gated):
   - default mode: simulated run executor (for local/dev contract validation)
   - real mode: GCT backtester task lifecycle via gRPC (`ExecuteStrategyFromFile` -> `StartTask` -> `ListAllTasks`)
+  - real mode includes best-effort report extraction (Strategy Movement, Sharpe, Drawdown, Trades) from generated HTML report artifacts
 - Quote endpoint has strict input validation + explicit gateway/upstream error mapping (`400`, `502`, `504`).
 - SSE stream now emits:
   - `ready` event (resolved params)
@@ -88,6 +91,8 @@ Expected:
 - `http://127.0.0.1:9060/api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity`
 - `http://127.0.0.1:9060/api/v1/backtest/capabilities`
 - `curl -s -X POST http://127.0.0.1:9060/api/v1/backtest/runs -H \"Content-Type: application/json\" -d '{\"strategy\":\"dca-api-candles.strat\",\"symbol\":\"BTC/USDT\",\"exchange\":\"binance\",\"assetType\":\"spot\"}'`
+- `curl -s -X POST http://127.0.0.1:9060/api/v1/backtest/runs/{id}/cancel`
+- `http://127.0.0.1:9060/api/v1/backtest/runs/{id}/stream`
 
 Environment for Finnhub:
 
@@ -130,6 +135,16 @@ Environment for real GCT backtest execution (optional):
 - `GCT_BACKTEST_REQUEST_TIMEOUT_MS` (default: `8000`)
 - `GCT_BACKTEST_POLL_INTERVAL_MS` (default: `750`)
 - `GCT_BACKTEST_RUN_TIMEOUT_MS` (default: `300000`)
+- `GCT_BACKTEST_REPORT_OUTPUT_DIR` (default: `vendor-forks/gocryptotrader/backtester/results`)
+
+Backtest run status model:
+
+- `queued`
+- `running`
+- `cancel_requested`
+- `canceled`
+- `completed`
+- `failed`
 
 Environment for macro ingest snapshots:
 

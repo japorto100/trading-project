@@ -36,8 +36,9 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Soft-Signal-Basis wurde erweitert: Source-/Recency-Gewichtung und optionaler FinBERT-HF-Boost im `social-surge` Adapter (Token-gesteuert).
 - Python Indicator-Referenzen sind als baseline-Slice produktiv angebunden: `signals/composite`, `patterns/*`, `indicators/exotic-ma`, `indicators/ks-collection`, `evaluate/strategy`.
 - Doppelarbeit-Prinzip ist festgelegt: Backtesting/Portfolio/Order-Execution bleiben im GCT-Fork; eigene Services liefern Contracts/Validation statt Engine-Rebuild.
-- Backtest-Referenz ist auf Run-Management erweitert: `POST/GET /api/v1/backtest/runs` + `GET /api/v1/backtest/runs/{id}` (Progress/Result-Store-Baseline).
+- Backtest-Referenz ist auf Run-Management erweitert: `POST/GET /api/v1/backtest/runs`, `GET /api/v1/backtest/runs/{id}`, `POST /api/v1/backtest/runs/{id}/cancel`, `GET /api/v1/backtest/runs/{id}/stream`.
 - Optionaler echter GCT-Executor ist im Gateway angebunden: Run-Manager kann statt Simulationsmodus reale Backtester-Tasks via gRPC ausfuehren (Env-gesteuert).
+- Ergebnis-Mapping ist baseline aktiv: Gateway extrahiert best-effort Sharpe/Drawdown/Trades/Strategy-Movement aus GCT-Report-HTML in den stabilen Run-Contract.
 - Architekturklarstellung: Go/GCT bleibt die kanonische Backtest-Engine; Python bleibt fuer Signal-/ML-Research und liefert keine zweite konkurrierende Ausfuehrungslogik.
 
 ---

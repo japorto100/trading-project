@@ -83,8 +83,9 @@ Hinweis: Diese offenen Punkte koennen ganz oder teilweise durch Referenz-Impleme
   - Macro-Exchange-Ausbau ist live: `exchange=fed|fred|boj|snb` (macro) und `exchange=ecb` (forex) sind im selben Contract verfuegbar; BOJ/SNB laufen als FRED-Series-Aliases.
   - Macro-Scheduled-Ingest ist live: optionaler Snapshot-Runner (`MACRO_INGEST_ENABLED`) persistiert FED/ECB/BOJ/SNB Daten nach `go-backend/data/macro`.
   - Backtester-Fork-Capability ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet verfuegbare GCT-Strategiebeispiele (`*.strat`) und vermeidet Doppelimplementierung.
-  - Backtest-Run-Orchestrierung ist live: `POST/GET /api/v1/backtest/runs` + `GET /api/v1/backtest/runs/{id}` (queued/running/completed + Result-Store).
+  - Backtest-Run-Orchestrierung ist live: `POST/GET /api/v1/backtest/runs`, `GET /api/v1/backtest/runs/{id}`, `POST /api/v1/backtest/runs/{id}/cancel`, `GET /api/v1/backtest/runs/{id}/stream`.
   - Optionaler echter GCT-Executor ist integriert (Env-gesteuert): statt Simulationspfad kann der Manager reale Backtester-Tasks (`ExecuteStrategyFromFile` + `StartTask` + `ListAllTasks`) gegen den Fork-Backtester ausfuehren.
+  - Ergebnis-Mapping wurde erweitert: best-effort Extraktion von `Strategy Movement`, `Sharpe Ratio`, `Biggest/Max Drawdown`, `Total Orders` aus GCT-Report-Artefakten in den stabilen `RunResult`-Contract.
   - Doppelarbeit-Fork-Check abgeschlossen: Portfolio/Order/Backtesting bleiben bewusst in GCT; Gateway und Python liefern nur stabile Produkt-Contracts davor (kein Rebuild der GCT-Engine).
   - Python Soft-Signal-Service ist produktiv als Basis vorhanden (`/api/v1/cluster-headlines`, `/api/v1/social-surge`, `/api/v1/narrative-shift`), Smoke-Test verifiziert.
   - Python Indicator-Service Vertical Slice ist produktiv vorhanden (`/api/v1/signals/composite`, `/api/v1/patterns/*`, `/api/v1/indicators/exotic-ma`, `/api/v1/indicators/ks-collection`, `/api/v1/evaluate/strategy`, `/api/v1/fibonacci/levels`, `/api/v1/charting/transform`), Smoke-Test verifiziert.
@@ -400,9 +401,9 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 
 Status-Detail zu 21/22:
 - `POST /api/v1/evaluate/strategy` liefert produktive Kernmetriken (Net Return, Hit Ratio, RRR, Expectancy, Profit Factor, Sharpe, Sortino).
-- Backtest-Orchestrierung ist als Gateway-Slice live (`POST/GET /api/v1/backtest/runs`, `GET /api/v1/backtest/runs/{id}`) mit Progress/Result-Store.
+- Backtest-Orchestrierung ist als Gateway-Slice live (`POST/GET /api/v1/backtest/runs`, `GET /api/v1/backtest/runs/{id}`, `POST /api/v1/backtest/runs/{id}/cancel`, `GET /api/v1/backtest/runs/{id}/stream`) mit Progress/Result-Store.
 - Echter GCT-Executor-Pfad ist als optionaler Runtime-Modus umgesetzt (Env-gesteuert, Task-Lifecycle gegen Backtester gRPC).
-- Offen bleibt der Vollausbau der Ergebnisextraktion (vollstaendige Kennzahlen/Artefakte direkt aus GCT-Run in den Gateway-Result-Contract).
+- Ergebnisextraktion ist als baseline live (Sharpe/Drawdown/Orders/Strategy-Movement via Report-Parsing); offen bleibt der Vollausbau auf vollstaendige Artefakt-/Metrikabdeckung aus GCT.
 
 > **Detaillierter Plan mit 34 Todos, Phasen A-E, und allen Buch-Zeilennummern:** Siehe [`docs/INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sektion 8.
 

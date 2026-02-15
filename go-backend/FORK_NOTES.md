@@ -97,8 +97,11 @@ Conclusion:
     - `POST /api/v1/backtest/runs`
     - `GET /api/v1/backtest/runs`
     - `GET /api/v1/backtest/runs/{id}`
+    - `POST /api/v1/backtest/runs/{id}/cancel`
+    - `GET /api/v1/backtest/runs/{id}/stream`
   - Run manager now supports two execution modes:
     - simulated baseline (default, contract/dev flow)
     - optional real GCT backtester execution via gRPC (`ExecuteStrategyFromFile` -> `StartTask` -> `ListAllTasks`) behind env toggle.
+  - Report extraction baseline added: best-effort parse from generated GCT HTML reports (`Strategy Movement`, `Sharpe Ratio`, `Biggest/Max Drawdown`, `Total Orders`) into gateway `RunResult`.
   - Remaining gap for full production parity: direct extraction of full metrics/artifacts from completed GCT tasks into gateway result contract.
 - This keeps GCT focused as crypto engine while the gateway starts handling multi-asset routing under one contract.

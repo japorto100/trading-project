@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ type GCTExecutorConfig struct {
 	InsecureSkipVerifyTLS bool
 	RequestTimeout        time.Duration
 	PollInterval          time.Duration
+	ReportOutputDir       string
 }
 
 type backtesterRPCClient interface {
@@ -49,6 +51,10 @@ func NewGCTExecutor(cfg GCTExecutorConfig) (*GCTExecutor, error) {
 	if cfg.PollInterval <= 0 {
 		cfg.PollInterval = 600 * time.Millisecond
 	}
+	cfg.ReportOutputDir = strings.TrimSpace(cfg.ReportOutputDir)
+	if cfg.ReportOutputDir != "" {
+		cfg.ReportOutputDir = filepath.Clean(cfg.ReportOutputDir)
+	}
 	return &GCTExecutor{cfg: cfg}, nil
 }
 
@@ -61,6 +67,7 @@ func (e *GCTExecutor) Execute(ctx context.Context, req RunRequest, strategyPath 
 	if err != nil {
 		return ExecutionOutcome{}, err
 	}
+	startedAt := time.Now()
 
 	execReq := &btrpc.ExecuteStrategyFromFileRequest{
 		StrategyFilePath:    strategyPath,
@@ -97,8 +104,11 @@ func (e *GCTExecutor) Execute(ctx context.Context, req RunRequest, strategyPath 
 		return ExecutionOutcome{}, err
 	}
 
+	result, _ := extractGCTReportResult(e.cfg.ReportOutputDir, execResp.GetTask().GetStrategyName(), startedAt)
+
 	return ExecutionOutcome{
 		UpstreamTaskID: taskID,
+		Result:         result,
 	}, nil
 }
 

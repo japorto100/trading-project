@@ -15,6 +15,17 @@ type fakeExecutor struct {
 	err     error
 }
 
+type blockingExecutor struct{}
+
+func (b *blockingExecutor) Name() string {
+	return "blocking"
+}
+
+func (b *blockingExecutor) Execute(ctx context.Context, _ RunRequest, _ string) (ExecutionOutcome, error) {
+	<-ctx.Done()
+	return ExecutionOutcome{}, ctx.Err()
+}
+
 func (f *fakeExecutor) Name() string {
 	if f.name != "" {
 		return f.name
@@ -157,4 +168,78 @@ func TestManagerMarksRunFailedWhenExecutorFails(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 	}
 	t.Fatal("run did not fail in time")
+}
+
+func TestManagerCancelQueuedRun(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "demo.strat"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("write strategy: %v", err)
+	}
+
+	manager := NewManagerWithExecutor(dir, &blockingExecutor{}, 2*time.Second)
+	run, err := manager.Start(RunRequest{
+		Strategy:  "demo.strat",
+		Symbol:    "BTC/USDT",
+		Exchange:  "binance",
+		AssetType: "spot",
+	})
+	if err != nil {
+		t.Fatalf("start run: %v", err)
+	}
+
+	cancelled, cancelErr := manager.Cancel(run.ID)
+	if cancelErr != nil {
+		t.Fatalf("cancel run: %v", cancelErr)
+	}
+	if cancelled.Status != RunStatusCanceled && cancelled.Status != RunStatusCancelRequested {
+		t.Fatalf("expected canceled or cancel_requested, got %s", cancelled.Status)
+	}
+
+	deadline := time.Now().Add(1200 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		current, ok := manager.Get(run.ID)
+		if !ok {
+			t.Fatal("run should exist")
+		}
+		if current.Status == RunStatusCanceled {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("run was not canceled")
+}
+
+func TestManagerCancelCompletedRunReturnsConflict(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "demo.strat"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("write strategy: %v", err)
+	}
+
+	manager := NewManagerWithExecutor(dir, &fakeExecutor{}, 500*time.Millisecond)
+	run, err := manager.Start(RunRequest{
+		Strategy:  "demo.strat",
+		Symbol:    "BTC/USDT",
+		Exchange:  "binance",
+		AssetType: "spot",
+	})
+	if err != nil {
+		t.Fatalf("start run: %v", err)
+	}
+
+	deadline := time.Now().Add(1200 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		current, ok := manager.Get(run.ID)
+		if !ok {
+			t.Fatal("run should exist")
+		}
+		if current.Status == RunStatusCompleted {
+			_, cancelErr := manager.Cancel(run.ID)
+			if !errors.Is(cancelErr, ErrRunNotCancelable) {
+				t.Fatalf("expected ErrRunNotCancelable, got %v", cancelErr)
+			}
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("run did not complete in time")
 }
