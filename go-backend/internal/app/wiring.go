@@ -37,6 +37,7 @@ func NewServerFromEnv() (*Server, error) {
 	})
 	finnhubClient := finnhub.NewClient(finnhub.Config{
 		BaseURL:        envOr("FINNHUB_BASE_URL", finnhub.DefaultBaseURL),
+		WSBaseURL:      envOr("FINNHUB_WS_BASE_URL", finnhub.DefaultWSBaseURL),
 		APIKey:         envOr("FINNHUB_API_KEY", ""),
 		RequestTimeout: durationMsOr("FINNHUB_HTTP_TIMEOUT_MS", 4000),
 	})
@@ -46,6 +47,7 @@ func NewServerFromEnv() (*Server, error) {
 		RequestTimeout: durationMsOr("FRED_HTTP_TIMEOUT_MS", 4000),
 	})
 	quoteClient := marketServices.NewQuoteClient(gctClient, finnhubClient, fredClient, ecbClient)
+	streamClient := marketServices.NewStreamClient(quoteClient, gctClient, finnhubClient)
 	rssClient := newsConnectors.NewRSSClient(newsConnectors.RSSClientConfig{
 		FeedURLs:       csvOr("NEWS_RSS_FEEDS", []string{"https://feeds.marketwatch.com/marketwatch/topstories/"}),
 		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
@@ -59,12 +61,14 @@ func NewServerFromEnv() (*Server, error) {
 		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
 	})
 	newsService := marketServices.NewNewsService(rssClient, gdeltClient, finvizClient)
+	strategyExamplesDir := envOr("GCT_STRATEGY_EXAMPLES_DIR", "vendor-forks/gocryptotrader/backtester/config/strategyexamples")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))
 	mux.HandleFunc("/api/v1/quote", httpHandlers.QuoteHandler(quoteClient))
-	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(gctClient))
+	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient))
 	mux.HandleFunc("/api/v1/news/headlines", httpHandlers.NewsHandler(newsService))
+	mux.HandleFunc("/api/v1/backtest/capabilities", httpHandlers.BacktestCapabilitiesHandler(strategyExamplesDir))
 
 	return NewServer(host, port, mux), nil
 }

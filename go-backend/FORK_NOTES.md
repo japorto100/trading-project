@@ -79,8 +79,12 @@ Conclusion:
   - `exchange=ecb` + `assetType=forex` is served via official ECB daily FX feed (`eurofxref-daily.xml`).
 - Second non-crypto adapter slice added at gateway level:
   - `exchange=finnhub` + `assetType=equity` routes to Finnhub `/quote` (API key based).
+- Finnhub WS stream slice added at gateway level:
+  - `GET /api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity` now consumes Finnhub trade WebSocket and keeps same SSE contract (`ready`/`quote`/`heartbeat`/`upstream_error`) with polling fallback.
 - Third non-crypto adapter slice added at gateway level:
   - `exchange=fred` + `assetType=macro` routes to FRED `/series/observations` (API key based).
 - News aggregation slice added at gateway level:
   - `GET /api/v1/news/headlines` merges RSS + GDELT + Finviz feeds into one contract.
+- Backtester capability slice added at gateway level:
+  - `GET /api/v1/backtest/capabilities` exposes available fork strategy example files (`backtester/config/strategyexamples/*.strat`) and confirms GCT backtester feature surface without re-implementing engine logic.
 - This keeps GCT focused as crypto engine while the gateway starts handling multi-asset routing under one contract.

@@ -15,18 +15,79 @@ import (
 
 var streamSymbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
 
-var streamAllowedExchanges = map[string]string{
-	"binance":  "Binance",
-	"kraken":   "Kraken",
-	"coinbase": "Coinbase",
-	"okx":      "OKX",
-	"bybit":    "Bybit",
+type streamExchangeConfig struct {
+	upstream          string
+	source            string
+	allowedAssetTypes map[string]struct{}
+	defaultQuote      string
+	symbolFormat      string
 }
 
-var streamAllowedAssetTypes = map[string]struct{}{
-	"spot":    {},
-	"margin":  {},
-	"futures": {},
+var streamAllowedExchanges = map[string]streamExchangeConfig{
+	"binance": {
+		upstream: "Binance",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+		defaultQuote: "USDT",
+		symbolFormat: "pair",
+	},
+	"kraken": {
+		upstream: "Kraken",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "pair",
+	},
+	"coinbase": {
+		upstream: "Coinbase",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "pair",
+	},
+	"okx": {
+		upstream: "OKX",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+		defaultQuote: "USDT",
+		symbolFormat: "pair",
+	},
+	"bybit": {
+		upstream: "Bybit",
+		source:   "gct",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+		},
+		defaultQuote: "USDT",
+		symbolFormat: "pair",
+	},
+	"finnhub": {
+		upstream: "FINNHUB",
+		source:   "finnhub",
+		allowedAssetTypes: map[string]struct{}{
+			"equity": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument_or_pair",
+	},
 }
 
 type streamTickerClient interface {
@@ -35,11 +96,12 @@ type streamTickerClient interface {
 }
 
 type streamParams struct {
-	Symbol      string
-	Exchange    string
-	GCTExchange string
-	AssetType   string
-	Pair        gct.Pair
+	Symbol           string
+	Exchange         string
+	UpstreamExchange string
+	AssetType        string
+	Pair             gct.Pair
+	Source           string
 }
 
 func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
@@ -73,7 +135,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 			}
 		}()
 
-		tickerChannel, streamErrorChannel, streamError := client.OpenTickerStream(r.Context(), params.GCTExchange, params.Pair, params.AssetType)
+		tickerChannel, streamErrorChannel, streamError := client.OpenTickerStream(r.Context(), params.UpstreamExchange, params.Pair, params.AssetType)
 		if streamError != nil {
 			quoteTicker = time.NewTicker(2 * time.Second)
 			pollingTick = quoteTicker.C
@@ -129,7 +191,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					Low:       tickerValue.Low,
 					Volume:    tickerValue.Volume,
 					Timestamp: timestamp,
-					Source:    "gct",
+					Source:    params.Source,
 				}
 
 				_ = writeSSEEvent(w, "quote", quote)
@@ -148,7 +210,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					pollingTick = quoteTicker.C
 				}
 			case <-pollingTick:
-				ticker, tickerErr := client.GetTicker(r.Context(), params.GCTExchange, params.Pair, params.AssetType)
+				ticker, tickerErr := client.GetTicker(r.Context(), params.UpstreamExchange, params.Pair, params.AssetType)
 				if tickerErr != nil {
 					_ = writeSSEEvent(w, "upstream_error", map[string]string{
 						"message": "upstream quote unavailable",
@@ -173,7 +235,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					Low:       ticker.Low,
 					Volume:    ticker.Volume,
 					Timestamp: timestamp,
-					Source:    "gct",
+					Source:    params.Source,
 				}
 
 				_ = writeSSEEvent(w, "quote", quote)
@@ -188,26 +250,25 @@ func resolveStreamParams(r *http.Request) (streamParams, error) {
 	exchange := strings.ToLower(streamValueOrDefault(r.URL.Query().Get("exchange"), "binance"))
 	assetType := strings.ToLower(streamValueOrDefault(r.URL.Query().Get("assetType"), "spot"))
 
-	pair, ok := streamParseSymbol(symbol)
-	if !ok {
-		return streamParams{}, fmt.Errorf("invalid symbol format, expected BASE/QUOTE")
-	}
-
-	gctExchange, ok := streamAllowedExchanges[exchange]
+	exchangeConfig, ok := streamAllowedExchanges[exchange]
 	if !ok {
 		return streamParams{}, fmt.Errorf("unsupported exchange")
 	}
-
-	if _, ok := streamAllowedAssetTypes[assetType]; !ok {
+	pair, normalizedSymbol, ok := resolveStreamSymbol(symbol, exchangeConfig)
+	if !ok {
+		return streamParams{}, fmt.Errorf("invalid symbol format, expected BASE/QUOTE")
+	}
+	if _, ok := exchangeConfig.allowedAssetTypes[assetType]; !ok {
 		return streamParams{}, fmt.Errorf("unsupported assetType")
 	}
 
 	return streamParams{
-		Symbol:      strings.ToUpper(pair.Base + "/" + pair.Quote),
-		Exchange:    exchange,
-		GCTExchange: gctExchange,
-		AssetType:   assetType,
-		Pair:        pair,
+		Symbol:           normalizedSymbol,
+		Exchange:         exchange,
+		UpstreamExchange: exchangeConfig.upstream,
+		AssetType:        assetType,
+		Pair:             pair,
+		Source:           exchangeConfig.source,
 	}, nil
 }
 
@@ -235,6 +296,41 @@ func streamParseSymbol(symbol string) (gct.Pair, bool) {
 		Base:  parts[0],
 		Quote: parts[1],
 	}, true
+}
+
+func streamParseInstrumentSymbol(symbol string) (string, bool) {
+	normalized := strings.TrimSpace(strings.ToUpper(symbol))
+	normalized = strings.ReplaceAll(normalized, "-", "")
+	normalized = strings.ReplaceAll(normalized, "_", "")
+
+	if !streamSymbolPartPattern.MatchString(normalized) {
+		return "", false
+	}
+	return normalized, true
+}
+
+func resolveStreamSymbol(symbol string, config streamExchangeConfig) (gct.Pair, string, bool) {
+	switch config.symbolFormat {
+	case "instrument_or_pair":
+		if pair, ok := streamParseSymbol(symbol); ok {
+			return pair, strings.ToUpper(pair.Base + "/" + pair.Quote), true
+		}
+		instrument, ok := streamParseInstrumentSymbol(symbol)
+		if !ok {
+			return gct.Pair{}, "", false
+		}
+		quote := config.defaultQuote
+		if quote == "" {
+			quote = "USD"
+		}
+		return gct.Pair{Base: instrument, Quote: strings.ToUpper(quote)}, instrument, true
+	default:
+		pair, ok := streamParseSymbol(symbol)
+		if !ok {
+			return gct.Pair{}, "", false
+		}
+		return pair, strings.ToUpper(pair.Base + "/" + pair.Quote), true
+	}
 }
 
 func writeSSEEvent(w http.ResponseWriter, event string, payload any) error {

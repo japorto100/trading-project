@@ -25,9 +25,11 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Hinweis fuer Windows-Race-Runner: `CGO_ENABLED=1` + `gcc` im `PATH` (z. B. `C:\msys64\ucrt64\bin`).
 - Team-Runner vorhanden: `go-backend/scripts/test-go.ps1` fuer reproduzierbare Quality-Gates.
 - Erster Nicht-Crypto-Adapter ist produktiv im Gateway: ECB-Forex-Quotes (`exchange=ecb`, `assetType=forex`) ueber offiziellen ECB-Feed.
-- Finnhub-Referenz ist jetzt teilweise produktiv umgesetzt: Go-Gateway liefert Equity-Quotes fuer `exchange=finnhub` (REST-Slice), WS-Folgearbeit bleibt offen.
+- Finnhub-Referenz ist jetzt weitgehend produktiv umgesetzt: Go-Gateway liefert Equity-Quotes (`/api/v1/quote`) und Equity-Streams (`/api/v1/stream/market` via Finnhub-WS mit Polling-Fallback) fuer `exchange=finnhub`.
 - FRED-Referenz ist jetzt teilweise produktiv umgesetzt: Go-Gateway liefert Macro-Quotes fuer `exchange=fred` (REST-Slice), historische/ingest-orientierte Endpunkte folgen.
 - News-Referenzen (RSS/GDELT/Finviz) sind als erster Go-Aggregationsslice aktiv: `GET /api/v1/news/headlines` im Gateway liefert normalisierte Headlines.
+- Pre-8 Portfolio-Slices sind im Next.js-Backend produktiv: persistente P&L-History (`/api/fusion/portfolio/history`), Risk-Sizing (`/api/fusion/risk/position-size`) und Trade-Journal (`/api/fusion/trade-journal`).
+- GCT-Backtester-Referenz ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet vorhandene `*.strat`-Beispiele aus dem Fork.
 
 ---
 
@@ -57,7 +59,7 @@ Schnell-Navigator -- fuer jedes Kernthema die wichtigste Ressource auf einen Bli
 |---|---|---|---|---|
 | **Groesste Multi-Exchange API** | [CCXT](https://github.com/ccxt/ccxt) | 100+ Boersen, Unified API, MIT, 40.900 Stars. **Uebergangs-Tool** bis Go-Adapter die TS-Provider ersetzen | **Nein**, `bun add ccxt` | 4 |
 | **HTTP Client mit Circuit-Breaker** | [ffetch](https://github.com/gkoos/ffetch) | **Uebergangs-Tool** fuer bestehende TS-Provider-Calls, Retry, Dedup, Zero Dependencies | **Nein**, `bun add @fetchkit/ffetch` | 4 |
-| **WebSocket Streaming (Stocks)** | [Finnhub WS](https://github.com/Alcapone-Fx/finnhub-websocket) | Referenz-Implementierung -- wird langfristig als Go-Adapter umgesetzt (Goroutines + persistente WS) | **Nein**, reines React + WS | 7 |
+| **WebSocket Streaming (Stocks)** | [Finnhub WS](https://github.com/Alcapone-Fx/finnhub-websocket) | Referenz-Implementierung; im Gateway bereits als Finnhub-WS-Slice umgesetzt (SSE-Bridge + Polling-Fallback) | **Nein**, reines React + WS | 7 |
 | **Forex/Macro Basis ohne API-Key** | [ECB eurofxref-daily.xml](https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml) | Offizieller FX-Referenzfeed; bereits als erster Nicht-Crypto-Adapter im Go-Gateway integriert (`exchange=ecb`, `assetType=forex`) | **Nein**, direkte HTTP/XML Abfrage | 4.5 |
 
 > **Langfristig:** Alle Daten-Beschaffung (Crypto, Stocks, Forex, Macro, News) wandert in die Go-Schicht. Die TS-Tools CCXT und ffetch dienen als Uebergangs-Loesung bis eigene Go-Adapter sie ersetzen.
@@ -765,7 +767,7 @@ Unser aktuelles Market-Streaming in `src/app/api/market/stream/route.ts` nutzt S
 
 > **Scope-Aenderung durch Go Unified Data Layer (Sektion 4.5):**
 > - **Crypto-WebSocket:** Wird vollstaendig von GoCryptoTrader abgedeckt (30+ Exchanges, native WebSocket, <100ms Latenz).
-> - **Stocks/Forex-WebSocket:** Wird langfristig ebenfalls von **Go-Adaptern** abgedeckt (z.B. Finnhub WS als Go-Goroutine mit persistenter Verbindung). Die folgenden TS-Projekte dienen als **Referenz-Implementierungen** fuer die WebSocket-Patterns die dann in Go umgesetzt werden.
+> - **Stocks/Forex-WebSocket:** Wird durch **Go-Adapter** abgedeckt; Finnhub-WS ist bereits als produktiver Gateway-Slice vorhanden (SSE-Bridge). Die folgenden TS-Projekte bleiben als Referenz fuer weitere Adapter (Twelve Data, Polygon etc.).
 > - **Prinzip:** Alle persistenten Daten-Verbindungen (WebSocket, Long-Polling) gehoeren in die Go-Schicht -- dauerlaufender Service mit Goroutines ist dafuer ideal.
 
 ### Finnhub WebSocket

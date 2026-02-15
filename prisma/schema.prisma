@@ -52,6 +52,8 @@ model UserProfile {
   watchlists        Watchlist[]
   alerts            PriceAlertRecord[]
   orders            PaperOrderRecord[]
+  portfolioSnapshots PortfolioSnapshotRecord[]
+  tradeJournalEntries TradeJournalRecord[]
   layoutPreference  LayoutPreference?
 }
 
@@ -135,6 +137,34 @@ model PaperOrderRecord {
 
   @@index([profileId, symbol, status])
   @@index([symbol, status])
+}
+
+model PortfolioSnapshotRecord {
+  id          String      @id @default(cuid())
+  profileId   String
+  generatedAt DateTime    @default(now())
+  snapshot    Json
+  createdAt   DateTime    @default(now())
+  profile     UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, generatedAt])
+}
+
+model TradeJournalRecord {
+  id            String      @id @default(cuid())
+  profileId     String
+  symbol        String
+  orderId       String?
+  note          String
+  tags          Json?
+  context       Json?
+  screenshotUrl String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  profile       UserProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, symbol, createdAt])
+  @@index([orderId])
 }
 
 model GeoEventRecord {

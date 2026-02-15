@@ -30,8 +30,9 @@ This folder hosts the Go layer for Tradeview Fusion.
 - Local GCT fork base is present at `go-backend/vendor-forks/gocryptotrader`.
 - Gateway skeleton is in place with:
   - `GET /health`
-- `GET /api/v1/quote` (stable multi-source contract: GCT + ECB)
-- `GET /api/v1/news/headlines` (RSS + GDELT + Finviz aggregation contract)
+  - `GET /api/v1/quote` (stable multi-source contract: GCT + ECB)
+  - `GET /api/v1/news/headlines` (RSS + GDELT + Finviz aggregation contract)
+  - `GET /api/v1/backtest/capabilities` (GCT backtester capabilities + strategy example discovery)
   - `GET /api/v1/stream/market` (SSE quote events via GCT connector)
 - Connector currently calls live GCT RPC endpoints:
   - `/v1/getinfo` for health reachability
@@ -40,6 +41,8 @@ This folder hosts the Go layer for Tradeview Fusion.
   - `exchange=ecb` + `assetType=forex` routes to ECB daily FX feed (`eurofxref-daily.xml`)
 - Second non-crypto adapter slice is active:
   - `exchange=finnhub` + `assetType=equity` routes to Finnhub quote endpoint
+- Finnhub stock stream slice is active:
+  - `GET /api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity` routes to Finnhub WebSocket (`trade` events), with polling fallback via quote endpoint
 - Third non-crypto adapter slice is active:
   - `exchange=fred` + `assetType=macro` routes to FRED latest observation endpoint
 - Quote endpoint has strict input validation + explicit gateway/upstream error mapping (`400`, `502`, `504`).
@@ -63,10 +66,13 @@ Expected:
 - `http://127.0.0.1:9060/api/v1/quote?symbol=AAPL&exchange=finnhub&assetType=equity`
 - `http://127.0.0.1:9060/api/v1/quote?symbol=CPIAUCSL&exchange=fred&assetType=macro`
 - `http://127.0.0.1:9060/api/v1/news/headlines?symbol=AAPL&limit=3`
+- `http://127.0.0.1:9060/api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity`
+- `http://127.0.0.1:9060/api/v1/backtest/capabilities`
 
 Environment for Finnhub:
 
 - `FINNHUB_BASE_URL` (default: `https://finnhub.io/api/v1`)
+- `FINNHUB_WS_BASE_URL` (default: `wss://ws.finnhub.io`)
 - `FINNHUB_API_KEY`
 - `FINNHUB_HTTP_TIMEOUT_MS` (default: `4000`)
 
@@ -82,6 +88,10 @@ Environment for News:
 - `NEWS_RSS_FEEDS` (comma-separated feed URLs)
 - `GDELT_BASE_URL` (default: `https://api.gdeltproject.org/api/v2/doc/doc`)
 - `FINVIZ_RSS_BASE_URL` (default: `https://finviz.com/rss.ashx`)
+
+Environment for Backtest capability discovery:
+
+- `GCT_STRATEGY_EXAMPLES_DIR` (default: `vendor-forks/gocryptotrader/backtester/config/strategyexamples`)
 
 ## Run (full local stack, minimal GCT profile)
 
