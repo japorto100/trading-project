@@ -24,6 +24,15 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Go-Qualitaets-Runner fuer den Slice sind verifiziert: `go test ./...`, `go vet ./...`, `go test -race ./...`.
 - Hinweis fuer Windows-Race-Runner: `CGO_ENABLED=1` + `gcc` im `PATH` (z. B. `C:\msys64\ucrt64\bin`).
 - Team-Runner vorhanden: `go-backend/scripts/test-go.ps1` fuer reproduzierbare Quality-Gates.
+- GeoInsight-Referenz ist als Go-Baseline umgesetzt: `GET /api/v1/geopolitical/events` laeuft ueber echten ACLED-Connector (Token oder Legacy-Key) mit stabilem Contract.
+- ACLED-Bridge ist im Next.js-Backend umgesetzt: `GET /api/geopolitical/events?source=acled` proxied den Go-Gateway-Contract inkl. Cache + Paging in den bestehenden `GeoEvent`-Shape.
+- ACLED Conflict Index und Country Monitors sind als separater Intake markiert: im gratis-first Setup bleibt nur die Event-API aktiv, Monitor-/Index-Produkt erst mit passender Lizenz-/Tier-Freigabe und Credentials.
+- CFR und CrisisWatch sind als Context-Layer eingeordnet: CFR nur Link-Referenz mit eigenem Kurzsummary, CrisisWatch nur ueber offiziellen RSS-Kanal (kein Scraping).
+- Geopolitical Context Slice ist produktiv: `GET /api/v1/geopolitical/context` (Go) + `GET /api/geopolitical/context` (Next.js Bridge) liefern CFR (link-only) und CrisisWatch (RSS) im stabilen Contract.
+- GameTheory Impact Slice ist produktiv: `POST /api/v1/game-theory/impact` (Python) + `GET /api/v1/geopolitical/game-theory/impact` (Go) + `GET /api/geopolitical/game-theory/impact` (Next.js Bridge) plus UI-Panel in der Geopolitical Shell.
+- GeopoliticalMapShell zeigt den neuen Context-Panel-Stack mit Source-Filter (`all|cfr|crisiswatch`) und Deep-Links.
+- CrisisWatch-Intake ist mit optionalem TTL/Persist-Store gehaertet (`CRISISWATCH_CACHE_TTL_MS`, `CRISISWATCH_CACHE_PERSIST_PATH`) fuer weniger Live-Fetches und resilienten Fallback.
+- GeoPulse-Backend-Baseline ist umgesetzt: `GET /api/geopolitical/graph` liefert Event-Relationen (Region/EventType/SubEventType/Asset) fuer schnelle Kontext-Insights.
 - Erster Nicht-Crypto-Adapter ist produktiv im Gateway: ECB-Forex-Quotes (`exchange=ecb`, `assetType=forex`) ueber offiziellen ECB-Feed.
 - Finnhub-Referenz ist jetzt weitgehend produktiv umgesetzt: Go-Gateway liefert Equity-Quotes (`/api/v1/quote`) und Equity-Streams (`/api/v1/stream/market` via Finnhub-WS mit Polling-Fallback) fuer `exchange=finnhub`.
 - FRED/ECB-Referenz ist jetzt erweitert produktiv umgesetzt: Go-Gateway liefert Macro-/Forex-Quotes und History (`GET /api/v1/macro/history`), ingest-orientierte Persistenz folgt.
@@ -44,6 +53,11 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Optionaler echter GCT-Executor ist im Gateway angebunden: Run-Manager kann statt Simulationsmodus reale Backtester-Tasks via gRPC ausfuehren (Env-gesteuert).
 - Ergebnis-Mapping ist baseline aktiv: Gateway extrahiert best-effort Sharpe/Drawdown/Trades/Strategy-Movement aus GCT-Report-HTML in den stabilen Run-Contract.
 - Architekturklarstellung: Go/GCT bleibt die kanonische Backtest-Engine; Python bleibt fuer Signal-/ML-Research und liefert keine zweite konkurrierende Ausfuehrungslogik.
+- StockTraderPro- und react-next-tradingview-Frontend-Patterns wurden gezielt uebernommen: debounced Symbolsuche + Keyboard-Navigation/Highlighting im Such-Dropdown (`src/lib/hooks/useDebouncedValue.ts`, `src/components/fusion/SymbolSearch.tsx`, `src/app/page.tsx`, `src/features/trading/TradingHeader.tsx`).
+- Review-Entscheidung zu den beiden Klonen ist vorlaeufig abgeschlossen: kein weiterer geplanter 1:1 Code-Import aus StockTraderPro/react-next-tradingview; kuenftige Nutzung nur punktuell als UX-Referenz.
+- GoChart (`laion01/GoChart`) ist aktuell nicht verfuegbar (`404`) und wird nicht mehr als aktive Code-Quelle eingeplant.
+- Review der naechsten 3 Referenzen abgeschlossen (`LWC`, `GeoPulse`, `GeoInsight`): LWC bleibt aktive Haupt-Chartbasis (Plugin-Primitives), GeoPulse/GeoInsight nur selektiv als Pattern-Quelle ohne direkten Code-Import.
+- Weiterer Review-Block abgeschlossen (`GameTheory`, `CCXT`, `ffetch`): klare Intake-Regeln fuer Geo-Scoring, Crypto-Fallback und HTTP-Hardening dokumentiert.
 
 ### Projekt-Review-Vermerk (15. Februar 2026, Frontend + Backend)
 
@@ -57,6 +71,18 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 | **Chronicle** | Python-Backend (AI/ML) | Cluster-/Dedup-Pipeline fuer `news_cluster` Adapter | **Nehmen (POC):** Flag-basierter Chronicle-Mode (dedupe-first + provider-tagging) integriert |
 | **Scout** | Python + Frontend-Feed | Monitoring/Summary-Pattern fuer News-Surge Panels und Alert-Streams | **Nehmen (POC):** Flag-basierter Scout-Mode (source-momentum weighting) integriert |
 | **FinGPT** | Python-Backend + Frontend-Explainability | Narrative-Shift/Sentiment-Analyse plus erklaerende Texte fuer Event-Karten | **Nehmen (gezielt):** Flag-basierter FinGPT-Mode (sentiment-drift boost) integriert |
+| **GoChart (`laion01/GoChart`)** | Full-Stack TV-Klon | Sollte Socket/Store-Basics liefern | **Nicht mehr aktiv nutzbar:** Repo-Link aktuell `404`, daher keine weitere Extraktion |
+| **gocharts (`grokify/gocharts`)** | Go-Chart/Reporting-Library | Tabellen/Timeseries -> CSV/XLSX/PNG/HTML Reports | **Nicht als TV-Engine geeignet:** optional nur fuer Go-Reporting/Exports relevant |
+| **TradingView Lightweight Charts (LWC)** | Frontend Chart-Core | Plugin-Primitives (z. B. Rectangle/Trendline, Price-Alerts, Volume-Profile) und `create-lwc-plugin` Scaffold | **Nehmen (aktiv):** bleibt Chart-Standard; gezielte Plugin-Pattern uebernehmen, kein Full-Copy der Demo-Plugins |
+| **GeoPulse** | Frontend + Python/Graph-Backend | Knowledge-Graph-Filter, Event-zu-Asset View, FinBERT + Entity-Pipeline-Ideen | **Nehmen (selektiv):** Graph-/Filter-Patterns als eigener Backend+UI-Slice umgesetzt (`/api/geopolitical/graph`, GeoPulseInsightsPanel); kein direkter Import wegen Security/Hardcoded-Secrets/Oelfokus |
+| **GeoInsight** | Geo-Map Frontend + Node-Proxy | ACLED-Filterschema und einfache serverseitige Cache-Strategie | **Nehmen (selektiv):** ACLED-Filter/Contract als Go-Slice umgesetzt (`/api/v1/geopolitical/events`), Leaflet/jQuery-Stack bleibt ausgeschlossen |
+| **ACLED Conflict Index / Country Monitors** | Geopolitical Datenprodukt | Laender-/Konflikt-Risikoindikatoren (inkl. Ukraine-Monitor) als moegliche Overlay-Signale | **Deferred (gratis-first):** Event-API ist aktiv, Monitors/Index erst bei expliziter Lizenz-/Tier-Freigabe |
+| **CFR Global Conflict Tracker** | Frontend-Context + Analysten-Links | Konfliktweise Dossiers und Kartenansicht fuer Kontext in Event-Details | **ERLEDIGT (baseline):** Go/Next Context-Contract + UI-Panel, strikt link-only (kein Text-Mirroring) |
+| **CrisisWatch (International Crisis Group)** | Go-Backend-Ingest + Frontend-Timeline | Regelmaessige Konfliktupdates als Feed fuer Geo-Timeline | **ERLEDIGT (baseline):** offizieller RSS-Connector im Go-Gateway + Context-Panel, kein HTML-Scraping |
+| **GameTheory** | Python-FastAPI + React Dashboard | Event-Impact-Scoring, Job-/Backtest-Orchestrierung, Sensitivity-Analyse-Flows | **TEILWEISE EINGEBAUT:** eigener Impact-Contract produktiv (Python+Go+UI), Modelllogik weiterhin selektiv |
+| **ffetch** | TS-HTTP Infrastructure | Timeouts/Retry/Circuit/Dedupe/Hooks als Provider-Client-Basis | **DERZEIT NICHT EINBAUEN:** nur Re-Open bei messbarem Hardening-Mehrwert |
+| **StockTraderPro** | Frontend + Node-Backend | Symbolsuche/Watchlist UX, Input- und Select-Flows, kleines Chart-Utility-Muster | **Teilweise genommen:** Debounce + Keyboard-Search-UX uebernommen; weitere Extraktion vorerst gestoppt |
+| **react-next-tradingview** | Frontend + API-Backend | Hook-/Keyboard-/Search-Muster, Strategy-Panel-UX-Ideen | **Teilweise genommen (Blueprint only):** UX-Muster uebernommen, wegen fehlender Lizenz kein direkter Code-Import mehr geplant |
 
 ---
 
@@ -77,6 +103,9 @@ Schnell-Navigator -- fuer jedes Kernthema die wichtigste Ressource auf einen Bli
 | Was | Beste Ressource | Warum | Docker? | Sektion |
 |---|---|---|---|---|
 | **Groesste offene Event-Datenbank** | [GDELT](https://www.gdeltproject.org/data.html) | 250M+ Events, alle 15 Min aktualisiert, Goldstein-Skala, kostenlose REST API | **Nein**, reine REST API | 8 |
+| **Conflict Events (kanonisch im Gateway)** | [ACLED API](https://acleddata.com/acled-api-documentation) | Bereits als produktiver Event-Contract im Go-Gateway verdrahtet; Filter + Paging + Cache vorhanden | **Nein**, REST API (Credential/Tier abhaengig) | 3 |
+| **Konflikt-Dossiers (Context)** | [CFR Global Conflict Tracker](https://www.cfr.org/global-conflict-tracker) | Gute Analysten-Kontextquelle fuer UI-Deep-Links, aber kein frei dokumentiertes Public API | **Nein**, Web-Quelle (link-only Nutzung) | 3 |
+| **Konflikt-Update-Feed** | [CrisisWatch RSS](https://www.crisisgroup.org/rss-0) | Offizieller Feed-Kanal fuer regelmaessige Konfliktupdates, gut fuer serverseitiges Polling | **Nein**, RSS | 3 |
 | **Event-zu-Markt Korrelation** | [GeoPulse](https://github.com/group-geopulse/GeoPulse) | NLP + Sentiment + Knowledge-Graph, gleicher Stack (Next.js + Tailwind) | Nein, Python Skripte | 3 |
 | **Spieltheorie + Impact-Scoring** | [GameTheory](https://github.com/sliuuu/GameTheory) | Nash-Equilibrium, Monte Carlo, Multi-Index-Korrelation | Hat Docker, **geht aber auch ohne** (`pip install` + `npm install`) | 3 |
 
@@ -89,7 +118,7 @@ Schnell-Navigator -- fuer jedes Kernthema die wichtigste Ressource auf einen Bli
 | **WebSocket Streaming (Stocks)** | [Finnhub WS](https://github.com/Alcapone-Fx/finnhub-websocket) | Referenz-Implementierung; im Gateway bereits als Finnhub-WS-Slice umgesetzt (SSE-Bridge + Polling-Fallback) | **Nein**, reines React + WS | 7 |
 | **Forex/Macro Basis ohne API-Key** | [ECB eurofxref-daily.xml](https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml) | Offizieller FX-Referenzfeed; bereits als erster Nicht-Crypto-Adapter im Go-Gateway integriert (`exchange=ecb`, `assetType=forex`) | **Nein**, direkte HTTP/XML Abfrage | 4.5 |
 
-> **Langfristig:** Alle Daten-Beschaffung (Crypto, Stocks, Forex, Macro, News) wandert in die Go-Schicht. Die TS-Tools CCXT und ffetch dienen als Uebergangs-Loesung bis eigene Go-Adapter sie ersetzen.
+> **Langfristig:** Alle Daten-Beschaffung (Crypto, Stocks, Forex, Macro, News) wandert in die Go-Schicht. CCXT bleibt optionaler Uebergangs-Fallback fuer Crypto; `ffetch` ist derzeit bewusst nicht eingeplant.
 
 ### Backend Infrastructure / Unified Data Layer
 
@@ -181,15 +210,18 @@ Projekte die versuchen, TradingView als Ganzes nachzubauen -- Frontend, Backend,
 |---|---|
 | **GitHub** | [github.com/laion01/GoChart](https://github.com/laion01/GoChart) |
 | **Tech-Stack** | Next.js, React, Socket.js |
-| **Stars / Forks** | 1 / 0 |
+| **Stars / Forks** | n/a (Repo derzeit nicht aufrufbar) |
 | **Lizenz** | Nicht angegeben |
-| **Status** | Fruehes Stadium (18 Commits) |
+| **Status** | **Nicht verfuegbar (404, Stand 15.02.2026)** |
 
-TradingView-Nachbau in Next.js mit Component-basierter Architektur, State-Management via Store und Socket.js fuer Real-Time Datenstreaming. Noch relativ klein, aber strukturell nah an unserem Ansatz.
+TradingView-Nachbau in Next.js mit Component-basierter Architektur, State-Management via Store und Socket.js fuer Real-Time Datenstreaming. Die Referenz ist aktuell jedoch nicht abrufbar.
 
 **Relevant fuer uns weil:**
 - Socket-basiertes Streaming-Pattern kann als Vergleich zu unserer SSE-Architektur (`src/app/api/market/stream/route.ts`) dienen
 - Component-Struktur und Store-Organisation als Alternative zu unserem Zustand-Setup
+
+**Review-Entscheidung (15.02.2026):**
+- vorerst keine weitere Arbeit auf Basis dieser Referenz, bis ein gueltiger Repo-Nachfolger verifiziert ist.
 
 ---
 
@@ -210,6 +242,10 @@ Stock Trading Plattform inspiriert von TradingView. Features Real-Time Marktdate
 - API-Architektur mit getrenntem Backend als Vergleich zu unseren ~30 API Routes
 - Charting-Tool Integration als Referenz
 
+**Review-Update (15.02.2026, umgesetzt):**
+- uebernommen wurden Search-/Watchlist-UX-Muster: debounced Suche und Keyboard-Navigation fuer Symbolauswahl (`src/lib/hooks/useDebouncedValue.ts`, `src/components/fusion/SymbolSearch.tsx`).
+- weitere Entnahmen aus StockTraderPro sind aktuell nicht geplant; Referenz bleibt als sekundare UX-Quelle.
+
 ---
 
 ### react-next-tradingview
@@ -228,6 +264,10 @@ React/Next.js TradingView-Klon mit API-Integration, Custom Hooks und Datenbank-S
 - Datenbank-Schema fuer Trading-Daten als Vergleich zu unserem Prisma-Schema
 - Component-Architektur fuer Trading-UI-Elemente
 
+**Review-Update (15.02.2026, umgesetzt):**
+- uebernommen wurden vor allem Bedienmuster (Keyboard-Search/Highlight-Flow), nicht aber Business- oder API-Logik.
+- Lizenz im Repo ist nicht klar ausgewiesen; daher kein weiterer direkter Code-Import geplant (nur Blueprint-Nutzung).
+
 ---
 
 ### Divergex Platform
@@ -237,7 +277,7 @@ React/Next.js TradingView-Klon mit API-Integration, Custom Hooks und Datenbank-S
 | **GitHub** | [github.com/divergex/platform](https://github.com/divergex/platform) |
 | **Tech-Stack** | Python-Backend, Web-Frontend |
 | **Lizenz** | Apache-2.0 |
-| **Status** | Aktiv, Teil eines groesseren Oekosystems |
+| **Status** | **Derzeit nicht aufrufbar (404, Stand 15.02.2026)** |
 
 Interaktive Plattform fuer quantitative Trading-Strategien. Bietet dynamische Visualisierungen, Echtzeit-Strategie-Monitoring und Modell-Integrationen. Teil des Divergex-Oekosystems mit `dxforge` (Orchestrierung) und `dxlib` (Quant-Finance Library).
 
@@ -249,6 +289,9 @@ Interaktive Plattform fuer quantitative Trading-Strategien. Bietet dynamische Vi
 **Verwandte Repos:**
 - [github.com/divergex/dxforge](https://github.com/divergex/dxforge) -- Strategie-Orchestrierung
 - [github.com/divergex/dxlib](https://github.com/divergex/dxlib) -- Quant-Finance Python Library
+
+**Review-Update (15.02.2026):**
+- alle drei genannten Divergex-Links (`platform`, `dxforge`, `dxlib`) sind aktuell nicht aufloesbar; damit ist keine belastbare Code-Extraktion moeglich.
 
 ---
 
@@ -281,6 +324,10 @@ Open-Source Stock Charting Widget komplett in reinem TypeScript ohne externe Abh
 - Canvas-Rendering-Pipeline und Layering
 - Interaktives Zoom/Pan mit Touch-Support
 
+**Review-Update (15.02.2026):**
+- technisch stark fuer Drawing-Tool-Taxonomie und Toolbar-UX (z. B. `src/widget/drawing-bar/*`, `src/extension/*`), aber stark an SolidJS + `equicharts` Core gekoppelt.
+- direkte Code-Uebernahme in unsere React/LWC-Architektur ist nur begrenzt sinnvoll; primar als Konzept- und Naming-Referenz nutzen.
+
 ---
 
 ### FirChart
@@ -298,6 +345,36 @@ Minimale Canvas-basierte Trading-Chart Library. Schlanke Implementierung ohne Ov
 - Minimalistische Referenz, wie Candlestick-Rendering mit wenig Code funktioniert
 - Gut zum Vergleich unserer `ChartRenderer.ts` Rendering-Pipeline
 - MIT-lizenziert -- uneingeschraenkt nutzbar
+
+**Review-Update (15.02.2026):**
+- repo ist bewusst minimal, aber Kernlogik liegt stark monolithisch in `src/index.js` (D3FC-basiert, kaum Typsicherheit).
+- sinnvoll fuer punktuelle Ideen (Incremental-Data-Refresh, Info-Panel-Interaktion), nicht als Basis fuer grossflaechigen Code-Import.
+
+---
+
+### gocharts (grokify/gocharts)
+
+| | |
+|---|---|
+| **GitHub** | [github.com/grokify/gocharts](https://github.com/grokify/gocharts) |
+| **Tech-Stack** | Go (Library fuer Reporting/Export) |
+| **Lizenz** | MIT |
+| **Status** | Aktiv gepflegt |
+
+Go-Library fuer tabellarische Daten, Timeseries und Rendering-/Export-Helper (CSV/XLSX/PNG/HTML via verschiedene Chart-Backends).
+
+**Use-Cases (ja):**
+- Go-Backend-Reporting: Tabellen/Timeseries in CSV/XLSX exportieren.
+- Server-seitige statische Chart-Artefakte (z. B. PNG/HTML Reports) fuer Audit/Backtest-Reports.
+- Datenaufbereitung im Go-Layer fuer nachgelagerte Ausgaben (nicht interaktive UI).
+
+**Nicht-Use-Cases (nein):**
+- kein Ersatz fuer unsere interaktive Trading-Chart-Engine (React/LWC/Canvas UI).
+- kein Zeichentool-/Replay-/Order-Panel-Frontend.
+- kein TradingView-Klon oder realtime Chart-Workspace fuer Endnutzer.
+
+**Review-Entscheidung (15.02.2026):**
+- im Tradeview-Fusion-Kontext optional fuer spaetere Report-/Export-Slices, aber nicht als Kern-Chart- oder Frontend-Baustein.
 
 ---
 
@@ -337,6 +414,21 @@ Das LWC Plugin-System erlaubt drei Erweiterungs-Typen:
 - React-Integration mit Component-basiertem Pattern ist dokumentiert
 - Community-Plugins wie [github.com/safaritrader/lightweight-chart-plugin](https://github.com/safaritrader/lightweight-chart-plugin) erweitern die Funktionalitaet nochmal
 
+**Review-Update (15.02.2026):**
+- repo enthaelt direkt nutzbare Plugin-Muster fuer unsere naechsten Frontend-Slices (`plugin-examples/src/plugins/rectangle-drawing-tool`, `trend-line`, `user-price-alerts`, `volume-profile`, `expiring-price-alerts`).
+- `create-lwc-plugin` ist der bevorzugte Startpunkt fuer eigene Plugins statt ad-hoc Canvas-Rewrites.
+- die Plugin-Beispiele sind explizit als Proof-of-Concept markiert; wir uebernehmen Architektur und Interaktionsmuster, aber keinen unreflektierten 1:1 Import.
+
+**Use-Cases (ja):**
+- Zeichentools als Primitive-Plugins (Trendline/Rectangle) statt schwerer Chart-Core-Eingriffe.
+- Alert-/Marker-Overlays (User-/Expiring-Price-Alerts) fuer Trading-UX.
+- Spezial-Renderings (Volume-Profile/Heatmap) als optionale, kapselte Erweiterungen.
+
+**Nicht-Use-Cases (nein):**
+- keine Erwartung, dass LWC alleine Order-/Portfolio-/Replay-Workflow liefert.
+- kein Full-Copy kompletter Demo-Plugins in produktive Runtime ohne Typ-/Performance-Hardening.
+- kein Ersatz fuer Geopolitical-Map oder Backend-Contracts.
+
 > **Siehe auch:** PineTS in Sektion 6 (Backtesting) bietet einen alternativen Weg, TradingView Pine Script Indikatoren direkt in JS/TS auszufuehren -- potentiell als Ersatz fuer unsere ~820 Zeilen handgeschriebene Indikatoren in `src/lib/indicators/index.ts`.
 
 ---
@@ -372,6 +464,21 @@ AI-gesteuertes System das die Beziehung zwischen geopolitischen Events und Rohoe
 - Sentiment-Scoring fuer geopolitische Events
 - RAG-basierte Abfragen ueber Events und deren Marktauswirkungen
 
+**Review-Update (15.02.2026):**
+- technisch interessant: Next.js-Frontend mit 2D/3D Knowledge-Graph-Ansicht (`react-force-graph`), Filtercontract (`startDate`, `endDate`, `keywords`) und Date-Range-Guard.
+- Python-Pipeline liefert verwertbare Ideen (FinBERT-Sentiment + spaCy Entity-Extraktion + Topic-Heuristiken).
+- kein direkter Code-Import: Sicherheits-/Qualitaetsrisiken im Repo (hardcoded Secrets in `frontend/app/api/graph/route.ts` und `backend/llmTogetherAI.py`, Konfliktmarker/unsaubere Stellen, starkes Oil/Neo4j-Tight-Coupling).
+
+**Use-Cases (ja):**
+- Filter-UX und Query-Contract fuer Graph-basierte Ereignisabfragen.
+- Pipeline-Idee: Sentiment + Entity-Enrichment vor Candidate-Scoring.
+- Optionaler Knowledge-Graph-Tab als spaeteres Advanced-Feature.
+
+**Nicht-Use-Cases (nein):**
+- keine Uebernahme der aktuellen Secret-/Credential-Handhabung.
+- keine 1:1 Oelpreis-/Neo4j-Domainschablone als Kern fuer unser universelleres Geopolitical-Modul.
+- kein direkter Python-Spawn aus Next-Route als langfristiges Integrationsmuster.
+
 ---
 
 ### GeoInsight
@@ -388,6 +495,74 @@ Real-Time geopolitische Event-Analyse Plattform fuer Krisen- und Konflikt-Mappin
 - Event-Klassifikation und Severity-Scoring als Referenz fuer unsere `GeoEventRecord.severity` und `GeoEventRecord.confidence` Felder
 - Conflict-Mapping-Patterns fuer unsere `MapCanvas.tsx`
 - MIT-lizenziert -- Code frei nutzbar
+
+**Review-Update (15.02.2026):**
+- stark als Low-Complexity-Referenz fuer ACLED-Filterung (Disorder/Event/Subevent/Year/Country/Region) und simples Cache-Muster im Node-Proxy (`server.js`).
+- Stack ist jedoch bewusst legacy (Express + jQuery + Leaflet) und nicht deckungsgleich mit unserer Next.js/React/d3-geo Architektur.
+
+**Use-Cases (ja):**
+- Filter-Dimensionen und URL-Param-Contract fuer geopolitische Event-Abfragen.
+- einfache serverseitige Cache-Rotation fuer externe Event-APIs.
+- Marker/Popup-Informationsdichte als UX-Idee fuer Event-Details.
+
+**Nicht-Use-Cases (nein):**
+- kein Leaflet-Rebuild fuer unsere Karte (Map-Stack-Regel: `d3-geo` bleibt gesetzt).
+- kein jQuery/Select2-Frontend-Pattern im React-19-Codepfad.
+- kein vollstaendiges Daten-In-Memory-Pattern ohne Pagination/Budgeting fuer Produktion.
+
+---
+
+### ACLED Conflict Index und Country Monitors
+
+| | |
+|---|---|
+| **Produktseiten** | [Conflict Index](https://acleddata.com/series/acled-conflict-index), [Monitors](https://acleddata.com/) |
+| **Typ** | Zusatzprodukt auf ACLED-Basis (nicht identisch mit Event-API-Contract) |
+
+Die ACLED-Event-API ist bereits produktiv im Gateway integriert. Conflict Index und Country Monitors werden separat behandelt, weil Zugriff und Nutzbarkeit an Account-/Lizenz-Tiers gebunden sein koennen.
+
+**Entscheidung (15.02.2026):**
+- im gratis-first Betrieb bleibt ACLED Event-API der kanonische Datenpfad.
+- Index/Monitor-Intake erst bei bestaetigter Tier-/Lizenz-Freigabe und vorhandenen produktiven Credentials.
+
+---
+
+### CFR Global Conflict Tracker
+
+| | |
+|---|---|
+| **Produktseite** | [cfr.org/global-conflict-tracker](https://www.cfr.org/global-conflict-tracker) |
+| **Typ** | Editoriale Konflikt-Dossiers + Karte |
+
+**Nutzung im Projekt:**
+- Frontend-Context-Layer: Konfliktname, eigener kurzer Summary-Satz, Link "Open original".
+- Keine CFR-Text- oder Strukturspiegelung in eigenen APIs/Stores.
+- Kein Public-API-Contract eingeplant.
+
+**Status im Repo (15.02.2026):**
+- umgesetzt ueber den Go-Context-Endpoint `GET /api/v1/geopolitical/context?source=cfr`.
+- sichtbar im Frontend ueber `GET /api/geopolitical/context` + `GeopoliticalContextPanel`.
+- Detail-Links zeigen auf konkrete Konfliktseiten (nicht nur Tracker-Root), weiterhin strikt link-only.
+
+---
+
+### CrisisWatch (International Crisis Group)
+
+| | |
+|---|---|
+| **Produktseite** | [crisisgroup.org/crisiswatch](https://www.crisisgroup.org/crisiswatch) |
+| **Offizieller Feed** | [crisisgroup.org/rss-0](https://www.crisisgroup.org/rss-0) |
+
+**Nutzung im Projekt:**
+- Go-Poller liest den RSS-Feed periodisch (z. B. alle 30-60 Minuten).
+- Persistenzcontract minimal halten: `guid/link`, `title`, `published_at` (+ optional kurzer Snippet).
+- Frontend zeigt Titel + Datum + Deep-Link.
+- Kein Scraping der HTML-Seiten.
+
+**Status im Repo (15.02.2026):**
+- umgesetzt ueber den Go-Context-Endpoint `GET /api/v1/geopolitical/context?source=crisiswatch`.
+- RSS-Connector liefert stabilen Minimalcontract (`id/title/url/publishedAt/region`) fuer das Context-Panel.
+- optionaler TTL/Persist-Layer im Go-Connector aktivierbar fuer cached reads und Snapshot-Fallback.
 
 ---
 
@@ -418,6 +593,21 @@ Wendet Spieltheorie auf geopolitische Events und deren Marktauswirkungen an. Rea
 - Monte Carlo basierte Sensitivitaetsanalyse
 - News-Source Aggregation und Verlinkung
 
+**Review-Update (15.02.2026):**
+- Backend ist klar strukturiert als FastAPI + Pydantic + Job-Manager (`/api/backtest` + Status-Endpunkte), was gut zu unserem laufenden Backtest-Run-Contract passt.
+- Frontend zeigt brauchbare Dashboard-Muster (Tabs fuer Dashboard/Backtest/Sensitivity/Historical, React Query + Zustand + Recharts).
+- Modellseite bleibt forschungsnah (Game-Theory-Heuristiken + yfinance-Proxy) und darf nicht ungeprueft als produktiver Signalgeber in unser Trading-System fliessen.
+
+**Use-Cases (ja):**
+- Async-Job-Orchestrierung und Status-Endpoints fuer laengere Analysen.
+- Event-Impact-UI (Top-Events + News-Linking) fuer Geopolitical-Panels.
+- Sensitivity-/Backtest-Ansichten als Blueprint fuer Explainability im Frontend.
+
+**Nicht-Use-Cases (nein):**
+- kein 1:1 Uebernehmen der Modellannahmen als Trading-Entscheidungslogik.
+- kein unvalidierter Ersatz fuer unsere bestehende Python-Signal-Pipeline.
+- keine direkte Koppelung unserer Portfolio-/Order-Engine an diese Forschungsheuristik.
+
 **Quick-Start (ohne Docker):**
 ```bash
 # Backend
@@ -428,6 +618,11 @@ cd frontend && npm install && npm run dev
 ```
 
 > Docker Compose ist auch vorhanden (`docker-compose up -d`), aber nicht noetig.
+
+**Status im Repo (15.02.2026):**
+- Python-Service hat einen produktiven GameTheory-Impact-Contract: `POST /api/v1/game-theory/impact`.
+- Go-Gateway mappt ACLED-Filter auf den Contract: `GET /api/v1/geopolitical/game-theory/impact`.
+- Frontend/Next.js nutzt die Bridge `GET /api/geopolitical/game-theory/impact` und rendert ein dediziertes `GameTheory Impact`-Panel im Geopolitical-Workspace.
 
 ---
 
@@ -474,6 +669,20 @@ bun add ccxt
 - Aktivierung nur per Env-Flag `ENABLE_CCXT_FALLBACK=true`.
 - Fuer Next.js-Build ist `protobufjs` als Subdependency noetig (bereits aufgenommen).
 
+**Review-Update (15.02.2026):**
+- Upstream bestaetigt weiterhin sehr breite Crypto-Abdeckung (100+ Exchanges) sowie eingebaute Rate-Limiter-Modelle (leaky-bucket, optional rolling-window).
+- Fuer uns bleibt CCXT bewusst ein optionaler Crypto-Fallback, nicht der kanonische Multi-Asset-Datenlayer.
+
+**Use-Cases (ja):**
+- schneller Fallback fuer Crypto-Quotes/OHLCV wenn Go-Adapter oder Einzelexchanges fehlen.
+- normierte Exchange-Interfaces fuer prototypisches Symbol-/Ticker-Mapping.
+- Uebergangsschicht waehrend Go-Connectoren sukzessive ausgebaut werden.
+
+**Nicht-Use-Cases (nein):**
+- kein Ersatz fuer Stocks/Forex/Macro-Pfade (Finnhub/FRED/ECB/Go-Adapter bleiben fuehrend).
+- keine direkte Private-API-/Order-Ausfuehrung aus Frontend-nahen Flows.
+- kein Grund, kanonische Daten-/Risk-Contracts aus dem Gateway aufzuweichen.
+
 ---
 
 ### ffetch (@fetchkit/ffetch)
@@ -516,6 +725,24 @@ const response = await providerClient('https://api.polygon.io/v2/...')
 ```bash
 bun add @fetchkit/ffetch
 ```
+
+**Review-Update (15.02.2026):**
+- Upstream ist als Infrastruktur-Utility valide (Timeouts, Retry, Circuit Breaker, Dedupe, Hooks), inklusive `fetchHandler` fuer SSR/Framework-Fetch.
+- wichtige Betriebsnotiz: moderne AbortSignal-Features sind vorausgesetzt (Node 20.6+ oder Polyfill).
+
+**Use-Cases (ja):**
+- einheitlicher HTTP-Client fuer TS-Provider mit zentralen Retry-/Timeout-/Circuit-Regeln.
+- standardisierte Observability-Hooks (before/after/onError) fuer Monitoring.
+- kontrollierte Dedupe-Strategie bei idempotenten Requests.
+
+**Nicht-Use-Cases (nein):**
+- kein Datenprovider, keine Symbolnormalisierung, kein Ersatz fuer Provider-Adapterlogik.
+- kein blindes Dedupe fuer nicht-idempotente Calls.
+- kein sofortiger Full-Replacement ohne schrittweise Migration/Benchmarks.
+
+**Status im Tradeview-Fusion Repo (15.02.2026):**
+- aktuell bewusst nicht produktiv eingebunden; bestehende Provider-HTTP-Schicht bleibt Standard.
+- Re-Evaluierung nur bei nachgewiesenem Nutzen (z. B. weniger Code/Fehler oder bessere P95-Latenz/Retry-Stabilitaet).
 
 ---
 
@@ -1270,10 +1497,11 @@ Dieses Referenz-Buch (lokal: `docs/books/mastering-finance-python.md`, 6469 Zeil
 | Projekt | Kategorie | Stack | Lizenz | Stars | Sektion | Schicht |
 |---|---|---|---|---|---|---|
 | **[GoCryptoTrader](https://github.com/thrasher-corp/gocryptotrader)** | **Backend Infrastructure** | **Go + gRPC** | **MIT** | **2.700+** | **4.5** | **Go** |
-| [GoChart](https://github.com/laion01/GoChart) | TV-Klon | Next.js | - | 1 | 1 | TS |
-| [StockTraderPro](https://github.com/j4web/stocktraderpro) | TV-Klon | Next.js + Node | MIT | - | 1 | TS |
-| [react-next-tradingview](https://github.com/evgenmam/react-next-tradingview) | TV-Klon | Next.js + React | - | - | 1 | TS |
-| [Divergex](https://github.com/divergex/platform) | Quant-Plattform | Python + Web | Apache-2.0 | - | 1 | Python |
+| [GoChart](https://github.com/laion01/GoChart) | TV-Klon | Next.js | - | n/a (`404`) | 1 | TS |
+| [gocharts](https://github.com/grokify/gocharts) | Go-Reporting Charts | Go | MIT | 54 | 2 | Go |
+| [StockTraderPro](https://github.com/J4Web/StockTraderPro) | TV-Klon | Next.js + Node | MIT | 3 | 1 | TS |
+| [react-next-tradingview](https://github.com/evgenmam/react-next-tradingview) | TV-Klon | Next.js + React | - | 4 | 1 | TS |
+| [Divergex](https://github.com/divergex/platform) | Quant-Plattform | Python + Web | Apache-2.0 | n/a (`404`) | 1 | Python |
 | [EquiCharts](https://github.com/alenjohn05/EquiCharts) | Chart Engine | Pure TS + Canvas | Apache-2.0 | 30 | 2 | TS |
 | [FirChart](https://github.com/tradingcage/firchart) | Chart Engine | Canvas | MIT | 3 | 2 | TS |
 | [LWC](https://github.com/tradingview/lightweight-charts) | Chart Library | TS + Canvas | Apache-2.0 | 13.691 | 2 | TS |

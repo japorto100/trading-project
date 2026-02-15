@@ -10,7 +10,7 @@ This folder contains all Python HTTP services used by the Next.js app.
   - Used by Node provider via `YFINANCE_BRIDGE_URL`.
 
 - `geopolitical-soft-signals/`
-  - FastAPI sidecar for soft-signal candidate generation (`news_cluster`, `social_surge`, `narrative_shift`).
+  - FastAPI sidecar for soft-signal candidate generation (`news_cluster`, `social_surge`, `narrative_shift`) and GameTheory-style impact scoring (`game-theory/impact`).
   - Default local URL: `http://127.0.0.1:8091`
   - Used by geopolitical adapter via `GEOPOLITICAL_SOFT_SIGNAL_URL`.
 

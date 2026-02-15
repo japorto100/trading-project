@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CandidateQueue } from "@/features/geopolitical/CandidateQueue";
 import { EventInspector } from "@/features/geopolitical/EventInspector";
+import { GeoPulseInsightsPanel } from "@/features/geopolitical/GeoPulseInsightsPanel";
+import { GeopoliticalContextPanel } from "@/features/geopolitical/GeopoliticalContextPanel";
+import { GeopoliticalGameTheoryPanel } from "@/features/geopolitical/GeopoliticalGameTheoryPanel";
 import { MapCanvas } from "@/features/geopolitical/MapCanvas";
 import { SourceHealthPanel } from "@/features/geopolitical/SourceHealthPanel";
 import { SymbolToolbar } from "@/features/geopolitical/SymbolToolbar";
@@ -21,10 +24,15 @@ import {
 	type DrawingMode,
 	type EditFormState,
 	type GeoCandidatesResponse,
+	type GeoContextItem,
+	type GeoContextResponse,
 	type GeoDrawingResponse,
 	type GeoDrawingsResponse,
 	type GeoEventResponse,
 	type GeoEventsResponse,
+	type GeoGameTheoryItem,
+	type GeoGameTheoryResponse,
+	type GeoGraphResponse,
 	type GeoNewsResponse,
 	type GeoRegionsResponse,
 	type GeoTimelineResponse,
@@ -43,6 +51,9 @@ import type {
 } from "@/lib/geopolitical/types";
 import type { MarketNewsArticle } from "@/lib/news/types";
 
+type EventsSource = "local" | "acled";
+type ContextSource = "all" | "cfr" | "crisiswatch";
+
 export function GeopoliticalMapShell() {
 	const [events, setEvents] = useState<GeoEvent[]>([]);
 	const [candidates, setCandidates] = useState<GeoCandidate[]>([]);
@@ -51,6 +62,15 @@ export function GeopoliticalMapShell() {
 	const [regions, setRegions] = useState<GeoRegion[]>([]);
 	const [news, setNews] = useState<MarketNewsArticle[]>([]);
 	const [sourceHealth, setSourceHealth] = useState<SourceHealthResponse["entries"]>([]);
+	const [graph, setGraph] = useState<GeoGraphResponse | null>(null);
+	const [contextItems, setContextItems] = useState<GeoContextItem[]>([]);
+	const [contextSource, setContextSource] = useState<ContextSource>("all");
+	const [contextLoading, setContextLoading] = useState(false);
+	const [gameTheoryItems, setGameTheoryItems] = useState<GeoGameTheoryItem[]>([]);
+	const [gameTheorySummary, setGameTheorySummary] = useState<
+		GeoGameTheoryResponse["summary"] | null
+	>(null);
+	const [gameTheoryLoading, setGameTheoryLoading] = useState(false);
 
 	const [loading, setLoading] = useState(true);
 	const [busy, setBusy] = useState(false);
@@ -78,6 +98,17 @@ export function GeopoliticalMapShell() {
 	const [activeRegionId, setActiveRegionId] = useState("");
 	const [searchQuery, setSearchQuery] = useState("");
 	const [minSeverityFilter, setMinSeverityFilter] = useState<number>(1);
+	const [eventsSource, setEventsSource] = useState<EventsSource>("local");
+	const [acledCountryFilter, setAcledCountryFilter] = useState("");
+	const [acledRegionFilter, setAcledRegionFilter] = useState("");
+	const [acledEventTypeFilter, setAcledEventTypeFilter] = useState("");
+	const [acledSubEventTypeFilter, setAcledSubEventTypeFilter] = useState("");
+	const [acledFromFilter, setAcledFromFilter] = useState("");
+	const [acledToFilter, setAcledToFilter] = useState("");
+	const [acledPage, setAcledPage] = useState(1);
+	const [acledPageSize, setAcledPageSize] = useState(50);
+	const [acledTotal, setAcledTotal] = useState(0);
+	const [acledHasMore, setAcledHasMore] = useState(false);
 	const [showCandidateQueue, setShowCandidateQueue] = useState(true);
 	const [showRegionLayer, setShowRegionLayer] = useState(true);
 	const [canUndoDrawings, setCanUndoDrawings] = useState(false);
@@ -85,11 +116,166 @@ export function GeopoliticalMapShell() {
 
 	const undoStackRef = useRef<DrawingHistoryCommand[]>([]);
 	const redoStackRef = useRef<DrawingHistoryCommand[]>([]);
+	const eventsEditable = eventsSource === "local";
 
 	const syncDrawingHistoryState = useCallback(() => {
 		setCanUndoDrawings(undoStackRef.current.length > 0);
 		setCanRedoDrawings(redoStackRef.current.length > 0);
 	}, []);
+
+	const acledRegionSuggestions = useMemo(() => {
+		const values = events
+			.map((event) => event.externalRegion?.trim())
+			.filter((value): value is string => Boolean(value));
+		return [...new Set(values)].slice(0, 12);
+	}, [events]);
+
+	const acledSubEventSuggestions = useMemo(() => {
+		const values = events
+			.map((event) => event.externalSubEventType?.trim())
+			.filter((value): value is string => Boolean(value));
+		return [...new Set(values)].slice(0, 12);
+	}, [events]);
+
+	const activeFilterChips = useMemo(() => {
+		const chips: Array<{ key: string; label: string; clear: () => void }> = [];
+		if (eventsSource === "local") {
+			if (activeRegionId) {
+				chips.push({
+					key: "local-region",
+					label: `Region: ${activeRegionId}`,
+					clear: () => setActiveRegionId(""),
+				});
+			}
+			if (searchQuery.trim()) {
+				chips.push({
+					key: "local-q",
+					label: `Search: ${searchQuery.trim()}`,
+					clear: () => setSearchQuery(""),
+				});
+			}
+			return chips;
+		}
+
+		if (acledCountryFilter.trim()) {
+			chips.push({
+				key: "acled-country",
+				label: `Country: ${acledCountryFilter.trim()}`,
+				clear: () => {
+					setAcledCountryFilter("");
+					setAcledPage(1);
+				},
+			});
+		}
+		if (acledRegionFilter.trim()) {
+			chips.push({
+				key: "acled-region",
+				label: `Region: ${acledRegionFilter.trim()}`,
+				clear: () => {
+					setAcledRegionFilter("");
+					setAcledPage(1);
+				},
+			});
+		}
+		if (acledEventTypeFilter.trim()) {
+			chips.push({
+				key: "acled-event-type",
+				label: `Type: ${acledEventTypeFilter.trim()}`,
+				clear: () => {
+					setAcledEventTypeFilter("");
+					setAcledPage(1);
+				},
+			});
+		}
+		if (acledSubEventTypeFilter.trim()) {
+			chips.push({
+				key: "acled-sub-event-type",
+				label: `Sub-Event: ${acledSubEventTypeFilter.trim()}`,
+				clear: () => {
+					setAcledSubEventTypeFilter("");
+					setAcledPage(1);
+				},
+			});
+		}
+		if (acledFromFilter.trim()) {
+			chips.push({
+				key: "acled-from",
+				label: `From: ${acledFromFilter.trim()}`,
+				clear: () => {
+					setAcledFromFilter("");
+					setAcledPage(1);
+				},
+			});
+		}
+		if (acledToFilter.trim()) {
+			chips.push({
+				key: "acled-to",
+				label: `To: ${acledToFilter.trim()}`,
+				clear: () => {
+					setAcledToFilter("");
+					setAcledPage(1);
+				},
+			});
+		}
+		if (searchQuery.trim()) {
+			chips.push({
+				key: "acled-q",
+				label: `Search: ${searchQuery.trim()}`,
+				clear: () => setSearchQuery(""),
+			});
+		}
+		return chips;
+	}, [
+		activeRegionId,
+		acledCountryFilter,
+		acledEventTypeFilter,
+		acledFromFilter,
+		acledRegionFilter,
+		acledSubEventTypeFilter,
+		acledToFilter,
+		eventsSource,
+		searchQuery,
+	]);
+
+	const buildEventsQueryString = useCallback(() => {
+		const params = new URLSearchParams({
+			minSeverity: String(minSeverityFilter),
+		});
+		if (searchQuery.trim()) {
+			params.set("q", searchQuery.trim());
+		}
+
+		if (eventsSource === "local") {
+			if (activeRegionId) {
+				params.set("regionId", activeRegionId);
+			}
+			return params.toString();
+		}
+
+		params.set("source", "acled");
+		params.set("page", String(acledPage));
+		params.set("pageSize", String(acledPageSize));
+		if (acledCountryFilter.trim()) params.set("country", acledCountryFilter.trim());
+		if (acledRegionFilter.trim()) params.set("region", acledRegionFilter.trim());
+		if (acledEventTypeFilter.trim()) params.set("eventType", acledEventTypeFilter.trim());
+		if (acledSubEventTypeFilter.trim()) params.set("subEventType", acledSubEventTypeFilter.trim());
+		if (acledFromFilter.trim()) params.set("from", acledFromFilter.trim());
+		if (acledToFilter.trim()) params.set("to", acledToFilter.trim());
+		return params.toString();
+	}, [
+		acledCountryFilter,
+		acledEventTypeFilter,
+		acledFromFilter,
+		acledPage,
+		acledPageSize,
+		acledRegionFilter,
+		acledSubEventTypeFilter,
+		acledToFilter,
+		activeRegionId,
+		eventsSource,
+		minSeverityFilter,
+		searchQuery,
+	]);
 
 	const createDrawingRecord = useCallback(
 		async (payload: {
@@ -128,25 +314,30 @@ export function GeopoliticalMapShell() {
 		setLoading(true);
 		setError(null);
 		try {
-			const [eventsRes, candidatesRes, timelineRes, regionsRes, sourceHealthRes, drawingsRes] =
-				await Promise.all([
-					fetch(
-						`/api/geopolitical/events?${new URLSearchParams({
-							...(activeRegionId ? { regionId: activeRegionId } : {}),
-							...(searchQuery.trim() ? { q: searchQuery.trim() } : {}),
-							minSeverity: String(minSeverityFilter),
-						}).toString()}`,
-						{ cache: "no-store" },
-					),
-					fetch(
-						`/api/geopolitical/candidates?state=open${activeRegionId ? `&regionHint=${encodeURIComponent(activeRegionId)}` : ""}`,
-						{ cache: "no-store" },
-					),
-					fetch("/api/geopolitical/timeline?limit=120", { cache: "no-store" }),
-					fetch("/api/geopolitical/regions", { cache: "no-store" }),
-					fetch("/api/geopolitical/sources/health", { cache: "no-store" }),
-					fetch("/api/geopolitical/drawings", { cache: "no-store" }),
-				]);
+			const eventsQuery = buildEventsQueryString();
+			const candidateRegionHint =
+				eventsSource === "local" && activeRegionId
+					? `&regionHint=${encodeURIComponent(activeRegionId)}`
+					: "";
+			const [
+				eventsRes,
+				candidatesRes,
+				timelineRes,
+				regionsRes,
+				sourceHealthRes,
+				drawingsRes,
+				graphRes,
+			] = await Promise.all([
+				fetch(`/api/geopolitical/events?${eventsQuery}`, { cache: "no-store" }),
+				fetch(`/api/geopolitical/candidates?state=open${candidateRegionHint}`, {
+					cache: "no-store",
+				}),
+				fetch("/api/geopolitical/timeline?limit=120", { cache: "no-store" }),
+				fetch("/api/geopolitical/regions", { cache: "no-store" }),
+				fetch("/api/geopolitical/sources/health", { cache: "no-store" }),
+				fetch("/api/geopolitical/drawings", { cache: "no-store" }),
+				fetch(`/api/geopolitical/graph?${eventsQuery}`, { cache: "no-store" }),
+			]);
 
 			if (!eventsRes.ok) {
 				throw new Error(`Failed to fetch events (${eventsRes.status})`);
@@ -164,8 +355,18 @@ export function GeopoliticalMapShell() {
 			const regionsPayload = (await regionsRes.json()) as GeoRegionsResponse;
 			const sourceHealthPayload = (await sourceHealthRes.json()) as SourceHealthResponse;
 			const drawingsPayload = (await drawingsRes.json()) as GeoDrawingsResponse;
+			const graphPayload = graphRes.ok ? ((await graphRes.json()) as GeoGraphResponse) : null;
 
 			setEvents(Array.isArray(eventsPayload.events) ? eventsPayload.events : []);
+			if (eventsPayload.source === "acled" && eventsPayload.meta) {
+				setAcledPage(eventsPayload.meta.page);
+				setAcledPageSize(eventsPayload.meta.pageSize);
+				setAcledTotal(eventsPayload.meta.total);
+				setAcledHasMore(eventsPayload.meta.hasMore);
+			} else {
+				setAcledTotal(0);
+				setAcledHasMore(false);
+			}
 			setCandidates(
 				Array.isArray(candidatesPayload.candidates) ? candidatesPayload.candidates : [],
 			);
@@ -175,12 +376,13 @@ export function GeopoliticalMapShell() {
 				Array.isArray(sourceHealthPayload.entries) ? sourceHealthPayload.entries : [],
 			);
 			setDrawings(Array.isArray(drawingsPayload.drawings) ? drawingsPayload.drawings : []);
+			setGraph(graphPayload?.success ? graphPayload : null);
 		} catch (fetchError) {
 			setError(fetchError instanceof Error ? fetchError.message : "Unknown loading error");
 		} finally {
 			setLoading(false);
 		}
-	}, [activeRegionId, minSeverityFilter, searchQuery]);
+	}, [activeRegionId, buildEventsQueryString, eventsSource]);
 
 	useEffect(() => {
 		void fetchAll();
@@ -245,9 +447,13 @@ export function GeopoliticalMapShell() {
 
 	const fetchRegionNews = useCallback(async () => {
 		try {
+			const regionParam =
+				eventsSource === "acled"
+					? acledRegionFilter.trim() || undefined
+					: activeRegionId || undefined;
 			const response = await fetch(
 				`/api/geopolitical/news?${new URLSearchParams({
-					...(activeRegionId ? { region: activeRegionId } : {}),
+					...(regionParam ? { region: regionParam } : {}),
 					limit: "8",
 				}).toString()}`,
 				{ cache: "no-store" },
@@ -258,11 +464,107 @@ export function GeopoliticalMapShell() {
 		} catch {
 			// keep previous news
 		}
-	}, [activeRegionId]);
+	}, [acledRegionFilter, activeRegionId, eventsSource]);
 
 	useEffect(() => {
 		void fetchRegionNews();
 	}, [fetchRegionNews]);
+
+	const fetchGeopoliticalContext = useCallback(async () => {
+		setContextLoading(true);
+		try {
+			const regionParam =
+				eventsSource === "acled"
+					? acledRegionFilter.trim() || undefined
+					: activeRegionId || undefined;
+			const query = new URLSearchParams({
+				source: contextSource,
+				limit: "12",
+				...(searchQuery.trim() ? { q: searchQuery.trim() } : {}),
+				...(regionParam ? { region: regionParam } : {}),
+			});
+			const response = await fetch(`/api/geopolitical/context?${query.toString()}`, {
+				cache: "no-store",
+			});
+			if (!response.ok) {
+				return;
+			}
+			const payload = (await response.json()) as GeoContextResponse;
+			setContextItems(Array.isArray(payload.items) ? payload.items : []);
+		} catch {
+			// keep previous context
+		} finally {
+			setContextLoading(false);
+		}
+	}, [acledRegionFilter, activeRegionId, contextSource, eventsSource, searchQuery]);
+
+	useEffect(() => {
+		void fetchGeopoliticalContext();
+	}, [fetchGeopoliticalContext]);
+
+	const fetchGameTheoryImpact = useCallback(async () => {
+		if (eventsSource !== "acled") {
+			setGameTheoryItems([]);
+			setGameTheorySummary(null);
+			setGameTheoryLoading(false);
+			return;
+		}
+
+		setGameTheoryLoading(true);
+		try {
+			const query = new URLSearchParams({
+				limit: "80",
+				...(acledCountryFilter.trim() ? { country: acledCountryFilter.trim() } : {}),
+				...(acledRegionFilter.trim() ? { region: acledRegionFilter.trim() } : {}),
+				...(acledEventTypeFilter.trim() ? { eventType: acledEventTypeFilter.trim() } : {}),
+				...(acledSubEventTypeFilter.trim() ? { subEventType: acledSubEventTypeFilter.trim() } : {}),
+				...(acledFromFilter.trim() ? { from: acledFromFilter.trim() } : {}),
+				...(acledToFilter.trim() ? { to: acledToFilter.trim() } : {}),
+			});
+			const response = await fetch(`/api/geopolitical/game-theory/impact?${query.toString()}`, {
+				cache: "no-store",
+			});
+			if (!response.ok) {
+				return;
+			}
+
+			const payload = (await response.json()) as GeoGameTheoryResponse;
+			setGameTheoryItems(Array.isArray(payload.items) ? payload.items : []);
+			setGameTheorySummary(payload.summary ?? null);
+		} catch {
+			// keep previous game-theory view
+		} finally {
+			setGameTheoryLoading(false);
+		}
+	}, [
+		acledCountryFilter,
+		acledEventTypeFilter,
+		acledFromFilter,
+		acledRegionFilter,
+		acledSubEventTypeFilter,
+		acledToFilter,
+		eventsSource,
+	]);
+
+	useEffect(() => {
+		void fetchGameTheoryImpact();
+	}, [fetchGameTheoryImpact]);
+
+	useEffect(() => {
+		if (eventsSource === "acled") {
+			setActiveRegionId("");
+			return;
+		}
+		setAcledCountryFilter("");
+		setAcledRegionFilter("");
+		setAcledEventTypeFilter("");
+		setAcledSubEventTypeFilter("");
+		setAcledFromFilter("");
+		setAcledToFilter("");
+		setAcledPage(1);
+		setAcledTotal(0);
+		setAcledHasMore(false);
+	}, [eventsSource]);
 
 	useEffect(() => {
 		if (typeof window === "undefined" || typeof window.EventSource === "undefined") return;
@@ -366,6 +668,10 @@ export function GeopoliticalMapShell() {
 			}
 
 			setSelectedEventId(null);
+			if (!eventsEditable) {
+				setError("ACLED mode is read-only. Switch source to Local to place markers.");
+				return;
+			}
 			setPendingPoint(coords);
 			if (!draftTitle.trim()) {
 				const defaultLabel = getGeoCatalogEntry(selectedSymbol)?.label ?? "New event";
@@ -378,6 +684,7 @@ export function GeopoliticalMapShell() {
 			draftTitle,
 			drawingMode,
 			drawingTextLabel,
+			eventsEditable,
 			executeDrawingCommand,
 			pendingLineStart,
 			selectedSymbol,
@@ -422,6 +729,10 @@ export function GeopoliticalMapShell() {
 	}, []);
 
 	const createMarker = useCallback(async () => {
+		if (!eventsEditable) {
+			setError("ACLED mode is read-only. Switch source to Local to create/edit markers.");
+			return;
+		}
 		if (!pendingPoint) {
 			setError("Select a point on the map before creating a marker.");
 			return;
@@ -479,9 +790,14 @@ export function GeopoliticalMapShell() {
 		resetCreateForm,
 		selectedSymbol,
 		activeRegionId,
+		eventsEditable,
 	]);
 
 	const updateMarker = useCallback(async () => {
+		if (!eventsEditable) {
+			setError("ACLED mode is read-only. Switch source to Local to create/edit markers.");
+			return;
+		}
 		if (!selectedEvent) {
 			setError("No marker selected for update.");
 			return;
@@ -521,9 +837,13 @@ export function GeopoliticalMapShell() {
 		} finally {
 			setBusy(false);
 		}
-	}, [editForm, fetchAll, selectedEvent]);
+	}, [editForm, eventsEditable, fetchAll, selectedEvent]);
 
 	const deleteMarker = useCallback(async () => {
+		if (!eventsEditable) {
+			setError("ACLED mode is read-only. Switch source to Local to create/edit markers.");
+			return;
+		}
 		if (!selectedEvent) {
 			setError("No marker selected for deletion.");
 			return;
@@ -556,7 +876,7 @@ export function GeopoliticalMapShell() {
 		} finally {
 			setBusy(false);
 		}
-	}, [fetchAll, selectedEvent]);
+	}, [eventsEditable, fetchAll, selectedEvent]);
 
 	const runHardIngest = useCallback(async () => {
 		setBusy(true);
@@ -586,6 +906,10 @@ export function GeopoliticalMapShell() {
 			title?: string;
 			sourceTier?: "A" | "B" | "C";
 		}) => {
+			if (!eventsEditable) {
+				setError("ACLED mode is read-only. Switch source to Local to modify event sources.");
+				return;
+			}
 			if (!selectedEvent) return;
 			setBusy(true);
 			await fetch(`/api/geopolitical/events/${encodeURIComponent(selectedEvent.id)}/sources`, {
@@ -596,7 +920,7 @@ export function GeopoliticalMapShell() {
 			setBusy(false);
 			await fetchAll();
 		},
-		[fetchAll, selectedEvent],
+		[eventsEditable, fetchAll, selectedEvent],
 	);
 
 	const addAssetToSelectedEvent = useCallback(
@@ -606,6 +930,10 @@ export function GeopoliticalMapShell() {
 			relation: "beneficiary" | "exposed" | "hedge" | "uncertain";
 			rationale?: string;
 		}) => {
+			if (!eventsEditable) {
+				setError("ACLED mode is read-only. Switch source to Local to modify event assets.");
+				return;
+			}
 			if (!selectedEvent) return;
 			setBusy(true);
 			await fetch(`/api/geopolitical/events/${encodeURIComponent(selectedEvent.id)}/assets`, {
@@ -616,7 +944,7 @@ export function GeopoliticalMapShell() {
 			setBusy(false);
 			await fetchAll();
 		},
-		[fetchAll, selectedEvent],
+		[eventsEditable, fetchAll, selectedEvent],
 	);
 
 	const deleteSelectedDrawing = useCallback(async () => {
@@ -710,9 +1038,12 @@ export function GeopoliticalMapShell() {
 	]);
 
 	const activeRegionLabel = useMemo(() => {
+		if (eventsSource === "acled") {
+			return acledRegionFilter.trim() || "All regions";
+		}
 		if (!activeRegionId) return "All regions";
 		return regions.find((region) => region.id === activeRegionId)?.label ?? activeRegionId;
-	}, [activeRegionId, regions]);
+	}, [acledRegionFilter, activeRegionId, eventsSource, regions]);
 
 	return (
 		<div className="flex h-screen min-h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -755,23 +1086,41 @@ export function GeopoliticalMapShell() {
 					<div className="flex items-center gap-2 border-b border-border px-3 py-2">
 						<select
 							className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-							value={activeRegionId}
-							onChange={(event) => setActiveRegionId(event.target.value)}
-							aria-label="Filter events by region"
+							value={eventsSource}
+							onChange={(event) => {
+								setEventsSource(event.target.value as EventsSource);
+								setAcledPage(1);
+							}}
+							aria-label="Event source mode"
 						>
-							<option value="">All regions</option>
-							{regions.map((region) => (
-								<option key={region.id} value={region.id}>
-									{region.label}
-								</option>
-							))}
+							<option value="local">Local</option>
+							<option value="acled">ACLED (Go Gateway)</option>
 						</select>
-						<Input
-							value={searchQuery}
-							onChange={(event) => setSearchQuery(event.target.value)}
-							placeholder="Search events"
-							aria-label="Search geopolitical events"
-						/>
+						{eventsSource === "local" ? (
+							<select
+								className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+								value={activeRegionId}
+								onChange={(event) => setActiveRegionId(event.target.value)}
+								aria-label="Filter events by region"
+							>
+								<option value="">All regions</option>
+								{regions.map((region) => (
+									<option key={region.id} value={region.id}>
+										{region.label}
+									</option>
+								))}
+							</select>
+						) : (
+							<Input
+								value={acledCountryFilter}
+								onChange={(event) => {
+									setAcledCountryFilter(event.target.value);
+									setAcledPage(1);
+								}}
+								placeholder="ACLED country"
+								aria-label="ACLED country filter"
+							/>
+						)}
 						<select
 							className="h-9 rounded-md border border-input bg-background px-2 text-sm"
 							value={minSeverityFilter}
@@ -784,12 +1133,69 @@ export function GeopoliticalMapShell() {
 								</option>
 							))}
 						</select>
+						<Input
+							value={searchQuery}
+							onChange={(event) => setSearchQuery(event.target.value)}
+							placeholder="Search events"
+							aria-label="Search geopolitical events"
+						/>
+						{eventsSource === "acled" && (
+							<>
+								<Input
+									value={acledRegionFilter}
+									onChange={(event) => {
+										setAcledRegionFilter(event.target.value);
+										setAcledPage(1);
+									}}
+									placeholder="ACLED region"
+									aria-label="ACLED region filter"
+								/>
+								<Input
+									value={acledEventTypeFilter}
+									onChange={(event) => {
+										setAcledEventTypeFilter(event.target.value);
+										setAcledPage(1);
+									}}
+									placeholder="Event type"
+									aria-label="ACLED event type filter"
+								/>
+								<Input
+									value={acledSubEventTypeFilter}
+									onChange={(event) => {
+										setAcledSubEventTypeFilter(event.target.value);
+										setAcledPage(1);
+									}}
+									placeholder="Sub-event type"
+									aria-label="ACLED sub-event type filter"
+								/>
+								<Input
+									value={acledFromFilter}
+									onChange={(event) => {
+										setAcledFromFilter(event.target.value);
+										setAcledPage(1);
+									}}
+									placeholder="From YYYY-MM-DD"
+									aria-label="ACLED from date"
+								/>
+								<Input
+									value={acledToFilter}
+									onChange={(event) => {
+										setAcledToFilter(event.target.value);
+										setAcledPage(1);
+									}}
+									placeholder="To YYYY-MM-DD"
+									aria-label="ACLED to date"
+								/>
+							</>
+						)}
 						<Button
 							size="sm"
 							variant="outline"
 							onClick={() => {
 								void fetchAll();
 								void fetchRegionNews();
+								void fetchGeopoliticalContext();
+								void fetchGameTheoryImpact();
 							}}
 							aria-label="Apply geopolitical filters"
 						>
@@ -798,6 +1204,76 @@ export function GeopoliticalMapShell() {
 						</Button>
 						<span className="text-xs text-muted-foreground">region: {activeRegionLabel}</span>
 					</div>
+					<div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-2">
+						{activeFilterChips.length === 0 ? (
+							<span className="text-xs text-muted-foreground">No active filters.</span>
+						) : (
+							activeFilterChips.map((chip) => (
+								<button
+									type="button"
+									key={chip.key}
+									className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted"
+									onClick={chip.clear}
+									title="Click to clear filter"
+								>
+									{chip.label} ×
+								</button>
+							))
+						)}
+						{eventsSource === "acled" && (
+							<>
+								<span className="ml-2 text-xs text-muted-foreground">
+									page {acledPage} | total {acledTotal}
+								</span>
+								<Button
+									size="sm"
+									variant="outline"
+									disabled={acledPage <= 1}
+									onClick={() => setAcledPage((previous) => Math.max(1, previous - 1))}
+								>
+									Prev
+								</Button>
+								<Button
+									size="sm"
+									variant="outline"
+									disabled={!acledHasMore}
+									onClick={() => setAcledPage((previous) => previous + 1)}
+								>
+									Next
+								</Button>
+							</>
+						)}
+					</div>
+					{eventsSource === "acled" && (
+						<div className="flex flex-wrap gap-2 border-b border-border/60 px-3 py-2">
+							{acledRegionSuggestions.slice(0, 8).map((region) => (
+								<button
+									key={`region-${region}`}
+									type="button"
+									className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted"
+									onClick={() => {
+										setAcledRegionFilter(region);
+										setAcledPage(1);
+									}}
+								>
+									region: {region}
+								</button>
+							))}
+							{acledSubEventSuggestions.slice(0, 8).map((subEventType) => (
+								<button
+									key={`sub-${subEventType}`}
+									type="button"
+									className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted"
+									onClick={() => {
+										setAcledSubEventTypeFilter(subEventType);
+										setAcledPage(1);
+									}}
+								>
+									sub: {subEventType}
+								</button>
+							))}
+						</div>
+					)}
 
 					<div className="flex min-h-0 flex-1 overflow-hidden p-3">
 						{loading ? (
@@ -823,7 +1299,12 @@ export function GeopoliticalMapShell() {
 									void handleMapClick(coords);
 								}}
 								onCountryClick={(countryId) => {
-									setSearchQuery(countryId);
+									if (eventsSource === "acled") {
+										setAcledCountryFilter(countryId);
+										setAcledPage(1);
+									} else {
+										setSearchQuery(countryId);
+									}
 								}}
 							/>
 						)}
@@ -897,6 +1378,22 @@ export function GeopoliticalMapShell() {
 
 					<RegionNewsPanel activeRegionLabel={activeRegionLabel} news={news} />
 
+					<GeoPulseInsightsPanel graph={graph} />
+
+					<GeopoliticalGameTheoryPanel
+						enabled={eventsSource === "acled"}
+						loading={gameTheoryLoading}
+						items={gameTheoryItems}
+						summary={gameTheorySummary ?? null}
+					/>
+
+					<GeopoliticalContextPanel
+						source={contextSource}
+						items={contextItems}
+						loading={contextLoading}
+						onSourceChange={setContextSource}
+					/>
+
 					<SourceHealthPanel entries={sourceHealth} />
 
 					<MarkerListPanel
@@ -911,8 +1408,8 @@ export function GeopoliticalMapShell() {
 			</div>
 
 			<footer className="border-t border-border px-4 py-2 text-xs text-muted-foreground">
-				SSE, candidate workflow, timeline, source health, region news, and drawing primitives are
-				active.
+				SSE, candidate workflow, timeline, source health, region news, CFR/CrisisWatch context
+				panel, GeoPulse graph insights, GameTheory impact slice, and drawing primitives are active.
 			</footer>
 		</div>
 	);

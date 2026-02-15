@@ -8,14 +8,19 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/acled"
+	"tradeviewfusion/go-backend/internal/connectors/cfr"
+	"tradeviewfusion/go-backend/internal/connectors/crisiswatch"
 	"tradeviewfusion/go-backend/internal/connectors/ecb"
 	"tradeviewfusion/go-backend/internal/connectors/finnhub"
 	"tradeviewfusion/go-backend/internal/connectors/fred"
+	"tradeviewfusion/go-backend/internal/connectors/gametheory"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	newsConnectors "tradeviewfusion/go-backend/internal/connectors/news"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
 	backtestServices "tradeviewfusion/go-backend/internal/services/backtest"
+	geopoliticalServices "tradeviewfusion/go-backend/internal/services/geopolitical"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -48,9 +53,30 @@ func NewServerFromEnv() (*Server, error) {
 		APIKey:         envOr("FRED_API_KEY", ""),
 		RequestTimeout: durationMsOr("FRED_HTTP_TIMEOUT_MS", 4000),
 	})
+	acledClient := acled.NewClient(acled.Config{
+		BaseURL:        envOr("ACLED_BASE_URL", acled.DefaultBaseURL),
+		APIToken:       envOr("ACLED_API_TOKEN", ""),
+		Email:          envOr("ACLED_EMAIL", ""),
+		AccessKey:      envOr("ACLED_ACCESS_KEY", ""),
+		RequestTimeout: durationMsOr("ACLED_HTTP_TIMEOUT_MS", 5000),
+	})
 	quoteClient := marketServices.NewQuoteClient(gctClient, finnhubClient, fredClient, ecbClient)
 	macroService := marketServices.NewMacroService(fredClient, ecbClient)
 	streamClient := marketServices.NewStreamClient(quoteClient, gctClient, finnhubClient)
+	geopoliticalEventsService := geopoliticalServices.NewEventsService(acledClient)
+	cfrClient := cfr.NewClient()
+	crisiswatchClient := crisiswatch.NewClient(crisiswatch.Config{
+		RSSURL:         envOr("CRISISWATCH_RSS_URL", crisiswatch.DefaultRSSURL),
+		RequestTimeout: durationMsOr("CRISISWATCH_HTTP_TIMEOUT_MS", 5000),
+		CacheTTL:       durationMsOr("CRISISWATCH_CACHE_TTL_MS", 300000),
+		PersistPath:    envOr("CRISISWATCH_CACHE_PERSIST_PATH", ""),
+	})
+	geopoliticalContextService := geopoliticalServices.NewContextService(cfrClient, crisiswatchClient)
+	gameTheoryClient := gametheory.NewClient(gametheory.Config{
+		BaseURL:        envOr("GEOPOLITICAL_GAMETHEORY_URL", gametheory.DefaultBaseURL),
+		RequestTimeout: durationMsOr("GEOPOLITICAL_GAMETHEORY_TIMEOUT_MS", 5000),
+	})
+	geopoliticalGameTheoryService := geopoliticalServices.NewGameTheoryService(acledClient, gameTheoryClient)
 	rssClient := newsConnectors.NewRSSClient(newsConnectors.RSSClientConfig{
 		FeedURLs:       csvOr("NEWS_RSS_FEEDS", []string{"https://feeds.marketwatch.com/marketwatch/topstories/"}),
 		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
@@ -96,6 +122,12 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/macro/history", httpHandlers.MacroHistoryHandler(macroService))
 	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient))
 	mux.HandleFunc("/api/v1/news/headlines", httpHandlers.NewsHandler(newsService))
+	mux.HandleFunc("/api/v1/geopolitical/events", httpHandlers.GeopoliticalEventsHandler(geopoliticalEventsService))
+	mux.HandleFunc("/api/v1/geopolitical/context", httpHandlers.GeopoliticalContextHandler(geopoliticalContextService))
+	mux.HandleFunc(
+		"/api/v1/geopolitical/game-theory/impact",
+		httpHandlers.GeopoliticalGameTheoryImpactHandler(geopoliticalGameTheoryService),
+	)
 	mux.HandleFunc("/api/v1/backtest/capabilities", httpHandlers.BacktestCapabilitiesHandler(strategyExamplesDir))
 	mux.HandleFunc("/api/v1/backtest/runs", httpHandlers.BacktestRunsHandler(backtestManager))
 	mux.HandleFunc("/api/v1/backtest/runs/", httpHandlers.BacktestRunByIDHandler(backtestManager))

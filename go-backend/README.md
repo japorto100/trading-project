@@ -33,6 +33,7 @@ This folder hosts the Go layer for Tradeview Fusion.
   - `GET /api/v1/quote` (stable multi-source contract: GCT + ECB + FINNHUB + FRED/FED/BOJ/SNB)
   - `GET /api/v1/macro/history` (historical macro/forex points via FRED/FED/BOJ/SNB/ECB)
   - `GET /api/v1/news/headlines` (RSS + GDELT + Finviz aggregation contract)
+  - `GET /api/v1/geopolitical/game-theory/impact` (ACLED filter -> Python scoring contract)
   - `GET /api/v1/backtest/capabilities` (GCT backtester capabilities + strategy example discovery)
   - `POST /api/v1/backtest/runs` (create run lifecycle)
   - `GET /api/v1/backtest/runs` (list latest runs)
@@ -88,6 +89,7 @@ Expected:
 - `http://127.0.0.1:9060/api/v1/macro/history?symbol=POLICY_RATE&exchange=boj&assetType=macro&limit=30`
 - `http://127.0.0.1:9060/api/v1/macro/history?symbol=POLICY_RATE&exchange=snb&assetType=macro&limit=30`
 - `http://127.0.0.1:9060/api/v1/news/headlines?symbol=AAPL&limit=3`
+- `http://127.0.0.1:9060/api/v1/geopolitical/game-theory/impact?country=Ukraine&eventType=Battles&from=2026-01-01&to=2026-01-31&limit=50`
 - `http://127.0.0.1:9060/api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity`
 - `http://127.0.0.1:9060/api/v1/backtest/capabilities`
 - `curl -s -X POST http://127.0.0.1:9060/api/v1/backtest/runs -H \"Content-Type: application/json\" -d '{\"strategy\":\"dca-api-candles.strat\",\"symbol\":\"BTC/USDT\",\"exchange\":\"binance\",\"assetType\":\"spot\"}'`
@@ -120,6 +122,11 @@ Environment for News:
 - `NEWS_RSS_FEEDS` (comma-separated feed URLs)
 - `GDELT_BASE_URL` (default: `https://api.gdeltproject.org/api/v2/doc/doc`)
 - `FINVIZ_RSS_BASE_URL` (default: `https://finviz.com/rss.ashx`)
+
+Environment for Geopolitical GameTheory bridge:
+
+- `GEOPOLITICAL_GAMETHEORY_URL` (default: `http://127.0.0.1:8091`)
+- `GEOPOLITICAL_GAMETHEORY_TIMEOUT_MS` (default: `5000`)
 
 Environment for Backtest capability discovery:
 

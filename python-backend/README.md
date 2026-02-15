@@ -6,7 +6,7 @@ Klar getrennte Python-Bausteine fuer Tradeview Fusion.
 
 - `services/`
   - `finance-bridge/` (Market-Data Sidecar via yfinance)
-  - `geopolitical-soft-signals/` (Soft-Signal Candidate Service)
+  - `geopolitical-soft-signals/` (Soft-Signal Candidate Service + GameTheory Impact API)
   - `indicator-service/` (Indicators, patterns, composite signal, strategy evaluation)
 - `ml_ai/`
   - `geopolitical_soft_signals/` (NLP/ML-Pipeline, von FastAPI importiert)

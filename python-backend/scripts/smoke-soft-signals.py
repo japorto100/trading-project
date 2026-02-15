@@ -55,9 +55,44 @@ def main() -> int:
         count = len(body.get("candidates", []))
         results[route] = count
 
+    game_theory_payload = {
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "limit": 6,
+        "events": [
+            {
+                "id": "ev-1",
+                "eventDate": datetime.now(timezone.utc).date().isoformat(),
+                "country": "Ukraine",
+                "region": "Europe",
+                "eventType": "Battles",
+                "subEventType": "Armed clash",
+                "fatalities": 12,
+                "source": "acled",
+                "notes": "border escalation and retaliation",
+            },
+            {
+                "id": "ev-2",
+                "eventDate": datetime.now(timezone.utc).date().isoformat(),
+                "country": "Israel",
+                "region": "Middle East",
+                "eventType": "Explosions/Remote violence",
+                "subEventType": "Air strike",
+                "fatalities": 4,
+                "source": "acled",
+                "notes": "air strike and de-escalation talks",
+            },
+        ],
+    }
+    game_theory_response = client.post("/api/v1/game-theory/impact", json=game_theory_payload)
+    game_theory_response.raise_for_status()
+    game_theory_body = game_theory_response.json()
+    results["game-theory-impact"] = len(game_theory_body.get("items", []))
+
     print(json.dumps(results, indent=2))
     if results["cluster-headlines"] <= 0:
         raise SystemExit("Smoke failed: cluster-headlines returned no candidates")
+    if results["game-theory-impact"] <= 0:
+        raise SystemExit("Smoke failed: game-theory-impact returned no items")
 
     return 0
 

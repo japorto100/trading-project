@@ -12,6 +12,22 @@ import type { MarketNewsArticle } from "@/lib/news/types";
 
 export interface GeoEventsResponse {
 	success: boolean;
+	source?: "local" | "acled";
+	meta?: {
+		source: "acled";
+		page: number;
+		pageSize: number;
+		total: number;
+		hasMore: boolean;
+		filters: {
+			country?: string;
+			region?: string;
+			eventType?: string;
+			subEventType?: string;
+			from?: string;
+			to?: string;
+		};
+	};
 	events: GeoEvent[];
 }
 
@@ -64,6 +80,88 @@ export interface GeoNewsResponse {
 	total: number;
 	articles: MarketNewsArticle[];
 	candidateCount: number;
+}
+
+export interface GeoGraphResponse {
+	success: boolean;
+	source: "local" | "acled";
+	nodeCount: number;
+	edgeCount: number;
+	nodes: Array<{
+		id: string;
+		label: string;
+		type: "event" | "region" | "event_type" | "sub_event_type" | "asset";
+		weight: number;
+	}>;
+	edges: Array<{
+		id: string;
+		source: string;
+		target: string;
+		type: "event-region" | "event-type" | "event-subevent" | "event-asset";
+		weight: number;
+	}>;
+	topRegions: string[];
+	topSubEventTypes: string[];
+}
+
+export interface GeoContextItem {
+	id: string;
+	source: string;
+	title: string;
+	url: string;
+	summary?: string;
+	publishedAt?: string;
+	region?: string;
+}
+
+export interface GeoContextResponse {
+	success: boolean;
+	source: "all" | "cfr" | "crisiswatch";
+	filters?: {
+		source: "all" | "cfr" | "crisiswatch";
+		q?: string;
+		region?: string;
+		limit: number;
+	};
+	items: GeoContextItem[];
+}
+
+export interface GeoGameTheoryItem {
+	id: string;
+	eventId: string;
+	eventTitle: string;
+	region: string;
+	marketBias: "risk_on" | "risk_off" | "neutral";
+	impactScore: number;
+	confidence: number;
+	drivers: string[];
+	symbols: string[];
+	eventDate: string;
+}
+
+export interface GeoGameTheorySummary {
+	analyzedEvents: number;
+	avgImpactScore: number;
+	riskOnCount: number;
+	riskOffCount: number;
+	neutralCount: number;
+	topRegion?: string;
+}
+
+export interface GeoGameTheoryResponse {
+	success: boolean;
+	source?: string;
+	filters?: {
+		country?: string;
+		region?: string;
+		eventType?: string;
+		subEventType?: string;
+		from?: string;
+		to?: string;
+		limit: number;
+	};
+	summary?: GeoGameTheorySummary;
+	items: GeoGameTheoryItem[];
 }
 
 export interface EditFormState {

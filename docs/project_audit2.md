@@ -89,6 +89,26 @@ Hinweis: Diese offenen Punkte koennen ganz oder teilweise durch Referenz-Impleme
   - Doppelarbeit-Fork-Check abgeschlossen: Portfolio/Order/Backtesting bleiben bewusst in GCT; Gateway und Python liefern nur stabile Produkt-Contracts davor (kein Rebuild der GCT-Engine).
   - Python Soft-Signal-Service ist produktiv als Basis vorhanden (`/api/v1/cluster-headlines`, `/api/v1/social-surge`, `/api/v1/narrative-shift`), Smoke-Test verifiziert.
   - Python Indicator-Service Vertical Slice ist produktiv vorhanden (`/api/v1/signals/composite`, `/api/v1/patterns/*`, `/api/v1/indicators/exotic-ma`, `/api/v1/indicators/ks-collection`, `/api/v1/evaluate/strategy`, `/api/v1/fibonacci/levels`, `/api/v1/charting/transform`), Smoke-Test verifiziert.
+  - Frontend-Referenz-Slice aus TV-Klonen ist produktiv uebernommen: debounced Symbolsuche + Keyboard-/Highlight-Navigation im Header-Suchdropdown (`src/lib/hooks/useDebouncedValue.ts`, `src/components/fusion/SymbolSearch.tsx`, `src/features/trading/TradingHeader.tsx`, `src/app/page.tsx`).
+  - Review-Entscheidung dokumentiert: fuer StockTraderPro/react-next-tradingview aktuell keine weitere direkte Code-Uebernahme geplant; Nutzung nur noch als punktuelle UX-Referenz.
+  - Referenz-Status Kapitel-1/2 nachgezogen: GoChart und Divergex-Links aktuell `404`; EquiCharts/FirChart bleiben als begrenzte UX-/Engine-Referenzen (kein Full-Import, nur selektive Pattern-Entnahme).
+  - EquiCharts/FirChart-Pattern-Slice ist im Frontend uebernommen: Drawing-Toolbar erhielt Tool-Gruppierung, Magnet-Modus, Visibility/Lock-Toggles, Hotkeys und lokale Persistenz (`src/components/DrawingToolbar.tsx`, `src/features/trading/TradingWorkspace.tsx`).
+  - LWC-Plugin-Pattern-Slice ist im Chart umgesetzt: Primitive-Zeichnungen (Trendline/Rectangle/Horizontal/Vertical), Undo/Redo/Clear-Command-Flow und Magnet-Snapping laufen direkt in `TradingChart` (`src/components/TradingChart.tsx`).
+  - Naechster Referenz-Review ist abgeschlossen (`LWC`, `GeoPulse`, `GeoInsight`): LWC bleibt aktive Plugin-Basis; GeoPulse/GeoInsight werden nur selektiv als Pattern-Quelle genutzt (kein direkter Code-Import).
+  - GeoInsight-ACLED-Slice ist im Go-Gateway live: `GET /api/v1/geopolitical/events` nutzt einen echten ACLED-Connector (Token oder Legacy-Key), stabile Filter-Parameter und festen JSON-Contract.
+  - ACLED-Filterausbau ist live: `region` + `subEventType` sind im Go-Connector/Handler als echte Query-Parameter enthalten und testabgedeckt.
+  - Frontend-Bridge ist live: `GET /api/geopolitical/events` unterstuetzt jetzt `source=acled` (Go-Gateway-Proxy mit Cache + Paging) neben dem lokalen Store-Modus.
+  - ACLED-Statusgrenze ist dokumentiert: produktiv ist derzeit die Event-API-Anbindung; ACLED Conflict Index/Monitors bleiben bis Lizenz-/Tier-Freigabe und Credentials als separater Intake-Block zurueckgestellt.
+  - CFR Global Conflict Tracker ist als Research-/Context-Quelle eingeordnet: kein frei dokumentiertes Public API voraussetzen, nur eigener Kurzsummary + Deep-Link, keine CFR-Textspiegelung.
+  - CrisisWatch ist als RSS-basierter Intake eingeordnet: Polling ueber offiziellen Feed (ohne Scraping), persistiert werden `guid/link`, `title`, `published_at`.
+  - Geopolitical Context Slice ist live: Go-Endpoint `GET /api/v1/geopolitical/context?source=all|cfr|crisiswatch&limit=12` liefert stabilen Context-Contract (CFR link-only + CrisisWatch RSS).
+  - Frontend-Context-Bridge ist live: `GET /api/geopolitical/context` proxied den Go-Contract inkl. Cache; `GeopoliticalMapShell` zeigt CFR/CrisisWatch im neuen Context-Panel.
+  - CFR-Context wurde auf konfliktbezogene Detail-Links gehaertet (nicht nur Tracker-Root), weiterhin strikt link-only ohne Textspiegelung.
+  - CrisisWatch-Connector ist gehaertet: optionaler TTL- + Persist-Store (`CRISISWATCH_CACHE_TTL_MS`, `CRISISWATCH_CACHE_PERSIST_PATH`) reduziert Live-Fetch-Druck und erlaubt Failover auf zuletzt bekannten Snapshot.
+  - GeoPulse-Backend-Slice ist live: neuer Endpoint `GET /api/geopolitical/graph` liefert Event-Relations (Region/EventType/SubEventType/Asset) fuer Insights-Panels.
+  - Weiterer Referenz-Review ist abgeschlossen (`GameTheory`, `CCXT`, `ffetch`): Job-Orchestrierung/Geo-Scoring-Patterns, Crypto-Fallback-Grenzen und HTTP-Hardening-Optionen sind als Intake-Regeln dokumentiert.
+  - GameTheory Vertical Slice ist live: Python-Endpoint `POST /api/v1/game-theory/impact`, Go-Endpoint `GET /api/v1/geopolitical/game-theory/impact`, Next-Bridge `GET /api/geopolitical/game-theory/impact` und neues Sidebar-Panel im Geopolitical-Workspace.
+  - ffetch-Entscheidung ist finalisiert: vorerst kein produktiver Einbau; bestehende Provider-HTTP-Schicht bleibt aktiv, Re-Evaluierung nur bei messbarem Hardening-Bedarf.
 
 ### 8.1 Warum drei Sprachen Sinn machen
 
@@ -365,6 +385,8 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 | 7f | Zweiter Nicht-Crypto Adapter Slice (Finnhub Equity Quote, REST) | **ERLEDIGT (15.02.2026)** | `GET /api/v1/quote?symbol=AAPL&exchange=finnhub&assetType=equity` liefert `200` mit Quelle `finnhub` |
 | 7g | Dritter Nicht-Crypto Adapter Slice (FRED Macro Quote, REST) | **ERLEDIGT (15.02.2026)** | `GET /api/v1/quote?symbol=CPIAUCSL&exchange=fred&assetType=macro` liefert `200` mit Quelle `fred` |
 | 7h | News Vertical Slice (RSS + GDELT + Finviz Aggregation) | **ERLEDIGT (15.02.2026)** | `GET /api/v1/news/headlines?symbol=AAPL&limit=3` liefert aggregierte Headlines mit stabilem Contract |
+| 7i | Geopolitical Events Slice (ACLED Connector + Gateway Contract) | **ERLEDIGT (15.02.2026)** | `GET /api/v1/geopolitical/events?country=Ukraine&eventType=Battles&from=2026-01-01&to=2026-01-31&limit=25` liefert stabilen ACLED-Contract |
+| 7j | Geopolitical Bridge Slice (Next.js -> Go ACLED + Paging/Cache) | **ERLEDIGT (15.02.2026)** | `GET /api/geopolitical/events?source=acled&page=1&pageSize=50&country=...` liefert gemappten `GeoEvent`-Contract inkl. Meta |
 | 8 | Portfolio Tracking UI bauen | **ERLEDIGT** | P&L, Drawdown, Positionen |
 
 ### Mittelfristig (3-6 Wochen, Go-Adapter + Python Microservice)
@@ -378,6 +400,8 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 | 11 | News-Fetching Go-Adapter: RSS + GDELT + Finviz | **ERLEDIGT (15.02.2026)** | Aggregations-Endpoint + Hardening (Retries/Quotas/Normalization) im Gateway live |
 | 12 | Macro Data Go-Adapter: FRED + ECB | **ERLEDIGT (15.02.2026, baseline+)** | `fed/fred/boj/snb/ecb` im Macro-Contract + optionaler Scheduled-Ingest (Snapshot-ETL) live |
 | 12a | GCT-Backtester Capability Slice im Gateway | **ERLEDIGT (15.02.2026)** | `GET /api/v1/backtest/capabilities` zeigt vorhandene Fork-Strategiebeispiele und dokumentiert wiederverwendbare Engine-Flaechen |
+| 12b | ACLED Geopolitical Adapter (Go) | **ERLEDIGT (15.02.2026, baseline)** | echter ACLED-Connector + Service + Handler (`/api/v1/geopolitical/events`) mit Tests und stabilem Contract |
+| 12c | ACLED-Filterausbau (region + subEventType) | **ERLEDIGT (15.02.2026)** | Go-Connector/Handler unterstuetzen beide Filter serverseitig inkl. Testabdeckung |
 
 **Python Rolle 1: AI/ML Soft-Signal Adapter (empfaengt Daten von Go)**
 
@@ -414,6 +438,13 @@ Status-Detail zu 21/22:
 | 22c | PineTS Indicator-Playground als optionales Modul evaluieren | Pine-kompatible Indicator-Logik fuer Frontend-Prototyping | **GEPLANT (Lizenz-Gate AGPL-3.0)** |
 | 22d | Foursight/NeonDash UI-Pattern-Adoption (Order-Ticket, PnL, Watchlist) | Paper-Trading-Frontend gezielt verbessern | **ERLEDIGT (15.02.2026, baseline)** |
 | 22e | Chronicle/Scout/FinGPT als Python-Adapter-POCs strukturieren | `news_cluster`, `social_surge`, `narrative_shift` qualitativ ausbauen | **TEILWEISE ERLEDIGT (15.02.2026, baseline)** |
+| 22f | LWC/GeoPulse/GeoInsight Review und Intake-Entscheidung | Chart-Plugins und Geo-Referenzen trennscharf einordnen (nehmen vs. nicht nehmen) | **ERLEDIGT (15.02.2026, Review-Entscheidungen dokumentiert)** |
+| 22g | GameTheory/CCXT/ffetch Review und Intake-Entscheidung | Geo-Impact-, Crypto-Fallback- und HTTP-Infra-Referenzen sauber einordnen | **ERLEDIGT (15.02.2026, Review-Entscheidungen dokumentiert)** |
+| 22l | GameTheory Vertical Slice (Python + Go + Frontend) | Erklaerbaren Impact-Contract von ACLED-Filtern bis UI-Panel produktiv verfuegbar machen | **ERLEDIGT (15.02.2026, baseline)** |
+| 22h | GeoPulse-Slice (Backend-Graph + Frontend-Insights) | Event-Relationen als Graph-View fuer schnelle Kontextanalyse sichtbar machen | **ERLEDIGT (15.02.2026, baseline)** |
+| 22i | ACLED Conflict Index/Monitors Intake-Gate | Gratis-first sauber halten: Event-API aktiv, Index/Monitor nur bei expliziter Lizenz-/Tier-Freigabe + Credentials | **GEPLANT (Policy fixiert, 15.02.2026)** |
+| 22j | CFR Conflict-Tracker Context Layer | Konfliktkarten mit eigener Kurzbeschreibung + CFR-Link anreichern, ohne CFR-Textuebernahme | **ERLEDIGT (15.02.2026, baseline)** |
+| 22k | CrisisWatch RSS Adapter Slice (Go + UI) | Offiziellen RSS-Feed pollen, normalisieren und im Frontend als Source-Timeline rendern | **ERLEDIGT (15.02.2026, baseline)** |
 
 Status-Detail zu 22a:
 - Optionaler CCXT-Provider ist live als TS-Fallback (`src/lib/providers/ccxt.ts`), nur aktiv bei `ENABLE_CCXT_FALLBACK=true`.
@@ -440,6 +471,32 @@ Status-Detail zu 22e:
 - Scout-POC: Source-Momentum-gewichtete Social-Surge-Bewertung + `scout:*` Tags.
 - FinGPT-POC: Narrative-Shift-Boost via Sentiment-Drift-Heuristik + `fingpt:*` Tags.
 - Dokumentiert in `.env.example` und `python-backend/services/geopolitical-soft-signals/README.md`.
+
+Status-Detail zu 22f:
+- LWC: Plugin-Examples als konkrete Quellen fuer Primitive-basierte Zeichentools/Alerts bestaetigt (`rectangle-drawing-tool`, `trend-line`, `user-price-alerts`, `volume-profile`).
+- GeoPulse: interessante Graph-/Filter-Patterns und NLP-Pipeline bestaetigt, aber kein direkter Import wegen hardcoded Secrets, Oel-Domain-Coupling und Qualitaetsrisiken.
+- GeoInsight: ACLED-Filter- und Cache-Muster bestaetigt; baseline-Umsetzung ist im Go-Gateway live (`GET /api/v1/geopolitical/events`), aber kein Leaflet/jQuery-Uebernahmepfad (Map-Stack bleibt `d3-geo` gemaess Projektregeln).
+
+Status-Detail zu 22g:
+- GameTheory: FastAPI-Job-/Backtest-Orchestrierung und Dashboard-Patterns bestaetigt; Modelllogik bleibt forschungsnah und wird nicht ungeprueft als Trading-Signal uebernommen.
+- CCXT: optionaler Crypto-Fallback bleibt valide; Multi-Asset-Kernpfad bleibt im Go-/Gateway-Layer.
+- ffetch: als TS-HTTP-Hardening-Baustein bestaetigt, aber derzeit bewusst nicht integriert; bestehende Provider-Clients bleiben der produktive Standard bis ein klarer Mehrwert belegt ist.
+
+Status-Detail zu 22l:
+- Python-Service erweitert: `POST /api/v1/game-theory/impact` liefert stabilen Impact-Contract (`summary + items`) aus explainable Heuristics.
+- Go-Gateway erweitert: `GET /api/v1/geopolitical/game-theory/impact` mappt ACLED-Filter (`country/region/eventType/subEventType/from/to/limit`) auf Python-Scoring.
+- Next.js-Bridge + UI erweitert: `GET /api/geopolitical/game-theory/impact` inkl. Cache-Option; `GeopoliticalMapShell` rendert ein dediziertes GameTheory-Impact-Panel fuer ACLED-Analysen.
+
+Status-Detail zu 22h:
+- Neuer Backend-Graph-Endpoint ist live: `GET /api/geopolitical/graph` (liefert Knoten/Kanten + Top-Regionen + Top-Sub-Events).
+- Geopolitical Shell hat Source-Modus (`local` vs `acled`) mit ACLED-Filtern, Filter-Chips, Paging und read-only Guard fuer externe Events.
+- GeoPulse-Insights-Panel rendert Graph-Kennzahlen/Top-Relationen im rechten Sidebar-Stack.
+
+Status-Detail zu 22i-22k:
+- ACLED bleibt produktiv auf Event-API-Contract (`/api/v1/geopolitical/events`) fokussiert; fuer Conflict Index/Monitors ist ohne passende ACLED-Tier-/Lizenzfreigabe kein produktiver Intake vorgesehen.
+- CFR-Layer ist als baseline umgesetzt: Go liefert `source=cfr` im Context-Contract, Frontend rendert Link-first Karten (Kurzsummary + "Open original"), keine Textspiegelung.
+- CrisisWatch-Layer ist als baseline umgesetzt: Go-RSS-Connector (`source=crisiswatch`) liefert `id/title/url/publishedAt/region`; Frontend rendert denselben Contract im Context-Panel.
+- Schichten-Schnitt ist produktiv: Go uebernimmt Fetch/Cache/Normalisierung (`/api/v1/geopolitical/context`), Next.js bridged (`/api/geopolitical/context`), Frontend zeigt Source-Badges und externe Links; Python bleibt optional fuer spaeteres Enrichment/Scoring.
 
 > **Detaillierter Plan mit 34 Todos, Phasen A-E, und allen Buch-Zeilennummern:** Siehe [`docs/INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sektion 8.
 

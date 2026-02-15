@@ -13,6 +13,7 @@ It powers the three adapters in `src/lib/geopolitical/adapters/soft-signals.ts`:
 - `POST /api/v1/cluster-headlines`
 - `POST /api/v1/social-surge`
 - `POST /api/v1/narrative-shift`
+- `POST /api/v1/game-theory/impact`
 
 ## Quick Start
 
