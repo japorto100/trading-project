@@ -125,6 +125,36 @@ SOURCE_RELIABILITY: dict[str, tuple[SourceTier, float]] = {
     "reddit": ("C", 0.5),
 }
 
+HAWKISH_TOKENS: tuple[str, ...] = (
+    "escalation",
+    "sanction",
+    "conflict",
+    "strike",
+    "embargo",
+    "war",
+    "retaliation",
+    "crackdown",
+)
+
+DOVISH_TOKENS: tuple[str, ...] = (
+    "ceasefire",
+    "de-escalation",
+    "deescalation",
+    "talks",
+    "agreement",
+    "relief",
+    "easing",
+    "truce",
+)
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    normalized = raw.strip().lower()
+    return normalized in {"1", "true", "yes", "on"}
+
 
 def normalize_text(value: str | None) -> str:
     if not value:
@@ -150,8 +180,16 @@ def parse_iso(value: str) -> datetime:
 def source_ref(article: ArticleInput, provider_prefix: str) -> SourceRefOutput:
     source_key = normalize_text(article.source)
     tier, reliability = SOURCE_RELIABILITY.get(source_key, ("C", 0.62))
+    provider = f"{provider_prefix}:{article.source}"
+    if provider_prefix == "news_cluster" and env_flag("SOFT_SIGNAL_CHRONICLE_POC_ENABLED", False):
+        provider = f"chronicle:{article.source}"
+    elif provider_prefix == "social_surge" and env_flag("SOFT_SIGNAL_SCOUT_POC_ENABLED", False):
+        provider = f"scout:{article.source}"
+    elif provider_prefix == "narrative_shift" and env_flag("SOFT_SIGNAL_FINGPT_POC_ENABLED", False):
+        provider = f"fingpt:{article.source}"
+
     return SourceRefOutput(
-        provider=f"{provider_prefix}:{article.source}",
+        provider=provider,
         url=article.url,
         title=article.title,
         publishedAt=article.publishedAt,
@@ -219,6 +257,39 @@ def article_text(article: ArticleInput) -> str:
     return normalize_text(f"{article.title} {article.summary or ''} {article.source}")
 
 
+def title_fingerprint(value: str) -> str:
+    compact = "".join(ch if ch.isalnum() or ch.isspace() else " " for ch in normalize_text(value))
+    return " ".join(part for part in compact.split(" ") if len(part) >= 3)
+
+
+def dedupe_articles(items: list[ArticleInput]) -> list[ArticleInput]:
+    deduped: list[ArticleInput] = []
+    seen: set[str] = set()
+    for item in items:
+        key = title_fingerprint(item.title)
+        if not key or key in seen:
+            continue
+        deduped.append(item)
+        seen.add(key)
+    return deduped
+
+
+def lexical_sentiment_score(text: str) -> float:
+    hawkish = sum(1 for token in HAWKISH_TOKENS if token in text)
+    dovish = sum(1 for token in DOVISH_TOKENS if token in text)
+    if hawkish == 0 and dovish == 0:
+        return 0.0
+    scale = max(1, hawkish + dovish)
+    return (hawkish - dovish) / scale
+
+
+def average_sentiment(items: list[ArticleInput]) -> float:
+    if not items:
+        return 0.0
+    scores = [lexical_sentiment_score(article_text(item)) for item in items]
+    return sum(scores) / len(scores)
+
+
 def classify_theme(text: str) -> ThemeRule:
     best_rule = THEMES[0]
     best_score = -1
@@ -280,11 +351,22 @@ def build_news_cluster_ml(payload: SignalRequest) -> SignalResponse | None:
 
 
 def build_news_cluster(payload: SignalRequest) -> SignalResponse:
-    ml_result = build_news_cluster_ml(payload)
+    working_payload = payload
+    dedupe_ratio = 0.0
+    if env_flag("SOFT_SIGNAL_CHRONICLE_POC_ENABLED", False):
+        deduped_articles = dedupe_articles(payload.articles)
+        if deduped_articles:
+            dedupe_ratio = 1.0 - (len(deduped_articles) / max(1, len(payload.articles)))
+            working_payload = payload.model_copy(update={"articles": deduped_articles})
+
+    ml_result = build_news_cluster_ml(working_payload)
     if ml_result is not None and ml_result.candidates:
+        if dedupe_ratio > 0:
+            for candidate in ml_result.candidates:
+                candidate.confidence = max(0.0, min(1.0, candidate.confidence + min(0.04, dedupe_ratio * 0.06)))
         return ml_result
 
-    ranked = sorted(payload.articles, key=lambda item: parse_iso(item.publishedAt), reverse=True)
+    ranked = sorted(working_payload.articles, key=lambda item: parse_iso(item.publishedAt), reverse=True)
     buckets: dict[str, list[ArticleInput]] = {rule.key: [] for rule in THEMES}
 
     for article in ranked:
@@ -303,11 +385,13 @@ def build_news_cluster(payload: SignalRequest) -> SignalResponse:
         countries = detect_countries(text)
         unique_sources = len({normalize_text(item.source) for item in grouped})
         confidence = confidence_from_count(len(grouped), 0.48) + min(0.08, unique_sources * 0.02)
+        confidence += min(0.04, dedupe_ratio * 0.06)
         confidence += recency_boost(primary.publishedAt)
         refs = [source_ref(item, "news_cluster") for item in grouped[:2]]
+        headline_prefix = "Chronicle cluster" if env_flag("SOFT_SIGNAL_CHRONICLE_POC_ENABLED", False) else f"{rule.key.title()} cluster"
         candidates.append(
             CandidateOutput(
-                headline=f"{rule.key.title()} cluster detected: {primary.title}",
+                headline=f"{headline_prefix} detected: {primary.title}",
                 confidence=max(0.0, min(1.0, confidence)),
                 severityHint=rule.severity,
                 regionHint="global",
@@ -322,6 +406,7 @@ def build_news_cluster(payload: SignalRequest) -> SignalResponse:
 
 
 def build_social_surge(payload: SignalRequest) -> SignalResponse:
+    scout_mode = env_flag("SOFT_SIGNAL_SCOUT_POC_ENABLED", False)
     surge_articles: list[ArticleInput] = []
     source_counter: Counter[str] = Counter()
     for article in payload.articles:
@@ -344,14 +429,20 @@ def build_social_surge(payload: SignalRequest) -> SignalResponse:
         confidence = confidence_from_count(len(surge_articles) + source_counter[article.source.lower()], 0.44)
         confidence += min(0.08, distinct_sources * 0.015)
         confidence += recency_boost(article.publishedAt)
+        if scout_mode:
+            dominance = source_counter[article.source.lower()] / max(1, len(surge_articles))
+            confidence += min(0.05, dominance * 0.05)
         finbert = finbert_polarity_score(text)
         if finbert is not None:
             confidence += min(0.06, abs(finbert) * 0.06)
+        severity = 2 if finbert is None else (3 if abs(finbert) > 0.45 else 2)
+        if scout_mode and distinct_sources >= 3 and len(surge_articles) >= 4:
+            severity = max(severity, 3)
         candidates.append(
             CandidateOutput(
-                headline=f"Social surge: {article.title}",
+                headline=f"{'Scout surge' if scout_mode else 'Social surge'}: {article.title}",
                 confidence=max(0.0, min(1.0, confidence)),
-                severityHint=2 if finbert is None else (3 if abs(finbert) > 0.45 else 2),
+                severityHint=severity,
                 regionHint="global",
                 countryHints=detect_countries(text),
                 sourceRefs=[source_ref(article, "social_surge")],
@@ -387,6 +478,7 @@ def js_divergence(left: Counter[str], right: Counter[str]) -> float:
 
 
 def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
+    fingpt_mode = env_flag("SOFT_SIGNAL_FINGPT_POC_ENABLED", False)
     ranked = sorted(payload.articles, key=lambda item: parse_iso(item.publishedAt))
     if len(ranked) < 6:
         return SignalResponse(candidates=[])
@@ -406,6 +498,9 @@ def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
     older_counter = Counter(older_tokens)
     newer_counter = Counter(newer_tokens)
     drift_score = js_divergence(older_counter, newer_counter)
+    older_sentiment = average_sentiment(older)
+    newer_sentiment = average_sentiment(newer)
+    sentiment_shift = newer_sentiment - older_sentiment
 
     common = [
         token
@@ -430,11 +525,14 @@ def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
         confidence = max(0.35, min(0.95, 0.35 + drift_score * 0.5 + min(0.2, newer_counter[token] * 0.03)))
         confidence += min(0.08, source_count * 0.02)
         confidence += recency_boost(anchor.publishedAt)
+        if fingpt_mode:
+            confidence += min(0.08, abs(sentiment_shift) * 0.12)
+        severity = 3 if fingpt_mode and abs(sentiment_shift) > 0.18 else 2
         candidates.append(
             CandidateOutput(
-                headline=f"Narrative shift around '{token}'",
+                headline=f"{'FinGPT narrative shift' if fingpt_mode else 'Narrative shift'} around '{token}'",
                 confidence=max(0.0, min(1.0, confidence)),
-                severityHint=2,
+                severityHint=severity,
                 regionHint="global",
                 countryHints=detect_countries(normalize_text(f"{anchor.title} {anchor.summary or ''}")),
                 sourceRefs=[source_ref(article, "narrative_shift") for article in token_articles[:2]],

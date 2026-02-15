@@ -1,9 +1,19 @@
 "use client";
 
-import { Activity, BarChart3, DollarSign, Star, TrendingDown, TrendingUp } from "lucide-react";
+import {
+	Activity,
+	ArrowUpDown,
+	BarChart3,
+	DollarSign,
+	Flame,
+	Star,
+	TrendingDown,
+	TrendingUp,
+} from "lucide-react";
 import { memo, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
@@ -55,6 +65,8 @@ export function WatchlistPanel({
 }: WatchlistPanelProps) {
 	const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
 	const [loadingQuotes, setLoadingQuotes] = useState(false);
+	const [query, setQuery] = useState("");
+	const [sortMode, setSortMode] = useState<"default" | "movers" | "favorites">("default");
 
 	const _symbolsKey = useMemo(() => symbols.map((s) => s.symbol).join(","), [symbols]);
 
@@ -92,13 +104,97 @@ export function WatchlistPanel({
 		};
 	}, [symbols]);
 
+	const visibleSymbols = useMemo(() => {
+		const normalizedQuery = query.trim().toLowerCase();
+		const filtered =
+			normalizedQuery.length === 0
+				? symbols
+				: symbols.filter((symbol) => {
+						return (
+							symbol.symbol.toLowerCase().includes(normalizedQuery) ||
+							symbol.name.toLowerCase().includes(normalizedQuery)
+						);
+					});
+
+		const list = [...filtered];
+		if (sortMode === "movers") {
+			list.sort((left, right) => {
+				const leftMove = Math.abs(quotes[left.symbol]?.changePercent ?? 0);
+				const rightMove = Math.abs(quotes[right.symbol]?.changePercent ?? 0);
+				return rightMove - leftMove;
+			});
+			return list;
+		}
+
+		if (sortMode === "favorites") {
+			list.sort((left, right) => {
+				const leftFav = favorites.includes(left.symbol) ? 1 : 0;
+				const rightFav = favorites.includes(right.symbol) ? 1 : 0;
+				if (leftFav !== rightFav) return rightFav - leftFav;
+				return left.symbol.localeCompare(right.symbol);
+			});
+			return list;
+		}
+
+		return list;
+	}, [favorites, query, quotes, sortMode, symbols]);
+
+	const topMovers = useMemo(() => {
+		return [...symbols]
+			.sort((left, right) => {
+				const leftMove = Math.abs(quotes[left.symbol]?.changePercent ?? 0);
+				const rightMove = Math.abs(quotes[right.symbol]?.changePercent ?? 0);
+				return rightMove - leftMove;
+			})
+			.slice(0, 3);
+	}, [quotes, symbols]);
+
 	return (
 		<ScrollArea className="flex-1 p-2">
+			<div className="mb-2 space-y-2 px-1">
+				<div className="grid grid-cols-[1fr_auto] gap-2">
+					<Input
+						value={query}
+						onChange={(event) => setQuery(event.target.value)}
+						placeholder="Filter symbols..."
+						className="h-8"
+					/>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-8 px-2"
+						onClick={() => {
+							setSortMode((prev) => {
+								if (prev === "default") return "movers";
+								if (prev === "movers") return "favorites";
+								return "default";
+							});
+						}}
+					>
+						<ArrowUpDown className="mr-1 h-3.5 w-3.5" />
+						{sortMode === "default" ? "Default" : sortMode === "movers" ? "Movers" : "Fav First"}
+					</Button>
+				</div>
+				<div className="flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+					<Badge variant="outline" className="text-[10px]">
+						{visibleSymbols.length} visible
+					</Badge>
+					<Badge variant="outline" className="text-[10px]">
+						{favorites.length} favorites
+					</Badge>
+					{topMovers.length > 0 && (
+						<span className="inline-flex items-center gap-1">
+							<Flame className="h-3 w-3 text-amber-500" />
+							{topMovers.map((item) => item.symbol).join(" • ")}
+						</span>
+					)}
+				</div>
+			</div>
 			<div className="space-y-1">
-				{symbols.length === 0 ? (
+				{visibleSymbols.length === 0 ? (
 					<div className="px-2 py-6 text-sm text-muted-foreground">No symbols in this list.</div>
 				) : (
-					symbols.map((symbol) => {
+					visibleSymbols.map((symbol) => {
 						const quote = quotes[symbol.symbol];
 						const price = quote?.price ?? symbol.basePrice;
 						const changePercent = quote?.changePercent ?? 0;

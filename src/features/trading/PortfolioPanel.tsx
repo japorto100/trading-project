@@ -100,6 +100,10 @@ export function PortfolioPanel() {
 	const metrics = snapshot?.metrics;
 	const positions = snapshot?.positions ?? [];
 	const latestEquity = snapshot?.equityCurve.at(-1)?.equity ?? metrics?.initialBalance ?? 0;
+	const portfolioReturnPct =
+		metrics && metrics.initialBalance > 0 ? metrics.totalPnl / metrics.initialBalance : null;
+	const topWinner = [...positions].sort((left, right) => right.totalPnl - left.totalPnl)[0] ?? null;
+	const topLoser = [...positions].sort((left, right) => left.totalPnl - right.totalPnl)[0] ?? null;
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
@@ -122,6 +126,14 @@ export function PortfolioPanel() {
 							</p>
 						</div>
 						<div className="rounded-md border border-border p-2">
+							<p className="text-muted-foreground">Return %</p>
+							<p
+								className={`font-medium ${portfolioReturnPct === null ? "" : pnlClass(portfolioReturnPct)}`}
+							>
+								{portfolioReturnPct === null ? "-" : formatPct(portfolioReturnPct)}
+							</p>
+						</div>
+						<div className="rounded-md border border-border p-2">
 							<p className="text-muted-foreground">Unrealized</p>
 							<p className={`font-medium ${pnlClass(metrics.unrealizedPnl)}`}>
 								{formatNum(metrics.unrealizedPnl)}
@@ -139,6 +151,18 @@ export function PortfolioPanel() {
 							<p className="text-muted-foreground">Win Rate</p>
 							<p className="font-medium">
 								{metrics.winRate === null ? "-" : formatPct(metrics.winRate)}
+							</p>
+						</div>
+						<div className="rounded-md border border-border p-2">
+							<p className="text-muted-foreground">Top Winner</p>
+							<p className={`font-medium ${topWinner ? pnlClass(topWinner.totalPnl) : ""}`}>
+								{topWinner ? `${topWinner.symbol} (${formatNum(topWinner.totalPnl)})` : "-"}
+							</p>
+						</div>
+						<div className="rounded-md border border-border p-2">
+							<p className="text-muted-foreground">Top Loser</p>
+							<p className={`font-medium ${topLoser ? pnlClass(topLoser.totalPnl) : ""}`}>
+								{topLoser ? `${topLoser.symbol} (${formatNum(topLoser.totalPnl)})` : "-"}
 							</p>
 						</div>
 					</div>

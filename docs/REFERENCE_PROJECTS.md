@@ -31,6 +31,9 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Macro-Ingest-Basis ist live: optionaler Scheduled Snapshot-Runner persistiert FED/ECB/BOJ/SNB unter `go-backend/data/macro`.
 - News-Referenzen (RSS/GDELT/Finviz) sind produktiv inkl. Hardening aktiv: `GET /api/v1/news/headlines` mit Retries, Normalisierung, Dedup und Source-Quota-Balancing.
 - CCXT-Referenz ist als optionaler TS-Fallback umgesetzt: `src/lib/providers/ccxt.ts` (Feature-Flag `ENABLE_CCXT_FALLBACK=true`, konfigurierbar ueber `CCXT_DEFAULT_EXCHANGE`).
+- BacktestJS-Referenz ist als Frontend-Baseline umgesetzt: `Strategy Lab` Panel in der Trading-Workspace mit Parameter-UI + Evaluations-KPI-Widgets.
+- Foursight/NeonDash-UX-Referenzen sind als Baseline uebernommen: Watchlist-Filter/Sort, Order-Ticket-Quick-Size + R:R, Portfolio Top-Winner/Top-Loser.
+- Chronicle/Scout/FinGPT-Referenzen sind als Python-POC-Flags strukturiert (`SOFT_SIGNAL_*_POC_ENABLED`) und in den Soft-Signal-Adaptern verdrahtet.
 - Pre-8 Portfolio-Slices sind im Next.js-Backend produktiv: persistente P&L-History (`/api/fusion/portfolio/history`), Risk-Sizing (`/api/fusion/risk/position-size`) und Trade-Journal (`/api/fusion/trade-journal`).
 - GCT-Backtester-Referenz ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet vorhandene `*.strat`-Beispiele aus dem Fork.
 - Python Soft-Signal-Referenzen sind produktiv angebunden: `cluster-headlines`, `social-surge`, `narrative-shift` via `python-backend/services/geopolitical-soft-signals`.
@@ -47,13 +50,13 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 | Projekt | Bereich | Was konkret mitnehmen | Entscheidung/Status |
 |---|---|---|---|
 | **CCXT** | TS-Backend + API-Gateway | 100+ Exchange-Adapter, einheitliche Symbol-/Ticker-Calls, schneller Fallback fuer nicht in Go angebundene Exchanges | **Nehmen (gezielt):** TS-Fallback hinter Feature-Flag ist als Baseline umgesetzt; spaeter selektiv in Go-Adapter ueberfuehren |
-| **BacktestJS** | Frontend + TS-Service | Strategy-Lab/Parameter-UI, schnelle What-if-Runs fuer UX-Refinement, Ergebnis-Widgets | **Nehmen (UI-first):** nicht als kanonische Engine, sondern fuer Frontend-Prototyping |
+| **BacktestJS** | Frontend + TS-Service | Strategy-Lab/Parameter-UI, schnelle What-if-Runs fuer UX-Refinement, Ergebnis-Widgets | **Nehmen (UI-first):** Baseline Strategy-Lab umgesetzt; nicht als kanonische Engine |
 | **PineTS** | Frontend-Indikatoren | Pine-kompatible Indikatorlogik fuer Indicator-Playground und Vergleich gegen eigene Implementierungen | **Pruefen vor Einsatz:** technisch stark, aber AGPL-3.0 Lizenz-Gate |
-| **Foursight** | Frontend-UX | Paper-Trading Views, Watchlist/Order-Ticket/PnL-Dashboard Patterns | **Nehmen:** Design-/Interaction-Referenz, kein Backend-Reuse |
+| **Foursight** | Frontend-UX | Paper-Trading Views, Watchlist/Order-Ticket/PnL-Dashboard Patterns | **Nehmen:** Baseline-Patterns in Watchlist/Order/Portfolio uebernommen |
 | **NeonDash (Next-TradingSystem)** | Frontend + Prisma/Zustand Patterns | State-Flows fuer Trading-UI, Datenmodell-Ideen fuer Journal/Portfolio Screens | **Nehmen:** UI/State-Referenz, kein Engine-Reuse |
-| **Chronicle** | Python-Backend (AI/ML) | Cluster-/Dedup-Pipeline fuer `news_cluster` Adapter | **Nehmen (POC):** als optionaler Python-Service |
-| **Scout** | Python + Frontend-Feed | Monitoring/Summary-Pattern fuer News-Surge Panels und Alert-Streams | **Nehmen (POC):** vor allem Monitoring-Layer, nicht Kern-Engine |
-| **FinGPT** | Python-Backend + Frontend-Explainability | Narrative-Shift/Sentiment-Analyse plus erklaerende Texte fuer Event-Karten | **Nehmen (gezielt):** als zusaetzlicher Signal-/Explainability-Layer |
+| **Chronicle** | Python-Backend (AI/ML) | Cluster-/Dedup-Pipeline fuer `news_cluster` Adapter | **Nehmen (POC):** Flag-basierter Chronicle-Mode (dedupe-first + provider-tagging) integriert |
+| **Scout** | Python + Frontend-Feed | Monitoring/Summary-Pattern fuer News-Surge Panels und Alert-Streams | **Nehmen (POC):** Flag-basierter Scout-Mode (source-momentum weighting) integriert |
+| **FinGPT** | Python-Backend + Frontend-Explainability | Narrative-Shift/Sentiment-Analyse plus erklaerende Texte fuer Event-Karten | **Nehmen (gezielt):** Flag-basierter FinGPT-Mode (sentiment-drift boost) integriert |
 
 ---
 

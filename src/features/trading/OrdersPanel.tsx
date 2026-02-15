@@ -100,6 +100,8 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 		const perUnit = side === "buy" ? takeProfitValue - entryPrice : entryPrice - takeProfitValue;
 		return perUnit > 0 ? perUnit * quantityValue : null;
 	}, [entryPrice, quantityValue, takeProfitValue, side]);
+	const rewardRiskRatio =
+		riskEstimate && rewardEstimate && riskEstimate > 0 ? rewardEstimate / riskEstimate : null;
 
 	const openOrders = orders.filter((order) => order.status === "open");
 	const closedOrders = orders.filter((order) => order.status !== "open").slice(0, 6);
@@ -239,6 +241,20 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 							inputMode="decimal"
 							placeholder="0"
 						/>
+						<div className="mt-1 flex flex-wrap gap-1">
+							{["0.25", "0.5", "1", "2", "5"].map((preset) => (
+								<Button
+									key={preset}
+									type="button"
+									size="sm"
+									variant={quantity === preset ? "secondary" : "outline"}
+									className="h-6 px-2 text-[10px]"
+									onClick={() => setQuantity(preset)}
+								>
+									{preset}
+								</Button>
+							))}
+						</div>
 					</div>
 				</div>
 
@@ -323,6 +339,10 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 					<div className="flex items-center justify-between">
 						<span className="text-muted-foreground">Est. Reward</span>
 						<span>{rewardEstimate !== null ? rewardEstimate.toFixed(2) : "-"}</span>
+					</div>
+					<div className="flex items-center justify-between">
+						<span className="text-muted-foreground">R:R</span>
+						<span>{rewardRiskRatio !== null ? rewardRiskRatio.toFixed(2) : "-"}</span>
 					</div>
 				</div>
 

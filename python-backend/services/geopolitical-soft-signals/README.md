@@ -50,6 +50,18 @@ FINBERT_HF_API_TOKEN=
 # FINBERT_HF_API_URL=https://api-inference.huggingface.co/models/ProsusAI/finbert
 ```
 
+Optional POC modes from reference projects (all disabled by default):
+
+```env
+SOFT_SIGNAL_CHRONICLE_POC_ENABLED=false
+SOFT_SIGNAL_SCOUT_POC_ENABLED=false
+SOFT_SIGNAL_FINGPT_POC_ENABLED=false
+```
+
+- `SOFT_SIGNAL_CHRONICLE_POC_ENABLED=true`: dedupe-first cluster mode + `chronicle:*` provider tags.
+- `SOFT_SIGNAL_SCOUT_POC_ENABLED=true`: source-momentum adjustments for social surge + `scout:*` tags.
+- `SOFT_SIGNAL_FINGPT_POC_ENABLED=true`: narrative-shift confidence/severity boost from lexical sentiment drift + `fingpt:*` tags.
+
 ## Ingestion Trigger
 
 With both services running:

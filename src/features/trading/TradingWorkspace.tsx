@@ -7,6 +7,7 @@ import { DrawingToolbar } from "@/components/DrawingToolbar";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import { Button } from "@/components/ui/button";
 import { SignalInsightsBar } from "@/features/trading/SignalInsightsBar";
+import { StrategyLabPanel } from "@/features/trading/StrategyLabPanel";
 import type { LayoutMode, SignalSnapshot } from "@/features/trading/types";
 import type { OHLCVData } from "@/lib/providers/types";
 
@@ -120,6 +121,7 @@ export function TradingWorkspace({
 				heartbeatCycleBars={signalSnapshot.heartbeatCycleBars}
 				atr={signalSnapshot.atr}
 			/>
+			<StrategyLabPanel candleData={candleData} />
 
 			<div className="flex-1 min-h-0">
 				{loading ? (
