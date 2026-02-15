@@ -59,6 +59,11 @@ type Ticker struct {
 	Volume      float64
 }
 
+type SeriesPoint struct {
+	Timestamp int64
+	Value     float64
+}
+
 type Client struct {
 	cfg        Config
 	httpClient *http.Client

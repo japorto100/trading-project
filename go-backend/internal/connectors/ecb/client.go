@@ -66,29 +66,66 @@ func NewClient(cfg Config) *Client {
 }
 
 func (c *Client) GetTicker(ctx context.Context, pair gct.Pair) (gct.Ticker, error) {
+	series, err := c.GetSeries(ctx, pair, 1)
+	if err != nil {
+		return gct.Ticker{}, err
+	}
+	if len(series) == 0 {
+		return gct.Ticker{}, &gct.RequestError{
+			Path:       c.defaultPath,
+			StatusCode: http.StatusNotFound,
+			Cause:      fmt.Errorf("no series points"),
+		}
+	}
+
+	base := strings.ToUpper(strings.TrimSpace(pair.Base))
+	quote := strings.ToUpper(strings.TrimSpace(pair.Quote))
+	rate := series[0].Value
+	lastUpdated := series[0].Timestamp
+	if lastUpdated <= 0 {
+		lastUpdated = time.Now().Unix()
+	}
+
+	return gct.Ticker{
+		Pair:        gct.Pair{Base: base, Quote: quote},
+		Currency:    base + "/" + quote,
+		LastUpdated: lastUpdated,
+		Last:        rate,
+		Bid:         rate,
+		Ask:         rate,
+		High:        rate,
+		Low:         rate,
+		Volume:      0,
+	}, nil
+}
+
+func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, limit int) ([]gct.SeriesPoint, error) {
 	base := strings.ToUpper(strings.TrimSpace(pair.Base))
 	quote := strings.ToUpper(strings.TrimSpace(pair.Quote))
 	if base == "" || quote == "" {
-		return gct.Ticker{}, &gct.RequestError{
+		return nil, &gct.RequestError{
 			Path:       c.defaultPath,
 			StatusCode: http.StatusBadRequest,
 			Cause:      fmt.Errorf("invalid pair"),
 		}
 	}
+	if limit <= 0 {
+		limit = 1
+	}
 
 	envelope, err := c.fetchRates(ctx)
 	if err != nil {
-		return gct.Ticker{}, err
+		return nil, err
 	}
 
 	rates, err := parseRates(envelope.Cube.Cube.Cube)
 	if err != nil {
-		return gct.Ticker{}, err
+		return nil, err
 	}
 
 	rate, ok := convertRate(rates, base, quote)
 	if !ok {
-		return gct.Ticker{}, &gct.RequestError{
+		return nil, &gct.RequestError{
 			Path:       c.defaultPath,
 			StatusCode: http.StatusBadRequest,
 			Cause:      fmt.Errorf("unsupported forex pair %s/%s", base, quote),
@@ -102,16 +139,11 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair) (gct.Ticker, erro
 		}
 	}
 
-	return gct.Ticker{
-		Pair:        gct.Pair{Base: base, Quote: quote},
-		Currency:    base + "/" + quote,
-		LastUpdated: lastUpdated,
-		Last:        rate,
-		Bid:         rate,
-		Ask:         rate,
-		High:        rate,
-		Low:         rate,
-		Volume:      0,
+	return []gct.SeriesPoint{
+		{
+			Timestamp: lastUpdated,
+			Value:     rate,
+		},
 	}, nil
 }
 

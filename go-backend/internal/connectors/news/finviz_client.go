@@ -14,11 +14,13 @@ const DefaultFinvizBaseURL = "https://finviz.com/rss.ashx"
 type FinvizClientConfig struct {
 	BaseURL        string
 	RequestTimeout time.Duration
+	RequestRetries int
 }
 
 type FinvizClient struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL        string
+	requestRetries int
+	httpClient     *http.Client
 }
 
 func NewFinvizClient(cfg FinvizClientConfig) *FinvizClient {
@@ -30,8 +32,13 @@ func NewFinvizClient(cfg FinvizClientConfig) *FinvizClient {
 	if baseURL == "" {
 		baseURL = DefaultFinvizBaseURL
 	}
+	retries := cfg.RequestRetries
+	if retries < 0 {
+		retries = 0
+	}
 	return &FinvizClient{
-		baseURL: baseURL,
+		baseURL:        baseURL,
+		requestRetries: retries,
 		httpClient: &http.Client{
 			Timeout: timeout,
 		},
@@ -54,20 +61,53 @@ func (c *FinvizClient) Fetch(ctx context.Context, symbol string, limit int) ([]m
 		requestURL = requestURL + "?t=" + symbol
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
+	attempts := c.requestRetries + 1
+	for attempt := 1; attempt <= attempts; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Accept", "application/xml")
+		req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			if attempt < attempts {
+				if !sleepWithContext(ctx, backoffDuration(attempt)) {
+					return nil, ctx.Err()
+				}
+				continue
+			}
+			return nil, err
+		}
 
-	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, nil
+		if resp.StatusCode >= http.StatusInternalServerError {
+			_ = resp.Body.Close()
+			if attempt < attempts {
+				if !sleepWithContext(ctx, backoffDuration(attempt)) {
+					return nil, ctx.Err()
+				}
+				continue
+			}
+			return nil, nil
+		}
+		if resp.StatusCode >= http.StatusBadRequest {
+			_ = resp.Body.Close()
+			return nil, nil
+		}
+
+		items, parseErr := parseRSS(resp.Body, "finviz", limit)
+		_ = resp.Body.Close()
+		if parseErr != nil {
+			if attempt < attempts {
+				if !sleepWithContext(ctx, backoffDuration(attempt)) {
+					return nil, ctx.Err()
+				}
+				continue
+			}
+			return nil, parseErr
+		}
+		return items, nil
 	}
-	return parseRSS(resp.Body, "finviz", limit)
+	return nil, nil
 }

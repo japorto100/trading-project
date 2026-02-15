@@ -78,6 +78,8 @@ Hinweis: Diese offenen Punkte koennen ganz oder teilweise durch Referenz-Impleme
   - Finnhub-WS-Slice ist live: `/api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity` nutzt Finnhub-Trade-WebSocket mit Polling-Fallback und stabilem SSE-Contract.
   - Dritter Nicht-Crypto-Slice ist live: `exchange=fred` + `assetType=macro` liefert FRED-Makro-Observations (`series/observations`) ueber denselben Quote-Contract.
   - News-Adapter-Slice ist live: neuer Endpoint `GET /api/v1/news/headlines` aggregiert RSS + GDELT + Finviz unter einem stabilen Gateway-Contract.
+  - News-Hardening ist umgesetzt: Retries (`NEWS_HTTP_RETRIES`), normalisierte Headlines und Source-Quota-Balancing im Aggregator.
+  - Macro-History-Slice ist live: `GET /api/v1/macro/history` liefert FRED-Historie sowie ECB-Forex-History-Punkte im Gateway-Contract.
   - Backtester-Fork-Capability ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet verfuegbare GCT-Strategiebeispiele (`*.strat`) und vermeidet Doppelimplementierung.
 
 ### 8.1 Warum drei Sprachen Sinn machen
@@ -365,8 +367,8 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 |---|--------|---------|---------|
 | 9 | Stock/Forex Go-Adapter Planung (API-Mapping, Rate Limits) | **TEILWEISE ERLEDIGT (15.02.2026)** | Grundlage steht; erster produktiver Slice via ECB-Forex-Adapter im Gateway vorhanden |
 | 10 | Erster Go-Adapter: Finnhub REST + WS (Stocks) | **ERLEDIGT (15.02.2026)** | REST-Quote + WS-SSE-Slice live (`/api/v1/quote` + `/api/v1/stream/market` fuer `exchange=finnhub`) |
-| 11 | News-Fetching Go-Adapter: RSS + GDELT + Finviz | **TEILWEISE ERLEDIGT (15.02.2026)** | Aggregations-Endpoint im Gateway live; produktiver Feinschliff (Retries/Quotas/normalization) noch offen |
-| 12 | Macro Data Go-Adapter: FRED + ECB | **TEILWEISE ERLEDIGT (15.02.2026)** | ECB+FRED Quote-Slices im Gateway live; erweiterte Endpunkte (historical/scheduled ingest) noch offen |
+| 11 | News-Fetching Go-Adapter: RSS + GDELT + Finviz | **ERLEDIGT (15.02.2026)** | Aggregations-Endpoint + Hardening (Retries/Quotas/Normalization) im Gateway live |
+| 12 | Macro Data Go-Adapter: FRED + ECB | **TEILWEISE ERLEDIGT (15.02.2026)** | ECB+FRED Quote-Slices + `GET /api/v1/macro/history` live; scheduled ingest/persistente ETL noch offen |
 | 12a | GCT-Backtester Capability Slice im Gateway | **ERLEDIGT (15.02.2026)** | `GET /api/v1/backtest/capabilities` zeigt vorhandene Fork-Strategiebeispiele und dokumentiert wiederverwendbare Engine-Flaechen |
 
 **Python Rolle 1: AI/ML Soft-Signal Adapter (empfaengt Daten von Go)**

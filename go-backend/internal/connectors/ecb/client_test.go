@@ -80,3 +80,23 @@ func TestGetTicker_UnsupportedPairReturnsBadRequest(t *testing.T) {
 		t.Fatalf("expected status 400, got %d", requestErr.StatusCode)
 	}
 }
+
+func TestGetSeries_ReturnsSinglePoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte(sampleRatesXML))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{RatesURL: server.URL})
+	series, err := client.GetSeries(context.Background(), gct.Pair{Base: "EUR", Quote: "USD"}, 10)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(series) != 1 {
+		t.Fatalf("expected single point, got %d", len(series))
+	}
+	if series[0].Value != 1.1 {
+		t.Fatalf("expected value 1.1, got %f", series[0].Value)
+	}
+}

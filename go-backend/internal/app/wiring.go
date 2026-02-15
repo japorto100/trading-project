@@ -47,18 +47,22 @@ func NewServerFromEnv() (*Server, error) {
 		RequestTimeout: durationMsOr("FRED_HTTP_TIMEOUT_MS", 4000),
 	})
 	quoteClient := marketServices.NewQuoteClient(gctClient, finnhubClient, fredClient, ecbClient)
+	macroService := marketServices.NewMacroService(fredClient, ecbClient)
 	streamClient := marketServices.NewStreamClient(quoteClient, gctClient, finnhubClient)
 	rssClient := newsConnectors.NewRSSClient(newsConnectors.RSSClientConfig{
 		FeedURLs:       csvOr("NEWS_RSS_FEEDS", []string{"https://feeds.marketwatch.com/marketwatch/topstories/"}),
 		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
+		RequestRetries: intOr("NEWS_HTTP_RETRIES", 1),
 	})
 	gdeltClient := newsConnectors.NewGDELTClient(newsConnectors.GDELTClientConfig{
 		BaseURL:        envOr("GDELT_BASE_URL", newsConnectors.DefaultGDELTBaseURL),
 		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
+		RequestRetries: intOr("NEWS_HTTP_RETRIES", 1),
 	})
 	finvizClient := newsConnectors.NewFinvizClient(newsConnectors.FinvizClientConfig{
 		BaseURL:        envOr("FINVIZ_RSS_BASE_URL", newsConnectors.DefaultFinvizBaseURL),
 		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
+		RequestRetries: intOr("NEWS_HTTP_RETRIES", 1),
 	})
 	newsService := marketServices.NewNewsService(rssClient, gdeltClient, finvizClient)
 	strategyExamplesDir := envOr("GCT_STRATEGY_EXAMPLES_DIR", "vendor-forks/gocryptotrader/backtester/config/strategyexamples")
@@ -66,6 +70,7 @@ func NewServerFromEnv() (*Server, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))
 	mux.HandleFunc("/api/v1/quote", httpHandlers.QuoteHandler(quoteClient))
+	mux.HandleFunc("/api/v1/macro/history", httpHandlers.MacroHistoryHandler(macroService))
 	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient))
 	mux.HandleFunc("/api/v1/news/headlines", httpHandlers.NewsHandler(newsService))
 	mux.HandleFunc("/api/v1/backtest/capabilities", httpHandlers.BacktestCapabilitiesHandler(strategyExamplesDir))

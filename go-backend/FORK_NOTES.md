@@ -83,8 +83,11 @@ Conclusion:
   - `GET /api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity` now consumes Finnhub trade WebSocket and keeps same SSE contract (`ready`/`quote`/`heartbeat`/`upstream_error`) with polling fallback.
 - Third non-crypto adapter slice added at gateway level:
   - `exchange=fred` + `assetType=macro` routes to FRED `/series/observations` (API key based).
+- Macro-history slice added at gateway level:
+  - `GET /api/v1/macro/history` exposes FRED historical observations and ECB forex history points under one contract.
 - News aggregation slice added at gateway level:
   - `GET /api/v1/news/headlines` merges RSS + GDELT + Finviz feeds into one contract.
+  - Hardening added: connector retries (`NEWS_HTTP_RETRIES`), response normalization, dedup, and source-balancing quotas in aggregation.
 - Backtester capability slice added at gateway level:
   - `GET /api/v1/backtest/capabilities` exposes available fork strategy example files (`backtester/config/strategyexamples/*.strat`) and confirms GCT backtester feature surface without re-implementing engine logic.
 - This keeps GCT focused as crypto engine while the gateway starts handling multi-asset routing under one contract.

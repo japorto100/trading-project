@@ -26,8 +26,8 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Team-Runner vorhanden: `go-backend/scripts/test-go.ps1` fuer reproduzierbare Quality-Gates.
 - Erster Nicht-Crypto-Adapter ist produktiv im Gateway: ECB-Forex-Quotes (`exchange=ecb`, `assetType=forex`) ueber offiziellen ECB-Feed.
 - Finnhub-Referenz ist jetzt weitgehend produktiv umgesetzt: Go-Gateway liefert Equity-Quotes (`/api/v1/quote`) und Equity-Streams (`/api/v1/stream/market` via Finnhub-WS mit Polling-Fallback) fuer `exchange=finnhub`.
-- FRED-Referenz ist jetzt teilweise produktiv umgesetzt: Go-Gateway liefert Macro-Quotes fuer `exchange=fred` (REST-Slice), historische/ingest-orientierte Endpunkte folgen.
-- News-Referenzen (RSS/GDELT/Finviz) sind als erster Go-Aggregationsslice aktiv: `GET /api/v1/news/headlines` im Gateway liefert normalisierte Headlines.
+- FRED/ECB-Referenz ist jetzt erweitert produktiv umgesetzt: Go-Gateway liefert Macro-/Forex-Quotes und History (`GET /api/v1/macro/history`), ingest-orientierte Persistenz folgt.
+- News-Referenzen (RSS/GDELT/Finviz) sind produktiv inkl. Hardening aktiv: `GET /api/v1/news/headlines` mit Retries, Normalisierung, Dedup und Source-Quota-Balancing.
 - Pre-8 Portfolio-Slices sind im Next.js-Backend produktiv: persistente P&L-History (`/api/fusion/portfolio/history`), Risk-Sizing (`/api/fusion/risk/position-size`) und Trade-Journal (`/api/fusion/trade-journal`).
 - GCT-Backtester-Referenz ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet vorhandene `*.strat`-Beispiele aus dem Fork.
 

@@ -17,11 +17,13 @@ const DefaultGDELTBaseURL = "https://api.gdeltproject.org/api/v2/doc/doc"
 type GDELTClientConfig struct {
 	BaseURL        string
 	RequestTimeout time.Duration
+	RequestRetries int
 }
 
 type GDELTClient struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL        string
+	requestRetries int
+	httpClient     *http.Client
 }
 
 func NewGDELTClient(cfg GDELTClientConfig) *GDELTClient {
@@ -33,8 +35,13 @@ func NewGDELTClient(cfg GDELTClientConfig) *GDELTClient {
 	if baseURL == "" {
 		baseURL = DefaultGDELTBaseURL
 	}
+	retries := cfg.RequestRetries
+	if retries < 0 {
+		retries = 0
+	}
 	return &GDELTClient{
-		baseURL: baseURL,
+		baseURL:        baseURL,
+		requestRetries: retries,
 		httpClient: &http.Client{
 			Timeout: timeout,
 		},
@@ -67,20 +74,6 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 	query.Set("sort", "DateDesc")
 	parsedURL.RawQuery = query.Encode()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, nil
-	}
-
 	var payload struct {
 		Articles []struct {
 			Title string `json:"title"`
@@ -88,8 +81,54 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 			Seen  string `json:"seendate"`
 		} `json:"articles"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return nil, err
+
+	attempts := c.requestRetries + 1
+	for attempt := 1; attempt <= attempts; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			if attempt < attempts {
+				if !sleepWithContext(ctx, backoffDuration(attempt)) {
+					return nil, ctx.Err()
+				}
+				continue
+			}
+			return nil, err
+		}
+
+		if resp.StatusCode >= http.StatusInternalServerError {
+			_ = resp.Body.Close()
+			if attempt < attempts {
+				if !sleepWithContext(ctx, backoffDuration(attempt)) {
+					return nil, ctx.Err()
+				}
+				continue
+			}
+			return nil, nil
+		}
+		if resp.StatusCode >= http.StatusBadRequest {
+			_ = resp.Body.Close()
+			return nil, nil
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+			_ = resp.Body.Close()
+			if attempt < attempts {
+				if !sleepWithContext(ctx, backoffDuration(attempt)) {
+					return nil, ctx.Err()
+				}
+				continue
+			}
+			return nil, err
+		}
+		_ = resp.Body.Close()
+		break
 	}
 
 	items := make([]marketServices.Headline, 0, len(payload.Articles))

@@ -12,11 +12,14 @@ import (
 type RSSClientConfig struct {
 	FeedURLs       []string
 	RequestTimeout time.Duration
+	RequestRetries int
 }
 
 type RSSClient struct {
-	feedURLs   []string
-	httpClient *http.Client
+	feedURLs         []string
+	requestRetries   int
+	httpClient       *http.Client
+	requestUserAgent string
 }
 
 func NewRSSClient(cfg RSSClientConfig) *RSSClient {
@@ -33,11 +36,18 @@ func NewRSSClient(cfg RSSClientConfig) *RSSClient {
 		}
 	}
 
+	retries := cfg.RequestRetries
+	if retries < 0 {
+		retries = 0
+	}
+
 	return &RSSClient{
-		feedURLs: feeds,
+		feedURLs:       feeds,
+		requestRetries: retries,
 		httpClient: &http.Client{
 			Timeout: timeout,
 		},
+		requestUserAgent: "tradeview-fusion-go-backend/1.0",
 	}
 }
 
@@ -56,20 +66,49 @@ func (c *RSSClient) Fetch(ctx context.Context, _ string, limit int) ([]marketSer
 	}
 
 	for _, feedURL := range c.feedURLs {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
-		if err != nil {
-			continue
+		attempts := c.requestRetries + 1
+		for attempt := 1; attempt <= attempts; attempt++ {
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
+			if err != nil {
+				break
+			}
+			req.Header.Set("Accept", "application/xml")
+			req.Header.Set("User-Agent", c.requestUserAgent)
+
+			resp, err := c.httpClient.Do(req)
+			if err != nil {
+				if attempt < attempts {
+					if !sleepWithContext(ctx, backoffDuration(attempt)) {
+						break
+					}
+					continue
+				}
+				break
+			}
+
+			if resp.StatusCode >= http.StatusInternalServerError {
+				_ = resp.Body.Close()
+				if attempt < attempts {
+					if !sleepWithContext(ctx, backoffDuration(attempt)) {
+						break
+					}
+					continue
+				}
+				break
+			}
+			if resp.StatusCode >= http.StatusBadRequest {
+				_ = resp.Body.Close()
+				break
+			}
+
+			parsedItems, parseErr := parseRSS(resp.Body, "rss", perFeedLimit)
+			_ = resp.Body.Close()
+			if parseErr != nil {
+				break
+			}
+			items = append(items, parsedItems...)
+			break
 		}
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			continue
-		}
-		parsedItems, parseErr := parseRSS(resp.Body, "rss", perFeedLimit)
-		_ = resp.Body.Close()
-		if parseErr != nil {
-			continue
-		}
-		items = append(items, parsedItems...)
 	}
 	return items, nil
 }

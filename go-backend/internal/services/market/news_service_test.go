@@ -64,3 +64,75 @@ func TestNewsService_Headlines_RespectsLimit(t *testing.T) {
 		t.Fatalf("expected 2 items, got %d", len(items))
 	}
 }
+
+func TestNewsService_Headlines_NormalizesAndFiltersInvalidItems(t *testing.T) {
+	now := time.Date(2026, 2, 15, 12, 0, 0, 0, time.UTC)
+	rss := &fakeHeadlineFetcher{
+		items: []Headline{
+			{Title: "  Valid  ", URL: "  https://x/valid  ", Source: "RSS", PublishedAt: now},
+			{Title: "Missing URL", URL: "   ", Source: "rss", PublishedAt: now},
+			{Title: "   ", URL: "https://x/invalid", Source: "rss", PublishedAt: now},
+		},
+	}
+
+	service := NewNewsService(rss, &fakeHeadlineFetcher{}, &fakeHeadlineFetcher{})
+	items, err := service.Headlines(context.Background(), "", 10)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 valid item, got %d", len(items))
+	}
+	if items[0].Title != "Valid" {
+		t.Fatalf("expected normalized title, got %q", items[0].Title)
+	}
+	if items[0].URL != "https://x/valid" {
+		t.Fatalf("expected normalized url, got %q", items[0].URL)
+	}
+	if items[0].Source != "rss" {
+		t.Fatalf("expected normalized source rss, got %q", items[0].Source)
+	}
+}
+
+func TestNewsService_Headlines_AppliesSourceQuota(t *testing.T) {
+	base := time.Date(2026, 2, 15, 12, 0, 0, 0, time.UTC)
+	rss := &fakeHeadlineFetcher{
+		items: []Headline{
+			{Title: "r1", URL: "https://rss/1", Source: "rss", PublishedAt: base.Add(6 * time.Minute)},
+			{Title: "r2", URL: "https://rss/2", Source: "rss", PublishedAt: base.Add(5 * time.Minute)},
+			{Title: "r3", URL: "https://rss/3", Source: "rss", PublishedAt: base.Add(4 * time.Minute)},
+			{Title: "r4", URL: "https://rss/4", Source: "rss", PublishedAt: base.Add(3 * time.Minute)},
+		},
+	}
+	gdelt := &fakeHeadlineFetcher{
+		items: []Headline{
+			{Title: "g1", URL: "https://gdelt/1", Source: "gdelt", PublishedAt: base.Add(2 * time.Minute)},
+		},
+	}
+
+	service := NewNewsService(rss, gdelt, &fakeHeadlineFetcher{})
+	items, err := service.Headlines(context.Background(), "", 4)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(items) != 4 {
+		t.Fatalf("expected 4 items, got %d", len(items))
+	}
+
+	rssCount := 0
+	gdeltCount := 0
+	for _, item := range items {
+		if item.Source == "rss" {
+			rssCount++
+		}
+		if item.Source == "gdelt" {
+			gdeltCount++
+		}
+	}
+	if rssCount > 3 {
+		t.Fatalf("expected source quota to limit rss dominance, got %d rss items", rssCount)
+	}
+	if gdeltCount == 0 {
+		t.Fatal("expected at least one gdelt item in limited set")
+	}
+}
