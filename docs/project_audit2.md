@@ -405,6 +405,16 @@ Status-Detail zu 21/22:
 - Echter GCT-Executor-Pfad ist als optionaler Runtime-Modus umgesetzt (Env-gesteuert, Task-Lifecycle gegen Backtester gRPC).
 - Ergebnisextraktion ist als baseline live (Sharpe/Drawdown/Orders/Strategy-Movement via Report-Parsing); offen bleibt der Vollausbau auf vollstaendige Artefakt-/Metrikabdeckung aus GCT.
 
+### 10.1 Reference-Intake Plan (Frontend + Backend, 15.02.2026)
+
+| # | Aktion | Ziel | Status |
+|---|--------|------|--------|
+| 22a | CCXT-Fallback-Slice in TypeScript hinter Feature-Flag pruefen (`exchange`-Subset) | Crypto-Exchange-Reichweite als Uebergang; Stocks/Forex bleiben auf Finnhub/TwelveData/Polygon/AlphaVantage/FRED/ECB-Spur | **GEPLANT** |
+| 22b | BacktestJS Strategy-Lab im Frontend (Parameter-Panel + Ergebnis-Widgets) | Schnelles UX-Refinement fuer Strategie-Workflows | **GEPLANT** |
+| 22c | PineTS Indicator-Playground als optionales Modul evaluieren | Pine-kompatible Indicator-Logik fuer Frontend-Prototyping | **GEPLANT (Lizenz-Gate AGPL-3.0)** |
+| 22d | Foursight/NeonDash UI-Pattern-Adoption (Order-Ticket, PnL, Watchlist) | Paper-Trading-Frontend gezielt verbessern | **IN ARBEIT (Referenzanalyse abgeschlossen)** |
+| 22e | Chronicle/Scout/FinGPT als Python-Adapter-POCs strukturieren | `news_cluster`, `social_surge`, `narrative_shift` qualitativ ausbauen | **IN ARBEIT (Scope definiert)** |
+
 > **Detaillierter Plan mit 34 Todos, Phasen A-E, und allen Buch-Zeilennummern:** Siehe [`docs/INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sektion 8.
 
 ---

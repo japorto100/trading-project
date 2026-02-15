@@ -41,6 +41,19 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Ergebnis-Mapping ist baseline aktiv: Gateway extrahiert best-effort Sharpe/Drawdown/Trades/Strategy-Movement aus GCT-Report-HTML in den stabilen Run-Contract.
 - Architekturklarstellung: Go/GCT bleibt die kanonische Backtest-Engine; Python bleibt fuer Signal-/ML-Research und liefert keine zweite konkurrierende Ausfuehrungslogik.
 
+### Projekt-Review-Vermerk (15. Februar 2026, Frontend + Backend)
+
+| Projekt | Bereich | Was konkret mitnehmen | Entscheidung/Status |
+|---|---|---|---|
+| **CCXT** | TS-Backend + API-Gateway | 100+ Exchange-Adapter, einheitliche Symbol-/Ticker-Calls, schneller Fallback fuer nicht in Go angebundene Exchanges | **Nehmen (gezielt):** TS-Fallback hinter Feature-Flag; spaeter selektiv in Go-Adapter ueberfuehren |
+| **BacktestJS** | Frontend + TS-Service | Strategy-Lab/Parameter-UI, schnelle What-if-Runs fuer UX-Refinement, Ergebnis-Widgets | **Nehmen (UI-first):** nicht als kanonische Engine, sondern fuer Frontend-Prototyping |
+| **PineTS** | Frontend-Indikatoren | Pine-kompatible Indikatorlogik fuer Indicator-Playground und Vergleich gegen eigene Implementierungen | **Pruefen vor Einsatz:** technisch stark, aber AGPL-3.0 Lizenz-Gate |
+| **Foursight** | Frontend-UX | Paper-Trading Views, Watchlist/Order-Ticket/PnL-Dashboard Patterns | **Nehmen:** Design-/Interaction-Referenz, kein Backend-Reuse |
+| **NeonDash (Next-TradingSystem)** | Frontend + Prisma/Zustand Patterns | State-Flows fuer Trading-UI, Datenmodell-Ideen fuer Journal/Portfolio Screens | **Nehmen:** UI/State-Referenz, kein Engine-Reuse |
+| **Chronicle** | Python-Backend (AI/ML) | Cluster-/Dedup-Pipeline fuer `news_cluster` Adapter | **Nehmen (POC):** als optionaler Python-Service |
+| **Scout** | Python + Frontend-Feed | Monitoring/Summary-Pattern fuer News-Surge Panels und Alert-Streams | **Nehmen (POC):** vor allem Monitoring-Layer, nicht Kern-Engine |
+| **FinGPT** | Python-Backend + Frontend-Explainability | Narrative-Shift/Sentiment-Analyse plus erklaerende Texte fuer Event-Karten | **Nehmen (gezielt):** als zusaetzlicher Signal-/Explainability-Layer |
+
 ---
 
 ## Themen-Uebersicht: Was ist das Beste pro Bereich?
@@ -67,8 +80,8 @@ Schnell-Navigator -- fuer jedes Kernthema die wichtigste Ressource auf einen Bli
 
 | Was | Beste Ressource | Warum | Docker? | Sektion |
 |---|---|---|---|---|
-| **Groesste Multi-Exchange API** | [CCXT](https://github.com/ccxt/ccxt) | 100+ Boersen, Unified API, MIT, 40.900 Stars. **Uebergangs-Tool** bis Go-Adapter die TS-Provider ersetzen | **Nein**, `bun add ccxt` | 4 |
-| **HTTP Client mit Circuit-Breaker** | [ffetch](https://github.com/gkoos/ffetch) | **Uebergangs-Tool** fuer bestehende TS-Provider-Calls, Retry, Dedup, Zero Dependencies | **Nein**, `bun add @fetchkit/ffetch` | 4 |
+| **Groesste Multi-Exchange API (Crypto)** | [CCXT](https://github.com/ccxt/ccxt) | 100+ Boersen, Unified API, MIT, 40.900+ Stars. **Uebergangs-Tool** bis Go-Adapter die TS-Provider ersetzen | **Nein**, `bun add ccxt` | 4 |
+| **HTTP Client mit Circuit-Breaker** | [ffetch](https://github.com/fetch-kit/ffetch) | **Uebergangs-Tool** fuer bestehende TS-Provider-Calls, Retry, Dedup, Zero Dependencies | **Nein**, `bun add @fetchkit/ffetch` | 4 |
 | **WebSocket Streaming (Stocks)** | [Finnhub WS](https://github.com/Alcapone-Fx/finnhub-websocket) | Referenz-Implementierung; im Gateway bereits als Finnhub-WS-Slice umgesetzt (SSE-Bridge + Polling-Fallback) | **Nein**, reines React + WS | 7 |
 | **Forex/Macro Basis ohne API-Key** | [ECB eurofxref-daily.xml](https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml) | Offizieller FX-Referenzfeed; bereits als erster Nicht-Crypto-Adapter im Go-Gateway integriert (`exchange=ecb`, `assetType=forex`) | **Nein**, direkte HTTP/XML Abfrage | 4.5 |
 
@@ -110,7 +123,7 @@ Schnell-Navigator -- fuer jedes Kernthema die wichtigste Ressource auf einen Bli
 | **Crypto Backtesting (primaer)** | [GoCryptoTrader](https://github.com/thrasher-corp/gocryptotrader) | Exchange-native Daten, eingebaute Backtest Engine, Portfolio Tracking | **Nein**, Go Binary | 4.5 |
 | **TS Backtesting Engine** | [BacktestJS](https://github.com/backtestjs/framework) | TypeScript-natives Framework, Candle-Download, Strategy-Engine (ergaenzend zu GCT) | **Nein**, `npm install` | 6 |
 | **Paper Trading Referenz** | [Foursight](https://github.com/h0i5/Foursight) | Fast identischer Stack (Next.js + TS + Tailwind + SQLite), MIT -- UI-Referenz | **Nein**, Next.js App | 5 |
-| **Paper Trading + Prisma + Zustand** | [NeonDash](https://github.com/kalzimkholodros/next-tradingsystem) | Nahezu identischer Stack inkl. Prisma + Zustand, MIT -- UI-Referenz | **Nein**, Next.js App | 5 |
+| **Paper Trading + Prisma + Zustand** | [NeonDash](https://github.com/tiraten-bot/Next-TradingSystem) | Nahezu identischer Stack inkl. Prisma + Zustand, MIT -- UI-Referenz | **Nein**, Next.js App | 5 |
 
 > **Fazit Docker:** Von 23+ Projekten braucht **keins** zwingend Docker. GoCryptoTrader kompiliert zu einer einzigen Go-Binary. Die meisten sind reine npm/pip-Installationen oder REST APIs. Chronicle und GameTheory bieten Docker als bequeme Option, laufen aber genauso mit `pip install` + direktem Start. Fuer AI-Modelle (FinBERT, FinGPT) ist die HuggingFace Inference API der einfachste Weg -- kein lokales Setup noetig.
 
@@ -443,6 +456,10 @@ Die Referenz-Library fuer Multi-Exchange Marktdaten-Aggregation. Unified API ueb
 - Automatische Rate-Limit Handhabung pro Provider
 - Fallback-Logik wenn ein Provider ausfaellt
 
+**Scope-Hinweis (wichtig):**
+- CCXT ist primaer ein Crypto-Exchange-Adapter-Universum.
+- Fuer breite Stocks/Forex/Macro-Abdeckung bleiben bei uns Finnhub/Twelve Data/Polygon/Alpha Vantage/FRED/ECB (und deren Go-Adapter) die zentrale Spur.
+
 **Installation:**
 ```bash
 bun add ccxt
@@ -454,11 +471,11 @@ bun add ccxt
 
 | | |
 |---|---|
-| **GitHub** | [github.com/gkoos/ffetch](https://github.com/gkoos/ffetch) |
+| **GitHub** | [github.com/fetch-kit/ffetch](https://github.com/fetch-kit/ffetch) |
 | **npm** | [@fetchkit/ffetch](https://www.npmjs.com/package/@fetchkit/ffetch) |
 | **Tech-Stack** | TypeScript, Zero Dependencies |
 | **Stars** | 188 |
-| **Lizenz** | Open Source |
+| **Lizenz** | MIT |
 | **Downloads** | ~1.1K/Woche |
 
 Production-ready TypeScript-first Fetch-Wrapper mit eingebautem Circuit Breaker, Retry mit Exponential Backoff, Timeouts, Request-Deduplication und Hooks.
@@ -504,7 +521,7 @@ Das fehlende Stueck: ein performanter Backend-Service der Exchange-Connectivity,
 | **GitHub** | [github.com/thrasher-corp/gocryptotrader](https://github.com/thrasher-corp/gocryptotrader) |
 | **Docs** | [pkg.go.dev/github.com/thrasher-corp/gocryptotrader](https://pkg.go.dev/github.com/thrasher-corp/gocryptotrader) |
 | **Tech-Stack** | Go, gRPC, WebSocket, PostgreSQL/SQLite |
-| **Stars / Forks** | 2.700+ / hoch |
+| **Stars / Forks** | 3.400+ / 900+ |
 | **Lizenz** | MIT |
 | **Contributors** | 90+ |
 | **Status** | Aktiv, regelmaessige Releases |
@@ -671,7 +688,7 @@ Paper Trading Plattform fuer den indischen Aktienmarkt. Live-Daten fuer 2000+ NS
 
 | | |
 |---|---|
-| **GitHub** | [github.com/kalzimkholodros/next-tradingsystem](https://github.com/kalzimkholodros/next-tradingsystem) |
+| **GitHub** | [github.com/tiraten-bot/Next-TradingSystem](https://github.com/tiraten-bot/Next-TradingSystem) |
 | **Tech-Stack** | Next.js 14, Prisma, PostgreSQL, Zustand, NextAuth.js, Chart.js, TypeScript 98.6%, Tailwind |
 | **Stars / Forks** | 2 / 1 |
 | **Lizenz** | MIT |
@@ -709,9 +726,11 @@ Projekte die Backtesting-Engines und Strategy-Execution in JavaScript/TypeScript
 |---|---|
 | **GitHub** | [github.com/QuantForgeOrg/PineTS](https://github.com/QuantForgeOrg/PineTS) |
 | **Tech-Stack** | TypeScript, JavaScript |
-| **Lizenz** | Open Source |
+| **Lizenz** | AGPL-3.0 |
 
 Open-Source Transpiler der TradingView Pine Script in JavaScript/TypeScript-Umgebungen ausfuehrt (Node.js, Browser). Bietet 60+ technische Indikatoren, Multi-Timeframe-Analyse und Real-Time Streaming. Volle 1:1 Syntax-Kompatibilitaet mit Pine Script.
+
+**Wichtiger Lizenzhinweis:** AGPL-3.0 ist deutlich restriktiver als MIT/Apache-2.0. Vor direkter Produktintegration Lizenz-/Deployment-Modell pruefen.
 
 **Relevant fuer uns weil:**
 - **Game-Changer fuer Indikatoren:** Unsere `src/lib/indicators/index.ts` ist ~820 Zeilen handgeschriebener Code (SMA, EMA, RSI, MACD, Bollinger Bands, etc.). PineTS koennte viele dieser manuellen Implementierungen ersetzen durch Pine Script Ausfuehrung
@@ -733,7 +752,7 @@ Open-Source Transpiler der TradingView Pine Script in JavaScript/TypeScript-Umge
 | **GitHub** | [github.com/backtestjs/framework](https://github.com/backtestjs/framework) |
 | **Docs** | [backtestjs.com/documentation](https://backtestjs.com/documentation/) |
 | **Tech-Stack** | TypeScript/JavaScript |
-| **Stars / Forks** | 27+ |
+| **Stars / Forks** | 29+ |
 | **Lizenz** | Apache-2.0 |
 | **Commits** | 128+ |
 
@@ -1252,12 +1271,12 @@ Dieses Referenz-Buch (lokal: `docs/books/mastering-finance-python.md`, 6469 Zeil
 | [GeoPulse](https://github.com/group-geopulse/GeoPulse) | Geo-Analyse | Next.js + Python | - | 0 | 3 | TS+Python |
 | [GeoInsight](https://github.com/Ruthik27/GeoInsight-Global-Conflict-and-Crisis-Mapping) | Geo-Analyse | Python | MIT | - | 3 | Python |
 | [GameTheory](https://github.com/sliuuu/GameTheory) | Geo + Markt | FastAPI + React/TS | - | - | 3 | Python+TS |
-| [CCXT](https://github.com/ccxt/ccxt) | Data Provider | JS/TS/Python | MIT | 40.900 | 4 | TS (Fallback) |
-| [ffetch](https://github.com/gkoos/ffetch) | HTTP Client | Pure TS | Open Source | 188 | 4 | TS |
+| [CCXT](https://github.com/ccxt/ccxt) | Data Provider | JS/TS/Python | MIT | 40.900+ | 4 | TS (Fallback) |
+| [ffetch](https://github.com/fetch-kit/ffetch) | HTTP Client | Pure TS | MIT | 188 | 4 | TS |
 | [Foursight](https://github.com/h0i5/Foursight) | Paper Trading UI | Next.js + SQLite | MIT | 29 | 5 | TS |
-| [NeonDash](https://github.com/kalzimkholodros/next-tradingsystem) | Paper Trading UI | Next.js + Prisma + Zustand | MIT | 2 | 5 | TS |
-| [PineTS](https://github.com/QuantForgeOrg/PineTS) | Backtesting | TypeScript | Open Source | - | 6 | TS |
-| [BacktestJS](https://github.com/backtestjs/framework) | Backtesting | TypeScript | Apache-2.0 | 27 | 6 | TS |
+| [NeonDash](https://github.com/tiraten-bot/Next-TradingSystem) | Paper Trading UI | Next.js + Prisma + Zustand | MIT | 2 | 5 | TS |
+| [PineTS](https://github.com/QuantForgeOrg/PineTS) | Backtesting | TypeScript | AGPL-3.0 | - | 6 | TS |
+| [BacktestJS](https://github.com/backtestjs/framework) | Backtesting | TypeScript | Apache-2.0 | 29 | 6 | TS |
 | [Backtest-Kit](https://backtest-kit.github.io/) | Backtesting | TypeScript | Open Source | - | 6 | TS |
 | [Finnhub WS](https://github.com/Alcapone-Fx/finnhub-websocket) | WebSocket (Stocks) | React + Finnhub | Open Source | - | 7 | TS |
 | [Crypton](https://github.com/marcos-aa/crypton) | WebSocket (Stocks) | React + Node + WS | Open Source | - | 7 | TS |
