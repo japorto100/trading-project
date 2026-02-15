@@ -30,13 +30,18 @@ This folder hosts the Go layer for Tradeview Fusion.
 - Local GCT fork base is present at `go-backend/vendor-forks/gocryptotrader`.
 - Gateway skeleton is in place with:
   - `GET /health`
-  - `GET /api/v1/quote` (stable multi-source contract: GCT + ECB)
+- `GET /api/v1/quote` (stable multi-source contract: GCT + ECB)
+- `GET /api/v1/news/headlines` (RSS + GDELT + Finviz aggregation contract)
   - `GET /api/v1/stream/market` (SSE quote events via GCT connector)
 - Connector currently calls live GCT RPC endpoints:
   - `/v1/getinfo` for health reachability
   - `/v1/getticker` for quotes
 - First non-crypto adapter is active:
   - `exchange=ecb` + `assetType=forex` routes to ECB daily FX feed (`eurofxref-daily.xml`)
+- Second non-crypto adapter slice is active:
+  - `exchange=finnhub` + `assetType=equity` routes to Finnhub quote endpoint
+- Third non-crypto adapter slice is active:
+  - `exchange=fred` + `assetType=macro` routes to FRED latest observation endpoint
 - Quote endpoint has strict input validation + explicit gateway/upstream error mapping (`400`, `502`, `504`).
 - SSE stream now emits:
   - `ready` event (resolved params)
@@ -55,6 +60,28 @@ Expected:
 - `http://127.0.0.1:9060/health`
 - `http://127.0.0.1:9060/api/v1/quote?symbol=BTC/USDT&exchange=binance&assetType=spot`
 - `http://127.0.0.1:9060/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=forex`
+- `http://127.0.0.1:9060/api/v1/quote?symbol=AAPL&exchange=finnhub&assetType=equity`
+- `http://127.0.0.1:9060/api/v1/quote?symbol=CPIAUCSL&exchange=fred&assetType=macro`
+- `http://127.0.0.1:9060/api/v1/news/headlines?symbol=AAPL&limit=3`
+
+Environment for Finnhub:
+
+- `FINNHUB_BASE_URL` (default: `https://finnhub.io/api/v1`)
+- `FINNHUB_API_KEY`
+- `FINNHUB_HTTP_TIMEOUT_MS` (default: `4000`)
+
+Environment for FRED:
+
+- `FRED_BASE_URL` (default: `https://api.stlouisfed.org/fred`)
+- `FRED_API_KEY`
+- `FRED_HTTP_TIMEOUT_MS` (default: `4000`)
+
+Environment for News:
+
+- `NEWS_HTTP_TIMEOUT_MS` (default: `4000`)
+- `NEWS_RSS_FEEDS` (comma-separated feed URLs)
+- `GDELT_BASE_URL` (default: `https://api.gdeltproject.org/api/v2/doc/doc`)
+- `FINVIZ_RSS_BASE_URL` (default: `https://finviz.com/rss.ashx`)
 
 ## Run (full local stack, minimal GCT profile)
 

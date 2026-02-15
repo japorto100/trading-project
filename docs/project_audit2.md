@@ -74,6 +74,9 @@ Hinweis: Diese offenen Punkte koennen ganz oder teilweise durch Referenz-Impleme
   - Wichtiger Runner-Hinweis: fuer `go test -race` auf Windows muss `CGO_ENABLED=1` gesetzt sein und ein C-Compiler im `PATH` liegen (hier: `C:\msys64\ucrt64\bin\gcc.exe`).
   - Reproduzierbarer Test-Runner vorhanden: `go-backend/scripts/test-go.ps1` (fuehrt `test` + `vet` + optional `-race` in einem Schritt aus).
   - Erster Nicht-Crypto-Adapter ist live: `exchange=ecb` + `assetType=forex` nutzt offiziellen ECB-FX-Feed (`eurofxref-daily.xml`) fuer stabile Forex-Quotes.
+  - Zweiter Nicht-Crypto-Slice ist live: `exchange=finnhub` + `assetType=equity` liefert Aktien-Quotes ueber Finnhub (Gateway-Routing + Tests + E2E mit Mock-Upstream verifiziert).
+  - Dritter Nicht-Crypto-Slice ist live: `exchange=fred` + `assetType=macro` liefert FRED-Makro-Observations (`series/observations`) ueber denselben Quote-Contract.
+  - News-Adapter-Slice ist live: neuer Endpoint `GET /api/v1/news/headlines` aggregiert RSS + GDELT + Finviz unter einem stabilen Gateway-Contract.
 
 ### 8.1 Warum drei Sprachen Sinn machen
 
@@ -347,6 +350,9 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 | 7c | SSE-Livequote-Slice (Quote-Events statt Heartbeat-Stub) | **ERLEDIGT (15.02.2026)** | `/api/v1/stream/market` liefert `quote`-Events mit stabilem Contract |
 | 7d | SSE-Stream-Stabilisierung + Go-Test-Runner-Gates (`test`/`vet`/`race`) | **ERLEDIGT (15.02.2026)** | Stream bleibt offen (kein 4s-Deadline-Abbruch), Quality-Gates als Pflicht dokumentiert |
 | 7e | Erster Nicht-Crypto Adapter (ECB Forex) im Gateway-Quote-Contract | **ERLEDIGT (15.02.2026)** | `GET /api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=forex` liefert `200` mit Quelle `ecb` |
+| 7f | Zweiter Nicht-Crypto Adapter Slice (Finnhub Equity Quote, REST) | **ERLEDIGT (15.02.2026)** | `GET /api/v1/quote?symbol=AAPL&exchange=finnhub&assetType=equity` liefert `200` mit Quelle `finnhub` |
+| 7g | Dritter Nicht-Crypto Adapter Slice (FRED Macro Quote, REST) | **ERLEDIGT (15.02.2026)** | `GET /api/v1/quote?symbol=CPIAUCSL&exchange=fred&assetType=macro` liefert `200` mit Quelle `fred` |
+| 7h | News Vertical Slice (RSS + GDELT + Finviz Aggregation) | **ERLEDIGT (15.02.2026)** | `GET /api/v1/news/headlines?symbol=AAPL&limit=3` liefert aggregierte Headlines mit stabilem Contract |
 | 8 | Portfolio Tracking UI bauen | **ERLEDIGT** | P&L, Drawdown, Positionen |
 
 ### Mittelfristig (3-6 Wochen, Go-Adapter + Python Microservice)
@@ -356,9 +362,9 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 | # | Aktion | Aufwand | Wirkung |
 |---|--------|---------|---------|
 | 9 | Stock/Forex Go-Adapter Planung (API-Mapping, Rate Limits) | **TEILWEISE ERLEDIGT (15.02.2026)** | Grundlage steht; erster produktiver Slice via ECB-Forex-Adapter im Gateway vorhanden |
-| 10 | Erster Go-Adapter: Finnhub REST + WS (Stocks) | 3-5 Tage | Ersetzt `src/lib/providers/finnhub.ts` |
-| 11 | News-Fetching Go-Adapter: RSS + GDELT + Finviz | 3-5 Tage | Rohdaten -> Python Pipeline |
-| 12 | Macro Data Go-Adapter: FRED + ECB | 2-3 Tage | Ersetzt `src/lib/providers/fred.ts` + `ecb.ts` |
+| 10 | Erster Go-Adapter: Finnhub REST + WS (Stocks) | **TEILWEISE ERLEDIGT (15.02.2026)** | REST-Quote-Slice im Gateway live; WS-Teil noch offen |
+| 11 | News-Fetching Go-Adapter: RSS + GDELT + Finviz | **TEILWEISE ERLEDIGT (15.02.2026)** | Aggregations-Endpoint im Gateway live; produktiver Feinschliff (Retries/Quotas/normalization) noch offen |
+| 12 | Macro Data Go-Adapter: FRED + ECB | **TEILWEISE ERLEDIGT (15.02.2026)** | ECB+FRED Quote-Slices im Gateway live; erweiterte Endpunkte (historical/scheduled ingest) noch offen |
 
 **Python Rolle 1: AI/ML Soft-Signal Adapter (empfaengt Daten von Go)**
 

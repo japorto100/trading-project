@@ -228,6 +228,116 @@ func TestQuoteHandler_ReturnsStableContractForECBForex(t *testing.T) {
 	}
 }
 
+func TestQuoteHandler_ReturnsStableContractForFinnhubEquity(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700002222,
+			Last:        205.12,
+			Bid:         205.1,
+			Ask:         205.14,
+			High:        207.5,
+			Low:         203.9,
+			Volume:      0,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=AAPL&exchange=finnhub&assetType=equity", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var body struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error"`
+		Data    struct {
+			Symbol    string `json:"symbol"`
+			Exchange  string `json:"exchange"`
+			AssetType string `json:"assetType"`
+			Source    string `json:"source"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if !body.Success {
+		t.Fatalf("expected success=true, got false with error: %s", body.Error)
+	}
+	if body.Data.Symbol != "AAPL" {
+		t.Fatalf("expected symbol AAPL, got %s", body.Data.Symbol)
+	}
+	if body.Data.Source != "finnhub" {
+		t.Fatalf("expected source finnhub, got %s", body.Data.Source)
+	}
+	if client.lastExchange != "FINNHUB" {
+		t.Fatalf("expected forwarded exchange FINNHUB, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "equity" {
+		t.Fatalf("expected forwarded asset equity, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "AAPL" || client.lastPair.Quote != "USD" {
+		t.Fatalf("expected forwarded pair AAPL/USD, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
+	}
+}
+
+func TestQuoteHandler_ReturnsStableContractForFredMacro(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700003333,
+			Last:        3.2,
+			Bid:         3.2,
+			Ask:         3.2,
+			High:        3.2,
+			Low:         3.2,
+			Volume:      0,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=CPIAUCSL&exchange=fred&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+
+	var body struct {
+		Success bool   `json:"success"`
+		Error   string `json:"error"`
+		Data    struct {
+			Symbol    string `json:"symbol"`
+			Exchange  string `json:"exchange"`
+			AssetType string `json:"assetType"`
+			Source    string `json:"source"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if !body.Success {
+		t.Fatalf("expected success=true, got false with error: %s", body.Error)
+	}
+	if body.Data.Symbol != "CPIAUCSL" {
+		t.Fatalf("expected symbol CPIAUCSL, got %s", body.Data.Symbol)
+	}
+	if body.Data.Source != "fred" {
+		t.Fatalf("expected source fred, got %s", body.Data.Source)
+	}
+	if client.lastExchange != "FRED" {
+		t.Fatalf("expected forwarded exchange FRED, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "CPIAUCSL" || client.lastPair.Quote != "USD" {
+		t.Fatalf("expected forwarded pair CPIAUCSL/USD, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
+	}
+}
+
 func TestQuoteHandler_RejectsUnsupportedAssetTypeForExchange(t *testing.T) {
 	handler := QuoteHandler(&fakeQuoteClient{})
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=spot", nil)

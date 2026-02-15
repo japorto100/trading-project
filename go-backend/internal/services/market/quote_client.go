@@ -16,19 +16,50 @@ type forexTickerClient interface {
 	GetTicker(ctx context.Context, pair gct.Pair) (gct.Ticker, error)
 }
 
+type stockTickerClient interface {
+	GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error)
+}
+
+type macroTickerClient interface {
+	GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error)
+}
+
 type QuoteClient struct {
 	cryptoClient cryptoTickerClient
+	stockClient  stockTickerClient
+	macroClient  macroTickerClient
 	forexClient  forexTickerClient
 }
 
-func NewQuoteClient(cryptoClient cryptoTickerClient, forexClient forexTickerClient) *QuoteClient {
+func NewQuoteClient(
+	cryptoClient cryptoTickerClient,
+	stockClient stockTickerClient,
+	macroClient macroTickerClient,
+	forexClient forexTickerClient,
+) *QuoteClient {
 	return &QuoteClient{
 		cryptoClient: cryptoClient,
+		stockClient:  stockClient,
+		macroClient:  macroClient,
 		forexClient:  forexClient,
 	}
 }
 
 func (c *QuoteClient) GetTicker(ctx context.Context, exchange string, pair gct.Pair, assetType string) (gct.Ticker, error) {
+	if strings.EqualFold(exchange, "FRED") {
+		if c.macroClient == nil {
+			return gct.Ticker{}, fmt.Errorf("macro client unavailable")
+		}
+		return c.macroClient.GetTicker(ctx, pair, assetType)
+	}
+
+	if strings.EqualFold(exchange, "FINNHUB") {
+		if c.stockClient == nil {
+			return gct.Ticker{}, fmt.Errorf("stock client unavailable")
+		}
+		return c.stockClient.GetTicker(ctx, pair, assetType)
+	}
+
 	if strings.EqualFold(exchange, "ECB") {
 		if c.forexClient == nil {
 			return gct.Ticker{}, fmt.Errorf("forex client unavailable")

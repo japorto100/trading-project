@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/ecb"
+	"tradeviewfusion/go-backend/internal/connectors/finnhub"
+	"tradeviewfusion/go-backend/internal/connectors/fred"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	newsConnectors "tradeviewfusion/go-backend/internal/connectors/news"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
@@ -32,12 +35,36 @@ func NewServerFromEnv() (*Server, error) {
 		RatesURL:       envOr("ECB_RATES_URL", ecb.DefaultRatesURL),
 		RequestTimeout: durationMsOr("ECB_HTTP_TIMEOUT_MS", 4000),
 	})
-	quoteClient := marketServices.NewQuoteClient(gctClient, ecbClient)
+	finnhubClient := finnhub.NewClient(finnhub.Config{
+		BaseURL:        envOr("FINNHUB_BASE_URL", finnhub.DefaultBaseURL),
+		APIKey:         envOr("FINNHUB_API_KEY", ""),
+		RequestTimeout: durationMsOr("FINNHUB_HTTP_TIMEOUT_MS", 4000),
+	})
+	fredClient := fred.NewClient(fred.Config{
+		BaseURL:        envOr("FRED_BASE_URL", fred.DefaultBaseURL),
+		APIKey:         envOr("FRED_API_KEY", ""),
+		RequestTimeout: durationMsOr("FRED_HTTP_TIMEOUT_MS", 4000),
+	})
+	quoteClient := marketServices.NewQuoteClient(gctClient, finnhubClient, fredClient, ecbClient)
+	rssClient := newsConnectors.NewRSSClient(newsConnectors.RSSClientConfig{
+		FeedURLs:       csvOr("NEWS_RSS_FEEDS", []string{"https://feeds.marketwatch.com/marketwatch/topstories/"}),
+		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
+	})
+	gdeltClient := newsConnectors.NewGDELTClient(newsConnectors.GDELTClientConfig{
+		BaseURL:        envOr("GDELT_BASE_URL", newsConnectors.DefaultGDELTBaseURL),
+		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
+	})
+	finvizClient := newsConnectors.NewFinvizClient(newsConnectors.FinvizClientConfig{
+		BaseURL:        envOr("FINVIZ_RSS_BASE_URL", newsConnectors.DefaultFinvizBaseURL),
+		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
+	})
+	newsService := marketServices.NewNewsService(rssClient, gdeltClient, finvizClient)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))
 	mux.HandleFunc("/api/v1/quote", httpHandlers.QuoteHandler(quoteClient))
 	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(gctClient))
+	mux.HandleFunc("/api/v1/news/headlines", httpHandlers.NewsHandler(newsService))
 
 	return NewServer(host, port, mux), nil
 }
@@ -84,4 +111,24 @@ func boolOr(key string, fallback bool) bool {
 	default:
 		return fallback
 	}
+}
+
+func csvOr(key string, fallback []string) []string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	if len(result) == 0 {
+		return fallback
+	}
+	return result
 }

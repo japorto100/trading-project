@@ -25,6 +25,9 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Hinweis fuer Windows-Race-Runner: `CGO_ENABLED=1` + `gcc` im `PATH` (z. B. `C:\msys64\ucrt64\bin`).
 - Team-Runner vorhanden: `go-backend/scripts/test-go.ps1` fuer reproduzierbare Quality-Gates.
 - Erster Nicht-Crypto-Adapter ist produktiv im Gateway: ECB-Forex-Quotes (`exchange=ecb`, `assetType=forex`) ueber offiziellen ECB-Feed.
+- Finnhub-Referenz ist jetzt teilweise produktiv umgesetzt: Go-Gateway liefert Equity-Quotes fuer `exchange=finnhub` (REST-Slice), WS-Folgearbeit bleibt offen.
+- FRED-Referenz ist jetzt teilweise produktiv umgesetzt: Go-Gateway liefert Macro-Quotes fuer `exchange=fred` (REST-Slice), historische/ingest-orientierte Endpunkte folgen.
+- News-Referenzen (RSS/GDELT/Finviz) sind als erster Go-Aggregationsslice aktiv: `GET /api/v1/news/headlines` im Gateway liefert normalisierte Headlines.
 
 ---
 

@@ -77,4 +77,10 @@ Conclusion:
 
 - First non-crypto adapter added at gateway level:
   - `exchange=ecb` + `assetType=forex` is served via official ECB daily FX feed (`eurofxref-daily.xml`).
+- Second non-crypto adapter slice added at gateway level:
+  - `exchange=finnhub` + `assetType=equity` routes to Finnhub `/quote` (API key based).
+- Third non-crypto adapter slice added at gateway level:
+  - `exchange=fred` + `assetType=macro` routes to FRED `/series/observations` (API key based).
+- News aggregation slice added at gateway level:
+  - `GET /api/v1/news/headlines` merges RSS + GDELT + Finviz feeds into one contract.
 - This keeps GCT focused as crypto engine while the gateway starts handling multi-asset routing under one contract.

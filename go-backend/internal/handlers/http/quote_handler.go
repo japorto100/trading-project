@@ -19,6 +19,8 @@ type exchangeConfig struct {
 	upstream          string
 	source            string
 	allowedAssetTypes map[string]struct{}
+	defaultQuote      string
+	symbolFormat      string
 }
 
 var allowedExchanges = map[string]exchangeConfig{
@@ -30,6 +32,8 @@ var allowedExchanges = map[string]exchangeConfig{
 			"margin":  {},
 			"futures": {},
 		},
+		defaultQuote: "USDT",
+		symbolFormat: "pair",
 	},
 	"kraken": {
 		upstream: "Kraken",
@@ -39,6 +43,8 @@ var allowedExchanges = map[string]exchangeConfig{
 			"margin":  {},
 			"futures": {},
 		},
+		defaultQuote: "USD",
+		symbolFormat: "pair",
 	},
 	"coinbase": {
 		upstream: "Coinbase",
@@ -48,6 +54,8 @@ var allowedExchanges = map[string]exchangeConfig{
 			"margin":  {},
 			"futures": {},
 		},
+		defaultQuote: "USD",
+		symbolFormat: "pair",
 	},
 	"okx": {
 		upstream: "OKX",
@@ -57,6 +65,8 @@ var allowedExchanges = map[string]exchangeConfig{
 			"margin":  {},
 			"futures": {},
 		},
+		defaultQuote: "USDT",
+		symbolFormat: "pair",
 	},
 	"bybit": {
 		upstream: "Bybit",
@@ -66,6 +76,8 @@ var allowedExchanges = map[string]exchangeConfig{
 			"margin":  {},
 			"futures": {},
 		},
+		defaultQuote: "USDT",
+		symbolFormat: "pair",
 	},
 	"ecb": {
 		upstream: "ECB",
@@ -73,6 +85,26 @@ var allowedExchanges = map[string]exchangeConfig{
 		allowedAssetTypes: map[string]struct{}{
 			"forex": {},
 		},
+		defaultQuote: "USD",
+		symbolFormat: "pair",
+	},
+	"finnhub": {
+		upstream: "FINNHUB",
+		source:   "finnhub",
+		allowedAssetTypes: map[string]struct{}{
+			"equity": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument_or_pair",
+	},
+	"fred": {
+		upstream: "FRED",
+		source:   "fred",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument_or_pair",
 	},
 }
 
@@ -86,19 +118,19 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 		exchange := strings.ToLower(valueOrDefault(r.URL.Query().Get("exchange"), "binance"))
 		assetType := strings.ToLower(valueOrDefault(r.URL.Query().Get("assetType"), "spot"))
 
-		pair, ok := parseSymbol(symbol)
-		if !ok {
-			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
-				Success: false,
-				Error:   "invalid symbol format, expected BASE/QUOTE",
-			})
-			return
-		}
 		exchangeCfg, ok := allowedExchanges[exchange]
 		if !ok {
 			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
 				Success: false,
 				Error:   "unsupported exchange",
+			})
+			return
+		}
+		pair, normalizedSymbol, ok := resolveSymbol(symbol, exchangeCfg)
+		if !ok {
+			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
+				Success: false,
+				Error:   "invalid symbol format",
 			})
 			return
 		}
@@ -126,7 +158,7 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 		}
 
 		quote := contracts.Quote{
-			Symbol:    strings.ToUpper(pair.Base + "/" + pair.Quote),
+			Symbol:    normalizedSymbol,
 			Exchange:  exchange,
 			AssetType: assetType,
 			Last:      ticker.Last,
@@ -170,6 +202,40 @@ func parseSymbol(symbol string) (gct.Pair, bool) {
 		Base:  parts[0],
 		Quote: parts[1],
 	}, true
+}
+
+func parseInstrumentSymbol(symbol string) (string, bool) {
+	normalized := strings.TrimSpace(strings.ToUpper(symbol))
+	normalized = strings.ReplaceAll(normalized, "-", "")
+	normalized = strings.ReplaceAll(normalized, "_", "")
+	if !symbolPartPattern.MatchString(normalized) {
+		return "", false
+	}
+	return normalized, true
+}
+
+func resolveSymbol(symbol string, cfg exchangeConfig) (gct.Pair, string, bool) {
+	switch cfg.symbolFormat {
+	case "instrument_or_pair":
+		if pair, ok := parseSymbol(symbol); ok {
+			return pair, strings.ToUpper(pair.Base + "/" + pair.Quote), true
+		}
+		instrument, ok := parseInstrumentSymbol(symbol)
+		if !ok {
+			return gct.Pair{}, "", false
+		}
+		quote := cfg.defaultQuote
+		if quote == "" {
+			quote = "USD"
+		}
+		return gct.Pair{Base: instrument, Quote: strings.ToUpper(quote)}, instrument, true
+	default:
+		pair, ok := parseSymbol(symbol)
+		if !ok {
+			return gct.Pair{}, "", false
+		}
+		return pair, strings.ToUpper(pair.Base + "/" + pair.Quote), true
+	}
 }
 
 func isAllowed(allowed map[string]struct{}, value string) bool {
