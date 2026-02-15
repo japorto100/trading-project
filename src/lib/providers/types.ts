@@ -162,6 +162,15 @@ export const PROVIDER_REGISTRY: Record<string, ProviderInfo> = {
 		freePlan: true,
 		documentation: "https://coinmarketcap.com/api/documentation/v1/",
 	},
+	ccxt: {
+		name: "ccxt",
+		displayName: "CCXT (Crypto Fallback)",
+		supportedAssets: ["crypto"],
+		requiresAuth: false,
+		rateLimit: { requests: 20, period: "minute" },
+		freePlan: true,
+		documentation: "https://docs.ccxt.com/",
+	},
 	finage: {
 		name: "finage",
 		displayName: "Finage",
@@ -311,6 +320,17 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 		"1D": "1d",
 		"1W": "7d",
 		"1M": "30d",
+	},
+	ccxt: {
+		"1m": "1m",
+		"5m": "5m",
+		"15m": "15m",
+		"30m": "30m",
+		"1H": "1h",
+		"4H": "4h",
+		"1D": "1d",
+		"1W": "1w",
+		"1M": "1M",
 	},
 	finage: {
 		"1m": "1m",

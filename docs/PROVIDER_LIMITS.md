@@ -14,6 +14,7 @@ Treat them as operational defaults and re-validate against your current paid/fre
 | Marketstack | 100 requests / month |
 | Polygon.io | 5 requests / minute (free tier, US-focused) |
 | CoinMarketCap | plan-dependent (API key required) |
+| CCXT (optional fallback) | exchange-dependent (client-side rate limiter enabled) |
 | Finage | plan-dependent (API key required) |
 | FRED | practically unrestricted for our app use |
 

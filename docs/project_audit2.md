@@ -409,11 +409,17 @@ Status-Detail zu 21/22:
 
 | # | Aktion | Ziel | Status |
 |---|--------|------|--------|
-| 22a | CCXT-Fallback-Slice in TypeScript hinter Feature-Flag pruefen (`exchange`-Subset) | Crypto-Exchange-Reichweite als Uebergang; Stocks/Forex bleiben auf Finnhub/TwelveData/Polygon/AlphaVantage/FRED/ECB-Spur | **GEPLANT** |
+| 22a | CCXT-Fallback-Slice in TypeScript hinter Feature-Flag pruefen (`exchange`-Subset) | Crypto-Exchange-Reichweite als Uebergang; Stocks/Forex bleiben auf Finnhub/TwelveData/Polygon/AlphaVantage/FRED/ECB-Spur | **ERLEDIGT (15.02.2026, baseline)** |
 | 22b | BacktestJS Strategy-Lab im Frontend (Parameter-Panel + Ergebnis-Widgets) | Schnelles UX-Refinement fuer Strategie-Workflows | **GEPLANT** |
 | 22c | PineTS Indicator-Playground als optionales Modul evaluieren | Pine-kompatible Indicator-Logik fuer Frontend-Prototyping | **GEPLANT (Lizenz-Gate AGPL-3.0)** |
 | 22d | Foursight/NeonDash UI-Pattern-Adoption (Order-Ticket, PnL, Watchlist) | Paper-Trading-Frontend gezielt verbessern | **IN ARBEIT (Referenzanalyse abgeschlossen)** |
 | 22e | Chronicle/Scout/FinGPT als Python-Adapter-POCs strukturieren | `news_cluster`, `social_surge`, `narrative_shift` qualitativ ausbauen | **IN ARBEIT (Scope definiert)** |
+
+Status-Detail zu 22a:
+- Optionaler CCXT-Provider ist live als TS-Fallback (`src/lib/providers/ccxt.ts`), nur aktiv bei `ENABLE_CCXT_FALLBACK=true`.
+- Konfigurierbar via `.env`: `CCXT_DEFAULT_EXCHANGE`, `CCXT_API_KEY`, `CCXT_SECRET`, `CCXT_PASSWORD`.
+- Provider-Registry/Priority ist erweitert (`src/lib/providers/types.ts`, `src/lib/providers/index.ts`), Stocks/Forex/Macro bleiben auf der bestehenden Nicht-CCXT-Spur.
+- Build-Pfad ist verifiziert (zusaetzlich benoetigt: `protobufjs` als CCXT-Subdependency im Next.js-Bundle).
 
 > **Detaillierter Plan mit 34 Todos, Phasen A-E, und allen Buch-Zeilennummern:** Siehe [`docs/INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sektion 8.
 

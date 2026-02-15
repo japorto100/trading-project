@@ -30,6 +30,7 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - Macro-Referenz ist auf FED/BOJ/SNB erweitert: `exchange=fed|fred|boj|snb` nutzt denselben Macro-Contract (Series-basiert), BOJ/SNB aktuell als FRED-Series-Alias-Layer.
 - Macro-Ingest-Basis ist live: optionaler Scheduled Snapshot-Runner persistiert FED/ECB/BOJ/SNB unter `go-backend/data/macro`.
 - News-Referenzen (RSS/GDELT/Finviz) sind produktiv inkl. Hardening aktiv: `GET /api/v1/news/headlines` mit Retries, Normalisierung, Dedup und Source-Quota-Balancing.
+- CCXT-Referenz ist als optionaler TS-Fallback umgesetzt: `src/lib/providers/ccxt.ts` (Feature-Flag `ENABLE_CCXT_FALLBACK=true`, konfigurierbar ueber `CCXT_DEFAULT_EXCHANGE`).
 - Pre-8 Portfolio-Slices sind im Next.js-Backend produktiv: persistente P&L-History (`/api/fusion/portfolio/history`), Risk-Sizing (`/api/fusion/risk/position-size`) und Trade-Journal (`/api/fusion/trade-journal`).
 - GCT-Backtester-Referenz ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet vorhandene `*.strat`-Beispiele aus dem Fork.
 - Python Soft-Signal-Referenzen sind produktiv angebunden: `cluster-headlines`, `social-surge`, `narrative-shift` via `python-backend/services/geopolitical-soft-signals`.
@@ -45,7 +46,7 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 
 | Projekt | Bereich | Was konkret mitnehmen | Entscheidung/Status |
 |---|---|---|---|
-| **CCXT** | TS-Backend + API-Gateway | 100+ Exchange-Adapter, einheitliche Symbol-/Ticker-Calls, schneller Fallback fuer nicht in Go angebundene Exchanges | **Nehmen (gezielt):** TS-Fallback hinter Feature-Flag; spaeter selektiv in Go-Adapter ueberfuehren |
+| **CCXT** | TS-Backend + API-Gateway | 100+ Exchange-Adapter, einheitliche Symbol-/Ticker-Calls, schneller Fallback fuer nicht in Go angebundene Exchanges | **Nehmen (gezielt):** TS-Fallback hinter Feature-Flag ist als Baseline umgesetzt; spaeter selektiv in Go-Adapter ueberfuehren |
 | **BacktestJS** | Frontend + TS-Service | Strategy-Lab/Parameter-UI, schnelle What-if-Runs fuer UX-Refinement, Ergebnis-Widgets | **Nehmen (UI-first):** nicht als kanonische Engine, sondern fuer Frontend-Prototyping |
 | **PineTS** | Frontend-Indikatoren | Pine-kompatible Indikatorlogik fuer Indicator-Playground und Vergleich gegen eigene Implementierungen | **Pruefen vor Einsatz:** technisch stark, aber AGPL-3.0 Lizenz-Gate |
 | **Foursight** | Frontend-UX | Paper-Trading Views, Watchlist/Order-Ticket/PnL-Dashboard Patterns | **Nehmen:** Design-/Interaction-Referenz, kein Backend-Reuse |
@@ -464,6 +465,11 @@ Die Referenz-Library fuer Multi-Exchange Marktdaten-Aggregation. Unified API ueb
 ```bash
 bun add ccxt
 ```
+
+**Kurzstatus im Repo (15.02.2026):**
+- Optionaler Provider aktiv unter `src/lib/providers/ccxt.ts` (Quote/Search/OHLCV fuer Crypto).
+- Aktivierung nur per Env-Flag `ENABLE_CCXT_FALLBACK=true`.
+- Fuer Next.js-Build ist `protobufjs` als Subdependency noetig (bereits aufgenommen).
 
 ---
 

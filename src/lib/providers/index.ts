@@ -2,6 +2,7 @@
 // Exports all providers and a unified provider manager
 
 export { AlphaVantageProvider } from "./alpha-vantage";
+export { CCXTProvider } from "./ccxt";
 export { CoinMarketCapProvider } from "./coinmarketcap";
 export { DemoProvider } from "./demo";
 export { ECBProvider } from "./ecb";
@@ -18,6 +19,7 @@ export { YahooUnofficialProvider } from "./yahoo-unofficial";
 export { YFinanceBridgeProvider } from "./yfinance-bridge";
 
 import { AlphaVantageProvider } from "./alpha-vantage";
+import { CCXTProvider, isCcxtEnabled, parseCcxtConfigFromEnv } from "./ccxt";
 import { CoinMarketCapProvider } from "./coinmarketcap";
 import { DemoProvider } from "./demo";
 import { ECBProvider } from "./ecb";
@@ -49,6 +51,7 @@ const DEFAULT_PRIORITY = [
 	"fmp",
 	"eodhd",
 	"marketstack",
+	"ccxt",
 	"coinmarketcap",
 	"finage",
 	"yahoo",
@@ -127,6 +130,9 @@ export class ProviderManager {
 		this.providers.set("fmp", new FMPProvider(apiKeys.fmp));
 		this.providers.set("eodhd", new EODHDProvider(apiKeys.eodhd));
 		this.providers.set("marketstack", new MarketstackProvider(apiKeys.marketstack));
+		if (isCcxtEnabled()) {
+			this.providers.set("ccxt", new CCXTProvider(parseCcxtConfigFromEnv()));
+		}
 		this.providers.set("coinmarketcap", new CoinMarketCapProvider(apiKeys.coinmarketcap));
 		this.providers.set("finage", new FinageProvider(apiKeys.finage));
 		this.providers.set("yahoo", new YahooUnofficialProvider());
@@ -456,6 +462,3 @@ export function getProviderManager(config?: Partial<ProviderConfig>): ProviderMa
 export function resetProviderManager(): void {
 	managerInstance = null;
 }
-
-
-
