@@ -1,6 +1,7 @@
 param(
     [switch]$SkipYfinance,
     [switch]$SkipSoftSignals,
+    [switch]$SkipIndicatorService,
     [switch]$InstallMl,
     [switch]$NoNext
 )
@@ -66,6 +67,11 @@ try {
     if (-not $SkipSoftSignals) {
         $gDir = Join-Path $pythonBackendRoot "services/geopolitical-soft-signals"
         $services += Start-ServiceProcess -WorkingDir $gDir -Name "geopolitical-soft-signals" -App "app:app" -Port 8091
+    }
+
+    if (-not $SkipIndicatorService) {
+        $iDir = Join-Path $pythonBackendRoot "services/indicator-service"
+        $services += Start-ServiceProcess -WorkingDir $iDir -Name "indicator-service" -App "app:app" -Port 8092
     }
 
     if (-not $NoNext) {

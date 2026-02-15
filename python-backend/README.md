@@ -7,6 +7,7 @@ Klar getrennte Python-Bausteine fuer Tradeview Fusion.
 - `services/`
   - `finance-bridge/` (Market-Data Sidecar via yfinance)
   - `geopolitical-soft-signals/` (Soft-Signal Candidate Service)
+  - `indicator-service/` (Indicators, patterns, composite signal, strategy evaluation)
 - `ml_ai/`
   - `geopolitical_soft_signals/` (NLP/ML-Pipeline, von FastAPI importiert)
 - `scripts/`
@@ -29,11 +30,15 @@ cd services/finance-bridge
 
 cd ../geopolitical-soft-signals
 ..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8091
+
+cd ../indicator-service
+..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8092
 ```
 
 ## Smoke-Test
 
 ```powershell
 bun run smoke:soft-signals
+bun run smoke:indicator-service
 ```
 

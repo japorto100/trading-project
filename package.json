@@ -6,6 +6,7 @@
 		"dev": "next dev -p 3000",
 		"dev:with-python": "powershell -ExecutionPolicy Bypass -File ./python-backend/scripts/dev-with-python-services.ps1",
 		"smoke:soft-signals": "powershell -ExecutionPolicy Bypass -File ./python-backend/scripts/smoke-soft-signals.ps1 -InstallMl",
+		"smoke:indicator-service": "powershell -ExecutionPolicy Bypass -File ./python-backend/scripts/smoke-indicator-service.ps1 -InstallMl",
 		"prebuild": "node tools/clean-next.mjs",
 		"build": "next build",
 		"start": "next start -p 3000",

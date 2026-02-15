@@ -4,6 +4,11 @@
 > **Scope:** Funktionale Grenzen TS/Python/Go, Buch-Referenzen mit Zeilennummern, Composite Signal, Elliott Wave, ~32 Implementierungs-Todos
 > **Buch-Pfad:** `docs/books/mastering-finance-python.md` (6469 Zeilen)
 > **Primaere Indikator-Datei:** `src/lib/indicators/index.ts` (1121 Zeilen, 23 Funktionen)
+>
+> **Fortschritt (15. Februar 2026):**
+> - `python-backend/services/indicator-service/app.py` ist als baseline vertical slice umgesetzt.
+> - Baseline-Endpunkte fuer `signals/composite`, `patterns/*`, `indicators/exotic-ma`, `indicators/ks-collection`, `fibonacci/levels`, `charting/transform`, `evaluate/strategy` sind live.
+> - Smoke-Runner vorhanden: `bun run smoke:indicator-service`.
 
 ---
 
@@ -522,7 +527,7 @@ Diese Funktion ist der WICHTIGSTE Baustein des gesamten Buchs. Sie erkennt lokal
 |-------|--------|--------|--------|
 | `src/chart/indicators/advanced.ts` | 616 | GELOESCHT | Enthielt Elliott Wave Stub + 8 Indikatoren. Alles weg. |
 | `src/chart/indicators/index.ts` | 1033 | GELOESCHT | Reimplementierung aller Indikatoren mit eigenem Typ-System. Registry-Pattern (L841) war gut. |
-| `src/lib/chartData.ts` | ~80 (Indikatoren) | **EXISTIERT NOCH** | **TODO: Duplikat SMA/EMA/RSI entfernen**, durch `lib/indicators/` ersetzen |
+| `src/lib/chartData.ts` | Generator-Utilities | AKTIV | Keine Indikator-Duplikate mehr; bleibt als Demo/Fixture-Helfer |
 | `src/lib/indicators/index.ts` | 1121 | AKTIV | Primaere Quelle. BLEIBT. |
 
 **Registry-Pattern:** Das geloeschte `chart/indicators/index.ts` hatte ein `INDICATORS[]` Array mit `IndicatorDefinition` Objekten und eine `calculateIndicator()` Dispatcher-Funktion bei ~L841. Dieses Pattern ist architektonisch gut und sollte in `lib/indicators/` uebernommen werden -- ermoeglicht dynamisches Laden von Indikatoren per Name.
@@ -535,41 +540,11 @@ Diese Funktion ist der WICHTIGSTE Baustein des gesamten Buchs. Sie erkennt lokal
 
 ```
 services/indicator-service/
-  main.py                    -- FastAPI App, CORS, Health-Check
-  requirements.txt           -- pandas, numpy, scipy, fastapi, uvicorn
-  config.py                  -- Ports, Timeouts, Feature Flags
+  app.py                     -- FastAPI App, CORS, Health-Check
+  README.md                  -- Runbook/Endpoints
 
-  indicators/
-    moving_averages.py       -- KAMA, ALMA, IWMA, OLS, generalisierte moving_average()
-    oscillators.py           -- K's RSI-Varianten (ATR-adjusted, RSI^2, MARSI)
-    volatility.py            -- SWV, Volatility Index, Exp-Weighted StdDev
-    bollinger_enhanced.py    -- 5+ Bollinger Signal-Techniken
-    rsi_enhanced.py          -- Erweiterte RSI Techniken
-    rainbow.py               -- Rainbow Collection (7 Indikatoren)
-    fibonacci.py             -- Retracements, Extensions, Fib MA
-    ks_collection.py         -- K's Reversal I+II, zusammengefasst
-
-  patterns/
-    swing_detect.py          -- FUNDAMENTAL: Pivot Detection (Buch Ch.5 L3370)
-    candlestick.py           -- Doji, R, Bottle, Double Trouble, Euphoria, CARSI (Ch.7)
-    harmonic.py              -- ABCD, Gartley, Crab, FEIW (Ch.8)
-    timing.py                -- TD Setup, Fibonacci Timing (Ch.9)
-    price.py                 -- Double Top/Bottom, H&S, Gaps (Ch.10)
-    elliott_wave.py          -- 5+3 Wave Counting (eigene Implementierung)
-
-  signals/
-    composite.py             -- Dreier-Signal (50-Day + Heartbeat + Volume)
-    heartbeat.py             -- Migriert von TS analyzeHeartbeatPattern()
-
-  charting/
-    heikin_ashi.py           -- Heikin-Ashi Transformation (Ch.4 L3015)
-    volume_candles.py        -- Volume-gewichtete Kerzenbreite (Ch.4 L2948)
-    k_candles.py             -- K's Candlesticks (Ch.4 L3077)
-    carsi.py                 -- Candlestick RSI (Ch.4 L3129)
-
-  evaluation/
-    metrics.py               -- Sharpe, Sortino, Profit Factor, Expectancy, Hit Ratio, RRR
-    backtest.py              -- Strategy Evaluation Framework (Ch.12 L5813)
+ml_ai/indicator_engine/
+  pipeline.py                -- Baseline-Implementierungen fuer MA, Patterns, Composite, Fib, Evaluation
 ```
 
 ### 7.2 API Endpoints
@@ -731,4 +706,3 @@ Organisiert in 5 Phasen. Jedes Todo hat Datei-Referenzen und Buch-Zeilen.
 | Externe Projekte / Libraries | `REFERENCE_PROJECTS.md` |
 | TS Indikator Cleanup | Dieses Dokument Sektion 6 + `project_audit2.md` Sektion 2 |
 | Backtesting + Performance | Dieses Dokument Sektion 5, Kapitel 12 |
-

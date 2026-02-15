@@ -30,6 +30,9 @@ Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**
 - News-Referenzen (RSS/GDELT/Finviz) sind produktiv inkl. Hardening aktiv: `GET /api/v1/news/headlines` mit Retries, Normalisierung, Dedup und Source-Quota-Balancing.
 - Pre-8 Portfolio-Slices sind im Next.js-Backend produktiv: persistente P&L-History (`/api/fusion/portfolio/history`), Risk-Sizing (`/api/fusion/risk/position-size`) und Trade-Journal (`/api/fusion/trade-journal`).
 - GCT-Backtester-Referenz ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet vorhandene `*.strat`-Beispiele aus dem Fork.
+- Python Soft-Signal-Referenzen sind produktiv angebunden: `cluster-headlines`, `social-surge`, `narrative-shift` via `python-backend/services/geopolitical-soft-signals`.
+- Python Indicator-Referenzen sind als baseline-Slice produktiv angebunden: `signals/composite`, `patterns/*`, `indicators/exotic-ma`, `indicators/ks-collection`, `evaluate/strategy`.
+- Doppelarbeit-Prinzip ist festgelegt: Backtesting/Portfolio/Order-Execution bleiben im GCT-Fork; eigene Services liefern Contracts/Validation statt Engine-Rebuild.
 
 ---
 

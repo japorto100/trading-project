@@ -14,6 +14,10 @@ This folder contains all Python HTTP services used by the Next.js app.
   - Default local URL: `http://127.0.0.1:8091`
   - Used by geopolitical adapter via `GEOPOLITICAL_SOFT_SIGNAL_URL`.
 
+- `indicator-service/`
+  - FastAPI sidecar for indicator/pattern/composite-signal contracts from `docs/project_audit2.md`.
+  - Default local URL: `http://127.0.0.1:8092`.
+
 - `_shared/`
   - Shared service utilities (for example app factory helpers).
 
@@ -36,4 +40,9 @@ cd services/finance-bridge
 ```powershell
 cd services/geopolitical-soft-signals
 ..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8091
+```
+
+```powershell
+cd services/indicator-service
+..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8092
 ```

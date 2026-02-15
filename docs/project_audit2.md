@@ -23,16 +23,16 @@ Die Detailkapitel 1-7 wurden zur Klarstellung nach `docs/archive/PROJECT_AUDIT.m
 - P&L History (persistente Historie/Reports) -- **ERLEDIGT (15.02.2026, Backend-Slice)**
 - Risk Management (Sizing/Rules, z. B. ATR-basiert) -- **ERLEDIGT (15.02.2026, minimaler Sizing-Slice)**
 - Trade Journal (Notizen, Kontext, Screenshots) -- **ERLEDIGT (15.02.2026, API+Persistence-Slice)**
-- Backtesting Engine
-- Strategy Engine (regelbasiert/automatisiert)
+- Backtesting Engine -- **TEILWEISE ERLEDIGT (15.02.2026, Capability + Strategy-Eval Slice)**
+- Strategy Engine (regelbasiert/automatisiert) -- **TEILWEISE ERLEDIGT (15.02.2026, Python Indicator-Service Slice)**
 
 ### Pre-8 Entscheidungsstand (15. Februar 2026)
 
 - **P&L History:** persistente Snapshot-Historie ist jetzt umgesetzt (`/api/fusion/portfolio/history` + optional `persist=true` bei `/api/fusion/portfolio`), inkl. Prisma/File-Fallback.
 - **Risk Management:** minimaler produktiver Sizing-Contract ist live (`POST /api/fusion/risk/position-size`, inkl. ATR-basiertem Stop-Distance-Ansatz).
 - **Trade Journal:** TypeScript/Prisma-Slice ist live (`/api/fusion/trade-journal`, `/api/fusion/trade-journal/[entryId]`) mit Notiz/Tags/Context/Screenshot-URL.
-- **Backtesting Engine:** klar in Go verorten (GCT-Backtester vorhanden); Gateway stellt spaeter nur stabile Produkt-Contracts bereit.
-- **Strategy Engine:** regelbasiert/ML-lastig in Python (FastAPI Service), nicht im Frontend und nicht direkt im GCT-Core.
+- **Backtesting Engine:** klar in Go verorten (GCT-Backtester vorhanden); Gateway zeigt Capability bereits produktiv (`GET /api/v1/backtest/capabilities`), naechster Schritt ist echte Run/Job-Anbindung.
+- **Strategy Engine:** regelbasiert/ML-lastig in Python (FastAPI Service), nicht im Frontend und nicht direkt im GCT-Core; baseline endpoints fuer Composite/Patterns/Evaluation sind jetzt live.
 
 ### Noch offen aus Kapitel 7 (Geopolitical AI/ML)
 
@@ -81,6 +81,9 @@ Hinweis: Diese offenen Punkte koennen ganz oder teilweise durch Referenz-Impleme
   - News-Hardening ist umgesetzt: Retries (`NEWS_HTTP_RETRIES`), normalisierte Headlines und Source-Quota-Balancing im Aggregator.
   - Macro-History-Slice ist live: `GET /api/v1/macro/history` liefert FRED-Historie sowie ECB-Forex-History-Punkte im Gateway-Contract.
   - Backtester-Fork-Capability ist direkt im Gateway sichtbar: `GET /api/v1/backtest/capabilities` listet verfuegbare GCT-Strategiebeispiele (`*.strat`) und vermeidet Doppelimplementierung.
+  - Doppelarbeit-Fork-Check abgeschlossen: Portfolio/Order/Backtesting bleiben bewusst in GCT; Gateway und Python liefern nur stabile Produkt-Contracts davor (kein Rebuild der GCT-Engine).
+  - Python Soft-Signal-Service ist produktiv als Basis vorhanden (`/api/v1/cluster-headlines`, `/api/v1/social-surge`, `/api/v1/narrative-shift`), Smoke-Test verifiziert.
+  - Python Indicator-Service Vertical Slice ist produktiv vorhanden (`/api/v1/signals/composite`, `/api/v1/patterns/*`, `/api/v1/indicators/exotic-ma`, `/api/v1/indicators/ks-collection`, `/api/v1/evaluate/strategy`, `/api/v1/fibonacci/levels`, `/api/v1/charting/transform`), Smoke-Test verifiziert.
 
 ### 8.1 Warum drei Sprachen Sinn machen
 
@@ -375,21 +378,25 @@ Die 14 REST-Provider in `src/lib/providers/` bleiben relevant -- GoCryptoTrader 
 
 | # | Aktion | Aufwand | Wirkung |
 |---|--------|---------|---------|
-| 13 | FastAPI Microservice aufsetzen (Basis fuer BEIDE Rollen) | 1 Tag | AI/ML + Indicator Infrastruktur |
-| 14 | news_cluster Adapter implementieren (HDBSCAN + Embeddings) | 3-5 Tage | Automatische Event-Erkennung |
-| 15 | social_surge Adapter implementieren (FinBERT) | 3-5 Tage | Social Media Monitoring |
+| 13 | FastAPI Microservice aufsetzen (Basis fuer BEIDE Rollen) | **ERLEDIGT (15.02.2026)** | `geopolitical-soft-signals` + `indicator-service` laufen lokal reproduzierbar inkl. Smoke-Runner |
+| 14 | news_cluster Adapter implementieren (HDBSCAN + Embeddings) | **TEILWEISE ERLEDIGT (15.02.2026)** | Kandidaten-Adapter produktiv; ML-Pfad mit TF-IDF + MiniBatchKMeans aktiv, tieferes Embedding-Tuning offen |
+| 15 | social_surge Adapter implementieren (FinBERT) | **TEILWEISE ERLEDIGT (15.02.2026)** | Produktiver Social-Surge Adapter live; FinBERT/Fine-Tuning bleibt optionaler Ausbau |
 
 **Python Rolle 2: Indicator Service (Buch "Mastering Financial Markets")**
 
 | # | Aktion | Aufwand | Buch-Referenz |
 |---|--------|---------|--------------|
-| 16 | `swing_detect()` + Fibonacci Retracements implementieren | 1-2 Tage | Ch.5 L3255-3481 |
-| 17 | Composite Signal (Dreier-Signal: 50-Day + Heartbeat + Volume) | 2-3 Tage | INDICATOR_ARCHITECTURE.md Sektion 3 |
-| 18 | Pattern Recognition: Candlestick + Harmonic + Timing + Price | 8-12 Tage | Ch.7-10 (L3851-5242) |
-| 19 | Elliott Wave Detection (eigene Python-Implementierung) | 3-5 Tage | INDICATOR_ARCHITECTURE.md Sektion 4 |
-| 20 | K's Collection (6 Indikatoren) + Exotische MAs (KAMA, ALMA, IWMA) | 3-4 Tage | Ch.11 L5260-5682, Ch.3 L1675-1965 |
-| 21 | Performance Evaluation + Backtesting Framework | 2-3 Tage | Ch.12 L5694-6067 |
-| 22 | Backtesting mit GoCryptoTrader integrieren | 5-7 Tage | Strategy-Validierung |
+| 16 | `swing_detect()` + Fibonacci Retracements implementieren | **ERLEDIGT (15.02.2026, baseline)** | Ch.5 L3255-3481 |
+| 17 | Composite Signal (Dreier-Signal: 50-Day + Heartbeat + Volume) | **ERLEDIGT (15.02.2026, baseline)** | INDICATOR_ARCHITECTURE.md Sektion 3 |
+| 18 | Pattern Recognition: Candlestick + Harmonic + Timing + Price | **ERLEDIGT (15.02.2026, baseline)** | Ch.7-10 (L3851-5242) |
+| 19 | Elliott Wave Detection (eigene Python-Implementierung) | **ERLEDIGT (15.02.2026, baseline)** | INDICATOR_ARCHITECTURE.md Sektion 4 |
+| 20 | K's Collection (6 Indikatoren) + Exotische MAs (KAMA, ALMA, IWMA) | **ERLEDIGT (15.02.2026, baseline)** | Ch.11 L5260-5682, Ch.3 L1675-1965 |
+| 21 | Performance Evaluation + Backtesting Framework | **TEILWEISE ERLEDIGT (15.02.2026)** | Ch.12 L5694-6067 |
+| 22 | Backtesting mit GoCryptoTrader integrieren | **TEILWEISE ERLEDIGT (15.02.2026)** | Strategy-Validierung |
+
+Status-Detail zu 21/22:
+- `POST /api/v1/evaluate/strategy` liefert bereits produktive Kernmetriken (Net Return, Hit Ratio, RRR, Expectancy, Profit Factor, Sharpe, Sortino).
+- Vollstaendige GCT-Run-Orchestrierung (Backtest-Job starten, Progress/Result-Store) bleibt als naechster Integrationsschritt offen.
 
 > **Detaillierter Plan mit 34 Todos, Phasen A-E, und allen Buch-Zeilennummern:** Siehe [`docs/INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sektion 8.
 
