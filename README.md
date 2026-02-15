@@ -58,16 +58,16 @@ This scaffold provides a robust foundation built with:
 
 ```bash
 # Install dependencies
-bun install
+pnpm install
 
 # Start development server
-bun run dev
+pnpm dev
 
 # Build for production
-bun run build
+pnpm build
 
 # Start production server
-bun start
+pnpm start
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see your application running.

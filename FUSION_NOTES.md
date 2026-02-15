@@ -1,5 +1,17 @@
 # Tradeview Fusion
 
+Latest execution updates (2026-02-13):
+- P0.2 DoD verification helper added (`Self-check` in Alerts panel).
+- P1.2 `Line` now uses Daily SMA50 source (`1D` feed with fallback).
+- Provider benchmark table added (environment run, keys currently missing).
+- Added indicators and rendering:
+  - VWAP overlay in chart
+  - ATR metric strip + Signal bar value
+- Backend persistence scaffold added:
+  - `GET /api/fusion/persistence/status`
+  - `GET/PUT /api/fusion/preferences`
+  - Prisma server helper + mapper utilities
+
 Current baseline:
 - Core architecture from `tradeview-glm5-pro.tar` (Next.js + API/provider layer + lightweight-charts).
 - Symbol universe and symbol-alias behavior merged from `tradeview-kimik2.5/app` into `src/lib/fusion-symbols.ts`.
@@ -38,3 +50,21 @@ Next high-value merge steps:
 2. Normalize symbol formats (`BTC-USD` and `BTC/USD`) end-to-end in provider fetch/search.
 3. Add one integration test flow for symbol search -> chart reload -> watchlist favorite persistence.
 4. Replace demo candles with provider-backed OHLCV for parity with quote refresh.
+
+Provider benchmark (run date: 2026-02-13, environment-based)
+
+Method:
+- 10 representative symbols (stocks/crypto/fx) per provider.
+- One OHLCV request per symbol.
+- Metrics: success rate, median latency, p95 latency, granularity consistency.
+- In this environment, provider API keys were not set.
+
+| Provider | API key set | Success (10) | Success rate | Median latency | P95 latency | Granularity consistency | Cost/limit fit |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Twelve Data | No | 0 | 0% | 99ms | 324ms | 0% | Blocked until key configured |
+| Alpha Vantage | No | 0 | 0% | 107ms | 367ms | 0% | Blocked until key configured |
+| Finnhub | No | 0 | 0% | 210ms | 578ms | 0% | Blocked until key configured |
+
+Follow-up to complete benchmark acceptance:
+- Set `TWELVE_DATA_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY`.
+- Re-run same benchmark and replace blocked rows with real success/latency/consistency values.

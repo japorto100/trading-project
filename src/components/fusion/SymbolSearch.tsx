@@ -1,159 +1,159 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { Search, X, Star, Activity, DollarSign, BarChart3, TrendingUp } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { FusionSymbol } from '@/lib/fusion-symbols';
+import { Activity, BarChart3, DollarSign, Search, Star, TrendingUp, X } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { FusionSymbol } from "@/lib/fusion-symbols";
 
 interface SymbolSearchProps {
-  query: string;
-  open: boolean;
-  results: FusionSymbol[];
-  favorites: string[];
-  popularSymbols: FusionSymbol[];
-  onQueryChange: (value: string) => void;
-  onOpenChange: (value: boolean) => void;
-  onSelect: (symbol: FusionSymbol) => void;
-  onToggleFavorite: (symbol: string) => void;
+	query: string;
+	open: boolean;
+	results: FusionSymbol[];
+	favorites: string[];
+	popularSymbols: FusionSymbol[];
+	onQueryChange: (value: string) => void;
+	onOpenChange: (value: boolean) => void;
+	onSelect: (symbol: FusionSymbol) => void;
+	onToggleFavorite: (symbol: string) => void;
 }
 
-function getSymbolIcon(type: FusionSymbol['type']) {
-  switch (type) {
-    case 'crypto':
-      return <Activity className="h-4 w-4 text-orange-400" />;
-    case 'fx':
-      return <DollarSign className="h-4 w-4 text-green-400" />;
-    case 'index':
-      return <BarChart3 className="h-4 w-4 text-violet-400" />;
-    default:
-      return <TrendingUp className="h-4 w-4 text-blue-400" />;
-  }
+function getSymbolIcon(type: FusionSymbol["type"]) {
+	switch (type) {
+		case "crypto":
+			return <Activity className="h-4 w-4 text-orange-400" />;
+		case "fx":
+			return <DollarSign className="h-4 w-4 text-green-400" />;
+		case "index":
+			return <BarChart3 className="h-4 w-4 text-violet-400" />;
+		default:
+			return <TrendingUp className="h-4 w-4 text-blue-400" />;
+	}
 }
 
 export function SymbolSearch({
-  query,
-  open,
-  results,
-  favorites,
-  popularSymbols,
-  onQueryChange,
-  onOpenChange,
-  onSelect,
-  onToggleFavorite,
+	query,
+	open,
+	results,
+	favorites,
+	popularSymbols,
+	onQueryChange,
+	onOpenChange,
+	onSelect,
+	onToggleFavorite,
 }: SymbolSearchProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handler = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        onOpenChange(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [onOpenChange]);
+	useEffect(() => {
+		const handler = (event: MouseEvent) => {
+			if (!containerRef.current?.contains(event.target as Node)) {
+				onOpenChange(false);
+			}
+		};
+		document.addEventListener("mousedown", handler);
+		return () => document.removeEventListener("mousedown", handler);
+	}, [onOpenChange]);
 
-  const showPopular = query.trim().length === 0;
-  const showEmpty = !showPopular && results.length === 0;
+	const showPopular = query.trim().length === 0;
+	const showEmpty = !showPopular && results.length === 0;
 
-  return (
-    <div ref={containerRef} className="relative">
-      <div className="flex items-center gap-1 bg-background/50 border border-border rounded-lg px-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          id="fusion-symbol-search"
-          name="fusionSymbolSearch"
-          type="text"
-          placeholder="Search symbol..."
-          value={query}
-          onChange={(e) => {
-            onQueryChange(e.target.value);
-            onOpenChange(true);
-          }}
-          onFocus={() => onOpenChange(true)}
-          className="border-none bg-transparent px-0 shadow-none focus-visible:ring-0"
-        />
-        {query ? (
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              onQueryChange('');
-              onOpenChange(true);
-            }}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        ) : null}
-      </div>
+	return (
+		<div ref={containerRef} className="relative">
+			<div className="flex items-center gap-1 bg-background/50 border border-border rounded-lg px-2">
+				<Search className="h-4 w-4 text-muted-foreground" />
+				<Input
+					id="fusion-symbol-search"
+					name="fusionSymbolSearch"
+					type="text"
+					placeholder="Search symbol..."
+					value={query}
+					onChange={(e) => {
+						onQueryChange(e.target.value);
+						onOpenChange(true);
+					}}
+					onFocus={() => onOpenChange(true)}
+					className="border-none bg-transparent px-0 shadow-none focus-visible:ring-0"
+				/>
+				{query ? (
+					<button
+						type="button"
+						className="text-muted-foreground hover:text-foreground"
+						onClick={() => {
+							onQueryChange("");
+							onOpenChange(true);
+						}}
+					>
+						<X className="h-4 w-4" />
+					</button>
+				) : null}
+			</div>
 
-      {open ? (
-        <div className="absolute top-full left-0 mt-1 w-80 bg-card border border-border rounded-lg shadow-lg z-50">
-          {showPopular ? (
-            <div className="p-3 border-b border-border">
-              <p className="text-xs text-muted-foreground mb-2">Popular</p>
-              <div className="flex flex-wrap gap-2">
-                {popularSymbols.map((symbol) => (
-                  <button
-                    key={symbol.symbol}
-                    type="button"
-                    onClick={() => onSelect(symbol)}
-                    className="px-2.5 py-1 rounded-md text-xs bg-accent/40 hover:bg-accent"
-                  >
-                    {symbol.symbol}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : null}
+			{open ? (
+				<div className="absolute top-full left-0 mt-1 w-80 bg-card border border-border rounded-lg shadow-lg z-50">
+					{showPopular ? (
+						<div className="p-3 border-b border-border">
+							<p className="text-xs text-muted-foreground mb-2">Popular</p>
+							<div className="flex flex-wrap gap-2">
+								{popularSymbols.map((symbol) => (
+									<button
+										key={symbol.symbol}
+										type="button"
+										onClick={() => onSelect(symbol)}
+										className="px-2.5 py-1 rounded-md text-xs bg-accent/40 hover:bg-accent"
+									>
+										{symbol.symbol}
+									</button>
+								))}
+							</div>
+						</div>
+					) : null}
 
-          <ScrollArea className="max-h-72">
-            {showEmpty ? (
-              <div className="px-3 py-4 text-sm text-muted-foreground">No results</div>
-            ) : (
-              results.map((symbol) => {
-                const isFavorite = favorites.includes(symbol.symbol);
-                return (
-                  <button
-                    key={symbol.symbol}
-                    type="button"
-                    onClick={() => onSelect(symbol)}
-                    className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-accent/50"
-                  >
-                    <div className="flex items-center gap-2.5 text-left">
-                      <div className="h-8 w-8 rounded-md bg-accent/40 flex items-center justify-center">
-                        {getSymbolIcon(symbol.type)}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">{symbol.symbol}</div>
-                        <div className="text-xs text-muted-foreground">{symbol.name}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        {symbol.type.toUpperCase()}
-                      </Badge>
-                      <button
-                        type="button"
-                        className={`p-1 rounded ${isFavorite ? 'text-amber-500' : 'text-muted-foreground hover:text-amber-500'}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleFavorite(symbol.symbol);
-                        }}
-                        aria-label={`Toggle favorite ${symbol.symbol}`}
-                      >
-                        <Star className={`h-4 w-4 ${isFavorite ? 'fill-amber-500' : ''}`} />
-                      </button>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </ScrollArea>
-        </div>
-      ) : null}
-    </div>
-  );
+					<ScrollArea className="max-h-72">
+						{showEmpty ? (
+							<div className="px-3 py-4 text-sm text-muted-foreground">No results</div>
+						) : (
+							results.map((symbol) => {
+								const isFavorite = favorites.includes(symbol.symbol);
+								return (
+									<button
+										key={symbol.symbol}
+										type="button"
+										onClick={() => onSelect(symbol)}
+										className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-accent/50"
+									>
+										<div className="flex items-center gap-2.5 text-left">
+											<div className="h-8 w-8 rounded-md bg-accent/40 flex items-center justify-center">
+												{getSymbolIcon(symbol.type)}
+											</div>
+											<div>
+												<div className="text-sm font-medium">{symbol.symbol}</div>
+												<div className="text-xs text-muted-foreground">{symbol.name}</div>
+											</div>
+										</div>
+										<div className="flex items-center gap-2">
+											<Badge variant="outline" className="text-[10px]">
+												{symbol.type.toUpperCase()}
+											</Badge>
+											<button
+												type="button"
+												className={`p-1 rounded ${isFavorite ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"}`}
+												onClick={(e) => {
+													e.stopPropagation();
+													onToggleFavorite(symbol.symbol);
+												}}
+												aria-label={`Toggle favorite ${symbol.symbol}`}
+											>
+												<Star className={`h-4 w-4 ${isFavorite ? "fill-amber-500" : ""}`} />
+											</button>
+										</div>
+									</button>
+								);
+							})
+						)}
+					</ScrollArea>
+				</div>
+			) : null}
+		</div>
+	);
 }

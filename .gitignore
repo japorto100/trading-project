@@ -34,3 +34,30 @@ Thumbs.db
 
 # bun
 .bun/
+
+# local backend storage
+data/
+
+# python
+**/.venv/
+**/__pycache__/
+*.pyc
+
+# Go
+*.test
+*.out
+coverage.out
+.coverprofile
+go.work.sum
+
+# Go backend local artifacts
+go-backend/.env
+go-backend/gateway
+go-backend/gateway.exe
+go-backend/vendor-forks/gocryptotrader/gocryptotrader
+go-backend/vendor-forks/gocryptotrader/gocryptotrader.exe
+go-backend/vendor-forks/gocryptotrader/*.log
+go-backend/vendor-forks/gocryptotrader/.cache/
+
+# local backup files
+**/*.go.[0-9]*

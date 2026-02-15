@@ -1,859 +1,916 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useMemo, useSyncExternalStore, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import { TimeframeSelector } from '@/components/TimeframeSelector';
-import { IndicatorPanel, IndicatorSettings } from '@/components/IndicatorPanel';
-import { SettingsPanel } from '@/components/SettingsPanel';
-import { AlertPanel } from '@/components/AlertPanel';
-import { DrawingToolbar } from '@/components/DrawingToolbar';
-import { ChartTypeSelector } from '@/components/ChartTypeSelector';
-import { CompareSymbol } from '@/components/CompareSymbol';
-import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import type { ChartType } from "@/chart/types";
+import type { IndicatorSettings } from "@/components/IndicatorPanel";
+import { Button } from "@/components/ui/button";
+import { BottomStats } from "@/features/trading/BottomStats";
+import { TopMenuBar } from "@/features/trading/TopMenuBar";
+import { TradingHeader } from "@/features/trading/TradingHeader";
+import { TradingPageSkeleton } from "@/features/trading/TradingPageSkeleton";
+import { TradingSidebar } from "@/features/trading/TradingSidebar";
+import { TradingWorkspace } from "@/features/trading/TradingWorkspace";
+import type {
+	DataMode,
+	LayoutMode,
+	SidebarPanel,
+	SignalSnapshot,
+	WatchlistTab,
+} from "@/features/trading/types";
+import { useIndicatorActions } from "@/features/trading/useIndicatorActions";
+import { checkAlerts } from "@/lib/alerts";
+import { generateDemoCandles } from "@/lib/demoData";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { 
-  BarChart3, 
-  RefreshCw,
-  Star,
-  StarOff,
-  Fullscreen,
-  Camera,
-  Layout,
-  Clock,
-  Zap,
-  Menu,
-  X,
-  Sun,
-  Moon,
-  List,
-  SlidersHorizontal,
-  Newspaper,
-  ClipboardList
-} from 'lucide-react';
-import { OHLCVData, TimeframeValue } from '@/lib/providers/types';
-import { ChartType } from '@/chart/types';
-import { generateDemoCandles } from '@/lib/demoData';
+	ALL_FUSION_SYMBOLS,
+	type FusionSymbol,
+	getDefaultStartYear,
+	searchFusionSymbols,
+	WATCHLIST_CATEGORIES,
+} from "@/lib/fusion-symbols";
 import {
-  ALL_FUSION_SYMBOLS,
-  FusionSymbol,
-  WATCHLIST_CATEGORIES,
-  searchFusionSymbols,
-} from '@/lib/fusion-symbols';
-import { SymbolSearch } from '@/components/fusion/SymbolSearch';
-import { WatchlistPanel } from '@/components/fusion/WatchlistPanel';
-
-// Dynamic import for chart
-const TradingChart = dynamic(
-  () => import('@/components/TradingChart').then(mod => mod.TradingChart),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-full bg-slate-900/50 rounded-lg">
-        <div className="text-center">
-          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-blue-500 animate-pulse" />
-          <p className="text-slate-400">Loading chart...</p>
-        </div>
-      </div>
-    )
-  }
-);
+	buildHistoryWindow,
+	clampStartYearForSymbol,
+	type HistoryRangePreset,
+} from "@/lib/history-range";
+import {
+	analyzeHeartbeatPattern,
+	calculateATR,
+	calculateCMF,
+	calculateOBV,
+	calculateRVOL,
+	calculateSMA,
+	detectSMACrossEvents,
+} from "@/lib/indicators";
+import type { OHLCVData, TimeframeValue } from "@/lib/providers/types";
+import { readFusionPreferences, writeFusionPreferences } from "@/lib/storage/preferences";
+import {
+	fetchRemoteFusionPreferences,
+	pushRemoteFusionPreferences,
+} from "@/lib/storage/preferences-remote";
+import { getClientProfileKey } from "@/lib/storage/profile-key";
 
 const DEFAULT_INDICATORS: IndicatorSettings = {
-  sma: { enabled: false, period: 20 },
-  ema: { enabled: false, period: 20 },
-  rsi: { enabled: false, period: 14 },
-  macd: { enabled: false },
-  bollinger: { enabled: false, period: 20, stdDev: 2 },
+	sma: { enabled: false, period: 20 },
+	ema: { enabled: false, period: 20 },
+	rsi: { enabled: false, period: 14 },
+	macd: { enabled: false },
+	bollinger: { enabled: false, period: 20, stdDev: 2 },
+	vwap: { enabled: false },
+	vwma: { enabled: false, period: 20 },
+	atr: { enabled: false, period: 14 },
+	atrChannel: { enabled: false, smaPeriod: 50, atrPeriod: 14, multiplier: 1.5 },
+	hma: { enabled: false, period: 20 },
+	adx: { enabled: false, period: 14 },
+	ichimoku: {
+		enabled: false,
+		tenkanPeriod: 9,
+		kijunPeriod: 26,
+		senkouBPeriod: 52,
+		displacement: 26,
+	},
+	parabolicSar: { enabled: false, step: 0.02, maxAF: 0.2 },
+	keltner: { enabled: false, emaPeriod: 20, atrPeriod: 10, multiplier: 2 },
+	volumeProfile: { enabled: false, levels: 20, topN: 6 },
+	supportResistance: { enabled: false, lookback: 20, threshold: 0.02, topN: 6 },
 };
 
-type SidebarPanel = 'watchlist' | 'indicators' | 'news' | 'orders';
-
 export default function Home() {
-  // State
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [currentSymbol, setCurrentSymbol] = useState<FusionSymbol>(WATCHLIST_CATEGORIES.crypto[0]);
-  const [currentTimeframe, setCurrentTimeframe] = useState<TimeframeValue>('1H');
-  const [chartType, setChartType] = useState<ChartType>('candlestick');
-  const [indicators, setIndicators] = useState<IndicatorSettings>(DEFAULT_INDICATORS);
-  const [candleData, setCandleData] = useState<OHLCVData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
-  const [layout, setLayout] = useState<'single' | '2h' | '2v' | '4'>('single');
-  const [favorites, setFavorites] = useState<string[]>(() => {
-    if (typeof window === 'undefined') {
-      return [];
-    }
-    const saved = localStorage.getItem('tradeview_favorites');
-    if (!saved) {
-      return [];
-    }
-    try {
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
-  const [activeTab, setActiveTab] = useState('all');
-  const [activeSidebarPanel, setActiveSidebarPanel] = useState<SidebarPanel>('watchlist');
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showDrawingToolbar, setShowDrawingToolbar] = useState(false);
-  const [compareSymbol, setCompareSymbol] = useState<string | null>(null);
-  
-  // Client-side only check
-  const mounted = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+	// State
+	const [isDarkMode, setIsDarkMode] = useState(true);
+	const [currentSymbol, setCurrentSymbol] = useState<FusionSymbol>(WATCHLIST_CATEGORIES.crypto[0]);
+	const [currentTimeframe, setCurrentTimeframe] = useState<TimeframeValue>("1H");
+	const [historyRangePreset, setHistoryRangePreset] = useState<HistoryRangePreset>("1Y");
+	const [customStartYear, setCustomStartYear] = useState<number>(() =>
+		getDefaultStartYear(WATCHLIST_CATEGORIES.crypto[0]),
+	);
+	const [chartType, setChartType] = useState<ChartType>("candlestick");
+	const [indicators, setIndicators] = useState<IndicatorSettings>(DEFAULT_INDICATORS);
+	const [candleData, setCandleData] = useState<OHLCVData[]>([]);
+	const [dailySignalData, setDailySignalData] = useState<OHLCVData[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [dataMode, setDataMode] = useState<DataMode>("api");
+	const [dataProvider, setDataProvider] = useState("demo");
+	const [dataStatusMessage, setDataStatusMessage] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [showSearch, setShowSearch] = useState(false);
+	const [layout, setLayout] = useState<LayoutMode>(() => readFusionPreferences().layout);
+	const [favorites, setFavorites] = useState<string[]>(() => readFusionPreferences().favorites);
+	const [activeTab, setActiveTab] = useState<WatchlistTab>("all");
+	const [activeSidebarPanel, setActiveSidebarPanel] = useState<SidebarPanel>("watchlist");
+	const [sidebarOpen, setSidebarOpen] = useState(true);
+	const [showDrawingToolbar, setShowDrawingToolbar] = useState(false);
+	const [compareSymbol, setCompareSymbol] = useState<string | null>(null);
+	const [replayMode, setReplayMode] = useState(false);
+	const [replayPlaying, setReplayPlaying] = useState(false);
+	const [replayIndex, setReplayIndex] = useState(1);
+	const [remoteHydrated, setRemoteHydrated] = useState(false);
+	const requestSequenceRef = useRef(0);
+	const dailySignalRequestRef = useRef(0);
+	const lastQuoteBySymbolRef = useRef<Record<string, number>>({});
+	const streamDegradedRef = useRef(false);
 
-  // Generate data when symbol/timeframe changes
-  const generateData = useCallback(() => {
-    if (!mounted) return;
-    
-    setLoading(true);
-    
-    // Simulate API delay
-    setTimeout(() => {
-      const data = generateDemoCandles(currentSymbol, currentTimeframe, 300);
-      setCandleData(data);
-      setLoading(false);
-    }, 300);
-  }, [currentSymbol, currentTimeframe, mounted]);
+	// Client-side only check
+	const mounted = useSyncExternalStore(
+		() => () => {},
+		() => true,
+		() => false,
+	);
 
-  // Initial data load.
-  useEffect(() => {
-    if (mounted) {
-      const timer = window.setTimeout(() => generateData(), 0);
-      return () => window.clearTimeout(timer);
-    }
-  }, [mounted, generateData]);
+	useEffect(() => {
+		const root = document.documentElement;
+		root.classList.toggle("dark", isDarkMode);
+		root.style.colorScheme = isDarkMode ? "dark" : "light";
+	}, [isDarkMode]);
 
-  // Refresh data
-  const handleRefresh = useCallback(() => {
-    generateData();
-  }, [generateData]);
+	const symbolMinimumStartYear = useMemo(() => getDefaultStartYear(currentSymbol), [currentSymbol]);
 
-  // Theme toggle
-  const handleThemeToggle = useCallback(() => {
-    setIsDarkMode(prev => !prev);
-  }, []);
+	const historyWindow = useMemo(
+		() =>
+			buildHistoryWindow({
+				preset: historyRangePreset,
+				timeframe: currentTimeframe,
+				symbol: currentSymbol,
+				customStartYear,
+			}),
+		[customStartYear, currentSymbol, currentTimeframe, historyRangePreset],
+	);
 
-  const openSidebarPanel = useCallback((panel: SidebarPanel) => {
-    setActiveSidebarPanel(panel);
-    if (!sidebarOpen) {
-      setSidebarOpen(true);
-    }
-  }, [sidebarOpen]);
+	useEffect(() => {
+		setCustomStartYear((prev) => clampStartYearForSymbol(prev, currentSymbol));
+	}, [currentSymbol]);
 
-  const setCoreIndicatorEnabled = useCallback(
-    (key: 'sma' | 'ema' | 'rsi', enabled: boolean) => {
-      setIndicators((prev) => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          enabled,
-        },
-      }));
-    },
-    []
-  );
+	// Load chart data: API first, demo fallback.
+	const loadChartData = useCallback(async () => {
+		if (!mounted) {
+			return;
+		}
 
-  const setCoreIndicatorPeriod = useCallback(
-    (key: 'sma' | 'ema' | 'rsi', period: number) => {
-      setIndicators((prev) => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          period,
-        },
-      }));
-    },
-    []
-  );
+		const requestId = ++requestSequenceRef.current;
 
-  const setMacdEnabled = useCallback((enabled: boolean) => {
-    setIndicators((prev) => ({
-      ...prev,
-      macd: {
-        ...(prev.macd ?? { enabled: false }),
-        enabled,
-      },
-    }));
-  }, []);
+		setLoading(true);
+		setDataStatusMessage(null);
 
-  const setBollingerEnabled = useCallback((enabled: boolean) => {
-    setIndicators((prev) => ({
-      ...prev,
-      bollinger: {
-        ...(prev.bollinger ?? { enabled: false, period: 20, stdDev: 2 }),
-        enabled,
-      },
-    }));
-  }, []);
+		try {
+			const requestEndEpoch = Math.floor(Date.now() / 1000);
+			const params = new URLSearchParams({
+				symbol: currentSymbol.symbol,
+				timeframe: currentTimeframe,
+				limit: String(historyWindow.requestLimit),
+				start: String(historyWindow.startEpoch),
+				end: String(requestEndEpoch),
+			});
 
-  const setBollingerPeriod = useCallback((period: number) => {
-    setIndicators((prev) => ({
-      ...prev,
-      bollinger: {
-        ...(prev.bollinger ?? { enabled: false, period: 20, stdDev: 2 }),
-        period,
-      },
-    }));
-  }, []);
+			const response = await fetch(`/api/market/ohlcv?${params.toString()}`, {
+				cache: "no-store",
+			});
 
-  const setBollingerStdDev = useCallback((stdDev: number) => {
-    setIndicators((prev) => ({
-      ...prev,
-      bollinger: {
-        ...(prev.bollinger ?? { enabled: false, period: 20, stdDev: 2 }),
-        stdDev,
-      },
-    }));
-  }, []);
+			if (!response.ok) {
+				throw new Error(`OHLCV request failed (${response.status})`);
+			}
 
-  // Symbol change
-  const handleSymbolChange = useCallback((symbol: FusionSymbol) => {
-    setCurrentSymbol(symbol);
-    setSearchQuery('');
-    setShowSearch(false);
-  }, []);
+			const payload = (await response.json()) as {
+				data?: OHLCVData[];
+				provider?: string;
+			};
+			const rows = Array.isArray(payload.data) ? payload.data : [];
 
-  // Timeframe change
-  const handleTimeframeChange = useCallback((timeframe: TimeframeValue) => {
-    setCurrentTimeframe(timeframe);
-  }, []);
+			if (rows.length === 0) {
+				throw new Error("OHLCV API returned empty data");
+			}
 
-  // Toggle favorite
-  const toggleFavorite = useCallback((symbol: string) => {
-    setFavorites(prev => {
-      const newFavorites = prev.includes(symbol)
-        ? prev.filter(s => s !== symbol)
-        : [...prev, symbol];
-      localStorage.setItem('tradeview_favorites', JSON.stringify(newFavorites));
-      return newFavorites;
-    });
-  }, []);
+			if (requestId !== requestSequenceRef.current) {
+				return;
+			}
 
-  // Export chart
-  const handleExport = useCallback(() => {
-    // Find canvas and export
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      const link = document.createElement('a');
-      link.download = `${currentSymbol.symbol}_${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
-  }, [currentSymbol]);
+			const sorted = [...rows].sort((a, b) => a.time - b.time);
+			setCandleData(sorted);
+			setDataMode("api");
+			setDataProvider((payload.provider || "api").toString());
+			setDataStatusMessage(
+				historyWindow.isCapped
+					? `Requested range exceeded bar cap for ${currentTimeframe}; showing latest ${historyWindow.requestLimit} bars.`
+					: null,
+			);
+		} catch (error) {
+			if (requestId !== requestSequenceRef.current) {
+				return;
+			}
 
-  // Fullscreen toggle
-  const handleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      document.documentElement.requestFullscreen();
-    }
-  }, []);
+			const fallbackCount = Math.min(historyWindow.requestLimit, 4000);
+			const fallback = generateDemoCandles(
+				currentSymbol,
+				currentTimeframe,
+				fallbackCount,
+			) as OHLCVData[];
+			setCandleData(fallback);
+			setDataMode("fallback");
+			setDataProvider("demo");
+			setDataStatusMessage(
+				`API failed, switched to demo fallback (${error instanceof Error ? error.message : "unknown error"})`,
+			);
+		} finally {
+			if (requestId === requestSequenceRef.current) {
+				setLoading(false);
+			}
+		}
+	}, [
+		currentSymbol,
+		currentTimeframe,
+		historyWindow.isCapped,
+		historyWindow.requestLimit,
+		historyWindow.startEpoch,
+		mounted,
+	]);
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    if (candleData.length === 0) {
-      return { change: 0, percent: 0, high24h: 0, low24h: 0, volume24h: 0, lastPrice: 0 };
-    }
-    
-    const lastCandle = candleData[candleData.length - 1];
-    const prevCandle = candleData[candleData.length - 2] || lastCandle;
-    const change = lastCandle.close - prevCandle.close;
-    const percent = prevCandle.close > 0 ? (change / prevCandle.close) * 100 : 0;
-    
-    const sliceCount = Math.min(24, candleData.length);
-    const recentData = candleData.slice(-sliceCount);
-    
-    return {
-      change,
-      percent,
-      high24h: Math.max(...recentData.map((c) => c.high)),
-      low24h: Math.min(...recentData.map((c) => c.low)),
-      volume24h: recentData.reduce((sum: number, c) => sum + c.volume, 0),
-      lastPrice: lastCandle.close,
-    };
-  }, [candleData]);
+	// Initial + reactive data load.
+	useEffect(() => {
+		if (!mounted) {
+			return;
+		}
+		void loadChartData();
+	}, [mounted, loadChartData]);
 
-  // Format helpers
-  const formatPrice = (price: number) => {
-    if (price < 0.01) return price.toFixed(6);
-    if (price < 1) return price.toFixed(4);
-    if (price < 100) return price.toFixed(2);
-    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  };
+	useEffect(() => {
+		if (!mounted || replayMode) {
+			return;
+		}
 
-  const formatVolume = (volume: number) => {
-    if (volume >= 1e9) return (volume / 1e9).toFixed(2) + 'B';
-    if (volume >= 1e6) return (volume / 1e6).toFixed(2) + 'M';
-    if (volume >= 1e3) return (volume / 1e3).toFixed(2) + 'K';
-    return volume.toString();
-  };
+		if (typeof window === "undefined" || typeof window.EventSource === "undefined") {
+			return;
+		}
 
-  // Get all symbols for search
-  const allSymbols = useMemo(() => {
-    return ALL_FUSION_SYMBOLS;
-  }, []);
+		const params = new URLSearchParams({
+			symbol: currentSymbol.symbol,
+			timeframe: currentTimeframe,
+		});
+		const source = new window.EventSource(`/api/market/stream?${params.toString()}`);
 
-  // Filter symbols by search
-  const filteredSymbols = useMemo(() => {
-    return searchFusionSymbols(searchQuery, 10);
-  }, [searchQuery]);
+		const onReady = () => {
+			streamDegradedRef.current = false;
+		};
 
-  const popularSymbols = useMemo(() => {
-    const preferred = ['AAPL', 'BTC/USD', 'EUR/USD', 'NVDA'];
-    return preferred
-      .map((symbol) => allSymbols.find((item) => item.symbol === symbol))
-      .filter((item): item is FusionSymbol => Boolean(item));
-  }, [allSymbols]);
+		const onCandle = (event: MessageEvent<string>) => {
+			try {
+				const payload = JSON.parse(event.data) as {
+					provider?: string;
+					candle?: OHLCVData;
+					executionsCount?: number;
+				};
+				const candle = payload.candle;
+				if (
+					!candle ||
+					!Number.isFinite(candle.time) ||
+					!Number.isFinite(candle.open) ||
+					!Number.isFinite(candle.high) ||
+					!Number.isFinite(candle.low) ||
+					!Number.isFinite(candle.close)
+				) {
+					return;
+				}
 
-  // Get watchlist by tab
-  const watchlistSymbols = useMemo(() => {
-    if (activeTab === 'favorites') {
-      return allSymbols.filter(s => favorites.includes(s.symbol));
-    }
-    if (activeTab === 'all') {
-      return allSymbols;
-    }
-    return WATCHLIST_CATEGORIES[activeTab as keyof typeof WATCHLIST_CATEGORIES] || [];
-  }, [activeTab, favorites, allSymbols]);
+				setCandleData((prev) => {
+					if (prev.length === 0) {
+						return prev;
+					}
 
-  if (!mounted) {
-    return (
-      <div className="h-screen flex flex-col bg-slate-950 text-white">
-        <div className="h-14 border-b border-slate-800 bg-slate-900/50 flex items-center px-4">
-          <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg px-3 py-1.5">
-            <BarChart3 className="h-5 w-5 text-white" />
-            <span className="font-bold text-white text-lg">TradeView Pro</span>
-          </div>
-        </div>
-        <div className="flex-1 flex">
-          <div className="w-64 border-r border-slate-800 bg-slate-900/30 p-4" />
-          <div className="flex-1 p-4" />
-        </div>
-      </div>
-    );
-  }
+					const next = [...prev];
+					const existingIndex = next.findIndex((row) => row.time === candle.time);
 
-  return (
-    <div className={`h-screen flex flex-col overflow-hidden ${isDarkMode ? 'dark bg-slate-950 text-white' : 'bg-white text-slate-900'}`}>
-      {/* Top Menu Bar */}
-      <div className="h-8 border-b border-border bg-card/50 flex items-center px-2 text-xs">
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-            File
-          </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-            View
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6 px-2 text-xs"
-            onClick={() => setShowDrawingToolbar(!showDrawingToolbar)}
-          >
-            Draw
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={() => openSidebarPanel('indicators')}
-          >
-            Indicators
-          </Button>
-          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-            Settings
-          </Button>
-        </div>
-        <div className="flex-1" />
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">
-            <Clock className="h-3 w-3 mr-1" />
-            {new Date().toLocaleTimeString()}
-          </Badge>
-          <Badge variant="outline" className="text-xs text-emerald-500">
-            <Zap className="h-3 w-3 mr-1" />
-            Live
-          </Badge>
-        </div>
-      </div>
+					if (existingIndex >= 0) {
+						next[existingIndex] = candle;
+					} else {
+						const last = next[next.length - 1];
+						if (!last || candle.time < last.time) {
+							return prev;
+						}
+						next.push(candle);
+					}
 
-      {/* Header */}
-      <div className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          {/* Logo */}
-          <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg px-3 py-1.5">
-            <BarChart3 className="h-5 w-5 text-white" />
-            <span className="font-bold text-white text-lg">TradeView Pro</span>
-          </div>
+					const trimmed =
+						next.length > historyWindow.requestLimit
+							? next.slice(next.length - historyWindow.requestLimit)
+							: next;
 
-          {/* Symbol Search */}
-          <SymbolSearch
-            query={searchQuery}
-            open={showSearch}
-            results={filteredSymbols}
-            favorites={favorites}
-            popularSymbols={popularSymbols}
-            onQueryChange={setSearchQuery}
-            onOpenChange={setShowSearch}
-            onSelect={handleSymbolChange}
-            onToggleFavorite={toggleFavorite}
-          />
+					return trimmed;
+				});
 
-          {/* Current Symbol */}
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold">{currentSymbol.symbol}</h2>
-            <Badge variant="outline" className={
-              currentSymbol.type === 'crypto' 
-                ? 'border-amber-500/50 text-amber-500' 
-                : currentSymbol.type === 'stock'
-                ? 'border-blue-500/50 text-blue-500'
-                : 'border-purple-500/50 text-purple-500'
-            }>
-              {currentSymbol.type.toUpperCase()}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => toggleFavorite(currentSymbol.symbol)}
-            >
-              {favorites.includes(currentSymbol.symbol) ? (
-                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-              ) : (
-                <StarOff className="h-4 w-4 text-muted-foreground" />
-              )}
-            </Button>
-          </div>
+				if (payload.provider) {
+					setDataProvider(payload.provider);
+				}
+				setDataMode("api");
 
-          <Separator orientation="vertical" className="h-6" />
+				if (typeof payload.executionsCount === "number" && payload.executionsCount > 0) {
+					setDataStatusMessage(
+						`${payload.executionsCount} paper order${payload.executionsCount > 1 ? "s" : ""} auto-filled at live price.`,
+					);
+				}
 
-          {/* Timeframe */}
-          <TimeframeSelector 
-            currentTimeframe={currentTimeframe}
-            onTimeframeChange={handleTimeframeChange}
-          />
-        </div>
-        
-        {/* Right side controls */}
-        <div className="flex items-center gap-2">
-          {/* Chart Type */}
-          <ChartTypeSelector 
-            chartType={chartType}
-            onChartTypeChange={setChartType}
-          />
+				if (streamDegradedRef.current) {
+					streamDegradedRef.current = false;
+					setDataStatusMessage("Realtime stream reconnected.");
+				}
+			} catch {
+				// ignore malformed stream payloads
+			}
+		};
 
-          {/* Compare */}
-          <CompareSymbol
-            onCompare={setCompareSymbol}
-            currentCompare={compareSymbol}
-          />
+		const onError = () => {
+			if (!streamDegradedRef.current) {
+				streamDegradedRef.current = true;
+				setDataStatusMessage("Realtime stream interrupted, retrying...");
+			}
+		};
 
-          <Separator orientation="vertical" className="h-6" />
+		source.addEventListener("ready", onReady as EventListener);
+		source.addEventListener("candle", onCandle as EventListener);
+		source.addEventListener("error", onError as EventListener);
+		source.onerror = onError;
 
-          {/* Layout */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Layout className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setLayout('single')}>Single Chart</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLayout('2h')}>2 Charts (Horizontal)</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLayout('2v')}>2 Charts (Vertical)</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLayout('4')}>4 Charts</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+		return () => {
+			source.removeEventListener("ready", onReady as EventListener);
+			source.removeEventListener("candle", onCandle as EventListener);
+			source.removeEventListener("error", onError as EventListener);
+			source.close();
+		};
+	}, [currentSymbol.symbol, currentTimeframe, historyWindow.requestLimit, mounted, replayMode]);
 
-          {/* Indicators */}
-          <IndicatorPanel 
-            indicators={indicators}
-            onIndicatorsChange={setIndicators}
-          />
+	const loadDailySignalData = useCallback(async () => {
+		if (!mounted) {
+			return;
+		}
 
-          <Separator orientation="vertical" className="h-6" />
+		const requestId = ++dailySignalRequestRef.current;
 
-          {/* Refresh */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
+		try {
+			const params = new URLSearchParams({
+				symbol: currentSymbol.symbol,
+				timeframe: "1D",
+				limit: "240",
+			});
 
-          {/* Export */}
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Camera className="h-4 w-4" />
-          </Button>
+			const response = await fetch(`/api/market/ohlcv?${params.toString()}`, {
+				cache: "no-store",
+			});
 
-          {/* Fullscreen */}
-          <Button variant="outline" size="sm" onClick={handleFullscreen}>
-            <Fullscreen className="h-4 w-4" />
-          </Button>
+			if (!response.ok) {
+				throw new Error(`Daily OHLCV request failed (${response.status})`);
+			}
 
-          {/* Alerts */}
-          <AlertPanel />
+			const payload = (await response.json()) as { data?: OHLCVData[] };
+			const rows = Array.isArray(payload.data) ? payload.data : [];
+			if (rows.length === 0) {
+				throw new Error("Daily OHLCV returned empty data");
+			}
 
-          {/* Settings */}
-          <SettingsPanel />
+			if (requestId !== dailySignalRequestRef.current) {
+				return;
+			}
 
-          {/* Theme Toggle */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleThemeToggle}
-          >
-            {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
-        </div>
-      </div>
+			setDailySignalData([...rows].sort((a, b) => a.time - b.time));
+		} catch {
+			if (requestId !== dailySignalRequestRef.current) {
+				return;
+			}
+			setDailySignalData(generateDemoCandles(currentSymbol, "1D", 240) as OHLCVData[]);
+		}
+	}, [currentSymbol, mounted]);
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute left-2 top-1/2 z-50 bg-card/80"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-        >
-          {sidebarOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-        </Button>
+	useEffect(() => {
+		if (!mounted) {
+			return;
+		}
+		void loadDailySignalData();
+	}, [mounted, loadDailySignalData]);
 
-        {/* Sidebar */}
-        {sidebarOpen && (
-          <aside className="w-72 border-r border-border bg-card/30 flex flex-col h-full">
-            <div className="grid grid-cols-4 border-b border-border">
-              <Button
-                variant={activeSidebarPanel === 'watchlist' ? 'secondary' : 'ghost'}
-                className="h-10 rounded-none"
-                onClick={() => setActiveSidebarPanel('watchlist')}
-              >
-                <List className="h-4 w-4 mr-1" />
-                <span className="text-[11px]">Watch</span>
-              </Button>
-              <Button
-                variant={activeSidebarPanel === 'indicators' ? 'secondary' : 'ghost'}
-                className="h-10 rounded-none"
-                onClick={() => setActiveSidebarPanel('indicators')}
-              >
-                <SlidersHorizontal className="h-4 w-4 mr-1" />
-                <span className="text-[11px]">Indic</span>
-              </Button>
-              <Button
-                variant={activeSidebarPanel === 'news' ? 'secondary' : 'ghost'}
-                className="h-10 rounded-none"
-                onClick={() => setActiveSidebarPanel('news')}
-              >
-                <Newspaper className="h-4 w-4 mr-1" />
-                <span className="text-[11px]">News</span>
-              </Button>
-              <Button
-                variant={activeSidebarPanel === 'orders' ? 'secondary' : 'ghost'}
-                className="h-10 rounded-none"
-                onClick={() => setActiveSidebarPanel('orders')}
-              >
-                <ClipboardList className="h-4 w-4 mr-1" />
-                <span className="text-[11px]">Orders</span>
-              </Button>
-            </div>
+	useEffect(() => {
+		if (!mounted) {
+			return;
+		}
 
-            {activeSidebarPanel === 'watchlist' && (
-              <>
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="w-full justify-start px-2 pt-2">
-                    <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-                    <TabsTrigger value="favorites" className="text-xs">Fav</TabsTrigger>
-                    <TabsTrigger value="crypto" className="text-xs">Crypto</TabsTrigger>
-                    <TabsTrigger value="stocks" className="text-xs">Stocks</TabsTrigger>
-                    <TabsTrigger value="forex" className="text-xs">FX</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                <WatchlistPanel
-                  symbols={watchlistSymbols}
-                  currentSymbol={currentSymbol.symbol}
-                  favorites={favorites}
-                  onSelectSymbol={handleSymbolChange}
-                  onToggleFavorite={toggleFavorite}
-                />
-              </>
-            )}
+		let active = true;
+		const hydrateRemotePreferences = async () => {
+			try {
+				const profileKey = getClientProfileKey();
+				const remote = await fetchRemoteFusionPreferences(profileKey);
+				if (!active || !remote) {
+					return;
+				}
 
-            {activeSidebarPanel === 'indicators' && (
-              <div className="flex-1 overflow-y-auto p-3 space-y-4">
-                <div className="space-y-2 rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">SMA</p>
-                      <p className="text-xs text-muted-foreground">Simple Moving Average</p>
-                    </div>
-                    <Switch
-                      checked={indicators.sma.enabled}
-                      onCheckedChange={(checked) => setCoreIndicatorEnabled('sma', checked)}
-                    />
-                  </div>
-                  {indicators.sma.enabled && (
-                    <div className="flex flex-wrap gap-1">
-                      {[5, 10, 20, 50, 100, 200].map((period) => (
-                        <Button
-                          key={`sma-${period}`}
-                          variant={indicators.sma.period === period ? 'secondary' : 'ghost'}
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setCoreIndicatorPeriod('sma', period)}
-                        >
-                          {period}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+				if (Array.isArray(remote.favorites)) {
+					setFavorites(remote.favorites);
+					writeFusionPreferences({ favorites: remote.favorites });
+				}
+				if (remote.layout) {
+					setLayout(remote.layout);
+					writeFusionPreferences({ layout: remote.layout });
+				}
+			} finally {
+				if (active) {
+					setRemoteHydrated(true);
+				}
+			}
+		};
 
-                <div className="space-y-2 rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">EMA</p>
-                      <p className="text-xs text-muted-foreground">Exponential Moving Average</p>
-                    </div>
-                    <Switch
-                      checked={indicators.ema.enabled}
-                      onCheckedChange={(checked) => setCoreIndicatorEnabled('ema', checked)}
-                    />
-                  </div>
-                  {indicators.ema.enabled && (
-                    <div className="flex flex-wrap gap-1">
-                      {[5, 10, 20, 50, 100, 200].map((period) => (
-                        <Button
-                          key={`ema-${period}`}
-                          variant={indicators.ema.period === period ? 'secondary' : 'ghost'}
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setCoreIndicatorPeriod('ema', period)}
-                        >
-                          {period}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+		void hydrateRemotePreferences();
+		return () => {
+			active = false;
+		};
+	}, [mounted]);
 
-                <div className="space-y-2 rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">RSI</p>
-                      <p className="text-xs text-muted-foreground">Relative Strength Index</p>
-                    </div>
-                    <Switch
-                      checked={indicators.rsi.enabled}
-                      onCheckedChange={(checked) => setCoreIndicatorEnabled('rsi', checked)}
-                    />
-                  </div>
-                  {indicators.rsi.enabled && (
-                    <div className="flex flex-wrap gap-1">
-                      {[7, 14, 21, 28].map((period) => (
-                        <Button
-                          key={`rsi-${period}`}
-                          variant={indicators.rsi.period === period ? 'secondary' : 'ghost'}
-                          size="sm"
-                          className="h-7 px-2 text-xs"
-                          onClick={() => setCoreIndicatorPeriod('rsi', period)}
-                        >
-                          {period}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+	useEffect(() => {
+		if (!mounted || !remoteHydrated) {
+			return;
+		}
 
-                <div className="space-y-2 rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">MACD</p>
-                      <p className="text-xs text-muted-foreground">Momentum oscillator</p>
-                    </div>
-                    <Switch
-                      checked={indicators.macd?.enabled ?? false}
-                      onCheckedChange={setMacdEnabled}
-                    />
-                  </div>
-                </div>
+		const profileKey = getClientProfileKey();
+		void pushRemoteFusionPreferences({
+			profileKey,
+			favorites,
+			layout,
+			sidebarOpen,
+			showDrawingTool: showDrawingToolbar,
+			darkMode: isDarkMode,
+		});
+	}, [favorites, isDarkMode, layout, mounted, remoteHydrated, showDrawingToolbar, sidebarOpen]);
 
-                <div className="space-y-2 rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Bollinger Bands</p>
-                      <p className="text-xs text-muted-foreground">Volatility bands</p>
-                    </div>
-                    <Switch
-                      checked={indicators.bollinger?.enabled ?? false}
-                      onCheckedChange={setBollingerEnabled}
-                    />
-                  </div>
-                  {indicators.bollinger?.enabled && (
-                    <>
-                      <div className="flex flex-wrap gap-1">
-                        {[10, 20, 30, 50].map((period) => (
-                          <Button
-                            key={`bb-period-${period}`}
-                            variant={indicators.bollinger?.period === period ? 'secondary' : 'ghost'}
-                            size="sm"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => setBollingerPeriod(period)}
-                          >
-                            P{period}
-                          </Button>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {[1, 1.5, 2, 2.5, 3].map((std) => (
-                          <Button
-                            key={`bb-std-${std}`}
-                            variant={indicators.bollinger?.stdDev === std ? 'secondary' : 'ghost'}
-                            size="sm"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => setBollingerStdDev(std)}
-                          >
-                            x{std}
-                          </Button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+	// Refresh data
+	const handleRefresh = useCallback(() => {
+		void loadChartData();
+	}, [loadChartData]);
 
-            {activeSidebarPanel === 'news' && (
-              <div className="flex flex-1 items-center justify-center p-6 text-center">
-                <div>
-                  <Newspaper className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm font-medium">News Panel</p>
-                  <p className="text-xs text-muted-foreground">Next step: live news feed integration.</p>
-                </div>
-              </div>
-            )}
+	// Poll current symbol quote and run alert checks.
+	useEffect(() => {
+		if (!mounted) {
+			return;
+		}
 
-            {activeSidebarPanel === 'orders' && (
-              <div className="flex flex-1 items-center justify-center p-6 text-center">
-                <div>
-                  <ClipboardList className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm font-medium">Orders Panel</p>
-                  <p className="text-xs text-muted-foreground">Next step: broker/order API integration.</p>
-                </div>
-              </div>
-            )}
-          </aside>
-        )}
+		let alive = true;
 
-        {/* Main Chart Area */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-background">
-          {/* Drawing Toolbar (if active) */}
-          {showDrawingToolbar && (
-            <DrawingToolbar />
-          )}
+		const pollQuoteAndAlerts = async () => {
+			try {
+				const response = await fetch(
+					`/api/market/quote?symbol=${encodeURIComponent(currentSymbol.symbol)}`,
+					{ cache: "no-store" },
+				);
+				if (!response.ok) {
+					return;
+				}
 
-          {/* Chart */}
-          <div className="flex-1 min-h-0">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
-              </div>
-            ) : candleData.length > 0 ? (
-              <TradingChart 
-                candleData={candleData}
-                indicators={indicators}
-                isDarkMode={isDarkMode}
-                chartType={chartType}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground">No data available</p>
-              </div>
-            )}
-          </div>
+				const payload = (await response.json()) as {
+					quote?: { price?: number };
+					executionsCount?: number;
+				};
 
-          {/* Bottom Panel - Stats */}
-          <div className="h-28 border-t border-border bg-card/30 p-2">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 h-full">
-              <Card className="bg-background/50 border-border">
-                <CardHeader className="p-2 pb-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Price</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2 pt-0">
-                  <div className="text-base font-bold">{formatPrice(stats.lastPrice)}</div>
-                </CardContent>
-              </Card>
+				const currentPrice = payload.quote?.price;
+				if (typeof currentPrice !== "number") {
+					return;
+				}
 
-              <Card className="bg-background/50 border-border">
-                <CardHeader className="p-2 pb-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">24h Change</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2 pt-0">
-                  <div className={`text-base font-bold ${stats.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {stats.change >= 0 ? '+' : ''}{stats.percent.toFixed(2)}%
-                  </div>
-                </CardContent>
-              </Card>
+				const previousPrice = lastQuoteBySymbolRef.current[currentSymbol.symbol] ?? currentPrice;
+				lastQuoteBySymbolRef.current[currentSymbol.symbol] = currentPrice;
 
-              <Card className="bg-background/50 border-border">
-                <CardHeader className="p-2 pb-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">24h High</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2 pt-0">
-                  <div className="text-base font-bold text-emerald-500">{formatPrice(stats.high24h)}</div>
-                </CardContent>
-              </Card>
+				const notifications = checkAlerts(currentSymbol.symbol, currentPrice, previousPrice);
 
-              <Card className="bg-background/50 border-border">
-                <CardHeader className="p-2 pb-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">24h Low</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2 pt-0">
-                  <div className="text-base font-bold text-red-500">{formatPrice(stats.low24h)}</div>
-                </CardContent>
-              </Card>
+				const executionsCount =
+					typeof payload.executionsCount === "number" ? payload.executionsCount : 0;
 
-              <Card className="bg-background/50 border-border">
-                <CardHeader className="p-2 pb-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">24h Volume</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2 pt-0">
-                  <div className="text-base font-bold">{formatVolume(stats.volume24h)}</div>
-                </CardContent>
-              </Card>
+				if (alive && executionsCount > 0) {
+					setDataStatusMessage(
+						`${executionsCount} paper order${executionsCount > 1 ? "s" : ""} auto-filled for ${currentSymbol.symbol}.`,
+					);
+				}
 
-              <Card className="bg-background/50 border-border">
-                <CardHeader className="p-2 pb-0">
-                  <CardTitle className="text-xs font-medium text-muted-foreground">Data Source</CardTitle>
-                </CardHeader>
-                <CardContent className="p-2 pt-0">
-                  <div className="text-base font-bold capitalize">Demo</div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-  );
+				if (alive && notifications.length > 0) {
+					// Keep message short; full notifications are shown in AlertPanel.
+					setDataStatusMessage(
+						`${notifications.length} alert${notifications.length > 1 ? "s" : ""} triggered for ${currentSymbol.symbol}`,
+					);
+				}
+			} catch {
+				// ignore quote polling errors to avoid disrupting chart flow
+			}
+		};
+
+		void pollQuoteAndAlerts();
+		const timer = setInterval(() => {
+			void pollQuoteAndAlerts();
+		}, 30000);
+
+		return () => {
+			alive = false;
+			clearInterval(timer);
+		};
+	}, [currentSymbol.symbol, mounted]);
+
+	// Theme toggle
+	const handleThemeToggle = useCallback(() => {
+		setIsDarkMode((prev) => !prev);
+	}, []);
+
+	const openSidebarPanel = useCallback(
+		(panel: SidebarPanel) => {
+			setActiveSidebarPanel(panel);
+			if (!sidebarOpen) {
+				setSidebarOpen(true);
+			}
+		},
+		[sidebarOpen],
+	);
+
+	const {
+		setCoreIndicatorEnabled,
+		setCoreIndicatorPeriod,
+		setMacdEnabled,
+		setBollingerEnabled,
+		setBollingerPeriod,
+		setBollingerStdDev,
+		setVwapEnabled,
+		setVwmaEnabled,
+		setVwmaPeriod,
+		setAtrEnabled,
+		setAtrPeriod,
+		setAtrChannelEnabled,
+		setAtrChannelSmaPeriod,
+		setAtrChannelAtrPeriod,
+		setAtrChannelMultiplier,
+		setHmaEnabled,
+		setHmaPeriod,
+		setAdxEnabled,
+		setAdxPeriod,
+		setIchimokuEnabled,
+		setParabolicSarEnabled,
+		setKeltnerEnabled,
+		setVolumeProfileEnabled,
+		setSupportResistanceEnabled,
+	} = useIndicatorActions({ setIndicators });
+
+	// Symbol change
+	const handleSymbolChange = useCallback((symbol: FusionSymbol) => {
+		setCurrentSymbol(symbol);
+		setCustomStartYear((prev) => clampStartYearForSymbol(prev, symbol));
+		setSearchQuery("");
+		setShowSearch(false);
+	}, []);
+
+	// Timeframe change
+	const handleTimeframeChange = useCallback((timeframe: TimeframeValue) => {
+		setCurrentTimeframe(timeframe);
+	}, []);
+
+	const handleHistoryRangeChange = useCallback((preset: HistoryRangePreset) => {
+		setHistoryRangePreset(preset);
+	}, []);
+
+	const handleCustomStartYearChange = useCallback(
+		(year: number) => {
+			setCustomStartYear(clampStartYearForSymbol(year, currentSymbol));
+		},
+		[currentSymbol],
+	);
+
+	// Toggle favorite
+	const toggleFavorite = useCallback((symbol: string) => {
+		setFavorites((prev) => {
+			const newFavorites = prev.includes(symbol)
+				? prev.filter((s) => s !== symbol)
+				: [...prev, symbol];
+			writeFusionPreferences({ favorites: newFavorites });
+			return newFavorites;
+		});
+	}, []);
+
+	const handleLayoutChange = useCallback((nextLayout: LayoutMode) => {
+		setLayout(nextLayout);
+		writeFusionPreferences({ layout: nextLayout });
+	}, []);
+
+	const toggleReplayMode = useCallback(() => {
+		setReplayMode((prev) => !prev);
+	}, []);
+
+	const toggleReplayPlaying = useCallback(() => {
+		setReplayPlaying((prev) => !prev);
+	}, []);
+
+	const resetReplay = useCallback(() => {
+		setReplayPlaying(false);
+		setReplayIndex(1);
+	}, []);
+
+	const seekReplay = useCallback((index: number) => {
+		setReplayIndex(Math.max(1, index));
+	}, []);
+
+	useEffect(() => {
+		if (!replayMode) {
+			setReplayPlaying(false);
+			return;
+		}
+		const maxIndex = Math.max(candleData.length, 1);
+		setReplayIndex((prev) => Math.min(Math.max(prev, 1), maxIndex));
+	}, [replayMode, candleData.length]);
+
+	useEffect(() => {
+		if (!replayMode || !replayPlaying) {
+			return;
+		}
+		if (replayIndex >= candleData.length) {
+			setReplayPlaying(false);
+			return;
+		}
+
+		const timer = window.setInterval(() => {
+			setReplayIndex((prev) => {
+				const next = prev + 1;
+				return next > candleData.length ? candleData.length : next;
+			});
+		}, 450);
+
+		return () => {
+			clearInterval(timer);
+		};
+	}, [replayMode, replayPlaying, replayIndex, candleData.length]);
+
+	const viewCandleData = useMemo(() => {
+		if (!replayMode) return candleData;
+		if (candleData.length === 0) return candleData;
+		const clampedIndex = Math.min(Math.max(replayIndex, 1), candleData.length);
+		return candleData.slice(0, clampedIndex);
+	}, [replayMode, replayIndex, candleData]);
+
+	// Export chart
+	const handleExport = useCallback(() => {
+		// Find canvas and export
+		const canvas = document.querySelector("canvas");
+		if (canvas) {
+			const link = document.createElement("a");
+			link.download = `${currentSymbol.symbol}_${new Date().toISOString().split("T")[0]}.png`;
+			link.href = canvas.toDataURL("image/png");
+			link.click();
+		}
+	}, [currentSymbol]);
+
+	// Fullscreen toggle
+	const handleFullscreen = useCallback(() => {
+		if (document.fullscreenElement) {
+			document.exitFullscreen();
+		} else {
+			document.documentElement.requestFullscreen();
+		}
+	}, []);
+
+	// Calculate stats
+	const stats = useMemo(() => {
+		if (viewCandleData.length === 0) {
+			return { change: 0, percent: 0, high24h: 0, low24h: 0, volume24h: 0, lastPrice: 0 };
+		}
+
+		const lastCandle = viewCandleData[viewCandleData.length - 1];
+		const prevCandle = viewCandleData[viewCandleData.length - 2] || lastCandle;
+		const change = lastCandle.close - prevCandle.close;
+		const percent = prevCandle.close > 0 ? (change / prevCandle.close) * 100 : 0;
+
+		const sliceCount = Math.min(24, viewCandleData.length);
+		const recentData = viewCandleData.slice(-sliceCount);
+
+		return {
+			change,
+			percent,
+			high24h: Math.max(...recentData.map((c) => c.high)),
+			low24h: Math.min(...recentData.map((c) => c.low)),
+			volume24h: recentData.reduce((sum: number, c) => sum + c.volume, 0),
+			lastPrice: lastCandle.close,
+		};
+	}, [viewCandleData]);
+
+	const signalSnapshot = useMemo<SignalSnapshot>(() => {
+		if (viewCandleData.length < 2) {
+			return {
+				lineState: "neutral" as const,
+				sma50: null as number | null,
+				lastCrossLabel: "n/a",
+				rvol: null as number | null,
+				cmf: null as number | null,
+				obv: null as number | null,
+				heartbeatScore: 0,
+				heartbeatCycleBars: null as number | null,
+				atr: null as number | null,
+			};
+		}
+
+		const lineData = dailySignalData.length >= 2 ? dailySignalData : viewCandleData;
+		const sma50Series = calculateSMA(lineData, 50);
+		const latestSma50 = sma50Series[sma50Series.length - 1]?.value ?? null;
+		const lastClose = lineData[lineData.length - 1].close;
+		const lineState =
+			latestSma50 === null ? "neutral" : lastClose >= latestSma50 ? "above" : "below";
+
+		const crossEvents = detectSMACrossEvents(lineData, 50);
+		const lastCross = crossEvents[crossEvents.length - 1];
+		const lastCrossLabel = lastCross
+			? `${lastCross.type === "cross_up" ? "up" : "down"} @ ${new Date(lastCross.time * 1000).toLocaleDateString()}`
+			: "none";
+
+		const rvolSeries = calculateRVOL(viewCandleData, 20);
+		const cmfSeries = calculateCMF(viewCandleData, 20);
+		const obvSeries = calculateOBV(viewCandleData);
+		const heartbeat = analyzeHeartbeatPattern(viewCandleData, 0.02);
+		const atrPeriod = indicators.atr?.period ?? 14;
+		const atrSeries = calculateATR(viewCandleData, atrPeriod);
+
+		return {
+			lineState,
+			sma50: latestSma50,
+			lastCrossLabel,
+			rvol: rvolSeries[rvolSeries.length - 1]?.value ?? null,
+			cmf: cmfSeries[cmfSeries.length - 1]?.value ?? null,
+			obv: obvSeries[obvSeries.length - 1]?.value ?? null,
+			heartbeatScore: heartbeat.score,
+			heartbeatCycleBars: heartbeat.cycleBars,
+			atr: indicators.atr?.enabled ? (atrSeries[atrSeries.length - 1]?.value ?? null) : null,
+		};
+	}, [dailySignalData, indicators.atr, viewCandleData]);
+
+	// Format helpers
+	const formatPrice = (price: number) => {
+		if (price < 0.01) return price.toFixed(6);
+		if (price < 1) return price.toFixed(4);
+		if (price < 100) return price.toFixed(2);
+		return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+	};
+
+	const formatVolume = (volume: number) => {
+		if (volume >= 1e9) return `${(volume / 1e9).toFixed(2)}B`;
+		if (volume >= 1e6) return `${(volume / 1e6).toFixed(2)}M`;
+		if (volume >= 1e3) return `${(volume / 1e3).toFixed(2)}K`;
+		return volume.toString();
+	};
+
+	// Get all symbols for search
+	const allSymbols = useMemo(() => {
+		return ALL_FUSION_SYMBOLS;
+	}, []);
+
+	// Filter symbols by search
+	const filteredSymbols = useMemo(() => {
+		return searchFusionSymbols(searchQuery, 10);
+	}, [searchQuery]);
+
+	const popularSymbols = useMemo(() => {
+		const preferred = ["AAPL", "BTC/USD", "EUR/USD", "NVDA"];
+		return preferred
+			.map((symbol) => allSymbols.find((item) => item.symbol === symbol))
+			.filter((item): item is FusionSymbol => Boolean(item));
+	}, [allSymbols]);
+
+	// Get watchlist by tab
+	const watchlistSymbols = useMemo(() => {
+		if (activeTab === "favorites") {
+			return allSymbols.filter((s) => favorites.includes(s.symbol));
+		}
+		if (activeTab === "all") {
+			return allSymbols;
+		}
+		return WATCHLIST_CATEGORIES[activeTab as keyof typeof WATCHLIST_CATEGORIES] || [];
+	}, [activeTab, favorites, allSymbols]);
+
+	if (!mounted) {
+		return <TradingPageSkeleton />;
+	}
+
+	return (
+		<div className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
+			<TopMenuBar
+				dataMode={dataMode}
+				isDarkMode={isDarkMode}
+				sidebarOpen={sidebarOpen}
+				onToggleDrawingToolbar={() => setShowDrawingToolbar(!showDrawingToolbar)}
+				onOpenIndicators={() => openSidebarPanel("indicators")}
+				onOpenWatchlist={() => openSidebarPanel("watchlist")}
+				onOpenNews={() => openSidebarPanel("news")}
+				onOpenOrders={() => openSidebarPanel("orders")}
+				onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+				onRefresh={handleRefresh}
+				onThemeToggle={handleThemeToggle}
+			/>
+
+			<TradingHeader
+				currentSymbol={currentSymbol}
+				favorites={favorites}
+				searchQuery={searchQuery}
+				showSearch={showSearch}
+				filteredSymbols={filteredSymbols}
+				popularSymbols={popularSymbols}
+				currentTimeframe={currentTimeframe}
+				historyRangePreset={historyRangePreset}
+				customStartYear={customStartYear}
+				minimumStartYear={symbolMinimumStartYear}
+				effectiveStartYear={historyWindow.effectiveStartYear}
+				chartType={chartType}
+				compareSymbol={compareSymbol}
+				indicators={indicators}
+				loading={loading}
+				isDarkMode={isDarkMode}
+				onQueryChange={setSearchQuery}
+				onOpenSearchChange={setShowSearch}
+				onSelectSymbol={handleSymbolChange}
+				onToggleFavorite={toggleFavorite}
+				onTimeframeChange={handleTimeframeChange}
+				onHistoryRangeChange={handleHistoryRangeChange}
+				onCustomStartYearChange={handleCustomStartYearChange}
+				onChartTypeChange={setChartType}
+				onCompare={setCompareSymbol}
+				onLayoutChange={handleLayoutChange}
+				onIndicatorsChange={setIndicators}
+				onRefresh={handleRefresh}
+				onExport={handleExport}
+				onFullscreen={handleFullscreen}
+				onThemeToggle={handleThemeToggle}
+			/>
+
+			{/* Main Content */}
+			<div className="flex-1 flex overflow-hidden">
+				{/* Sidebar Toggle */}
+				<Button
+					variant="ghost"
+					size="icon"
+					className="absolute left-2 top-24 z-40 h-8 w-8 border border-border bg-card/90 shadow-sm"
+					onClick={() => setSidebarOpen(!sidebarOpen)}
+				>
+					{sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+				</Button>
+
+				{sidebarOpen && (
+					<TradingSidebar
+						activeSidebarPanel={activeSidebarPanel}
+						activeTab={activeTab}
+						watchlistSymbols={watchlistSymbols}
+						currentSymbol={currentSymbol.symbol}
+						currentPrice={stats.lastPrice}
+						favorites={favorites}
+						indicators={indicators}
+						onSetActiveSidebarPanel={openSidebarPanel}
+						onSetActiveTab={setActiveTab}
+						onSelectSymbol={handleSymbolChange}
+						onToggleFavorite={toggleFavorite}
+						onSetCoreIndicatorEnabled={setCoreIndicatorEnabled}
+						onSetCoreIndicatorPeriod={setCoreIndicatorPeriod}
+						onSetMacdEnabled={setMacdEnabled}
+						onSetBollingerEnabled={setBollingerEnabled}
+						onSetBollingerPeriod={setBollingerPeriod}
+						onSetBollingerStdDev={setBollingerStdDev}
+						onSetVwapEnabled={setVwapEnabled}
+						onSetVwmaEnabled={setVwmaEnabled}
+						onSetVwmaPeriod={setVwmaPeriod}
+						onSetAtrEnabled={setAtrEnabled}
+						onSetAtrPeriod={setAtrPeriod}
+						onSetAtrChannelEnabled={setAtrChannelEnabled}
+						onSetAtrChannelSmaPeriod={setAtrChannelSmaPeriod}
+						onSetAtrChannelAtrPeriod={setAtrChannelAtrPeriod}
+						onSetAtrChannelMultiplier={setAtrChannelMultiplier}
+						onSetHmaEnabled={setHmaEnabled}
+						onSetHmaPeriod={setHmaPeriod}
+						onSetAdxEnabled={setAdxEnabled}
+						onSetAdxPeriod={setAdxPeriod}
+						onSetIchimokuEnabled={setIchimokuEnabled}
+						onSetParabolicSarEnabled={setParabolicSarEnabled}
+						onSetKeltnerEnabled={setKeltnerEnabled}
+						onSetVolumeProfileEnabled={setVolumeProfileEnabled}
+						onSetSupportResistanceEnabled={setSupportResistanceEnabled}
+					/>
+				)}
+
+				<div className="flex-1 flex flex-col overflow-hidden">
+					<TradingWorkspace
+						showDrawingToolbar={showDrawingToolbar}
+						dataStatusMessage={dataStatusMessage}
+						signalSnapshot={signalSnapshot}
+						loading={loading}
+						candleData={viewCandleData}
+						indicators={indicators}
+						isDarkMode={isDarkMode}
+						chartType={chartType}
+						layout={layout}
+						replayMode={replayMode}
+						replayPlaying={replayPlaying}
+						replayIndex={replayIndex}
+						replayMax={candleData.length}
+						onToggleReplayMode={toggleReplayMode}
+						onToggleReplayPlaying={toggleReplayPlaying}
+						onResetReplay={resetReplay}
+						onSeekReplay={seekReplay}
+					/>
+
+					<BottomStats
+						stats={stats}
+						dataMode={dataMode}
+						dataProvider={dataProvider}
+						formatPrice={formatPrice}
+						formatVolume={formatVolume}
+					/>
+				</div>
+			</div>
+		</div>
+	);
 }

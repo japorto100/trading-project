@@ -1,0 +1,18 @@
+{{define "currency translation" -}}
+{{template "header" .}}
+## Current Features for {{.Name}}
+
++ This package services the currency package with translation functions.
+
++ Example below:
+```go
+import "github.com/thrasher-corp/gocryptotrader/currency/translation"
+
+// Is translatable
+b := translation.HasTranslation("BTC")
+
+// b == true; translation = XBT
+```
+
+{{template "donations" .}}
+{{end}}

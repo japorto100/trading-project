@@ -1,6 +1,7 @@
 // Data Pipeline for market data management
 
-import { Candle, TimeframeValue } from '../../chart/engine/types';
+import type { Candle } from "../chart/engine/types";
+import type { TimeframeValue } from "../lib/providers/types";
 
 export interface SymbolInfo {
   symbol: string;

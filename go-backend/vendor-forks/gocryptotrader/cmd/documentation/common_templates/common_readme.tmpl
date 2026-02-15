@@ -1,0 +1,20 @@
+{{define "common" -}}
+{{template "header" .}}
+## Current Features for {{.Name}}
+
+#### This package collates basic broad functions that are used throughout this codebase.
+
++ Coding example
+
+```go
+import "github.com/thrasher-corp/gocryptotrader/common"
+
+testString := "aAaAa"
+
+upper := strings.ToUpper(testString)
+
+// upper == "AAAAA"
+```
+
+{{template "donations" .}}
+{{end}}

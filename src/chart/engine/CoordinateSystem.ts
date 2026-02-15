@@ -1,227 +1,284 @@
 // Chart Coordinate System
 // Handles conversion between data space and screen space
 
-import { Viewport, ScaleType, Candle } from './types';
+import type { Candle, ChartConfig, ScaleType, Viewport } from "./types";
 
 export interface CoordinateSystemConfig {
-  viewport: Viewport;
-  scaleType: ScaleType;
-  candles: Candle[];
-  dpr: number; // Device pixel ratio
+	viewport: Viewport;
+	scaleType: ScaleType;
+	candles: Candle[];
+	dpr: number;
+}
+
+interface ViewportResolved {
+	startIndex: number;
+	endIndex: number;
+	candleWidth: number;
+	candleSpacing: number;
+	offsetX: number;
+	width: number;
+	height: number;
+	yMin: number;
+	yMax: number;
+}
+
+interface ChartBounds {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
 }
 
 export class CoordinateSystem {
-  private viewport: Viewport;
-  private scaleType: ScaleType;
-  private candles: Candle[];
-  private dpr: number;
+	private viewport: Viewport;
+	private scaleType: ScaleType;
+	private candles: Candle[];
+	private dpr: number;
+	private config: ChartConfig | null = null;
 
-  // Cached values
-  private _priceRange: { min: number; max: number } | null = null;
-  private _timeRange: { min: number; max: number } | null = null;
+	constructor(config: CoordinateSystemConfig) {
+		this.viewport = config.viewport;
+		this.scaleType = config.scaleType;
+		this.candles = config.candles;
+		this.dpr = config.dpr;
+	}
 
-  constructor(config: CoordinateSystemConfig) {
-    this.viewport = config.viewport;
-    this.scaleType = config.scaleType;
-    this.candles = config.candles;
-    this.dpr = config.dpr;
-  }
+	update(config: Partial<CoordinateSystemConfig>) {
+		if (config.viewport) this.viewport = config.viewport;
+		if (config.scaleType) this.scaleType = config.scaleType;
+		if (config.candles) this.candles = config.candles;
+		if (config.dpr) this.dpr = config.dpr;
+	}
 
-  // Update configuration
-  update(config: Partial<CoordinateSystemConfig>) {
-    if (config.viewport) this.viewport = config.viewport;
-    if (config.scaleType) this.scaleType = config.scaleType;
-    if (config.candles) {
-      this.candles = config.candles;
-      this._priceRange = null;
-      this._timeRange = null;
-    }
-    if (config.dpr) this.dpr = config.dpr;
-  }
+	setConfig(config: ChartConfig): void {
+		this.config = config;
+	}
 
-  // Get price range for visible candles
-  getVisiblePriceRange(): { min: number; max: number } {
-    if (this._priceRange) return this._priceRange;
+	private resolveViewport(viewport?: Viewport): ViewportResolved {
+		const source = viewport ?? this.viewport;
+		const pxPerCandle = Number.isFinite(source.pxPerCandle) ? source.pxPerCandle : 10;
+		const baseCandleWidth = source.candleWidth ?? this.config?.candleWidth ?? 8;
+		const candleWidth = Math.max(1, baseCandleWidth * (pxPerCandle / 10));
+		const candleSpacing = source.candleSpacing ?? this.config?.candleSpacing ?? 2;
+		const width = source.width ?? 1200;
+		const height = source.height ?? 700;
+		const startIndex = source.startIndex ?? source.viewStartIndex;
+		const endIndex = source.endIndex ?? source.viewEndIndex;
+		const offsetX = source.offsetX ?? this.config?.padding.left ?? 0;
+		return {
+			startIndex,
+			endIndex,
+			candleWidth,
+			candleSpacing,
+			offsetX,
+			width,
+			height,
+			yMin: source.yMin,
+			yMax: source.yMax,
+		};
+	}
 
-    const visibleCandles = this.getVisibleCandles();
-    if (visibleCandles.length === 0) {
-      return { min: 0, max: 100 };
-    }
+	private resolveCandles(candles?: Candle[]): Candle[] {
+		return candles ?? this.candles;
+	}
 
-    let min = Infinity;
-    let max = -Infinity;
+	private resolveScaleType(scaleType?: ScaleType): ScaleType {
+		return scaleType ?? this.scaleType;
+	}
 
-    for (const candle of visibleCandles) {
-      if (candle.low < min) min = candle.low;
-      if (candle.high > max) max = candle.high;
-    }
+	getVisibleCandles(candles?: Candle[], viewport?: Viewport): Candle[] {
+		const resolvedCandles = this.resolveCandles(candles);
+		const vp = this.resolveViewport(viewport);
+		const clampedStart = Math.max(0, Math.floor(vp.startIndex));
+		const clampedEnd = Math.min(resolvedCandles.length, Math.ceil(vp.endIndex));
+		return resolvedCandles.slice(clampedStart, clampedEnd);
+	}
 
-    // Add padding (5%)
-    const padding = (max - min) * 0.05;
-    min -= padding;
-    max += padding;
+	getVisiblePriceRange(candles?: Candle[], viewport?: Viewport): { min: number; max: number } {
+		const resolvedCandles = this.getVisibleCandles(candles, viewport);
+		if (resolvedCandles.length === 0) {
+			return { min: 0, max: 100 };
+		}
 
-    this._priceRange = { min, max };
-    return { min, max };
-  }
+		let min = Number.POSITIVE_INFINITY;
+		let max = Number.NEGATIVE_INFINITY;
+		for (const candle of resolvedCandles) {
+			if (candle.low < min) min = candle.low;
+			if (candle.high > max) max = candle.high;
+		}
 
-  // Get visible candles
-  getVisibleCandles(): Candle[] {
-    const { startIndex, endIndex } = this.viewport;
-    const clampedStart = Math.max(0, Math.floor(startIndex));
-    const clampedEnd = Math.min(this.candles.length, Math.ceil(endIndex));
-    return this.candles.slice(clampedStart, clampedEnd);
-  }
+		const range = Math.max(1e-8, max - min);
+		const padding = range * 0.05;
+		return { min: min - padding, max: max + padding };
+	}
 
-  // Convert time to x coordinate
-  timeToX(time: number): number {
-    const index = this.candles.findIndex(c => c.time === time);
-    if (index === -1) return -1;
-    return this.indexToX(index);
-  }
+	calculateAutoRange(
+		candles: Candle[],
+		viewport: Viewport,
+		_height: number,
+	): { yMin: number; yMax: number } {
+		const range = this.getVisiblePriceRange(candles, viewport);
+		return { yMin: range.min, yMax: range.max };
+	}
 
-  // Convert index to x coordinate
-  indexToX(index: number): number {
-    const { candleWidth, candleSpacing, startIndex, offsetX } = this.viewport;
-    return ((index - startIndex) * (candleWidth + candleSpacing)) + offsetX + candleWidth / 2;
-  }
+	timeToX(time: number, candles?: Candle[], viewport?: Viewport, _width?: number): number {
+		const resolvedCandles = this.resolveCandles(candles);
+		const index = resolvedCandles.findIndex((entry) => entry.time === time);
+		if (index < 0) return -1;
+		return this.indexToX(index, viewport);
+	}
 
-  // Convert x coordinate to index
-  xToIndex(x: number): number {
-    const { candleWidth, candleSpacing, startIndex, offsetX } = this.viewport;
-    return startIndex + ((x - offsetX) / (candleWidth + candleSpacing));
-  }
+	indexToX(index: number, viewport?: Viewport): number {
+		const vp = this.resolveViewport(viewport);
+		return (
+			(index - vp.startIndex) * (vp.candleWidth + vp.candleSpacing) +
+			vp.offsetX +
+			vp.candleWidth / 2
+		);
+	}
 
-  // Convert x coordinate to time
-  xToTime(x: number): number | null {
-    const index = Math.round(this.xToIndex(x));
-    if (index < 0 || index >= this.candles.length) return null;
-    return this.candles[index].time;
-  }
+	xToIndex(x: number, viewport?: Viewport): number {
+		const vp = this.resolveViewport(viewport);
+		return vp.startIndex + (x - vp.offsetX) / (vp.candleWidth + vp.candleSpacing);
+	}
 
-  // Convert price to y coordinate
-  priceToY(price: number): number {
-    const range = this.getVisiblePriceRange();
-    
-    if (this.scaleType === 'logarithmic') {
-      const logMin = Math.log10(range.min);
-      const logMax = Math.log10(range.max);
-      const logPrice = Math.log10(Math.max(price, 0.0000001));
-      const ratio = (logPrice - logMin) / (logMax - logMin);
-      return this.viewport.height * (1 - ratio);
-    }
-    
-    // Linear scale
-    const ratio = (price - range.min) / (range.max - range.min);
-    return this.viewport.height * (1 - ratio);
-  }
+	xToTime(x: number, candles?: Candle[], viewport?: Viewport): number | null {
+		const resolvedCandles = this.resolveCandles(candles);
+		const vp = this.resolveViewport(viewport);
+		const index = Math.round(this.xToIndex(x, viewport));
+		if (index < 0 || index >= resolvedCandles.length) return null;
+		if (index < Math.floor(vp.startIndex) || index > Math.ceil(vp.endIndex)) return null;
+		return resolvedCandles[index].time;
+	}
 
-  // Convert y coordinate to price
-  yToPrice(y: number): number {
-    const range = this.getVisiblePriceRange();
-    
-    if (this.scaleType === 'logarithmic') {
-      const logMin = Math.log10(range.min);
-      const logMax = Math.log10(range.max);
-      const ratio = 1 - (y / this.viewport.height);
-      const logPrice = logMin + (ratio * (logMax - logMin));
-      return Math.pow(10, logPrice);
-    }
-    
-    // Linear scale
-    const ratio = 1 - (y / this.viewport.height);
-    return range.min + (ratio * (range.max - range.min));
-  }
+	priceToY(price: number, viewport?: Viewport, _height?: number, scaleType?: ScaleType): number {
+		const vp = this.resolveViewport(viewport);
+		let min = vp.yMin;
+		let max = vp.yMax;
+		if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+			const range = this.getVisiblePriceRange();
+			min = range.min;
+			max = range.max;
+		}
 
-  // Get candle at x coordinate
-  getCandleAtX(x: number): Candle | null {
-    const index = Math.round(this.xToIndex(x));
-    if (index < 0 || index >= this.candles.length) return null;
-    return this.candles[index];
-  }
+		const activeScale = this.resolveScaleType(scaleType);
+		if (activeScale === "log") {
+			const safePrice = Math.max(price, 1e-8);
+			const safeMin = Math.max(min, 1e-8);
+			const safeMax = Math.max(max, safeMin + 1e-8);
+			const logMin = Math.log10(safeMin);
+			const logMax = Math.log10(safeMax);
+			const ratio = (Math.log10(safePrice) - logMin) / Math.max(1e-8, logMax - logMin);
+			return vp.height * (1 - ratio);
+		}
 
-  // Get candle rect for hit testing
-  getCandleRect(candle: Candle, index: number): {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } {
-    const { candleWidth, candleSpacing } = this.viewport;
-    const x = this.indexToX(index) - candleWidth / 2;
-    const bodyTop = this.priceToY(candle.isUp ? candle.close : candle.open);
-    const bodyBottom = this.priceToY(candle.isUp ? candle.open : candle.close);
-    
-    return {
-      x,
-      y: Math.min(bodyTop, bodyBottom),
-      width: candleWidth,
-      height: Math.max(1, Math.abs(bodyBottom - bodyTop)),
-    };
-  }
+		const ratio = (price - min) / Math.max(1e-8, max - min);
+		return vp.height * (1 - ratio);
+	}
 
-  // Check if point is inside chart area
-  isInsideChart(x: number, y: number): boolean {
-    return x >= 0 && x <= this.viewport.width && y >= 0 && y <= this.viewport.height;
-  }
+	yToPrice(y: number, viewport?: Viewport, _height?: number, scaleType?: ScaleType): number {
+		const vp = this.resolveViewport(viewport);
+		let min = vp.yMin;
+		let max = vp.yMax;
+		if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+			const range = this.getVisiblePriceRange();
+			min = range.min;
+			max = range.max;
+		}
 
-  // Get device pixel ratio scaled values
-  getScaledValue(value: number): number {
-    return value * this.dpr;
-  }
+		const activeScale = this.resolveScaleType(scaleType);
+		if (activeScale === "log") {
+			const safeMin = Math.max(min, 1e-8);
+			const safeMax = Math.max(max, safeMin + 1e-8);
+			const logMin = Math.log10(safeMin);
+			const logMax = Math.log10(safeMax);
+			const ratio = 1 - y / Math.max(1, vp.height);
+			return 10 ** (logMin + ratio * (logMax - logMin));
+		}
 
-  // Get visible time range
-  getVisibleTimeRange(): { start: number; end: number } | null {
-    const visibleCandles = this.getVisibleCandles();
-    if (visibleCandles.length === 0) return null;
-    
-    return {
-      start: visibleCandles[0].time,
-      end: visibleCandles[visibleCandles.length - 1].time,
-    };
-  }
+		const ratio = 1 - y / Math.max(1, vp.height);
+		return min + ratio * (max - min);
+	}
 
-  // Calculate how many candles fit in view
-  getCandlesInView(): number {
-    const { candleWidth, candleSpacing, width } = this.viewport;
-    return Math.ceil(width / (candleWidth + candleSpacing));
-  }
+	getMainChartBounds(width: number, height: number): ChartBounds {
+		const padding = this.config?.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
+		const priceScaleWidth = this.config?.priceScaleWidth ?? 0;
+		const timeScaleHeight = this.config?.timeScaleHeight ?? 0;
+		const volumeHeight = Math.max(0, (this.config?.volumeHeightRatio ?? 0.2) * height);
+		const right = Math.max(padding.left, width - padding.right - priceScaleWidth);
+		const bottom = Math.max(padding.top, height - padding.bottom - timeScaleHeight - volumeHeight);
+		return { top: padding.top, right, bottom, left: padding.left };
+	}
 
-  // Calculate candle width for a specific zoom level
-  calculateCandleWidth(zoom: number): number {
-    const min = 2;
-    const max = 50;
-    return Math.max(min, Math.min(max, 8 * zoom));
-  }
+	getVolumeChartBounds(width: number, height: number): ChartBounds {
+		const padding = this.config?.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
+		const priceScaleWidth = this.config?.priceScaleWidth ?? 0;
+		const timeScaleHeight = this.config?.timeScaleHeight ?? 0;
+		const volumeHeight = Math.max(0, (this.config?.volumeHeightRatio ?? 0.2) * height);
+		const right = Math.max(padding.left, width - padding.right - priceScaleWidth);
+		const bottom = Math.max(padding.top, height - padding.bottom - timeScaleHeight);
+		const top = Math.max(padding.top, bottom - volumeHeight);
+		return { top, right, bottom, left: padding.left };
+	}
 
-  // Pan by delta x
-  pan(deltaX: number): void {
-    const { candleWidth, candleSpacing } = this.viewport;
-    const candleDelta = deltaX / (candleWidth + candleSpacing);
-    this.viewport.startIndex -= candleDelta;
-    this.viewport.endIndex -= candleDelta;
-    this._priceRange = null;
-  }
+	getPriceScaleBounds(width: number, height: number): ChartBounds {
+		const padding = this.config?.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
+		const priceScaleWidth = this.config?.priceScaleWidth ?? 0;
+		const timeScaleHeight = this.config?.timeScaleHeight ?? 0;
+		const volumeHeight = Math.max(0, (this.config?.volumeHeightRatio ?? 0.2) * height);
+		const right = Math.max(0, width - padding.right);
+		const left = Math.max(0, right - priceScaleWidth);
+		const bottom = Math.max(padding.top, height - padding.bottom - timeScaleHeight - volumeHeight);
+		return { top: padding.top, right, bottom, left };
+	}
 
-  // Zoom at a specific x position
-  zoom(factor: number, pivotX: number): void {
-    const { startIndex, endIndex, candleWidth, candleSpacing } = this.viewport;
-    
-    // Calculate new candle width
-    const newWidth = Math.max(2, Math.min(50, candleWidth * factor));
-    const ratio = newWidth / candleWidth;
-    
-    // Adjust viewport to zoom at pivot point
-    const pivotIndex = this.xToIndex(pivotX);
-    const viewWidth = endIndex - startIndex;
-    const newViewWidth = viewWidth / ratio;
-    
-    this.viewport.candleWidth = newWidth;
-    this.viewport.startIndex = pivotIndex - (pivotIndex - startIndex) / ratio;
-    this.viewport.endIndex = this.viewport.startIndex + newViewWidth;
-    
-    this._priceRange = null;
-  }
+	getTimeScaleBounds(width: number, height: number): ChartBounds {
+		const padding = this.config?.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
+		const timeScaleHeight = this.config?.timeScaleHeight ?? 0;
+		const top = Math.max(0, height - timeScaleHeight);
+		return { top, right: width - padding.right, bottom: height, left: padding.left };
+	}
+
+	calculateMaxVolume(candles: Candle[], viewport: Viewport): number {
+		const visible = this.getVisibleCandles(candles, viewport);
+		if (visible.length === 0) return 1;
+		return Math.max(...visible.map((entry) => entry.volume), 1);
+	}
+
+	getVolumeBarHeight(volume: number, maxVolume: number, height: number): number {
+		const bounds = this.getVolumeChartBounds(this.resolveViewport().width, height);
+		const available = Math.max(1, bounds.bottom - bounds.top);
+		return (Math.max(0, volume) / Math.max(1, maxVolume)) * available;
+	}
+
+	formatPrice(price: number): string {
+		if (Math.abs(price) >= 1000) return price.toLocaleString("en-US", { maximumFractionDigits: 2 });
+		if (Math.abs(price) >= 1) return price.toFixed(2);
+		if (Math.abs(price) >= 0.01) return price.toFixed(4);
+		return price.toFixed(6);
+	}
+
+	formatTime(timestamp: number, timeframeMs?: number): string {
+		const date = new Date(timestamp * 1000);
+		const format: Intl.DateTimeFormatOptions =
+			timeframeMs && timeframeMs <= 60 * 60 * 1000
+				? { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
+				: { month: "short", day: "numeric" };
+		return date.toLocaleString("en-US", format);
+	}
+
+	getScaledValue(value: number): number {
+		return value * this.dpr;
+	}
+
+	getVisibleTimeRange(): { start: number; end: number } | null {
+		const visible = this.getVisibleCandles();
+		if (visible.length === 0) return null;
+		return {
+			start: visible[0].time,
+			end: visible[visible.length - 1].time,
+		};
+	}
 }
 
 export default CoordinateSystem;

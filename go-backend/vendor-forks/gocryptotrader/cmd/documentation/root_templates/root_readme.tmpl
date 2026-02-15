@@ -1,0 +1,141 @@
+{{define "root" -}}
+<img src="/common/gctlogo.png?raw=true" width="350px" height="350px" hspace="70">
+
+[![Build Status](https://github.com/thrasher-corp/gocryptotrader/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/thrasher-corp/gocryptotrader/actions/workflows/tests.yml)
+[![Software License](https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square)](https://github.com/thrasher-corp/gocryptotrader/blob/master/LICENSE)
+[![GoDoc](https://godoc.org/github.com/thrasher-corp/gocryptotrader?status.svg)](https://godoc.org/github.com/thrasher-corp/gocryptotrader)
+[![Coverage Status](https://codecov.io/gh/thrasher-corp/gocryptotrader/graph/badge.svg?token=41784B23TS)](https://codecov.io/gh/thrasher-corp/gocryptotrader)
+[![Go Report Card](https://goreportcard.com/badge/github.com/thrasher-corp/gocryptotrader)](https://goreportcard.com/report/github.com/thrasher-corp/gocryptotrader)
+
+A cryptocurrency trading bot supporting multiple exchanges written in Golang.
+
+**Please note that this bot is under development and is not ready for production!**
+
+## Community
+
+Join our slack to discuss all things related to GoCryptoTrader! [GoCryptoTrader Slack](https://join.slack.com/t/gocryptotrader/shared_invite/zt-38z8abs3l-gH8AAOk8XND6DP5NfCiG_g)
+
+## Exchange Support Table
+
+| Exchange | REST API | Websocket API | FIX API |
+|----------|------|-----------|-----|
+| Binance.US| Yes  | Yes        | NA  |
+| Binance| Yes  | Yes        | NA  |
+| Bitfinex | Yes  | Yes        | NA  |
+| Bitflyer | Yes  | No      | NA  |
+| Bithumb | Yes  | Yes       | NA  |
+| BitMEX | Yes | Yes | NA |
+| Bitstamp | Yes  | Yes       | No  |
+| BTCMarkets | Yes | Yes       | NA  |
+| BTSE | Yes | Yes | NA |
+| Bybit | Yes | Yes | NA |
+| Coinbase | Yes | Yes | No|
+| COINUT | Yes | Yes | NA |
+| Deribit | Yes | Yes | No |
+| Exmo | Yes | NA | NA |
+| GateIO | Yes | Yes | NA |
+| Gemini | Yes | Yes | No |
+| HitBTC | Yes | Yes | No |
+| Huobi.Pro | Yes | Yes | NA |
+| Kraken | Yes | Yes | NA |
+| Kucoin | Yes | Yes | NA |
+| Lbank | Yes | No | NA |
+| Okx | Yes | Yes | NA |
+| Poloniex | Yes | Yes | NA |
+| Yobit | Yes | NA | NA |
+
+We are aiming to support the top 30 exchanges sorted by average liquidity as [ranked by CoinMarketCap](https://coinmarketcap.com/rankings/exchanges/). 
+However, we welcome pull requests for any exchange which does not match this criterion. If you need help with this, please join us on [Slack](https://join.slack.com/t/gocryptotrader/shared_invite/zt-38z8abs3l-gH8AAOk8XND6DP5NfCiG_g).
+
+** NA means not applicable as the exchange does not support the feature.
+
+## Current Features
+
++ Support for all exchange fiat and digital currencies, with the ability to individually toggle them on/off.
++ AES256 encrypted config file.
++ REST API support for all exchanges.
++ Websocket support for applicable exchanges.
++ Ability to turn off/on certain exchanges.
++ Communication packages (Slack, SMS via SMSGlobal, Telegram and SMTP).
++ HTTP rate limiter package.
++ Unified API for exchange usage.
++ Customisation of HTTP client features including setting a proxy, user agent and adjusting transport settings.
++ NTP client package.
++ Database support (Postgres and SQLite3). See [database](/database/README.md).
++ OTP generation tool. See [gen otp](/cmd/gen_otp).
++ Connection monitor package.
++ gRPC service and JSON RPC proxy. See [gRPC service](/gctrpc/README.md).
++ gRPC client. See [gctcli](/cmd/gctcli/README.md).
++ Forex currency converter packages (CurrencyConverterAPI, CurrencyLayer, Exchange Rates, Fixer.io, OpenExchangeRates, Exchange Rate Host).
++ Packages for handling currency pairs, tickers and orderbooks.
++ Portfolio management tool; fetches balances from supported exchanges and allows for custom address tracking.
++ Basic event trigger system.
++ OHLCV/Candle retrieval support. See [OHLCV](/docs/OHLCV.md).
++ Scripting support. See [gctscript](/gctscript/README.md).
++ Recent and historic trade processing. See [trades](/exchanges/trade/README.md).
++ Backtesting application. An event-driven backtesting tool to test and iterate trading strategies using historical or custom data. See [backtester](/backtester/README.md).
++ Exchange HTTP mock testing. See [mock](/exchanges/mock/README.md).
++ Exchange multichain deposits and withdrawals for specific exchanges. See [multichain transfer support](/docs/MULTICHAIN_TRANSFER_SUPPORT.md).
+
+## Development Tracking
+
+Our [Kanban board](https://github.com/orgs/thrasher-corp/projects/3) provides updates on:
+
++ New feature development
++ Bug fixes in progress
++ Recently completed work
++ Contribution opportunities
+
+Follow our progress as we continuously improve GoCryptoTrader.
+
+## Contribution
+
+Please feel free to submit any pull requests or suggest any desired features to be added.
+
+When submitting a PR, please abide by our [coding guidelines](/docs/CODING_GUIDELINES.md).
+
+## Compiling and Running instructions
+
+Download and install Go from [Go Downloads](https://golang.org/dl/) for your platform.
+
+### Linux/macOS
+
+```bash
+git clone https://github.com/thrasher-corp/gocryptotrader.git
+cd gocryptotrader
+go build
+mkdir ~/.gocryptotrader
+cp config_example.json ~/.gocryptotrader/config.json
+```
+
+### Windows
+
+```bash
+git clone https://github.com/thrasher-corp/gocryptotrader.git
+cd gocryptotrader
+go build
+mkdir %AppData%\GoCryptoTrader
+copy config_example.json %APPDATA%\GoCryptoTrader\config.json
+```
+
++ Make any necessary changes to the `config.json` file.
++ Run the `gocryptotrader` binary file.
+
+### Sonic JSON handling
+
+GoCryptoTrader can optionally use the [Sonic](https://github.com/bytedance/sonic) JSON library for improved performance, as a drop in replacement for golang.org/encoding/json.
+Please see sonic [Requirements](https://github.com/bytedance/sonic/#requirement) for supported platforms.
+
+To enable sonic, build with the sonic_on tag:
+
+```bash
+go build -tags=sonic_on
+```
+
+{{template "donations" .}}
+
+## Binaries
+
+Binaries will be published once the codebase reaches a stable condition.
+{{template "contributors" .}}
+{{- end}}

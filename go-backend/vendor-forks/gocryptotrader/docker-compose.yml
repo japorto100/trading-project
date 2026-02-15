@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  daemon:
+    build: .
+    ports:
+      - "9052:9052"
+      - "9053:9053"

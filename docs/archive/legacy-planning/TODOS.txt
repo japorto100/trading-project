@@ -1,0 +1,166 @@
+WICHTIG
+- Auth wird aktuell NICHT aktiviert.
+- Auth/DB-Strukturen dürfen vorbereitet werden, aber ohne Login-Zwang im Produktfluss.
+- Ziel: keine unnötigen Schranken, zuerst Produktkern stabilisieren.
+
+Status (Stand heute)
+- Projekt ist auf gutem A+/B-Übergang: starke UI + Provider/API-Basis.
+- Größte Lücke: Chart nutzt noch überwiegend Demo-Candles statt konsistentem Provider-OHLCV.
+- Sidebar/UX ist inzwischen auf einen Single-Fusion-Mode vereinheitlicht.
+
+Planformat (Prioritäten)
+
+P0 = Muss jetzt (Produktkern)
+P1 = Hoher Hebel danach (Analysequalität)
+P2 = Plattform-Bausteine (B-Reife)
+
+P0.1 Chart auf echte OHLCV umstellen (mit Fallback)
+- Ziel:
+  - `src/app/page.tsx` lädt Candles primär über `/api/market/ohlcv`.
+  - Bei Fehler oder fehlender Provider-Antwort fallback auf `generateDemoCandles`.
+- Warum:
+  - Chart + Watchlist müssen aus derselben Datenwelt kommen.
+- Definition of Done:
+  - Symbol- und Timeframe-Wechsel triggern API-Load.
+  - UI zeigt klar Loading- und Error/Fallback-Status.
+  - Build + Lint grün.
+
+P0.2 Alerts an echte Preisupdates koppeln
+- Ziel:
+  - `checkAlerts(...)` wird beim Quote-Refresh (und später Streaming) aufgerufen.
+  - Trigger erzeugen sichtbare Notifications.
+- Definition of Done:
+  - Mindestens ein `price_above` und ein `price_below` Alarm reproduzierbar ausgelöst.
+  - Kein doppeltes Triggern innerhalb desselben Preiszustands.
+
+P0.3 Symbol-Normalisierung end-to-end
+- Ziel:
+  - Ein internes Canonical-Format (z. B. `BTC/USD`) über UI, API und Provider-Mapping.
+  - Alias-Mapping (`BTC-USD`, `X:BTCUSD` etc.) bleibt am Rand.
+- Definition of Done:
+  - Search, Watchlist, Quote, OHLCV funktionieren für Stocks/Crypto/FX ohne Formatbruch.
+
+P0.4 `.env.example` ergänzen (Onboarding fix)
+- Ziel:
+  - README und Setup konsistent machen.
+- Inhalt:
+  - `TWELVE_DATA_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY`, optionale DB-Variablen.
+  - Kommentar: nur serverseitig verwenden.
+- Definition of Done:
+  - Frischer Clone: Setup ohne Rückfragen möglich.
+
+P1.1 `page.tsx` modularisieren
+- Ziel:
+  - Komponenten trennen: `features/header`, `features/sidebar`, `features/chart`, `features/stats`.
+- Definition of Done:
+  - `page.tsx` primär Komposition/Orchestrierung.
+  - Keine Verhaltensregressionen.
+
+P1.2 Signalpaket „Line / Power / Rhythm“
+- Line:
+  - Daily SMA50 inkl. Cross-Events (`cross_up`, `cross_down`) und Alert-Templates.
+- Power:
+  - RVOL + OBV + CMF als Panel und Kennzahlen.
+- Rhythm:
+  - ZigZag-basierter Zyklus-Score (Periode/Amplitude-Stabilität) als experimentelles Modul.
+- Definition of Done:
+  - Jede Kennzahl mit klarer Formel-Doku.
+  - UI zeigt Werte pro Symbol/Timeframe stabil an.
+
+P1.3 Inkrementelle Chart-Updates vorbereiten
+- Ziel:
+  - Nicht komplette Chart-Neuinitialisierung bei jedem Datenupdate, sondern gezielte Series-Updates.
+- Definition of Done:
+  - Update-Pfad vorhanden, Re-Init nur bei strukturellen Änderungen (Theme/Container/Type).
+
+P2.1 Persistenz-Basis (ohne aktive Auth)
+- Ziel:
+  - DB-Tabellen für Watchlists/Alerts/Layout-Preferences vorbereiten.
+  - Weiterhin lokal nutzbar ohne Login.
+- Definition of Done:
+  - Storage-Adapter vorhanden (local + db-ready).
+  - Datenmodell dokumentiert.
+
+P2.2 Replay/Backtest-Preview
+- Ziel:
+  - Zeit-Scrubber + deterministischer Candle-Fortschritt.
+- Definition of Done:
+  - Reproduzierbarer Ablauf mit identischen Inputs/Outputs.
+
+P2.3 Streaming-Architektur-Skizze
+- Ziel:
+  - Technisches Design für WebSocket Ingestion, Candle-Building, Alert-Engine.
+- Definition of Done:
+  - Kurzes ADR (Architekturentscheidung) mit Komponenten, Risiken, Migrationspfad.
+
+Umsetzungsreihenfolge (empfohlen)
+1. P0.1 OHLCV im Chart (API first, Demo fallback)
+2. P0.2 Alerts an Quote-Loop
+3. P0.3 Symbol-Normalisierung
+4. P0.4 `.env.example`
+5. P1.1 Modularisierung
+6. P1.2 Signale
+7. P1.3 Inkrementelle Updates
+8. P2.x Plattform-Schritte
+
+Risiken / Hinweise
+- API-Limits variieren je Provider/Tier und ändern sich; Limits nicht hartkodieren.
+- Datenlizenz/Redistribution bleibt für spätere SaaS-Stufe ein eigener Blocker.
+- Auth bleibt deaktiviert bis explizite Produktentscheidung.
+
+Zusätzliche Alternativen (ergänzt vor Implementierungsstart)
+
+Provider-Optionen für Markt-/OHLCV-Daten
+- Twelve Data (bereits integriert):
+  - Stark für schnellen Start (REST + WebSocket, breite Asset-Coverage).
+  - Credit-/Plan-gesteuert; Symbol- und WS-Limits je Tier.
+- Alpha Vantage (bereits integriert):
+  - Einfach für Prototyping und technische Indikator-Endpunkte.
+  - Free/Premium unterscheiden sich bei Tiefe/Frequenz.
+- Finnhub (bereits integriert):
+  - Gute API-Abdeckung, inklusive Echtzeit-Use-Cases.
+  - Für harte Produktionsanforderungen Limits/Tier explizit verifizieren.
+- Alpaca Market Data:
+  - Klare API + WS-Doku; Basic mit IEX-limitiertem Echtzeitumfang, Plus mit Vollabdeckung.
+  - Gut, wenn später Broker-/Trading-Nähe gewünscht ist.
+- Polygon:
+  - Sehr stark für professionelle Echtzeit-/Historie-Setups.
+  - Kosten können je nach Echtzeit/Business/Redistribution deutlich steigen.
+- FMP / EODHD:
+  - Breite Endpunktpalette und günstige Einstiege für Research/Backtests.
+  - Produktive Nutzung braucht genaue Prüfung von Latenz/Lizenz/Qualität.
+- CCXT (Krypto):
+  - Sehr gute Ergänzung für Multi-Exchange-Krypto, wenn wir Crypto-Feed ausbauen.
+  - Sollte als eigener Adapter laufen (nicht Hauptquelle für alle Assetklassen).
+
+Entscheidung für unseren nächsten Sprint
+- Wir bleiben für P0 bei der bestehenden Provider-Schicht (Twelve + Alpha + Finnhub + Demo-Fallback).
+- Neu integrieren wir jetzt bewusst noch keinen weiteren Provider, um Scope zu kontrollieren.
+- Nach P0 legen wir einen kurzen Provider-Benchmark an (Latenz, Fehlerrate, Kosten/Tier, Symbolabdeckung).
+
+Akzeptanzkriterien für den Provider-Benchmark (nach P0)
+- Für 10 repräsentative Symbole (Stocks/Crypto/FX) je Provider:
+  - Erfolgsquote der OHLCV-Calls
+  - Median/95p Latenz
+  - Konsistenz der Candle-Granularität
+  - Kosten-/Limit-Fit für unseren geplanten Refresh
+- Ergebnis als kurze Tabelle in `FUSION_NOTES.md`.
+
+Online verifiziert (Kurz)
+- Next.js Route Handlers (App Router) als stabile API-Basis.
+- Lightweight Charts API mit `update(...)` auf Series für inkrementelle Updates.
+- Twelve Data/FRED offizielle Doku vorhanden; Rate-Limits abhängig von Plan/Tier.
+
+Quellen
+- Next.js Route Handlers: https://nextjs.org/docs/app/building-your-application/routing/route-handlers
+- TradingView Lightweight Charts Series API: https://tradingview.github.io/lightweight-charts/docs/api/interfaces/ISeriesApi
+- Twelve Data Docs/Pricing: https://twelvedata.com/docs , https://twelvedata.com/pricing
+- Twelve Data Support (Credits/WS): https://support.twelvedata.com/en/articles/5615854-credits , https://support.twelvedata.com/en/articles/5620516-how-to-stream-the-data
+- FRED API: https://fred.stlouisfed.org/docs/api/fred/
+- Alpaca Market Data: https://docs.alpaca.markets/docs/about-market-data-api
+- Alpaca WebSocket Stream: https://docs.alpaca.markets/docs/streaming-market-data
+- Polygon Docs/Pricing: https://polygon.io/docs/ , https://polygon.io/pricing
+- FMP Docs: https://site.financialmodelingprep.com/developer/docs
+- EODHD Docs: https://eodhd.com/financial-apis
+- Alpha Vantage Docs: https://www.alphavantage.co/documentation/
+- CCXT: https://github.com/ccxt/ccxt

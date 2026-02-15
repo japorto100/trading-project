@@ -23,6 +23,15 @@ A modern, open-source trading platform built with Next.js 15, featuring real-tim
 | Twelve Data | Stocks, ETFs, FX, Crypto | 800 credits/day | Yes |
 | Alpha Vantage | Stocks, FX, Crypto | 25 requests/day | Yes |
 | Finnhub | Stocks, Crypto, Forex | 60 calls/min | Yes |
+| FMP | Stocks, ETFs, Indices | 250 requests/day | Yes |
+| EODHD | Stocks, ETFs, FX, Indices | 20 requests/day | Yes |
+| Marketstack | Stocks, ETFs, Indices | 100 requests/month | Yes |
+| Polygon.io | US-centric stocks/indices (+ FX/Crypto by plan) | 5 requests/min (free tier) | Yes |
+| CoinMarketCap | Crypto | plan-dependent (API key required) | Yes |
+| Finage | Stocks/FX/Crypto/Indices (plan-dependent) | plan-dependent | Yes |
+| FRED | Economic/Macro series | Effectively high/unlimited for practical app use | Yes |
+| Yahoo (Unofficial) | Stocks, ETFs, FX, Crypto, Indices | Yes (best effort) | No |
+| yfinance Bridge | Stocks, ETFs, FX, Crypto, Indices | Yes (best effort) | No |
 | ECB | FX Rates | Unlimited | No |
 | Demo | All assets | Unlimited | No |
 
@@ -41,7 +50,7 @@ git clone <your-repo-url>
 cd my-project
 
 # Install dependencies
-bun install
+pnpm install
 
 # Copy environment file
 cp .env.example .env
@@ -50,7 +59,7 @@ cp .env.example .env
 # Edit .env and add your API keys
 
 # Start development server
-bun run dev
+pnpm dev
 ```
 
 ## ⚙️ Configuration
@@ -74,12 +83,61 @@ The platform works out-of-the-box with demo data. To get real market data:
    - Get free API key (60 calls/minute)
    - Add key to `.env`: `FINNHUB_API_KEY=your_key`
 
+4. **yfinance Bridge (optional wrapper)**
+   - Set up a local/remote bridge service (see `python-backend/services/finance-bridge/README.md`)
+   - Add URL to `.env`: `YFINANCE_BRIDGE_URL=http://localhost:8081`
+   - Useful as fallback source for unofficial Yahoo-backed data
+
+5. **Geopolitical Soft-Signals (optional FastAPI sidecar)**
+   - Service docs: `python-backend/services/geopolitical-soft-signals/README.md`
+   - Recommended env:
+     - `GEOPOLITICAL_SOFT_SIGNAL_ENABLED=false` (default unless service is running)
+     - `GEOPOLITICAL_SOFT_SIGNAL_URL=http://127.0.0.1:8091`
+     - `GEOPOLITICAL_SOFT_SIGNAL_TIMEOUT_MS=8000`
+     - `GEOPOLITICAL_SOFT_SIGNAL_MAX_CANDIDATES=6`
+
+Notes on unofficial Yahoo sources:
+- Direct Yahoo endpoints can return `401/403` depending on region/network policy.
+- Keep `yahoo` as optional fallback and prefer `yfinance` bridge where needed.
+
+6. **Additional optional APIs**
+   - FMP: `FMP_API_KEY`
+   - EODHD: `EODHD_API_KEY`
+   - Marketstack: `MARKETSTACK_API_KEY`
+   - Polygon: `POLYGON_API_KEY`
+   - CoinMarketCap: `COINMARKETCAP_API_KEY`
+   - Finage: `FINAGE_API_KEY`
+   - FRED: `FRED_API_KEY`
+
+7. **News APIs (optional, for headline aggregation)**
+   - NewsData.io: `NEWSDATA_API_KEY`
+   - NewsAPI.ai / EventRegistry: `NEWSAPIAI_API_KEY`
+   - GNews: `GNEWS_API_KEY`
+   - Webz.io News API Lite: `WEBZ_API_KEY`
+   - Optional:
+     - `NEWS_PROVIDER_PRIORITY=newsdata,gnews,newsapi_ai,webz,reddit`
+     - `NEWS_DEFAULT_LANGUAGE=en`
+     - `NEWS_DEFAULT_LIMIT=24`
+     - `NEWS_FETCH_TIMEOUT_MS=7000`
+     - `NEWS_CACHE_TTL_MS=120000`
+
 ### Provider Priority
 
 Configure the order in which providers are tried:
 
 ```env
-DEFAULT_PROVIDER=twelvedata,alphavantage,finnhub,demo
+DEFAULT_PROVIDER=twelvedata,finnhub,alphavantage,polygon,fmp,eodhd,marketstack,coinmarketcap,finage,yahoo,yfinance,fred,ecb,demo
+```
+
+### Local rate/circuit protection
+
+The app enforces local safety guards to avoid hammering free tiers:
+
+```env
+PROVIDER_TIMEOUT_MS=7000
+PROVIDER_CIRCUIT_FAILURE_THRESHOLD=3
+PROVIDER_CIRCUIT_OPEN_MS=60000
+PROVIDER_QUOTES_CONCURRENCY=6
 ```
 
 ## 🏗️ Architecture
@@ -217,6 +275,10 @@ const bb = calculateBollingerBands(candleData, 20, 2);
 - **Redistribution** requires proper licensing from exchanges
 - **Rate limits** vary by provider - check their documentation
 
+Reference links tracked in this repo:
+- Insightsentry: `https://insightsentry.com`
+- LSE fee waiver note: `https://www.londonstockexchange.com/equities-trading/market-data/retail-investor-market-data-end-user-fee-waiver`
+
 ### Legal Disclaimer
 This software is provided for educational and research purposes only. It is NOT financial advice. Always do your own research before making investment decisions.
 
@@ -244,3 +306,5 @@ For issues and feature requests, please open a GitHub issue.
 ---
 
 Built with ❤️ for traders and developers
+
+

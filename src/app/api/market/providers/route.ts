@@ -1,48 +1,50 @@
-import { NextResponse } from 'next/server';
-import { getProviderManager, PROVIDER_REGISTRY } from '@/lib/providers';
+import { NextResponse } from "next/server";
+import { getProviderManager, PROVIDER_REGISTRY } from "@/lib/providers";
+import type { ProviderInfo } from "@/lib/providers/types";
 
 export async function GET() {
-  try {
-    const manager = getProviderManager();
-    const providers = manager.getProviderInfo();
+	try {
+		const manager = getProviderManager();
+		const providers = manager.getProviderInfo();
 
-    // Check availability for each provider
-    const statusPromises = Object.entries(providers).map(async ([name, info]) => {
-      const provider = manager.getProvider(name);
-      let available = false;
-      
-      if (provider) {
-        try {
-          available = await provider.isAvailable();
-        } catch {
-          available = false;
-        }
-      }
+		// Check availability for each provider
+		const statusPromises = Object.entries(providers).map(async ([name, info]) => {
+			const provider = manager.getProvider(name);
+			let available = false;
+			const providerInfo = info.info as ProviderInfo;
 
-      return {
-        name,
-        displayName: info.info.displayName,
-        available,
-        requiresAuth: info.info.requiresAuth,
-        supportedAssets: info.info.supportedAssets,
-        rateLimit: info.info.rateLimit,
-        freePlan: info.info.freePlan,
-        documentation: info.info.documentation,
-      };
-    });
+			if (provider) {
+				try {
+					available = await provider.isAvailable();
+				} catch {
+					available = false;
+				}
+			}
 
-    const providerStatus = await Promise.all(statusPromises);
+			return {
+				name,
+				displayName: providerInfo.displayName,
+				available,
+				requiresAuth: providerInfo.requiresAuth,
+				supportedAssets: providerInfo.supportedAssets,
+				rateLimit: providerInfo.rateLimit,
+				freePlan: providerInfo.freePlan,
+				documentation: providerInfo.documentation,
+			};
+		});
 
-    return NextResponse.json({
-      success: true,
-      providers: providerStatus,
-      registry: PROVIDER_REGISTRY,
-    });
-  } catch (error: any) {
-    console.error('Providers API Error:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to get provider status' },
-      { status: 500 }
-    );
-  }
+		const providerStatus = await Promise.all(statusPromises);
+
+		return NextResponse.json({
+			success: true,
+			providers: providerStatus,
+			registry: PROVIDER_REGISTRY,
+		});
+	} catch (error: unknown) {
+		console.error("Providers API Error:", error);
+		return NextResponse.json(
+			{ error: error instanceof Error ? error.message : "Failed to get provider status" },
+			{ status: 500 },
+		);
+	}
 }

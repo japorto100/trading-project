@@ -1,0 +1,22 @@
+{
+ "headers": [
+  "Key",
+  "X-Mbx-Apikey",
+  "Rest-Key",
+  "Apiauth-Key",
+  "X-Gemini-Apikey",
+  "X-Bapi-Api-Key"
+ ],
+ "variables": [
+  "bsb",
+  "user",
+  "name",
+  "real_name",
+  "receiver_name",
+  "account_number",
+  "username",
+  "login",
+  "secret",
+  "apiKey"
+ ]
+}

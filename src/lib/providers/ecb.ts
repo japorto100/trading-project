@@ -2,150 +2,157 @@
 // Free, no API key required
 // Supports: FX Reference Rates
 
-import { MarketDataProvider, ProviderInfo, OHLCVData, SymbolResult, QuoteData, TimeframeValue } from './types';
+import type {
+	MarketDataProvider,
+	OHLCVData,
+	ProviderInfo,
+	QuoteData,
+	SymbolResult,
+	TimeframeValue,
+} from "./types";
 
 export class ECBProvider implements MarketDataProvider {
-  readonly info: ProviderInfo = {
-    name: 'ecb',
-    displayName: 'European Central Bank',
-    supportedAssets: ['fx'],
-    requiresAuth: false,
-    rateLimit: { requests: 100, period: 'day' },
-    freePlan: true,
-    documentation: 'https://data-api.ecb.europa.eu/help',
-  };
+	readonly info: ProviderInfo = {
+		name: "ecb",
+		displayName: "European Central Bank",
+		supportedAssets: ["fx"],
+		requiresAuth: false,
+		rateLimit: { requests: 100, period: "day" },
+		freePlan: true,
+		documentation: "https://data-api.ecb.europa.eu/help",
+	};
 
-  private baseUrl = 'https://data-api.ecb.europa.eu/service/data/EXR';
+	private baseUrl = "https://data-api.ecb.europa.eu/service/data/EXR";
 
-  async isAvailable(): Promise<boolean> {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/D.USD.EUR.SP00.A?lastNObservations=1&format=jsondata`,
-        { headers: { Accept: 'application/json' } }
-      );
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
+	async isAvailable(): Promise<boolean> {
+		try {
+			const response = await fetch(
+				`${this.baseUrl}/D.USD.EUR.SP00.A?lastNObservations=1&format=jsondata`,
+				{ headers: { Accept: "application/json" } },
+			);
+			return response.ok;
+		} catch {
+			return false;
+		}
+	}
 
-  async fetchOHLCV(
-    symbol: string,
-    timeframe: TimeframeValue,
-    limit: number = 300
-  ): Promise<OHLCVData[]> {
-    const [base, quote] = symbol.split('/');
-    
-    // ECB only provides daily data
-    const response = await fetch(
-      `${this.baseUrl}/D.${base}.${quote}.SP00.A?lastNObservations=${limit}&format=jsondata`,
-      { headers: { Accept: 'application/json' } }
-    );
+	async fetchOHLCV(
+		symbol: string,
+		_timeframe: TimeframeValue,
+		limit: number = 300,
+	): Promise<OHLCVData[]> {
+		const [base, quote] = symbol.split("/");
 
-    if (!response.ok) {
-      throw new Error('ECB API error');
-    }
+		// ECB only provides daily data
+		const response = await fetch(
+			`${this.baseUrl}/D.${base}.${quote}.SP00.A?lastNObservations=${limit}&format=jsondata`,
+			{ headers: { Accept: "application/json" } },
+		);
 
-    const data = await response.json();
-    const observations = data.dataSets?.[0]?.series?.['0:0:0:0:0']?.observations;
+		if (!response.ok) {
+			throw new Error("ECB API error");
+		}
 
-    if (!observations) {
-      throw new Error('No FX data available');
-    }
+		const data = await response.json();
+		const observations = data.dataSets?.[0]?.series?.["0:0:0:0:0"]?.observations;
 
-    const result: OHLCVData[] = [];
-    const dates = data.structure?.dimensions?.observation?.[0]?.values || [];
+		if (!observations) {
+			throw new Error("No FX data available");
+		}
 
-    for (const [idx, value] of Object.entries(observations) as [string, number[]][]) {
-      const dateObj = dates[parseInt(idx)];
-      if (dateObj && value[0]) {
-        const date = new Date(dateObj.id);
-        const rate = value[0];
-        
-        // ECB only provides close rates, simulate OHLC
-        const noise = rate * 0.001;
-        result.push({
-          time: Math.floor(date.getTime() / 1000),
-          open: rate + (Math.random() - 0.5) * noise,
-          high: rate + Math.random() * noise,
-          low: rate - Math.random() * noise,
-          close: rate,
-          volume: 0,
-        });
-      }
-    }
+		const result: OHLCVData[] = [];
+		const dates = data.structure?.dimensions?.observation?.[0]?.values || [];
 
-    return result.reverse();
-  }
+		for (const [idx, value] of Object.entries(observations) as [string, number[]][]) {
+			const dateObj = dates[parseInt(idx, 10)];
+			if (dateObj && value[0]) {
+				const date = new Date(dateObj.id);
+				const rate = value[0];
 
-  async searchSymbols(query: string): Promise<SymbolResult[]> {
-    // ECB only supports major currency pairs
-    const currencies = [
-      { code: 'USD', name: 'US Dollar' },
-      { code: 'JPY', name: 'Japanese Yen' },
-      { code: 'GBP', name: 'British Pound' },
-      { code: 'CHF', name: 'Swiss Franc' },
-      { code: 'CAD', name: 'Canadian Dollar' },
-      { code: 'AUD', name: 'Australian Dollar' },
-      { code: 'NZD', name: 'New Zealand Dollar' },
-      { code: 'NOK', name: 'Norwegian Krone' },
-      { code: 'SEK', name: 'Swedish Krona' },
-    ];
+				// ECB only provides close rates, simulate OHLC
+				const noise = rate * 0.001;
+				result.push({
+					time: Math.floor(date.getTime() / 1000),
+					open: rate + (Math.random() - 0.5) * noise,
+					high: rate + Math.random() * noise,
+					low: rate - Math.random() * noise,
+					close: rate,
+					volume: 0,
+				});
+			}
+		}
 
-    const results: SymbolResult[] = [];
-    const q = query.toUpperCase();
+		return result.reverse();
+	}
 
-    for (const currency of currencies) {
-      if (currency.code.includes(q) || currency.name.toUpperCase().includes(q)) {
-        results.push({
-          symbol: `EUR/${currency.code}`,
-          name: `Euro to ${currency.name}`,
-          type: 'fx',
-          exchange: 'ECB',
-          currency: currency.code,
-        });
-      }
-    }
+	async searchSymbols(query: string): Promise<SymbolResult[]> {
+		// ECB only supports major currency pairs
+		const currencies = [
+			{ code: "USD", name: "US Dollar" },
+			{ code: "JPY", name: "Japanese Yen" },
+			{ code: "GBP", name: "British Pound" },
+			{ code: "CHF", name: "Swiss Franc" },
+			{ code: "CAD", name: "Canadian Dollar" },
+			{ code: "AUD", name: "Australian Dollar" },
+			{ code: "NZD", name: "New Zealand Dollar" },
+			{ code: "NOK", name: "Norwegian Krone" },
+			{ code: "SEK", name: "Swedish Krona" },
+		];
 
-    return results.slice(0, 10);
-  }
+		const results: SymbolResult[] = [];
+		const q = query.toUpperCase();
 
-  async getQuote(symbol: string): Promise<QuoteData> {
-    const [base, quote] = symbol.split('/');
-    
-    const response = await fetch(
-      `${this.baseUrl}/D.${base}.${quote}.SP00.A?lastNObservations=2&format=jsondata`,
-      { headers: { Accept: 'application/json' } }
-    );
+		for (const currency of currencies) {
+			if (currency.code.includes(q) || currency.name.toUpperCase().includes(q)) {
+				results.push({
+					symbol: `EUR/${currency.code}`,
+					name: `Euro to ${currency.name}`,
+					type: "fx",
+					exchange: "ECB",
+					currency: currency.code,
+				});
+			}
+		}
 
-    if (!response.ok) {
-      throw new Error('ECB API error');
-    }
+		return results.slice(0, 10);
+	}
 
-    const data = await response.json();
-    const observations = data.dataSets?.[0]?.series?.['0:0:0:0:0']?.observations;
-    const values = Object.values(observations || {}) as number[][];
+	async getQuote(symbol: string): Promise<QuoteData> {
+		const [base, quote] = symbol.split("/");
 
-    if (values.length < 1) {
-      throw new Error('No quote data available');
-    }
+		const response = await fetch(
+			`${this.baseUrl}/D.${base}.${quote}.SP00.A?lastNObservations=2&format=jsondata`,
+			{ headers: { Accept: "application/json" } },
+		);
 
-    const current = values[values.length - 1]?.[0] || 0;
-    const previous = values.length > 1 ? values[values.length - 2]?.[0] || current : current;
-    const change = current - previous;
+		if (!response.ok) {
+			throw new Error("ECB API error");
+		}
 
-    return {
-      symbol,
-      price: current,
-      change,
-      changePercent: previous ? (change / previous) * 100 : 0,
-      high: current * 1.001,
-      low: current * 0.999,
-      open: previous,
-      volume: 0,
-      timestamp: Date.now(),
-    };
-  }
+		const data = await response.json();
+		const observations = data.dataSets?.[0]?.series?.["0:0:0:0:0"]?.observations;
+		const values = Object.values(observations || {}) as number[][];
+
+		if (values.length < 1) {
+			throw new Error("No quote data available");
+		}
+
+		const current = values[values.length - 1]?.[0] || 0;
+		const previous = values.length > 1 ? values[values.length - 2]?.[0] || current : current;
+		const change = current - previous;
+
+		return {
+			symbol,
+			price: current,
+			change,
+			changePercent: previous ? (change / previous) * 100 : 0,
+			high: current * 1.001,
+			low: current * 0.999,
+			open: previous,
+			volume: 0,
+			timestamp: Date.now(),
+		};
+	}
 }
 
 export default ECBProvider;

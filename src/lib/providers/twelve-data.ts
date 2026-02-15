@@ -2,130 +2,146 @@
 // Free Plan: 800 credits/day
 // Supports: Stocks, ETFs, Forex, Crypto, Indices
 
-import { MarketDataProvider, ProviderInfo, OHLCVData, SymbolResult, QuoteData, TimeframeValue, TIMEFRAME_MAP } from './types';
+import {
+	type MarketDataProvider,
+	type OHLCVData,
+	type ProviderInfo,
+	type QuoteData,
+	type SymbolResult,
+	TIMEFRAME_MAP,
+	type TimeframeValue,
+} from "./types";
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+}
 
 export class TwelveDataProvider implements MarketDataProvider {
-  readonly info: ProviderInfo = {
-    name: 'twelvedata',
-    displayName: 'Twelve Data',
-    supportedAssets: ['stock', 'etf', 'fx', 'crypto', 'index'],
-    requiresAuth: true,
-    rateLimit: { requests: 800, period: 'day' },
-    freePlan: true,
-    documentation: 'https://twelvedata.com/docs',
-  };
+	readonly info: ProviderInfo = {
+		name: "twelvedata",
+		displayName: "Twelve Data",
+		supportedAssets: ["stock", "etf", "fx", "crypto", "index"],
+		requiresAuth: true,
+		rateLimit: { requests: 800, period: "day" },
+		freePlan: true,
+		documentation: "https://twelvedata.com/docs",
+	};
 
-  private apiKey: string;
-  private baseUrl = 'https://api.twelvedata.com';
+	private apiKey: string;
+	private baseUrl = "https://api.twelvedata.com";
 
-  constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.TWELVE_DATA_API_KEY || '';
-  }
+	constructor(apiKey?: string) {
+		this.apiKey = apiKey || process.env.TWELVE_DATA_API_KEY || "";
+	}
 
-  async isAvailable(): Promise<boolean> {
-    if (!this.apiKey) return false;
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/quote?symbol=AAPL&apikey=${this.apiKey}`
-      );
-      const data = await response.json();
-      return data.symbol !== undefined;
-    } catch {
-      return false;
-    }
-  }
+	async isAvailable(): Promise<boolean> {
+		if (!this.apiKey) return false;
+		try {
+			const response = await fetch(`${this.baseUrl}/quote?symbol=AAPL&apikey=${this.apiKey}`);
+			const data = await response.json();
+			return data.symbol !== undefined;
+		} catch {
+			return false;
+		}
+	}
 
-  async fetchOHLCV(
-    symbol: string,
-    timeframe: TimeframeValue,
-    limit: number = 300
-  ): Promise<OHLCVData[]> {
-    const interval = TIMEFRAME_MAP.twelvedata[timeframe] || '1h';
-    
-    const params = new URLSearchParams({
-      symbol: symbol,
-      interval: interval,
-      outputsize: limit.toString(),
-      apikey: this.apiKey,
-    });
+	async fetchOHLCV(
+		symbol: string,
+		timeframe: TimeframeValue,
+		limit: number = 300,
+	): Promise<OHLCVData[]> {
+		const interval = TIMEFRAME_MAP.twelvedata[timeframe] || "1h";
 
-    const response = await fetch(`${this.baseUrl}/time_series?${params}`);
-    const data = await response.json();
+		const params = new URLSearchParams({
+			symbol: symbol,
+			interval: interval,
+			outputsize: limit.toString(),
+			apikey: this.apiKey,
+		});
 
-    if (data.status === 'error') {
-      throw new Error(data.message || 'API Error');
-    }
+		const response = await fetch(`${this.baseUrl}/time_series?${params}`);
+		const data = await response.json();
 
-    if (!data.values || data.values.length === 0) {
-      throw new Error('No data available');
-    }
+		if (data.status === "error") {
+			throw new Error(data.message || "API Error");
+		}
 
-    return data.values.map((item: any) => ({
-      time: Math.floor(new Date(item.datetime).getTime() / 1000),
-      open: parseFloat(item.open),
-      high: parseFloat(item.high),
-      low: parseFloat(item.low),
-      close: parseFloat(item.close),
-      volume: parseFloat(item.volume || 0),
-    }));
-  }
+		if (!data.values || data.values.length === 0) {
+			throw new Error("No data available");
+		}
 
-  async searchSymbols(query: string): Promise<SymbolResult[]> {
-    const params = new URLSearchParams({
-      symbol: query,
-      apikey: this.apiKey,
-    });
+		return data.values.map((item: unknown) => {
+			const row = asRecord(item);
+			return {
+				time: Math.floor(new Date(String(row?.datetime ?? "")).getTime() / 1000),
+				open: parseFloat(String(row?.open ?? "0")),
+				high: parseFloat(String(row?.high ?? "0")),
+				low: parseFloat(String(row?.low ?? "0")),
+				close: parseFloat(String(row?.close ?? "0")),
+				volume: parseFloat(String(row?.volume ?? "0")),
+			};
+		});
+	}
 
-    const response = await fetch(`${this.baseUrl}/symbol_search?${params}`);
-    const data = await response.json();
+	async searchSymbols(query: string): Promise<SymbolResult[]> {
+		const params = new URLSearchParams({
+			symbol: query,
+			apikey: this.apiKey,
+		});
 
-    if (!data.data) return [];
+		const response = await fetch(`${this.baseUrl}/symbol_search?${params}`);
+		const data = await response.json();
 
-    return data.data.slice(0, 20).map((item: any) => ({
-      symbol: item.symbol,
-      name: item.instrument_name,
-      type: this.mapInstrumentType(item.instrument_type),
-      exchange: item.exchange,
-      currency: item.currency,
-    }));
-  }
+		if (!data.data) return [];
 
-  async getQuote(symbol: string): Promise<QuoteData> {
-    const params = new URLSearchParams({
-      symbol: symbol,
-      apikey: this.apiKey,
-    });
+		return data.data.slice(0, 20).map((item: unknown) => {
+			const row = asRecord(item);
+			return {
+				symbol: String(row?.symbol ?? ""),
+				name: String(row?.instrument_name ?? row?.symbol ?? ""),
+				type: this.mapInstrumentType(String(row?.instrument_type ?? "")),
+				exchange: String(row?.exchange ?? ""),
+				currency: String(row?.currency ?? ""),
+			};
+		});
+	}
 
-    const response = await fetch(`${this.baseUrl}/quote?${params}`);
-    const data = await response.json();
+	async getQuote(symbol: string): Promise<QuoteData> {
+		const params = new URLSearchParams({
+			symbol: symbol,
+			apikey: this.apiKey,
+		});
 
-    if (data.status === 'error') {
-      throw new Error(data.message || 'API Error');
-    }
+		const response = await fetch(`${this.baseUrl}/quote?${params}`);
+		const data = await response.json();
 
-    return {
-      symbol,
-      price: parseFloat(data.close),
-      change: parseFloat(data.change),
-      changePercent: parseFloat(data.percent_change),
-      high: parseFloat(data.high),
-      low: parseFloat(data.low),
-      open: parseFloat(data.open),
-      volume: parseFloat(data.volume || 0),
-      timestamp: Math.floor(new Date(data.timestamp).getTime() / 1000),
-    };
-  }
+		if (data.status === "error") {
+			throw new Error(data.message || "API Error");
+		}
 
-  private mapInstrumentType(type: string): 'stock' | 'etf' | 'fx' | 'crypto' | 'index' {
-    const typeMap: Record<string, 'stock' | 'etf' | 'fx' | 'crypto' | 'index'> = {
-      'Common Stock': 'stock',
-      'ETF': 'etf',
-      'Currency Pair': 'fx',
-      'Digital Currency': 'crypto',
-      'Index': 'index',
-    };
-    return typeMap[type] || 'stock';
-  }
+		return {
+			symbol,
+			price: parseFloat(data.close),
+			change: parseFloat(data.change),
+			changePercent: parseFloat(data.percent_change),
+			high: parseFloat(data.high),
+			low: parseFloat(data.low),
+			open: parseFloat(data.open),
+			volume: parseFloat(data.volume || 0),
+			timestamp: Math.floor(new Date(data.timestamp).getTime() / 1000),
+		};
+	}
+
+	private mapInstrumentType(type: string): "stock" | "etf" | "fx" | "crypto" | "index" {
+		const typeMap: Record<string, "stock" | "etf" | "fx" | "crypto" | "index"> = {
+			"Common Stock": "stock",
+			ETF: "etf",
+			"Currency Pair": "fx",
+			"Digital Currency": "crypto",
+			Index: "index",
+		};
+		return typeMap[type] || "stock";
+	}
 }
 
 export default TwelveDataProvider;

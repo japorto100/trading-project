@@ -1,0 +1,115 @@
+
+investing.com free api ord github project that circumvents this?
+
+https://ar5iv.labs.arxiv.org/html/2512.08296
+
+
+## Was „ziemlich gut“ bei Towards a Science of Scaling Agent Systems konkret heißt – und was das für einen Finance-Agent bedeutet
+
+In dem Paper ist das zentrale Resultat **nicht** „Multi-Agents sind super“, sondern:
+
+* **Multi-Agenten können stark sein**, wenn die Aufgabe **wirklich parallelisierbar** ist (viele unabhängige Teilprobleme).
+* **Multi-Agenten werden oft schlechter**, wenn die Aufgabe **stark sequenziell** ist (lange Abhängigkeitsketten), weil **Kommunikations-Overhead** und **Fehler-Verstärkung** (error amplification) dominieren. ([OpenClaw][1])
+
+Für einen Finance-Agent ist das praktisch extrem wichtig, weil Finance-Workflows **gemischt** sind:
+
+* **Parallel gut:** Markt-Monitoring über viele Ticker, News-Scanning, Earnings-Kalender, Macro-Indikatoren, Sentiment-Signale.
+* **Sequenziell fragil:** „Aus diesen Signalen jetzt eine konsistente Trade-These + Risiko-Plan + Ausführung“ (hier kippt Multi-Agent schnell).
+
+**Konsequenz für uns:**
+Du willst eine Architektur, die **parallel sammelt**, aber **zentral entscheidet**.
+
+---
+
+## Eine SOTA-nahe Architektur für deinen Finance-Agent (13.02.2026-Denke)
+
+### 1) Orchestrator (zentral)
+
+Ein **einziger** „Decision/Policy“-Agent hält:
+
+* Portfolio-Kontext (Positions, Limits, Zeithorizont)
+* Risk-Regeln (max drawdown, VaR-Proxy, Exposure Caps)
+* „Assumption Ledger“ (welche Annahmen sind belegt vs geraten)
+* finale Outputs: **Alert**, **Report**, ggf. **Order-Intent** (nicht automatisch „Order execute“, außer du willst das).
+
+### 2) Worker/Subagents (parallel, streng gescoped)
+
+Beispiele:
+
+* **Market-Data Worker:** Preis/Volumen/Volatilität/Termstruktur
+* **News Worker:** relevante Headlines + Quellen + „was ist neu?“
+* **Earnings/Events Worker:** Kalender + Guidance/Überraschung
+* **Macro Worker:** Rates, FX, commodities, CPI prints etc.
+* **Risk Worker:** Szenario-Checks (Worst-case, Korrelationen grob, Exposure)
+
+Wichtig: Worker liefern **kurze, strukturierte Karten**, keine Essays. Damit minimierst du genau den Overhead, den das Scaling-Paper als Problem zeigt. ([OpenClaw][1])
+
+### 3) Optional: „Verifier“-Schicht
+
+Ein kleiner Subagent nur fürs **Sanity-Checking**:
+
+* „Haben wir eine Zahl erfunden?“
+* „Ist die Quelle eindeutig?“
+* „Widersprechen sich Constraints?“
+  Das reduziert Fehler-Verstärkung.
+
+---
+
+## Wie OpenClaw da reinpasst (WhatsApp-Alerts etc.)
+
+Du hast das richtig gespürt: OpenClaw ist als **Kommunikations-Gateway** (WhatsApp/Telegram/… + „always on“) sehr passend für **Alarme** und „Operator“-Interaktion. Laut Projektbeschreibung ist genau das ein Kern-Use-Case: lokal laufen lassen, über Messenger steuern. ([GitHub][2])
+
+### Aber: „AgentZero hat OpenClaw integriert?“
+
+Nach dem, was öffentlich sichtbar ist, ist es eher **umgekehrt/gekoppelt**: Es gibt ein „agent-zero-bridge“ Skill, das OpenClaw mit Agent Zero verbindet und Aufgaben rüberdelegiert (bidirektional, Attachments, Progress). ([playbooks.com][3])
+
+**Praktische Interpretation:**
+
+* OpenClaw = deine **Inbox/Alarm-UI + Scheduler**
+* Agent Zero = dein **Execution-Container** (Tools, Code-Runs, längere Tasks)
+* Dazwischen: Bridge/Skill (du kontrollierst, was durch darf)
+
+Das ist eine ziemlich saubere Aufgabentrennung.
+
+---
+
+## Sehr wichtiger Punkt: Security (gerade bei Finance)
+
+Wenn du Finance-Alerts + Accounts/Keys/Trader-APIs an einen Agent hängst, musst du bei OpenClaw (und generell Skill-Registries) **härter sein als üblich**:
+
+* Es gab zuletzt Berichte über **maliziöse Skills/Malware** in der Skill-Distribution/Registry-Ecke und generelle Warnungen rund um Fehlkonfigurationen. ([The Verge][4])
+
+**Minimum-Hygiene, wenn du das kombinierst:**
+
+* keine „random skills“ installieren (whitelist, code review)
+* Secrets strikt: read-only Keys wo möglich, getrennte Rollen
+* Netzwerk-Egress kontrollieren (Agent darf nicht „überall hin“)
+* Audit-Log für jede Tool-Action (inkl. Prompt + Response + Side-Effect)
+
+---
+
+## Was das konkret für deinen nächsten Schritt heißt (ohne Overengineering)
+
+### MVP-Ziel: “Alarm + Begründung + nächste Aktion”
+
+1. **Watchlist + Regeln** (z.B. Preisbewegung, Volatilitätssprung, OI/Volume-Anomalie, News-Trigger)
+2. Worker sammeln parallel Evidenz
+3. Orchestrator baut eine **1-Seiten-Synthese**:
+
+   * Was ist passiert?
+   * Welche 2–3 plausible Erklärungen?
+   * Was spricht dagegen?
+   * Risiko/Next step (z.B. „nur beobachten“, „Position hedgen“, „Entry-Plan skizzieren“)
+4. Push via WhatsApp (oder sicherer: Signal/Telegram, je nachdem was du willst)
+
+---
+
+## Eine Rückfrage, die wirklich zählt (damit ich’s sauber zuschneiden kann)
+
+Will dein Finance-Agent **nur Alerts/Research** (read-only), oder soll er perspektivisch auch **Trades ausführen** (write access)?
+Ich kann dir dann direkt ein passendes **Permissions-Schema + Subagent-Rollen + Fail-Safe-Flow** skizzieren (bei Execution ist die Architektur deutlich strenger).
+
+[1]: https://openclaw.ai/?utm_source=chatgpt.com "OpenClaw — Personal AI Assistant"
+[2]: https://github.com/openclaw/openclaw?utm_source=chatgpt.com "openclaw/openclaw: Your own personal AI assistant. Any ..."
+[3]: https://playbooks.com/skills/openclaw/skills/agent-zero-bridge?utm_source=chatgpt.com "agent-zero-bridge skill by openclaw/skills - playbooks"
+[4]: https://www.theverge.com/news/874011/openclaw-ai-skill-clawhub-extensions-security-nightmare?utm_source=chatgpt.com "OpenClaw's AI 'skill' extensions are a security nightmare"
