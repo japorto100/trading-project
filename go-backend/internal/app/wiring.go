@@ -68,7 +68,26 @@ func NewServerFromEnv() (*Server, error) {
 	})
 	newsService := marketServices.NewNewsService(rssClient, gdeltClient, finvizClient)
 	strategyExamplesDir := envOr("GCT_STRATEGY_EXAMPLES_DIR", "vendor-forks/gocryptotrader/backtester/config/strategyexamples")
-	backtestManager := backtestServices.NewManager(strategyExamplesDir)
+	backtestExecutor := backtestServices.Executor(backtestServices.NewSimulatedExecutor())
+	if boolOr("GCT_BACKTEST_EXECUTOR_ENABLED", false) {
+		gctBacktestExecutor, err := backtestServices.NewGCTExecutor(backtestServices.GCTExecutorConfig{
+			Address:               envOr("GCT_BACKTEST_GRPC_ADDRESS", ""),
+			Username:              envOr("GCT_BACKTEST_USERNAME", envOr("GCT_USERNAME", "")),
+			Password:              envOr("GCT_BACKTEST_PASSWORD", envOr("GCT_PASSWORD", "")),
+			InsecureSkipVerifyTLS: boolOr("GCT_BACKTEST_INSECURE_TLS", false),
+			RequestTimeout:        durationMsOr("GCT_BACKTEST_REQUEST_TIMEOUT_MS", 8000),
+			PollInterval:          durationMsOr("GCT_BACKTEST_POLL_INTERVAL_MS", 750),
+		})
+		if err != nil {
+			return nil, err
+		}
+		backtestExecutor = gctBacktestExecutor
+	}
+	backtestManager := backtestServices.NewManagerWithExecutor(
+		strategyExamplesDir,
+		backtestExecutor,
+		durationMsOr("GCT_BACKTEST_RUN_TIMEOUT_MS", 300000),
+	)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))

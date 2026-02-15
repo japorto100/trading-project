@@ -1,6 +1,7 @@
 package backtest
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"hash/fnv"
@@ -42,6 +43,8 @@ type Run struct {
 	ID          string     `json:"id"`
 	Status      RunStatus  `json:"status"`
 	Progress    int        `json:"progress"`
+	Executor    string     `json:"executor,omitempty"`
+	UpstreamID  string     `json:"upstreamId,omitempty"`
 	CreatedAt   int64      `json:"createdAt"`
 	StartedAt   int64      `json:"startedAt,omitempty"`
 	CompletedAt int64      `json:"completedAt,omitempty"`
@@ -51,15 +54,29 @@ type Run struct {
 }
 
 type Manager struct {
-	strategyDir string
-	mu          sync.RWMutex
-	runs        map[string]Run
+	strategyDir      string
+	executor         Executor
+	executionTimeout time.Duration
+	mu               sync.RWMutex
+	runs             map[string]Run
 }
 
 func NewManager(strategyDir string) *Manager {
+	return NewManagerWithExecutor(strategyDir, NewSimulatedExecutor(), 2*time.Minute)
+}
+
+func NewManagerWithExecutor(strategyDir string, executor Executor, executionTimeout time.Duration) *Manager {
+	if executor == nil {
+		executor = NewSimulatedExecutor()
+	}
+	if executionTimeout <= 0 {
+		executionTimeout = 2 * time.Minute
+	}
 	return &Manager{
-		strategyDir: strings.TrimSpace(strategyDir),
-		runs:        make(map[string]Run),
+		strategyDir:      strings.TrimSpace(strategyDir),
+		executor:         executor,
+		executionTimeout: executionTimeout,
+		runs:             make(map[string]Run),
 	}
 }
 
@@ -86,6 +103,7 @@ func (m *Manager) Start(req RunRequest) (Run, error) {
 		ID:        newRunID(),
 		Status:    RunStatusQueued,
 		Progress:  0,
+		Executor:  m.executor.Name(),
 		CreatedAt: now,
 		Request:   req,
 	}
@@ -164,24 +182,48 @@ func (m *Manager) validateStrategy(strategy string) (string, error) {
 }
 
 func (m *Manager) execute(runID string) {
+	run, ok := m.Get(runID)
+	if !ok {
+		return
+	}
+
+	strategyPath, err := m.validateStrategy(run.Request.Strategy)
+	if err != nil {
+		m.update(runID, func(current *Run) {
+			current.Status = RunStatusFailed
+			current.Progress = 100
+			current.CompletedAt = time.Now().Unix()
+			current.Error = err.Error()
+		})
+		return
+	}
+
 	m.update(runID, func(run *Run) {
 		run.Status = RunStatusRunning
-		run.Progress = 25
+		run.Progress = 30
 		run.StartedAt = time.Now().Unix()
 	})
 
-	time.Sleep(40 * time.Millisecond)
-	m.update(runID, func(run *Run) {
-		run.Progress = 70
-	})
+	ctx, cancel := context.WithTimeout(context.Background(), m.executionTimeout)
+	defer cancel()
 
-	time.Sleep(40 * time.Millisecond)
+	outcome, err := m.executor.Execute(ctx, run.Request, strategyPath)
+	if err != nil {
+		m.update(runID, func(run *Run) {
+			run.Status = RunStatusFailed
+			run.Progress = 100
+			run.CompletedAt = time.Now().Unix()
+			run.Error = err.Error()
+		})
+		return
+	}
+
 	m.update(runID, func(run *Run) {
-		simulated := simulateResult(run.Request)
 		run.Status = RunStatusCompleted
 		run.Progress = 100
 		run.CompletedAt = time.Now().Unix()
-		run.Result = &simulated
+		run.UpstreamID = outcome.UpstreamTaskID
+		run.Result = outcome.Result
 	})
 }
 

@@ -44,6 +44,7 @@ func BacktestCapabilitiesHandler(strategyDir string) http.HandlerFunc {
 				"risk-sizing-modules",
 				"grpc-jsonrpc-gateway",
 				"run-orchestration",
+				"real-executor-optional",
 			},
 		}
 

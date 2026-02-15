@@ -97,5 +97,8 @@ Conclusion:
     - `POST /api/v1/backtest/runs`
     - `GET /api/v1/backtest/runs`
     - `GET /api/v1/backtest/runs/{id}`
-  - Current run result is deterministic simulation baseline; full executor binding to real GCT backtester process remains the next step.
+  - Run manager now supports two execution modes:
+    - simulated baseline (default, contract/dev flow)
+    - optional real GCT backtester execution via gRPC (`ExecuteStrategyFromFile` -> `StartTask` -> `ListAllTasks`) behind env toggle.
+  - Remaining gap for full production parity: direct extraction of full metrics/artifacts from completed GCT tasks into gateway result contract.
 - This keeps GCT focused as crypto engine while the gateway starts handling multi-asset routing under one contract.

@@ -54,6 +54,9 @@ This folder hosts the Go layer for Tradeview Fusion.
   - BOJ/SNB policy-rate defaults are resolved via FRED-series aliases (`POLICY_RATE`)
 - Optional macro ingest/ETL baseline is active:
   - `MACRO_INGEST_ENABLED=true` runs periodic snapshots to `go-backend/data/macro`
+- Optional real backtest executor is active (env-gated):
+  - default mode: simulated run executor (for local/dev contract validation)
+  - real mode: GCT backtester task lifecycle via gRPC (`ExecuteStrategyFromFile` -> `StartTask` -> `ListAllTasks`)
 - Quote endpoint has strict input validation + explicit gateway/upstream error mapping (`400`, `502`, `504`).
 - SSE stream now emits:
   - `ready` event (resolved params)
@@ -116,6 +119,17 @@ Environment for News:
 Environment for Backtest capability discovery:
 
 - `GCT_STRATEGY_EXAMPLES_DIR` (default: `vendor-forks/gocryptotrader/backtester/config/strategyexamples`)
+
+Environment for real GCT backtest execution (optional):
+
+- `GCT_BACKTEST_EXECUTOR_ENABLED` (default: `false`)
+- `GCT_BACKTEST_GRPC_ADDRESS` (example: `127.0.0.1:9054`)
+- `GCT_BACKTEST_USERNAME` (fallback: `GCT_USERNAME`)
+- `GCT_BACKTEST_PASSWORD` (fallback: `GCT_PASSWORD`)
+- `GCT_BACKTEST_INSECURE_TLS` (default: `false`)
+- `GCT_BACKTEST_REQUEST_TIMEOUT_MS` (default: `8000`)
+- `GCT_BACKTEST_POLL_INTERVAL_MS` (default: `750`)
+- `GCT_BACKTEST_RUN_TIMEOUT_MS` (default: `300000`)
 
 Environment for macro ingest snapshots:
 
