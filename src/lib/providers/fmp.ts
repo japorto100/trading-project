@@ -144,6 +144,3 @@ export class FMPProvider implements MarketDataProvider {
 }
 
 export default FMPProvider;
-
-
-

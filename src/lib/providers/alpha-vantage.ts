@@ -58,7 +58,7 @@ export class AlphaVantageProvider implements MarketDataProvider {
 				`${this.baseUrl}?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=${this.apiKey}`,
 			);
 			const data = await response.json();
-			return !data["Error Message"] && !data["Note"];
+			return !data["Error Message"] && !data.Note;
 		} catch {
 			return false;
 		}
@@ -109,8 +109,8 @@ export class AlphaVantageProvider implements MarketDataProvider {
 		const response = await fetch(`${this.baseUrl}?${queryString}`);
 		const data = await response.json();
 
-		if (data["Error Message"] || data["Note"]) {
-			throw new Error(data["Error Message"] || data["Note"]);
+		if (data["Error Message"] || data.Note) {
+			throw new Error(data["Error Message"] || data.Note);
 		}
 
 		// Parse response

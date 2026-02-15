@@ -153,6 +153,3 @@ export class EODHDProvider implements MarketDataProvider {
 }
 
 export default EODHDProvider;
-
-
-

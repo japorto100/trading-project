@@ -260,19 +260,15 @@ export class IndicatorLayer implements Layer {
 	name = "indicators";
 	zIndex = 4;
 	visible = true;
-	private config: ChartConfig;
 	private coordSystem: CoordinateSystem;
 	private indicators: IndicatorConfig[] = [];
 	private indicatorData: Map<string, IndicatorResult[]> = new Map();
 
-	constructor(config: ChartConfig, coordSystem: CoordinateSystem) {
-		this.config = config;
+	constructor(_config: ChartConfig, coordSystem: CoordinateSystem) {
 		this.coordSystem = coordSystem;
 	}
 
-	setConfig(config: ChartConfig) {
-		this.config = config;
-	}
+	setConfig(_config: ChartConfig) {}
 
 	setIndicators(indicators: IndicatorConfig[]) {
 		this.indicators = indicators;
@@ -416,19 +412,15 @@ export class DrawingLayer implements Layer {
 	name = "drawing";
 	zIndex = 6;
 	visible = true;
-	private config: ChartConfig;
 	private coordSystem: CoordinateSystem;
 	private drawings: Drawing[] = [];
 	private activeDrawing: Drawing | null = null;
 
-	constructor(config: ChartConfig, coordSystem: CoordinateSystem) {
-		this.config = config;
+	constructor(_config: ChartConfig, coordSystem: CoordinateSystem) {
 		this.coordSystem = coordSystem;
 	}
 
-	setConfig(config: ChartConfig) {
-		this.config = config;
-	}
+	setConfig(_config: ChartConfig) {}
 
 	setDrawings(drawings: Drawing[]) {
 		this.drawings = drawings;

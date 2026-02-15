@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, RefreshCw } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -192,9 +193,12 @@ export function NewsPanel({ symbol }: NewsPanelProps) {
 							</DialogHeader>
 							<div className="mt-3 flex-1 space-y-3 overflow-y-auto">
 								{selectedArticle.imageUrl && (
-									<img
+									<Image
 										src={selectedArticle.imageUrl}
 										alt={selectedArticle.title}
+										width={1200}
+										height={560}
+										unoptimized
 										className="h-56 w-full rounded-md border border-border object-cover"
 									/>
 								)}

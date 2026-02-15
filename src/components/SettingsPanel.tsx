@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Database, ExternalLink, Globe, Key, Loader2, Settings, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +66,7 @@ export function SettingsPanel() {
 		}
 	}, []);
 
-	const fetchProviderStatus = async () => {
+	const fetchProviderStatus = useCallback(async () => {
 		setLoading(true);
 		try {
 			const response = await fetch("/api/market/providers");
@@ -79,7 +79,7 @@ export function SettingsPanel() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
 
 	// Fetch provider status when dialog opens
 	useEffect(() => {

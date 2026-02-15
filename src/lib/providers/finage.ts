@@ -146,6 +146,3 @@ export class FinageProvider implements MarketDataProvider {
 }
 
 export default FinageProvider;
-
-
-
