@@ -68,19 +68,26 @@ export function PortfolioPanel() {
 		setLoading(true);
 		try {
 			const params = new URLSearchParams({ profileKey });
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000);
 			const response = await fetch(`/api/fusion/portfolio?${params.toString()}`, {
 				cache: "no-store",
+				signal: controller.signal,
 			});
+			clearTimeout(timeoutId);
 			if (!response.ok) {
 				throw new Error(`Portfolio fetch failed (${response.status})`);
 			}
 			const payload = (await response.json()) as { snapshot?: PortfolioSnapshot };
 			setSnapshot(payload.snapshot ?? null);
 		} catch (error) {
-			toast({
-				title: "Portfolio unavailable",
-				description: error instanceof Error ? error.message : "Could not load portfolio snapshot.",
-			});
+			if (!(error instanceof DOMException && error.name === "AbortError")) {
+				toast({
+					title: "Portfolio unavailable",
+					description:
+						error instanceof Error ? error.message : "Could not load portfolio snapshot.",
+				});
+			}
 		} finally {
 			setLoading(false);
 		}

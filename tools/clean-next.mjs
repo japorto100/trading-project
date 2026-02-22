@@ -19,7 +19,7 @@ async function cleanWithRetry() {
 				typeof error === "object" && error !== null && "code" in error
 					? error.code
 					: undefined;
-			if ((code === "EPERM" || code === "EBUSY") && attempt < MAX_RETRIES) {
+			if ((code === "EPERM" || code === "EBUSY" || code === "ENOTEMPTY") && attempt < MAX_RETRIES) {
 				await sleep(RETRY_DELAY_MS * attempt);
 				continue;
 			}

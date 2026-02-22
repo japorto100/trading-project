@@ -62,9 +62,13 @@ export function NewsPanel({ symbol }: NewsPanelProps) {
 				if (forceRefresh) {
 					params.set("refresh", "1");
 				}
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 8000);
 				const response = await fetch(`/api/market/news?${params.toString()}`, {
 					cache: "no-store",
+					signal: controller.signal,
 				});
+				clearTimeout(timeoutId);
 				const payload = (await response.json()) as NewsApiResponse;
 				if (!response.ok || !payload.success) {
 					throw new Error(payload.error || `News request failed (${response.status})`);
@@ -74,7 +78,11 @@ export function NewsPanel({ symbol }: NewsPanelProps) {
 				setProviders(Array.isArray(payload.providers) ? payload.providers : []);
 				setSources(Array.isArray(payload.sources) ? payload.sources : []);
 			} catch (requestError) {
-				setError(requestError instanceof Error ? requestError.message : "Unknown news error");
+				if (requestError instanceof DOMException && requestError.name === "AbortError") {
+					setError("News request timed out. Try Refresh.");
+				} else {
+					setError(requestError instanceof Error ? requestError.message : "Unknown news error");
+				}
 			} finally {
 				setLoading(false);
 			}
@@ -127,6 +135,12 @@ export function NewsPanel({ symbol }: NewsPanelProps) {
 			</div>
 
 			<div className="flex-1 overflow-y-auto p-3 space-y-2">
+				{loading && (
+					<div className="flex items-center gap-2 rounded-md border border-border p-3">
+						<RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+						<p className="text-xs text-muted-foreground">Loading news...</p>
+					</div>
+				)}
 				{error && (
 					<div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-500">
 						{error}

@@ -144,7 +144,7 @@ func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string,
 			Cause:   err,
 		}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		return nil, &gct.RequestError{

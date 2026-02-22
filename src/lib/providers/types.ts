@@ -2,7 +2,18 @@
 // Based on research: Alpha Vantage, Finnhub, Twelve Data, ECB
 
 export type AssetType = "stock" | "crypto" | "fx" | "index" | "etf" | "commodity";
-export type TimeframeValue = "1m" | "5m" | "15m" | "30m" | "1H" | "4H" | "1D" | "1W" | "1M";
+export type TimeframeValue =
+	| "1m"
+	| "3m"
+	| "5m"
+	| "15m"
+	| "30m"
+	| "1H"
+	| "2H"
+	| "4H"
+	| "1D"
+	| "1W"
+	| "1M";
 
 export interface OHLCVData {
 	time: number;
@@ -213,10 +224,12 @@ export const PROVIDER_REGISTRY: Record<string, ProviderInfo> = {
 export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	alphavantage: {
 		"1m": "1min",
+		"3m": "1min", // Fallback
 		"5m": "5min",
 		"15m": "15min",
 		"30m": "30min",
 		"1H": "60min",
+		"2H": "60min", // Fallback
 		"4H": "60min", // Alpha Vantage doesn't support 4H
 		"1D": "daily",
 		"1W": "weekly",
@@ -224,10 +237,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	finnhub: {
 		"1m": "1",
+		"3m": "1", // Fallback
 		"5m": "5",
 		"15m": "15",
 		"30m": "30",
 		"1H": "60",
+		"2H": "120",
 		"4H": "240",
 		"1D": "D",
 		"1W": "W",
@@ -235,10 +250,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	twelvedata: {
 		"1m": "1min",
+		"3m": "3min",
 		"5m": "5min",
 		"15m": "15min",
 		"30m": "30min",
 		"1H": "1h",
+		"2H": "2h",
 		"4H": "4h",
 		"1D": "1day",
 		"1W": "1week",
@@ -246,10 +263,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	yahoo: {
 		"1m": "1m",
+		"3m": "2m", // Fallback
 		"5m": "5m",
 		"15m": "15m",
 		"30m": "30m",
 		"1H": "60m",
+		"2H": "1h", // Fallback
 		"4H": "1h",
 		"1D": "1d",
 		"1W": "1wk",
@@ -257,10 +276,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	yfinance: {
 		"1m": "1m",
+		"3m": "2m", // Fallback
 		"5m": "5m",
 		"15m": "15m",
 		"30m": "30m",
 		"1H": "60m",
+		"2H": "1h", // Fallback
 		"4H": "1h",
 		"1D": "1d",
 		"1W": "1wk",
@@ -268,10 +289,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	fmp: {
 		"1m": "1min",
+		"3m": "1min", // Fallback
 		"5m": "5min",
 		"15m": "15min",
 		"30m": "30min",
 		"1H": "1hour",
+		"2H": "1hour", // Fallback
 		"4H": "4hour",
 		"1D": "1day",
 		"1W": "1week",
@@ -279,10 +302,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	eodhd: {
 		"1m": "1m",
+		"3m": "1m", // Fallback
 		"5m": "5m",
 		"15m": "15m",
 		"30m": "30m",
 		"1H": "1h",
+		"2H": "1h", // Fallback
 		"4H": "4h",
 		"1D": "d",
 		"1W": "w",
@@ -290,10 +315,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	marketstack: {
 		"1m": "N/A",
+		"3m": "N/A",
 		"5m": "N/A",
 		"15m": "N/A",
 		"30m": "N/A",
 		"1H": "N/A",
+		"2H": "N/A",
 		"4H": "N/A",
 		"1D": "daily",
 		"1W": "weekly",
@@ -301,10 +328,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	polygon: {
 		"1m": "1/minute",
+		"3m": "1/minute", // Fallback
 		"5m": "5/minute",
 		"15m": "15/minute",
 		"30m": "30/minute",
 		"1H": "1/hour",
+		"2H": "1/hour", // Fallback
 		"4H": "4/hour",
 		"1D": "1/day",
 		"1W": "1/week",
@@ -312,10 +341,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	coinmarketcap: {
 		"1m": "1m",
+		"3m": "1m", // Fallback
 		"5m": "5m",
 		"15m": "15m",
 		"30m": "30m",
 		"1H": "1h",
+		"2H": "1h", // Fallback
 		"4H": "4h",
 		"1D": "1d",
 		"1W": "7d",
@@ -323,10 +354,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	ccxt: {
 		"1m": "1m",
+		"3m": "1m", // Fallback
 		"5m": "5m",
 		"15m": "15m",
 		"30m": "30m",
 		"1H": "1h",
+		"2H": "2h",
 		"4H": "4h",
 		"1D": "1d",
 		"1W": "1w",
@@ -334,10 +367,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	finage: {
 		"1m": "1m",
+		"3m": "1m", // Fallback
 		"5m": "5m",
 		"15m": "15m",
 		"30m": "30m",
 		"1H": "1h",
+		"2H": "2h",
 		"4H": "4h",
 		"1D": "1d",
 		"1W": "1w",
@@ -345,10 +380,12 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 	},
 	fred: {
 		"1m": "N/A",
+		"3m": "N/A",
 		"5m": "N/A",
 		"15m": "N/A",
 		"30m": "N/A",
 		"1H": "N/A",
+		"2H": "N/A",
 		"4H": "N/A",
 		"1D": "d",
 		"1W": "w",
@@ -359,18 +396,22 @@ export const TIMEFRAME_MAP: Record<string, Record<TimeframeValue, string>> = {
 		"1W": "W",
 		"1M": "M",
 		"1m": "D",
+		"3m": "D",
 		"5m": "D",
 		"15m": "D",
 		"30m": "D",
 		"1H": "D",
+		"2H": "D",
 		"4H": "D",
 	},
 	demo: {
 		"1m": "1m",
+		"3m": "3m",
 		"5m": "5m",
 		"15m": "15m",
 		"30m": "30m",
 		"1H": "1H",
+		"2H": "2H",
 		"4H": "4H",
 		"1D": "1D",
 		"1W": "1W",

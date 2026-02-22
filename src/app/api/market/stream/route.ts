@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
 			let closed = false;
 			let pollingTimer: ReturnType<typeof setInterval> | null = null;
 			let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+			let degraded = false;
 
 			const close = () => {
 				if (closed) return;
@@ -106,8 +107,26 @@ export async function GET(request: NextRequest) {
 							emittedAt: nowSec,
 						}),
 					);
+					if (degraded) {
+						degraded = false;
+						controller.enqueue(
+							sseEvent("stream_status", {
+								state: "live",
+								message: "candle stream recovered",
+								ts: new Date().toISOString(),
+							}),
+						);
+					}
 				} catch (error) {
 					const message = error instanceof Error ? error.message : "stream fetch failed";
+					degraded = true;
+					controller.enqueue(
+						sseEvent("stream_status", {
+							state: "degraded",
+							message,
+							ts: new Date().toISOString(),
+						}),
+					);
 					controller.enqueue(sseEvent("error", { symbol, timeframe, message }));
 				}
 			};
@@ -119,6 +138,13 @@ export async function GET(request: NextRequest) {
 					symbol,
 					timeframe,
 					pollMs,
+				}),
+			);
+			controller.enqueue(
+				sseEvent("stream_status", {
+					state: "live",
+					message: "candle stream connected",
+					ts: new Date().toISOString(),
 				}),
 			);
 

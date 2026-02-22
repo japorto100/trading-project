@@ -1,0 +1,37 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp"
+      ]
+    },
+    "chroma-memory": {
+      "command": "chroma-mcp-server",
+      "args": [
+        "--client-type",
+        "persistent",
+        "--data-dir",
+        "./.gemini/chroma_data"
+      ]
+    },
+    "firecrawl": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "firecrawl-mcp"
+      ],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-e66f32b3a9d14c979c0bd42700ab3bd4"
+      }
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    }
+  }
+}

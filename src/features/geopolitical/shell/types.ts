@@ -12,9 +12,9 @@ import type { MarketNewsArticle } from "@/lib/news/types";
 
 export interface GeoEventsResponse {
 	success: boolean;
-	source?: "local" | "acled";
+	source?: "local" | "acled" | "gdelt";
 	meta?: {
-		source: "acled";
+		source: "acled" | "gdelt";
 		page: number;
 		pageSize: number;
 		total: number;
@@ -84,7 +84,7 @@ export interface GeoNewsResponse {
 
 export interface GeoGraphResponse {
 	success: boolean;
-	source: "local" | "acled";
+	source: "local" | "acled" | "gdelt";
 	nodeCount: number;
 	edgeCount: number;
 	nodes: Array<{

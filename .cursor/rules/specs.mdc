@@ -1,0 +1,34 @@
+---
+description: Rules for working with spec files. How to read, update, and maintain the project specifications.
+globs: docs/specs/**/*.md,docs/*.md
+alwaysApply: false
+---
+
+# Spec Files Rules
+
+## Spec Hierarchy
+
+| Datei | Rolle | Update-Trigger |
+|:---|:---|:---|
+| `docs/specs/EXECUTION_PLAN.md` | Phasen-Roadmap, Tasks, Gates | Checkboxen `[x]` nach jeder Phase |
+| `docs/specs/SYSTEM_STATE.md` | IST/SOLL pro Bereich | IST-Spalte nach Phase-Freeze |
+| `docs/specs/API_CONTRACTS.md` | Endpoint-Definitionen | Vor Implementierung eines neuen Endpoints |
+| `docs/specs/AUTH_SECURITY.md` | 3-Schichten Auth | Nach Phase 6 |
+| `docs/FRONTEND_ARCHITECTURE.md` | Frontend Landkarte | Nach größeren UI-Änderungen |
+| `docs/webapp.md` | Bug/Fix Tracker | Während Development |
+
+## Arbeitsregeln
+
+1. **Specs sind Source of Truth.** Code muss den Specs entsprechen, nicht umgekehrt.
+2. **Contract-First:** Endpoint in `API_CONTRACTS.md` definieren BEVOR Code geschrieben wird.
+3. **Progress nur in Specs tracken.** Nicht in den Referenz-Docs (`ADR-001`, `GEOPOLITICAL_MAP_MASTERPLAN.md`, etc.).
+4. **Phasen-Loop einhalten:** Implementierung → Test → Refinement → Verify Gate → Review Gate → Freeze.
+5. **Boundary-Order einhalten:** TS↔Go erst, dann Go↔Python/Rust, dann End-to-End.
+
+## Update-Protokoll
+
+Nach Phase-Abschluss:
+1. `EXECUTION_PLAN.md`: Checkboxen `[x]` setzen
+2. `SYSTEM_STATE.md`: IST-Spalte auf neuen Stand bringen
+3. `webapp.md`: Visual Audit Ergebnis notieren
+4. Andere Docs (Root-Docs) bleiben Referenz — nicht updaten

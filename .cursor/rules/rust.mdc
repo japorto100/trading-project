@@ -1,0 +1,55 @@
+---
+description: Rust core conventions. PyO3, WASM, Kand, Polars, redb. Build targets and integration patterns.
+globs: python-backend/rust_core/**/*.rs,**/rust_core/**/*.rs
+alwaysApply: false
+---
+
+# Rust Core Rules
+
+## Role
+
+Rust ist der **Performance-Kern** für CPU-intensive Berechnungen. Drei Build-Targets:
+
+| Target | Phase | Zweck |
+|:---|:---|:---|
+| **PyO3** (Python) | 1 | Indicator Core, Pattern Detection, Strategy Evaluation. Wird von Python importiert. |
+| **WASM** (Browser) | 2 | Gleicher Code wie PyO3, anderes Build-Target. Frontend-Indikatoren 3-8x schneller. |
+| **Native** (CLI/Axum) | 3 | Backtester, redb-Cache direkt. Kein Python-Roundtrip. |
+
+## Package Layout
+
+```
+python-backend/rust_core/
+├── Cargo.toml
+├── src/
+│   ├── lib.rs
+│   ├── indicators/     # SMA, EMA, RSI, MACD, etc. (kand)
+│   ├── patterns/      # Elliott, Harmonic, Candlestick, Fibonacci
+│   ├── strategy/      # Composite Signal, Evaluation
+│   ├── cache/         # redb OHLCV Store (Phase 1-2)
+│   ├── backtest/      # Engine (Phase 3)
+│   └── geo/           # h3o, petgraph (v3, optional)
+├── python/             # PyO3 cdylib target
+└── wasm/               # wasm-pack target (Phase 2)
+```
+
+## Conventions
+
+- **Kand** als TA-Basis evaluieren. Eigenimplementierung nur für fehlende Indikatoren (Elliott, Harmonic).
+- **Polars** für DataFrames. Arrow Zero-Copy zwischen Python und Rust.
+- **redb** für OHLCV-Cache. TTL: Intraday 5min, Daily 24h.
+- **Rayon** für parallele Berechnung (`par_iter`). GIL-free mit PyO3 0.28.
+- **Error Handling:** `PyResult<T>`, `?` operator. Rust Panic → PyErr → Python 500.
+- **Tests:** `cargo test` in rust_core. Integration tests in Python.
+
+## Thin Wrapper Rule
+
+Python ist **Thin Wrapper**. Keine Business-Logik in Python die in Rust sein sollte. Wenn etwas über Arrays iteriert oder mathematisch intensiv ist → Rust.
+
+## Tauri (Optional)
+
+**Tauri v2** ist eine wichtige Option für Desktop/Mobile: gleicher React-Code, Rust-Backend nativ. 3-10 MB statt 250 MB (Electron). Siehe `RUST_LANGUAGE_IMPLEMENTATION.md` Sek. 7.
+
+## Vollständige Strategie
+
+Siehe `docs/RUST_LANGUAGE_IMPLEMENTATION.md` — Phasen-Roadmap, Architektur-Zielbild, Kand/Polars/redb Details, Geo-Map Backend, Tauri.

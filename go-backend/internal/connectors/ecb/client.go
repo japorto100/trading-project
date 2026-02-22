@@ -109,9 +109,9 @@ func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, limit int) ([]gct
 			Cause:      fmt.Errorf("invalid pair"),
 		}
 	}
-	if limit <= 0 {
-		limit = 1
-	}
+	// ECB provides only the latest daily rate; limit is accepted for interface
+	// compatibility but effectively always 1.
+	_ = limit
 
 	envelope, err := c.fetchRates(ctx)
 	if err != nil {
@@ -167,7 +167,7 @@ func (c *Client) fetchRates(ctx context.Context) (fxEnvelope, error) {
 			Cause:   err,
 		}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		return fxEnvelope{}, &gct.RequestError{

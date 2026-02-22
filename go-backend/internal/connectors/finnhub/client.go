@@ -111,7 +111,7 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 			Cause:   err,
 		}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		return gct.Ticker{}, &gct.RequestError{
@@ -215,7 +215,7 @@ func (c *Client) OpenTradeStream(ctx context.Context, symbol string) (<-chan gct
 	go func() {
 		defer close(tickerChannel)
 		defer close(errorChannel)
-		defer connection.Close()
+		defer func() { _ = connection.Close() }()
 
 		for {
 			select {

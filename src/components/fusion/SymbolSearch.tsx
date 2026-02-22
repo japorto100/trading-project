@@ -1,7 +1,7 @@
 "use client";
 
 import { Activity, BarChart3, DollarSign, Search, Star, TrendingUp, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +17,7 @@ interface SymbolSearchProps {
 	onOpenChange: (value: boolean) => void;
 	onSelect: (symbol: FusionSymbol) => void;
 	onToggleFavorite: (symbol: string) => void;
+	searchPending?: boolean;
 }
 
 function getSymbolIcon(type: FusionSymbol["type"]) {
@@ -42,8 +43,10 @@ export function SymbolSearch({
 	onOpenChange,
 	onSelect,
 	onToggleFavorite,
+	searchPending = false,
 }: SymbolSearchProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
+	const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
 	useEffect(() => {
 		const handler = (event: MouseEvent) => {
@@ -56,7 +59,24 @@ export function SymbolSearch({
 	}, [onOpenChange]);
 
 	const showPopular = query.trim().length === 0;
+	const selectableSymbols = useMemo(
+		() => (showPopular ? popularSymbols : results),
+		[popularSymbols, results, showPopular],
+	);
 	const showEmpty = !showPopular && results.length === 0;
+
+	useEffect(() => {
+		if (!open) {
+			setHighlightedIndex(-1);
+			return;
+		}
+		setHighlightedIndex(selectableSymbols.length > 0 ? 0 : -1);
+	}, [open, selectableSymbols.length]);
+
+	useEffect(() => {
+		if (highlightedIndex < selectableSymbols.length) return;
+		setHighlightedIndex(selectableSymbols.length > 0 ? selectableSymbols.length - 1 : -1);
+	}, [highlightedIndex, selectableSymbols.length]);
 
 	return (
 		<div ref={containerRef} className="relative">
@@ -73,6 +93,40 @@ export function SymbolSearch({
 						onOpenChange(true);
 					}}
 					onFocus={() => onOpenChange(true)}
+					onKeyDown={(event) => {
+						if (!open && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+							onOpenChange(true);
+							return;
+						}
+
+						if (event.key === "Escape") {
+							onOpenChange(false);
+							return;
+						}
+
+						if (event.key === "ArrowDown") {
+							event.preventDefault();
+							if (selectableSymbols.length === 0) return;
+							setHighlightedIndex((prev) => (prev < selectableSymbols.length - 1 ? prev + 1 : 0));
+							return;
+						}
+
+						if (event.key === "ArrowUp") {
+							event.preventDefault();
+							if (selectableSymbols.length === 0) return;
+							setHighlightedIndex((prev) => (prev <= 0 ? selectableSymbols.length - 1 : prev - 1));
+							return;
+						}
+
+						if (event.key === "Enter") {
+							const selected =
+								highlightedIndex >= 0 ? selectableSymbols[highlightedIndex] : selectableSymbols[0];
+							if (selected) {
+								event.preventDefault();
+								onSelect(selected);
+							}
+						}
+					}}
 					className="border-none bg-transparent px-0 shadow-none focus-visible:ring-0"
 				/>
 				{query ? (
@@ -95,12 +149,12 @@ export function SymbolSearch({
 						<div className="p-3 border-b border-border">
 							<p className="text-xs text-muted-foreground mb-2">Popular</p>
 							<div className="flex flex-wrap gap-2">
-								{popularSymbols.map((symbol) => (
+								{popularSymbols.map((symbol, index) => (
 									<button
 										key={symbol.symbol}
 										type="button"
 										onClick={() => onSelect(symbol)}
-										className="px-2.5 py-1 rounded-md text-xs bg-accent/40 hover:bg-accent"
+										className={`px-2.5 py-1 rounded-md text-xs ${highlightedIndex === index ? "bg-accent" : "bg-accent/40 hover:bg-accent"}`}
 									>
 										{symbol.symbol}
 									</button>
@@ -112,15 +166,27 @@ export function SymbolSearch({
 					<ScrollArea className="max-h-72">
 						{showEmpty ? (
 							<div className="px-3 py-4 text-sm text-muted-foreground">No results</div>
+						) : searchPending ? (
+							<div className="px-3 py-4 text-sm text-muted-foreground">Searching...</div>
 						) : (
-							results.map((symbol) => {
+							results.map((symbol, index) => {
 								const isFavorite = favorites.includes(symbol.symbol);
 								return (
-									<button
+									<div
 										key={symbol.symbol}
-										type="button"
+										role="button"
+										tabIndex={0}
 										onClick={() => onSelect(symbol)}
-										className="w-full px-3 py-2.5 flex items-center justify-between hover:bg-accent/50"
+										onMouseEnter={() => setHighlightedIndex(index)}
+										onKeyDown={(event) => {
+											if (event.key === "Enter" || event.key === " ") {
+												event.preventDefault();
+												onSelect(symbol);
+											}
+										}}
+										className={`w-full px-3 py-2.5 flex items-center justify-between ${
+											highlightedIndex === index ? "bg-accent/60" : "hover:bg-accent/50"
+										}`}
 									>
 										<div className="flex items-center gap-2.5 text-left">
 											<div className="h-8 w-8 rounded-md bg-accent/40 flex items-center justify-center">
@@ -147,7 +213,7 @@ export function SymbolSearch({
 												<Star className={`h-4 w-4 ${isFavorite ? "fill-amber-500" : ""}`} />
 											</button>
 										</div>
-									</button>
+									</div>
 								);
 							})
 						)}

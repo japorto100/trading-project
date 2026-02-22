@@ -1,162 +1,182 @@
-# TradingView Clones Agent Guide
+# TradeView Fusion — Agent Guide
 
-## Scope
-- Primary app: `tradeview-fusion/`.
-- `archive/` is historical material. Do not edit files there unless explicitly asked.
-- This document is the shared source of truth for coding agents in this workspace.
+> **Stand:** 22. Februar 2026
+> Shared source of truth for all coding agents in this workspace.
+> **Detaillierte Regeln:** `.cursor/rules/` (project.mdc, go-backend.mdc, python-backend.mdc, frontend.mdc, specs.mdc)
 
-## Project Role
-Build and maintain a Next.js 16 + React 19 trading platform clone with:
-- charting and paper-trading workflows,
-- a geopolitical map module,
-- Prisma-backed persistence,
-- server and client routes in one monorepo-style app folder.
+## Start Here
 
-## Environment And CLI
-Keep the modern CLI workflow at the top and verify tools before use.
+1. Read **this file** completely (mandatory).
+2. Read `docs/specs/EXECUTION_PLAN.md` — master roadmap with 22+1 phases, sub-phases, dependencies, and current progress marker.
+3. Read `docs/specs/SYSTEM_STATE.md` — IST/SOLL per architecture layer (ground truth for what exists vs. what is planned).
+4. Read the model-specific guide if present: `CLAUDE.md`, `GEMINI.md`, or `CODEX.md`.
+5. Read the spec document for the area you are working on (see table below).
 
-```bash
-command -v bun node git rg fd jq yq gh
-cd tradeview-fusion
-bun install
-bun run dev
-bun run lint
-bun run build
-bun audit
-```
+> **Rule:** Never implement a feature without first reading its spec document. Cross-check phase dependencies in `EXECUTION_PLAN.md`.
 
-PowerShell equivalents are fine when needed.
+## Project
+
+Multi-service trading platform: real-time charting, geopolitical risk map, portfolio management, algorithmic signal analysis, AI-driven agent system with game theory simulation and memory architecture.
+
+## Architecture (IST: 4 Services + GCT | SOLL: +3 geplant)
+
+| Service | Sprache | Port(s) | Ordner | Status |
+|:---|:---|:---|:---|:---|
+| **Frontend** | TypeScript (Next.js 16, React 19) | 3000 | `src/` | Aktiv |
+| **Go Gateway** | Go 1.23+ | 9060 | `go-backend/` | Aktiv |
+| **Python Indicator** | Python 3.12+ (FastAPI) | 8090 | `python-backend/` | Aktiv |
+| **Python Soft-Signals** | Python 3.12+ (FastAPI) | 8091 | `python-backend/` | Aktiv |
+| **Python Finance-Bridge** | Python 3.12+ (FastAPI) | 8092 | `python-backend/` | Aktiv |
+| **Rust Core** | Rust (PyO3) | -- (lib) | `python-backend/rust_core/` | Skeleton |
+| **GCT (Fork)** | Go | 9052 (gRPC), 9053 (JSON-RPC) | `go-backend/vendor-forks/gocryptotrader/` | Aktiv |
+| **Redis** | -- | 6379 | Docker | Geplant (Phase 6) |
+| **Memory Service** | Python (FastAPI) | 8093 | `python-backend/` | Geplant (Phase 6) |
+| **Agent Service** | Python (FastAPI) | 8094 | `python-backend/` | Geplant (Phase 10) |
+
+**Data Flow:** Browser → Next.js → Go Gateway → Python/Rust oder GCT oder External Provider.
+**Rule #1:** Frontend darf NUR Go aufrufen. Keine direkten Provider- oder Python-Calls.
+
+## Spec-Dateien (LESEN VOR IMPLEMENTIERUNG)
+
+### Specs (docs/specs/)
+
+| Datei | Inhalt | Lesen wenn... |
+|:---|:---|:---|
+| `EXECUTION_PLAN.md` | Phasen-Roadmap (22+1 Phasen), Sub-Phasen, Dependencies, Current Progress | Immer zuerst |
+| `SYSTEM_STATE.md` | IST/SOLL pro Architektur-Bereich (17 Sektionen) | Immer zuerst |
+| `API_CONTRACTS.md` | Alle Endpoint-Definitionen, Request/Response Schemas (13 Sektionen) | Endpoint-Arbeit |
+| `AUTH_SECURITY.md` | 3-Schichten Auth, RBAC, WebMCP Security, Exchange Key Security | Auth, Security |
+| `FRONTEND_ARCHITECTURE.md` | Komponentenstruktur, State Management, Dependencies, Phase-Mapping | Frontend-Arbeit |
+
+### Domain Docs (docs/)
+
+| Datei | Inhalt | Phase(n) |
+|:---|:---|:---|
+| `GEOPOLITICAL_MAP_MASTERPLAN.md` | GeoMap Vision, 35+ Sektionen, Rendering-Pfad | 4, 12, 19 |
+| `GEOPOLITICAL_OPTIONS.md` | D3-Module-Katalog, Geo-Extensions, Feature→Module Matrix, Install-Plan | 4, 12, 19 |
+| `go-research-financial-data-aggregation-2025-2026.md` | Go Data Router, BaseConnector, 40+ Provider | 0, 7 |
+| `GO_GATEWAY.md` | Gateway-Architektur, Routing, Middleware | 0 |
+| `INDICATOR_ARCHITECTURE.md` | 112 Indikator-Tasks, Rust/Python Split, ML Pipeline | 8, 11, 14, 15 |
+| `RUST_LANGUAGE_IMPLEMENTATION.md` | Polars, redb Cache, WASM, Backtesting Engine | 2, 15 |
+| `Portfolio-architecture.md` | Portfolio Management, HRP, Kelly, Rebalancing | 5, 13 |
+| `UNIFIED_INGESTION_LAYER.md` | UIL: Candidate Pipeline, Review UI, Dedup | 9 |
+| `MEMORY_ARCHITECTURE.md` | 3-Tier Memory (Working/Episodic/Semantic), KG, Vector Store | 6 |
+| `AGENT_ARCHITECTURE.md` | Agent Roles, Deterministic Guards, Workflow Patterns | 10, 16 |
+| `AGENT_TOOLS.md` | MCP, WebMCP, Browser Control, Agentic Search, A2A | 10, 16, 21 |
+| `CONTEXT_ENGINEERING.md` | Context Strategy, Token Budget, Dynamic Pruning | 10, 16 |
+| `GAME_THEORY.md` | Nash→EGT→MFG Progression, 36 Strategeme KG, Simulation | 17 |
+| `ENTROPY_NOVELTY.md` | Entropy Health Monitor, Market Entropy Index, Early Warning | 18 |
+| `POLITICAL_ECONOMY_KNOWLEDGE.md` | Keen/Minsky, Heterodox Economics, Crisis Modeling | Referenz |
+| `FRONTEND_DESIGN_TOOLING.md` | Design Tokens, Component Library, Tooling Decisions | 21 |
+| `ADR-001-streaming-architecture.md` | SSE Streaming Architecture Decision | 3 |
+| `PROVIDER_LIMITS.md` | Provider Rate Limits, Quotas, Fallback Chain | 0, 7 |
+
+### Nicht-relevante Docs (nur bei expliziter Anfrage lesen)
+
+`Advanced-architecture-for-the-future.md`, `CHERI-relevant-2027-2030.md`, `Future-Quant-trading.md`, `ENV_VARS.md`, `REMOTE_DEV_SETUP.md`, `REFERENCE_PROJECTS.md`
 
 ## Database
-- Active provider: **SQLite** (not PostgreSQL). See `docs/SQLITE_MIGRATION.md`.
-- Connection: `DATABASE_URL="file:./dev.db"` in `.env`.
+
+- **Provider:** SQLite (not PostgreSQL). `DATABASE_URL="file:./dev.db"` in `.env`.
+- **ORM:** Prisma. Schema: `prisma/schema.prisma`.
 - After `bun install`, always run `bun run db:generate` before dev or build.
-- Enums in `prisma/schema.prisma` are commented out because SQLite has no native enum support. The corresponding model fields use `String` instead. The original enum definitions are preserved as comments for reference and for switching back to PostgreSQL later.
-- `bun run db:push` creates/syncs the SQLite file against the schema.
+- Enums are commented out (SQLite limitation). Fields use `String` instead.
+- **Geplant (Phase 6):** Redis fuer Caching + Working Memory. PostgreSQL fuer Episodic Store. KuzuDB WASM fuer Client-Side Knowledge Graph.
 
-## Daily Commands
+## Dev Commands
+
 ```bash
-# after fresh install (required before dev/build)
-bun run db:generate
+# Frontend
+bun install && bun run db:generate
+bun run dev                    # Next.js dev server (port 3000)
+bun run lint                   # Biome check (read-only)
+bun run lint:fix               # Biome auto-fix
+bun run build                  # Production build
 
-# app lifecycle
-bun run dev
-bun run build
-bun run start
+# Go Gateway
+cd go-backend && go run ./cmd/gateway
 
-# quality gates (Biome)
-bun run lint          # biome check ./src (read-only)
-bun run lint:fix      # biome check --write ./src (auto-fix safe issues)
-bun run format        # biome format --write ./src
-bun audit
+# Python
+cd python-backend && source .venv/bin/activate
+uvicorn main:app --port 8090
 
-# dependency inspection
-bun pm untrusted
-bun why <package>
+# Rust Core (inside python-backend)
+cd python-backend/rust_core && maturin develop --release
 
-# database
-bun run db:push
-bun run db:migrate
-bun run db:reset
+# Full Stack (PowerShell)
+.\scripts\dev-stack.ps1
+
+# Database
+bun run db:push                # Sync schema
+bun run db:generate            # Generate Prisma client
 ```
 
-## Architecture Snapshot
-`tradeview-fusion/src/` key areas:
-- `app/`: Next.js app router — 2 pages (`/` trading dashboard, `/geopolitical-map`) and ~30 API routes.
-- `features/trading/`: trading workspace, orders panel, news panel, signal insights, sidebar.
-- `features/geopolitical/`: map shell, canvas, timeline, candidate queue, event inspector, source health.
-- `lib/providers/`: 13 market-data providers with circuit-breaker, caching, and fallback chain.
-- `lib/news/`: multi-source news aggregation with caching and symbol filtering.
-- `lib/alerts/`: price alert system (currently localStorage-only, not Prisma-persistent).
-- `lib/geopolitical/`: confidence ladder, dedup engine, anti-noise alerting, hard/soft-signal adapters.
-- `lib/server/`: file-based JSON stores with Prisma dual-write pattern.
-- `lib/storage/`: client-side preferences persistence (localStorage).
-- `components/`: TradingChart (lightweight-charts), DrawingToolbar, SettingsPanel.
-- `components/fusion/`: WatchlistPanel and trading-specific UI.
-- SSE streams: `/api/market/stream` (candle data), `/api/geopolitical/stream` (map events).
-
-## Map Stack Rules
-- The current world map implementation uses `d3-geo` + `topojson-client` + `world-atlas`.
-- Prefer extending `src/features/geopolitical/MapCanvas.tsx` over introducing alternative map libraries.
-- Avoid re-adding `react-svg-map`; it is legacy for this codebase and mismatched with React 19 peer ranges.
-
-## Tailwind v4
-- Project uses **Tailwind CSS v4** with CSS-first configuration.
-- `src/app/globals.css` is the source of truth: `@import "tailwindcss"` + `@import "tw-animate-css"`.
-- Theme variables are defined in `globals.css` via `@theme inline`.
-- `tailwind.config.ts` is a **v3 relic** and is ignored by Tailwind v4. Do not treat it as active config.
-- Use `tw-animate-css` for animations, NOT `tailwindcss-animate` (v3 plugin, unused).
-
-## Dependency Policy
-- Use `bun` for add/remove/update so `bun.lock` remains authoritative.
-- Keep dependency changes minimal and justified.
-- After dependency changes:
-  1. run `bun install`,
-  2. run `bun pm untrusted`,
-  3. review and trust scripts selectively,
-  4. run `bun audit`.
-
-## Security And Postinstall Guidance
-- Never trust all lifecycle scripts blindly.
-- Review each blocked script purpose before `bun pm trust <name>`.
-- Prefer trusting only required packages (for example native bindings actually needed by runtime).
-
-## PrismJS Advisory Workflow
-If audit reports PrismJS:
-1. Check actual installed versions with `bun why prismjs`.
-2. Prefer upgrading parent packages first (for example `react-syntax-highlighter`, editor packages).
-3. If upstream is lagging, pin with `overrides` only after compatibility check.
-4. Re-run `bun audit` and a smoke test of markdown/code highlighting.
-
-## Known Stubs And Gaps
-- DrawingToolbar Undo/Redo: only `console.log` stubs in `src/components/DrawingToolbar.tsx`.
-- Hard-signal adapters (`src/lib/geopolitical/adapters/hard-signals.ts`): create candidates but do not fetch real data from Fed/ECB/OFAC/UK/UN sources.
-- Candidate TTL expiration: not implemented. Candidates stay `open` indefinitely despite `GEOPOLITICAL_CANDIDATE_TTL_HOURS=72` in env.
-- Authentication: `next-auth` is installed but intentionally not configured. Single-user mode, no auth required at this stage.
-- Price alerts: persisted to localStorage only (`src/lib/alerts/index.ts`), not to Prisma despite `PriceAlertRecord` existing in schema.
-- Drawings GET endpoint: `POST`/`DELETE` exist but no `GET` for loading saved drawings.
-
-## Unused Dependencies
-These packages are in `package.json` but not imported anywhere:
-- `zustand` — state management, not used (React hooks used instead).
-- `@tanstack/react-query` — data fetching, not used (direct fetch calls instead).
-- `next-intl` — internationalization, not configured.
-- `tailwindcss-animate` — replaced by `tw-animate-css` (Tailwind v4 compatible).
-
-Can be removed or adopted later. Do not introduce usage without explicit request.
-
-## Key Documentation
-- `PROJECT_AUDIT.md` — full project audit with priorities and phase plan.
-- `docs/SQLITE_MIGRATION.md` — SQLite migration details and rollback instructions.
-- `docs/GEOPOLITICAL_MAP_MASTERPLAN.md` — comprehensive spec for the geopolitical map feature.
-
-## Linting And Formatting — Biome
-- **Biome** (`@biomejs/biome`) replaces ESLint + Prettier. Config: `biome.json`.
-- ESLint has been removed. Do not re-add ESLint, `eslint.config.mjs`, or ESLint dependencies.
-- Key rules active as **warnings** (not errors): `noExplicitAny`, `noUnusedVariables`, `noUnusedImports`, `useExhaustiveDependencies`, `useImportType`.
-- Rules intentionally **off**: `noForEach`, `noNonNullAssertion`, `noConsole`, `a11y` (trading UI).
-- Formatting: tabs, indent width 2, line width 100, double quotes, semicolons always.
-- CSS: Tailwind directives (`@theme`, `@apply`, `@custom-variant`) are enabled via `css.parser.tailwindDirectives`.
-- Import sorting is automatic via `assist.actions.source.organizeImports`.
-- Current status: **0 errors, ~100 warnings** (91 are `noExplicitAny` — existing tech debt, not new code).
-- To suppress a specific line: `// biome-ignore lint/rule/name: reason` (one line above the offending code).
-
 ## Coding Standards
-- TypeScript-first. Goal is strict typing, but currently 91 `any` warnings (Biome) and `noImplicitAny` is `false` in `tsconfig.json`. For new code: use proper types. For existing code: replace `any` incrementally when touching a file.
-- Error handling in API routes: use `catch (error: unknown)` with `getErrorMessage()` from `@/lib/utils`. Never use `catch (error: any)`.
-- Keep components small and composable. Three files exceed 700 lines (`page.tsx`, `GeopoliticalMapShell.tsx`, `TradingChart.tsx`) and should be split when next modified.
-- Use server/client boundaries intentionally in Next.js.
-- Validate API inputs. Zod v4 is installed but not yet used — prefer Zod schemas for new route validation.
-- Avoid silent fallbacks for critical flows.
-- Keep files ASCII unless existing file already uses Unicode.
 
-## Validation Before Handover
-Run the smallest valid set for changed scope:
-1. `bun run lint`
-2. `bun run build` for routing/runtime/config changes
-3. targeted runtime check (`bun run dev`) when UI or API behavior changed
+### TypeScript (Frontend)
+- Biome linting (`biome.json`). Tabs, indent 2, double quotes, semicolons.
+- No ESLint. Do not re-add.
+- Tailwind v4 (CSS-first, `globals.css` is source of truth, NOT `tailwind.config.ts`).
+- No `any` in new code. `catch (error: unknown)`.
+- Components: Keep <700 LoC. Split when touching large files.
 
-## Collaboration Rules
-- Do not revert user changes unless explicitly requested.
-- Surface unknowns early and propose concrete next actions.
-- Keep docs and instructions aligned with current repo reality.
+### Go (Gateway)
+- Standard `net/http` + Gorilla Mux. No framework.
+- `log/slog` for structured logging. Include `requestId`.
+- Error wrapping: `fmt.Errorf("scope: %w", err)`.
+- Config via `os.Getenv()`. No hardcoded secrets.
+- Tests: `go test -race ./...`
+
+### Python (Services)
+- FastAPI + Pydantic v2. Async handlers.
+- Type hints required on all signatures.
+- Polars for new DataFrames, Pandas only for yfinance compat.
+- `structlog` for JSON logging.
+
+### Rust (Core)
+- PyO3 + maturin build chain.
+- `kand` for TA indicators, `polars` for DataFrames.
+- Tests: `cargo test` + Python integration tests.
+
+## Architectural Rules
+
+1. Frontend → Go only. No direct provider or Python calls.
+2. All API keys in `go-backend/.env`. Zero secrets in frontend.
+3. Go is the network layer. Everything external goes through Go.
+4. Python is thin wrapper. Heavy computation → Rust (PyO3).
+5. Every request has `X-Request-ID` (UUID v4). All services log it.
+6. Contract-first: define endpoint in `API_CONTRACTS.md` before coding.
+7. Vertical development: one boundary at a time (TS↔Go, then Go↔Py/Rs).
+8. Auth zuerst (Phase 1), Memory vor Agents (Phase 6 vor Phase 10).
+9. Redis JA (Phase 6). Entscheidung dokumentiert in `SYSTEM_STATE.md`.
+10. WebMCP ist Default fuer Frontend-Agent-Interaktion. Chrome DevTools MCP fuer Debugging.
+
+## Known Stubs and Gaps
+
+- DrawingToolbar Undo/Redo: console.log stubs.
+- Hard-signal adapters: create candidates but don't fetch real Fed/ECB/OFAC data.
+- Candidate TTL expiration: not implemented.
+- Auth: not implemented. All endpoints open. Phase 1.
+- Zustand: installed but unused. Planned for Phase 4-5.
+- `@tanstack/react-query`: installed but unused. Planned for adoption.
+- Price alerts: localStorage only, not Prisma-persistent.
+- 16 frontend provider implementations in `src/lib/providers/`: will be deleted in Phase 0 (logic moves to Go).
+- Memory/KG/Vector Store: nicht implementiert. Phase 6.
+- Agent Framework: nicht implementiert. Phase 10.
+- Game Theory: statische Heuristik in Soft-Signals. Formalisierung ab Phase 17.
+- Entropy Monitoring: nicht implementiert. Phase 18.
+
+## Map Stack
+
+- `d3-geo` + `d3-drag` + `d3-selection` + `d3-zoom` + `topojson-client` + `world-atlas`.
+- Primary component: `src/features/geopolitical/MapCanvas.tsx`.
+- Extend, do not replace. No alternative map libraries (no Leaflet, no MapLibre).
+- Planned additions (Phase 4): `d3-scale`, `d3-scale-chromatic`, `d3-transition`, `d3-timer`, `d3-ease`, `supercluster`.
+- Planned additions (Phase 12): `d3-inertia`, `d3-geo-voronoi`, `d3-hierarchy`, `d3-force`.
+- Full module catalog: `docs/GEOPOLITICAL_OPTIONS.md`.
+
+## Security
+
+- Never trust all lifecycle scripts. Review before `bun pm trust`.
+- No secrets in logs, API responses, or frontend code.
+- See `docs/specs/AUTH_SECURITY.md` for full security architecture (incl. WebMCP hardening).

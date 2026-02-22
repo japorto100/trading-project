@@ -1,141 +1,131 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# TradeView Fusion
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+Multi-provider trading dashboard built with Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, and shadcn/ui.
 
-## ✨ Technology Stack
-
-This scaffold provides a robust foundation built with:
-
-### 🎯 Core Framework
-- **⚡ Next.js 16** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
-
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
-
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
-
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Fetch** - Promise-based HTTP request
-
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
-
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
-
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
-
-## 🎯 Why This Scaffold?
-
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Start development server
+Copy-Item .env.example .env   # PowerShell
 pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+App runs on `http://localhost:3000`. Empty API keys are fine -- the app falls back to demo data.
 
-## 🤖 Powered by Z.ai
+## Environment
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+Fill `.env` with the provider keys you have. All are optional:
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
+- **Market data:** `TWELVE_DATA_API_KEY`, `FINNHUB_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `FMP_API_KEY`, `EODHD_API_KEY`, `POLYGON_API_KEY`, `COINMARKETCAP_API_KEY`, `FINAGE_API_KEY`, `FRED_API_KEY`
+- **News:** `NEWSDATA_API_KEY`, `GNEWS_API_KEY`, `NEWSAPI_AI_KEY`, `WEBZ_API_KEY`
+- **Optional services:** `YFINANCE_BRIDGE_URL`, `SOFT_SIGNAL_SERVICE_URL`, `INDICATOR_SERVICE_URL`
 
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
+For best experience, add at least one strong market provider (Twelve Data or Finnhub) and one news provider (NewsData or GNews).
 
-## 📁 Project Structure
+Rate limits per provider: see [`docs/PROVIDER_LIMITS.md`](./docs/PROVIDER_LIMITS.md).
 
-```
-src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+## Database (SQLite / Prisma)
+
+The project uses SQLite via Prisma. No external database server needed.
+
+```bash
+pnpm db:generate
+pnpm db:push
 ```
 
-## 🎨 Available Features & Components
+Default `DATABASE_URL` is `file:./dev.db` (set in `.env`). Without it, the app runs in local-storage-only mode.
 
-This scaffold includes a comprehensive set of modern web development tools:
+To revert to PostgreSQL: change `provider` in `prisma/schema.prisma`, re-enable commented enum blocks, set a PostgreSQL connection URL, then re-run `db:push` and `db:generate`.
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+## Scripts
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+| Script | Description |
+|--------|-------------|
+| `pnpm dev` | Start Next.js dev server (port 3000) |
+| `pnpm build` | Production build |
+| `pnpm start` | Start production server |
+| `pnpm lint` | Biome linter check |
+| `pnpm lint:fix` | Auto-fix lint issues |
+| `pnpm format` | Format with Biome |
+| `pnpm db:generate` | Generate Prisma client |
+| `pnpm db:push` | Push schema to database |
+| `pnpm db:migrate` | Run Prisma migrations |
+| `pnpm db:reset` | Reset database |
+| `pnpm dev:with-python` | Next.js + Python services (finance-bridge + soft-signals) |
+| `pnpm dev:full` | Full dev stack |
+| `pnpm dev:full:gct` | Full dev stack + GoCryptoTrader |
+| `pnpm smoke:soft-signals` | Smoke test: geopolitical soft-signal candidates |
+| `pnpm smoke:indicator-service` | Smoke test: Python indicator service |
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+## Project Structure
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Fetch + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+```
+tradeview-fusion/
+├── src/
+│   ├── app/                  # Next.js App Router (pages + API routes)
+│   ├── components/           # Shared React components (AlertPanel, IndicatorPanel, ...)
+│   ├── features/
+│   │   ├── trading/          # Chart, SignalInsightsBar, NewsPanel, OrderPanel, ...
+│   │   └── geopolitical/     # GeoMap, conflict timeline, soft-signal candidates
+│   ├── lib/
+│   │   ├── providers/        # Market data provider adapters (14 providers)
+│   │   ├── indicators/       # TS indicators (SMA, EMA, RSI, MACD, Bollinger, ... 23 functions)
+│   │   ├── alerts/           # Alert engine + verification
+│   │   ├── news/             # News aggregator (12+ sources)
+│   │   ├── orders/           # Paper trading + portfolio
+│   │   ├── storage/          # Local + DB-ready storage adapters
+│   │   ├── server/           # Prisma client + persistence mappers
+│   │   ├── strategy/         # Strategy presets
+│   │   └── geopolitical/     # Geo event scoring + game theory
+│   ├── state/                # Zustand stores
+│   ├── hooks/                # Custom React hooks
+│   └── types/                # Shared TypeScript types
+├── python-backend/
+│   └── services/
+│       ├── finance-bridge/           # yfinance REST bridge
+│       ├── indicator-service/        # FastAPI: composite signals, patterns, exotic MAs
+│       └── geopolitical-soft-signals/ # FinBERT + game theory soft-signal scoring
+├── go-backend/               # GoCryptoTrader integration (WebSocket, backtesting)
+├── prisma/                   # Schema (SQLite) + migrations
+├── docs/                     # Architecture docs, indicator blueprint, geo masterplan
+├── scripts/                  # Dev stack launchers
+└── tools/                    # Build utilities
+```
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+## Key Features
 
-## 🤝 Get Started with Z.ai
+- **14 market data providers** with automatic failover, rate limiting, and circuit breaker
+- **23 TypeScript indicators** (SMA, EMA, RSI, MACD, Bollinger, Ichimoku, Parabolic SAR, VWAP, ...)
+- **Python indicator service** for advanced patterns (harmonic, Elliott Wave, composite signals)
+- **12+ news sources** with multi-source aggregation and caching
+- **Geopolitical map** with conflict scoring, soft-signal candidates, and game theory analysis
+- **Paper trading** with order management and portfolio tracking
+- **Alert engine** with price threshold + cross detection + self-check verification
+- **Signal system** (Line / Power / Rhythm) with composite scoring
 
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+## Documentation
 
----
+| Document | Content |
+|----------|---------|
+| [`docs/INDICATOR_ARCHITECTURE.md`](./docs/INDICATOR_ARCHITECTURE.md) | Indicator blueprint, ~57 implementation todos, book references |
+| [`docs/GEOPOLITICAL_MAP_MASTERPLAN.md`](./docs/GEOPOLITICAL_MAP_MASTERPLAN.md) | Geo map architecture, event model, soft-signal pipeline |
+| [`docs/RUST_LANGUAGE_IMPLEMENTATION.md`](./docs/RUST_LANGUAGE_IMPLEMENTATION.md) | Rust/PyO3 acceleration layer strategy |
+| [`docs/ADR-001-streaming-architecture.md`](./docs/ADR-001-streaming-architecture.md) | Streaming architecture + consolidated open items |
+| [`docs/PROVIDER_LIMITS.md`](./docs/PROVIDER_LIMITS.md) | Provider rate limits, news sources, external references |
+| [`docs/Advanced-architecture-for-the-future.md`](./docs/Advanced-architecture-for-the-future.md) | Long-term architecture vision |
+| [`docs/Portfolio-architecture.md`](./docs/Portfolio-architecture.md) | Portfolio analytics deep dive |
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+## Troubleshooting
+
+**Prisma generate fails:**
+```bash
+pnpm install && pnpm db:generate
+```
+
+If it persists, clear and retry:
+```bash
+Remove-Item -Recurse -Force node_modules
+pnpm install && pnpm db:generate
+```
+
+**DB push fails:** Verify `DATABASE_URL` in `.env` is set (default: `file:./dev.db`).

@@ -44,9 +44,13 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 				profileKey,
 				symbol,
 			});
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000);
 			const response = await fetch(`/api/fusion/orders?${params.toString()}`, {
 				cache: "no-store",
+				signal: controller.signal,
 			});
+			clearTimeout(timeoutId);
 
 			if (!response.ok) {
 				throw new Error(`Orders fetch failed (${response.status})`);
@@ -55,10 +59,12 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 			const payload = (await response.json()) as { orders?: PaperOrder[] };
 			setOrders(Array.isArray(payload.orders) ? payload.orders : []);
 		} catch (error) {
-			toast({
-				title: "Orders unavailable",
-				description: error instanceof Error ? error.message : "Could not load paper orders.",
-			});
+			if (!(error instanceof DOMException && error.name === "AbortError")) {
+				toast({
+					title: "Orders unavailable",
+					description: error instanceof Error ? error.message : "Could not load paper orders.",
+				});
+			}
 		} finally {
 			setLoadingOrders(false);
 		}

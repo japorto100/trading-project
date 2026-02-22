@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,120 +181,139 @@ export function StrategyLabPanel({ candleData }: StrategyLabPanelProps) {
 		}
 	};
 
+	const [collapsed, setCollapsed] = useState(true);
+
 	return (
-		<div className="mx-3 mt-2 rounded-md border border-border bg-card/40 px-3 py-3">
-			<div className="mb-3 flex items-center justify-between gap-2">
-				<p className="text-sm font-medium">Strategy Lab (Baseline)</p>
+		<div className="mx-3 mt-2 rounded-md border border-border bg-card/40 px-3 py-2">
+			<button
+				type="button"
+				className="flex w-full items-center justify-between gap-2"
+				onClick={() => setCollapsed((prev) => !prev)}
+			>
+				<span className="flex items-center gap-1.5 text-sm font-medium">
+					{collapsed ? (
+						<ChevronRight className="h-3.5 w-3.5" />
+					) : (
+						<ChevronDown className="h-3.5 w-3.5" />
+					)}
+					Strategy Lab (Baseline)
+				</span>
 				<Badge variant="outline">{loading ? "Running..." : `Sample ${estimatedTrades}`}</Badge>
-			</div>
+			</button>
 
-			<div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-				<div className="space-y-1">
-					<p className="text-[11px] text-muted-foreground">Mode</p>
-					<Select value={mode} onValueChange={(value) => setMode(value as StrategyMode)}>
-						<SelectTrigger className="h-8">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="momentum">Momentum</SelectItem>
-							<SelectItem value="mean_reversion">Mean Reversion</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-				<div className="space-y-1">
-					<p className="text-[11px] text-muted-foreground">Lookback Bars</p>
-					<Input
-						value={lookbackBars}
-						onChange={(event) => setLookbackBars(event.target.value)}
-						className="h-8"
-						inputMode="numeric"
-					/>
-				</div>
-				<div className="space-y-1">
-					<p className="text-[11px] text-muted-foreground">Hold Bars</p>
-					<Input
-						value={holdBars}
-						onChange={(event) => setHoldBars(event.target.value)}
-						className="h-8"
-						inputMode="numeric"
-					/>
-				</div>
-				<div className="space-y-1">
-					<p className="text-[11px] text-muted-foreground">Max Trades</p>
-					<Input
-						value={maxTradesInput}
-						onChange={(event) => setMaxTradesInput(event.target.value)}
-						className="h-8"
-						inputMode="numeric"
-					/>
-				</div>
-				<div className="space-y-1">
-					<p className="text-[11px] text-muted-foreground">Fee (bps)</p>
-					<Input
-						value={feeBpsInput}
-						onChange={(event) => setFeeBpsInput(event.target.value)}
-						className="h-8"
-						inputMode="decimal"
-					/>
-				</div>
-				<div className="space-y-1">
-					<p className="text-[11px] text-muted-foreground">Risk-Free Rate</p>
-					<Input
-						value={riskFreeRateInput}
-						onChange={(event) => setRiskFreeRateInput(event.target.value)}
-						className="h-8"
-						inputMode="decimal"
-					/>
-				</div>
-			</div>
+			{!collapsed && (
+				<>
+					<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
+						<div className="space-y-1">
+							<p className="text-[11px] text-muted-foreground">Mode</p>
+							<Select value={mode} onValueChange={(value) => setMode(value as StrategyMode)}>
+								<SelectTrigger className="h-8">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="momentum">Momentum</SelectItem>
+									<SelectItem value="mean_reversion">Mean Reversion</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="space-y-1">
+							<p className="text-[11px] text-muted-foreground">Lookback Bars</p>
+							<Input
+								value={lookbackBars}
+								onChange={(event) => setLookbackBars(event.target.value)}
+								className="h-8"
+								inputMode="numeric"
+							/>
+						</div>
+						<div className="space-y-1">
+							<p className="text-[11px] text-muted-foreground">Hold Bars</p>
+							<Input
+								value={holdBars}
+								onChange={(event) => setHoldBars(event.target.value)}
+								className="h-8"
+								inputMode="numeric"
+							/>
+						</div>
+						<div className="space-y-1">
+							<p className="text-[11px] text-muted-foreground">Max Trades</p>
+							<Input
+								value={maxTradesInput}
+								onChange={(event) => setMaxTradesInput(event.target.value)}
+								className="h-8"
+								inputMode="numeric"
+							/>
+						</div>
+						<div className="space-y-1">
+							<p className="text-[11px] text-muted-foreground">Fee (bps)</p>
+							<Input
+								value={feeBpsInput}
+								onChange={(event) => setFeeBpsInput(event.target.value)}
+								className="h-8"
+								inputMode="decimal"
+							/>
+						</div>
+						<div className="space-y-1">
+							<p className="text-[11px] text-muted-foreground">Risk-Free Rate</p>
+							<Input
+								value={riskFreeRateInput}
+								onChange={(event) => setRiskFreeRateInput(event.target.value)}
+								className="h-8"
+								inputMode="decimal"
+							/>
+						</div>
+					</div>
 
-			<div className="mt-3 flex items-center justify-between gap-2">
-				<p className="text-xs text-muted-foreground">
-					Trades werden aus sichtbaren Candles generiert und gegen den Python Evaluator gemessen.
-				</p>
-				<Button size="sm" onClick={runEvaluation} disabled={loading || candleData.length < 20}>
-					Run Eval
-				</Button>
-			</div>
+					<div className="mt-3 flex items-center justify-between gap-2">
+						<p className="text-xs text-muted-foreground">
+							Trades werden aus sichtbaren Candles generiert und gegen den Python Evaluator
+							gemessen.
+						</p>
+						<Button size="sm" onClick={runEvaluation} disabled={loading || candleData.length < 20}>
+							Run Eval
+						</Button>
+					</div>
 
-			{error ? <p className="mt-2 text-xs text-red-500">{error}</p> : null}
+					{error ? <p className="mt-2 text-xs text-red-500">{error}</p> : null}
 
-			{metrics ? (
-				<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">Trades</p>
-						<p className="text-sm font-medium">{tradeCount}</p>
-					</div>
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">Net Return</p>
-						<p className="text-sm font-medium">{formatMetric(metrics.net_return, 4)}</p>
-					</div>
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">Hit Ratio</p>
-						<p className="text-sm font-medium">{formatPercent(metrics.hit_ratio)}</p>
-					</div>
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">R:R</p>
-						<p className="text-sm font-medium">{formatMetric(metrics.risk_reward_ratio, 3)}</p>
-					</div>
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">Expectancy</p>
-						<p className="text-sm font-medium">{formatMetric(metrics.expectancy, 4)}</p>
-					</div>
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">Profit Factor</p>
-						<p className="text-sm font-medium">{formatMetric(metrics.profit_factor, 3)}</p>
-					</div>
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">Sharpe</p>
-						<p className="text-sm font-medium">{formatMetric(metrics.sharpe, 3)}</p>
-					</div>
-					<div className="rounded-md border border-border p-2">
-						<p className="text-[11px] text-muted-foreground">Sortino</p>
-						<p className="text-sm font-medium">{formatMetric(metrics.sortino, 3)}</p>
-					</div>
-				</div>
-			) : null}
+					{metrics ? (
+						<div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">Trades</p>
+								<p className="text-sm font-medium">{tradeCount}</p>
+							</div>
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">Net Return</p>
+								<p className="text-sm font-medium">{formatMetric(metrics.net_return, 4)}</p>
+							</div>
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">Hit Ratio</p>
+								<p className="text-sm font-medium">{formatPercent(metrics.hit_ratio)}</p>
+							</div>
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">R:R</p>
+								<p className="text-sm font-medium">{formatMetric(metrics.risk_reward_ratio, 3)}</p>
+							</div>
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">Expectancy</p>
+								<p className="text-sm font-medium">{formatMetric(metrics.expectancy, 4)}</p>
+							</div>
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">Profit Factor</p>
+								<p className="text-sm font-medium">{formatMetric(metrics.profit_factor, 3)}</p>
+							</div>
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">Sharpe</p>
+								<p className="text-sm font-medium">{formatMetric(metrics.sharpe, 3)}</p>
+							</div>
+							<div className="rounded-md border border-border p-2">
+								<p className="text-[11px] text-muted-foreground">Sortino</p>
+								<p className="text-sm font-medium">{formatMetric(metrics.sortino, 3)}</p>
+							</div>
+						</div>
+					) : null}
+					{/* end collapsed wrapper */}
+				</>
+			)}
 		</div>
 	);
 }

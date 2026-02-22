@@ -3,8 +3,11 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import hashlib
 from math import log2
 import os
+import threading
+import time
 from typing import Literal
 
 import httpx
@@ -148,12 +151,29 @@ DOVISH_TOKENS: tuple[str, ...] = (
 )
 
 
+_FINBERT_CACHE_LOCK = threading.Lock()
+_FINBERT_CACHE: dict[str, tuple[float, float]] = {}
+
+
 def env_flag(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
     if raw is None:
         return default
     normalized = raw.strip().lower()
     return normalized in {"1", "true", "yes", "on"}
+
+
+def env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        value = int(raw.strip())
+        if value <= 0:
+            return default
+        return value
+    except Exception:
+        return default
 
 
 def normalize_text(value: str | None) -> str:
@@ -208,6 +228,36 @@ def recency_boost(published_at: str) -> float:
     return max(0.0, 0.14 - min(0.14, age_hours * 0.004))
 
 
+def _finbert_cache_key(text: str) -> str:
+    normalized = normalize_text(text)[:1200]
+    return hashlib.sha1(normalized.encode("utf-8")).hexdigest()
+
+
+def _finbert_cache_get(key: str, now: float) -> float | None:
+    ttl_seconds = env_int("FINBERT_HF_CACHE_TTL_MS", 600000) / 1000.0
+    with _FINBERT_CACHE_LOCK:
+        cached = _FINBERT_CACHE.get(key)
+        if not cached:
+            return None
+        expires_at, score = cached
+        if expires_at <= now:
+            _FINBERT_CACHE.pop(key, None)
+            return None
+        return score
+
+
+def _finbert_cache_put(key: str, score: float, now: float) -> None:
+    ttl_seconds = env_int("FINBERT_HF_CACHE_TTL_MS", 600000) / 1000.0
+    max_entries = env_int("FINBERT_HF_CACHE_MAX_ENTRIES", 2000)
+    with _FINBERT_CACHE_LOCK:
+        if len(_FINBERT_CACHE) >= max_entries:
+            # FIFO-like eviction based on insertion order is sufficient here.
+            oldest = next(iter(_FINBERT_CACHE), None)
+            if oldest:
+                _FINBERT_CACHE.pop(oldest, None)
+        _FINBERT_CACHE[key] = (now + ttl_seconds, score)
+
+
 def finbert_polarity_score(text: str) -> float | None:
     token = os.getenv("FINBERT_HF_API_TOKEN", "").strip()
     if not token:
@@ -218,8 +268,16 @@ def finbert_polarity_score(text: str) -> float | None:
     if not api_url:
         return None
 
+    cache_key = _finbert_cache_key(text)
+    now = time.time()
+    cached = _finbert_cache_get(cache_key, now)
+    if cached is not None:
+        return cached
+
+    timeout_seconds = env_int("FINBERT_HF_TIMEOUT_MS", 2500) / 1000.0
+
     try:
-        with httpx.Client(timeout=2.5) as client:
+        with httpx.Client(timeout=timeout_seconds) as client:
             response = client.post(
                 api_url,
                 headers={"Authorization": f"Bearer {token}"},
@@ -248,9 +306,26 @@ def finbert_polarity_score(text: str) -> float | None:
             if positive == 0.0 and negative == 0.0 and neutral == 0.0:
                 return None
             # [-1, 1] where positive is bullish and negative is bearish.
-            return max(-1.0, min(1.0, positive - negative))
+            score = max(-1.0, min(1.0, positive - negative))
+            _finbert_cache_put(cache_key, score, now)
+            return score
     except Exception:
         return None
+
+
+def average_finbert_sentiment(items: list[ArticleInput], max_items: int = 8) -> float | None:
+    sample = items[:max_items]
+    if not sample:
+        return None
+
+    scores: list[float] = []
+    for article in sample:
+        score = finbert_polarity_score(article_text(article))
+        if score is not None:
+            scores.append(score)
+    if not scores:
+        return None
+    return sum(scores) / len(scores)
 
 
 def article_text(article: ArticleInput) -> str:
@@ -438,6 +513,9 @@ def build_social_surge(payload: SignalRequest) -> SignalResponse:
         severity = 2 if finbert is None else (3 if abs(finbert) > 0.45 else 2)
         if scout_mode and distinct_sources >= 3 and len(surge_articles) >= 4:
             severity = max(severity, 3)
+        refs = [source_ref(article, "social_surge")]
+        if finbert is not None:
+            refs[0].provider = f"{refs[0].provider}+finbert"
         candidates.append(
             CandidateOutput(
                 headline=f"{'Scout surge' if scout_mode else 'Social surge'}: {article.title}",
@@ -445,7 +523,7 @@ def build_social_surge(payload: SignalRequest) -> SignalResponse:
                 severityHint=severity,
                 regionHint="global",
                 countryHints=detect_countries(text),
-                sourceRefs=[source_ref(article, "social_surge")],
+                sourceRefs=refs,
                 symbol="message-circle-warning",
                 category="social_chatter_surge",
             )
@@ -501,6 +579,13 @@ def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
     older_sentiment = average_sentiment(older)
     newer_sentiment = average_sentiment(newer)
     sentiment_shift = newer_sentiment - older_sentiment
+    finbert_shift = 0.0
+    if fingpt_mode:
+        older_finbert = average_finbert_sentiment(older)
+        newer_finbert = average_finbert_sentiment(newer)
+        if older_finbert is not None and newer_finbert is not None:
+            finbert_shift = newer_finbert - older_finbert
+            sentiment_shift += finbert_shift
 
     common = [
         token
@@ -527,7 +612,12 @@ def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
         confidence += recency_boost(anchor.publishedAt)
         if fingpt_mode:
             confidence += min(0.08, abs(sentiment_shift) * 0.12)
+            confidence += min(0.04, abs(finbert_shift) * 0.08)
         severity = 3 if fingpt_mode and abs(sentiment_shift) > 0.18 else 2
+        refs = [source_ref(article, "narrative_shift") for article in token_articles[:2]]
+        if fingpt_mode and finbert_shift != 0.0:
+            for ref in refs:
+                ref.provider = f"{ref.provider}+finbert"
         candidates.append(
             CandidateOutput(
                 headline=f"{'FinGPT narrative shift' if fingpt_mode else 'Narrative shift'} around '{token}'",
@@ -535,7 +625,7 @@ def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
                 severityHint=severity,
                 regionHint="global",
                 countryHints=detect_countries(normalize_text(f"{anchor.title} {anchor.summary or ''}")),
-                sourceRefs=[source_ref(article, "narrative_shift") for article in token_articles[:2]],
+                sourceRefs=refs,
                 symbol="brain-circuit",
                 category="narrative_shift",
             )

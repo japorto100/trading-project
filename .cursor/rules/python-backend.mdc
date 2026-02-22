@@ -1,0 +1,67 @@
+---
+description: Python backend conventions. FastAPI services, PyO3/Rust bridge, thin wrapper pattern.
+globs: python-backend/**/*.py,python-backend/**/*.toml
+alwaysApply: false
+---
+
+# Python Backend Rules
+
+## Role
+
+Python ist ein **Thin Wrapper**. HTTP-Layer (FastAPI) + Orchestration. Performance-kritische Berechnungen delegiert Python an den Rust Core (PyO3).
+
+## Services
+
+| Service | Port | Zweck |
+|:---|:---|:---|
+| indicator-service | 8090 | Technische Indikatoren (Composite Signals, Pattern Detection) |
+| soft-signals | 8091 | Game Theory, News Clustering, Social Surge, Narrative Shift |
+| finance-bridge | 8092 | yfinance Bridge, Portfolio Analytics |
+
+## Package Layout
+
+```
+python-backend/
+├── pyproject.toml           # Dependencies + maturin build config
+├── main.py                  # FastAPI app, routers
+├── services/
+│   ├── indicator_service.py
+│   ├── soft_signals.py
+│   └── finance_bridge.py
+├── rust_core/               # Rust PyO3 library
+│   ├── Cargo.toml
+│   ├── src/
+│   │   └── lib.rs           # #[pyfunction] exports
+│   └── ...
+└── tests/
+```
+
+## Conventions
+
+- **FastAPI:** Async handlers (`async def`). Pydantic v2 for request/response models.
+- **Type Hints:** Required on all function signatures. No `Any` in new code.
+- **Error Handling:** HTTPException with structured error response matching `API_CONTRACTS.md` Sek. 9.
+- **Logging:** `structlog` or JSON formatter. Include `request_id` from `X-Request-ID` header.
+- **Dependencies:** Polars statt Pandas für neue DataFrames. Pandas nur für Legacy/yfinance Kompatibilität.
+
+## Rust Bridge (PyO3)
+
+- Rust functions are exposed via `#[pyfunction]` in `rust_core/src/lib.rs`
+- Build: `maturin develop --release` (dev) or `maturin build` (prod)
+- Python calls Rust for: TA indicators (`kand` crate), DataFrame ops (Polars), pattern detection
+- Rust receives NumPy arrays or Polars DataFrames, returns same
+- **Keine Business-Logik in Python die in Rust sein sollte.** Wenn etwas über Arrays iteriert oder mathematisch intensiv ist → Rust.
+
+## Rust Core Conventions
+
+- Crate: `rust_core` (PyO3 + maturin)
+- TA Library: `kand` crate für technische Indikatoren
+- DataFrames: `polars` crate
+- Error types: Custom `PyErr` mapping von Rust-Errors zu Python-Exceptions
+- Tests: `cargo test` in `rust_core/` + Python integration tests
+
+## Network
+
+- Python wird **nur von Go** aufgerufen. Niemals vom Frontend direkt.
+- Python ruft **keine externen APIs** auf (außer yfinance als Übergang bis Go das übernimmt).
+- Correlation ID (`X-Request-ID`) aus Go-Request lesen und in Logs + Responses inkludieren.

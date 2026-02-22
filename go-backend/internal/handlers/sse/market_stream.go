@@ -126,23 +126,75 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 		defer heartbeatTicker.Stop()
 
 		var (
-			quoteTicker *time.Ticker
-			pollingTick <-chan time.Time
+			quoteTicker     *time.Ticker
+			reconnectTicker *time.Ticker
+			pollingTick     <-chan time.Time
+			reconnectTick   <-chan time.Time
 		)
 		defer func() {
 			if quoteTicker != nil {
 				quoteTicker.Stop()
 			}
+			if reconnectTicker != nil {
+				reconnectTicker.Stop()
+			}
 		}()
 
-		tickerChannel, streamErrorChannel, streamError := client.OpenTickerStream(r.Context(), params.UpstreamExchange, params.Pair, params.AssetType)
-		if streamError != nil {
-			quoteTicker = time.NewTicker(2 * time.Second)
-			pollingTick = quoteTicker.C
-			_ = writeSSEEvent(w, "upstream_error", map[string]string{
-				"message": "live stream unavailable, switched to polling",
+		reconnectAttempts := 0
+		lastQuoteAt := ""
+
+		emitStreamStatus := func(state string, message string) {
+			_ = writeSSEEvent(w, "stream_status", map[string]any{
+				"state":             state,
+				"message":           message,
+				"reconnectAttempts": reconnectAttempts,
+				"lastQuoteAt":       lastQuoteAt,
 			})
 			flusher.Flush()
+		}
+
+		enablePolling := func(message string) {
+			if quoteTicker == nil {
+				quoteTicker = time.NewTicker(2 * time.Second)
+				pollingTick = quoteTicker.C
+			}
+			if reconnectTicker == nil {
+				reconnectTicker = time.NewTicker(10 * time.Second)
+				reconnectTick = reconnectTicker.C
+			}
+			_ = writeSSEEvent(w, "upstream_error", map[string]string{
+				"message": message,
+			})
+			flusher.Flush()
+			emitStreamStatus("polling_fallback", message)
+		}
+
+		disablePolling := func() {
+			if quoteTicker != nil {
+				quoteTicker.Stop()
+				quoteTicker = nil
+				pollingTick = nil
+			}
+		}
+
+		disableReconnect := func() {
+			if reconnectTicker != nil {
+				reconnectTicker.Stop()
+				reconnectTicker = nil
+				reconnectTick = nil
+			}
+		}
+
+		tickerChannel, streamErrorChannel, streamError := client.OpenTickerStream(
+			r.Context(),
+			params.UpstreamExchange,
+			params.Pair,
+			params.AssetType,
+		)
+		if streamError != nil {
+			enablePolling("live stream unavailable, switched to polling")
+		} else {
+			emitStreamStatus("live", "live stream connected")
 		}
 		_ = writeSSEEvent(w, "ready", map[string]string{
 			"symbol":    params.Symbol,
@@ -193,6 +245,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					Timestamp: timestamp,
 					Source:    params.Source,
 				}
+				lastQuoteAt = time.Unix(timestamp, 0).UTC().Format(time.RFC3339)
 
 				_ = writeSSEEvent(w, "quote", quote)
 				flusher.Flush()
@@ -201,14 +254,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					streamErrorChannel = nil
 					continue
 				}
-				_ = writeSSEEvent(w, "upstream_error", map[string]string{
-					"message": "live stream error: " + streamErr.Error(),
-				})
-				flusher.Flush()
-				if pollingTick == nil {
-					quoteTicker = time.NewTicker(2 * time.Second)
-					pollingTick = quoteTicker.C
-				}
+				enablePolling("live stream error: " + streamErr.Error())
 			case <-pollingTick:
 				ticker, tickerErr := client.GetTicker(r.Context(), params.UpstreamExchange, params.Pair, params.AssetType)
 				if tickerErr != nil {
@@ -237,9 +283,32 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					Timestamp: timestamp,
 					Source:    params.Source,
 				}
+				lastQuoteAt = time.Unix(timestamp, 0).UTC().Format(time.RFC3339)
 
 				_ = writeSSEEvent(w, "quote", quote)
 				flusher.Flush()
+			case <-reconnectTick:
+				reconnectAttempts++
+				emitStreamStatus("reconnecting", "attempting live stream reconnect")
+				nextTickerChannel, nextStreamErrorChannel, reconnectErr := client.OpenTickerStream(
+					r.Context(),
+					params.UpstreamExchange,
+					params.Pair,
+					params.AssetType,
+				)
+				if reconnectErr != nil {
+					_ = writeSSEEvent(w, "upstream_error", map[string]string{
+						"message": "live stream reconnect failed",
+					})
+					flusher.Flush()
+					continue
+				}
+
+				tickerChannel = nextTickerChannel
+				streamErrorChannel = nextStreamErrorChannel
+				disablePolling()
+				disableReconnect()
+				emitStreamStatus("live", "live stream reconnected")
 			}
 		}
 	}

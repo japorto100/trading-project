@@ -1,0 +1,77 @@
+---
+description: Go Gateway conventions. Connectors, routing, middleware, GCT integration, error handling.
+globs: go-backend/**/*.go
+alwaysApply: false
+---
+
+# Go Backend Rules
+
+## Role
+
+Go Gateway ist der **Single Point of Entry**. Alle externen API-Calls, alle internen Service-Calls, alle Streaming-Connections laufen durch Go.
+
+## Package Layout
+
+```
+go-backend/
+├── cmd/gateway/         # Main entrypoint
+├── internal/
+│   ├── app/             # Wiring, DI, config loading
+│   ├── connectors/      # Externe Provider + GCT Client
+│   │   ├── finnhub/
+│   │   ├── fred/
+│   │   ├── ecb/
+│   │   ├── gct/         # GoCryptoTrader Client (gRPC + HTTP)
+│   │   └── ...
+│   ├── router/          # Adaptive Data Router (health scoring, circuit breaker)
+│   ├── handlers/        # HTTP handlers (REST + SSE)
+│   └── middleware/      # Auth, CORS, Rate Limit, Correlation ID
+├── vendor-forks/
+│   └── gocryptotrader/  # GCT Fork (do not modify unless necessary)
+```
+
+## Conventions
+
+- **Error Handling:** Wrap errors with context: `fmt.Errorf("connector/finnhub: fetch quote %s: %w", symbol, err)`
+- **Context:** Pass `context.Context` through all call chains. Respect cancellation.
+- **Logging:** `log/slog` with structured JSON. Include `requestId` in every log entry.
+- **Config:** Environment variables via `os.Getenv()` / `envOr()`. No hardcoded secrets.
+- **HTTP:** Standard `net/http` + Gorilla Mux. No framework overhead.
+- **Tests:** Table-driven with `t.Run`. `go test -race ./...` for concurrent code.
+
+## Connector Pattern
+
+Every external data source follows this pattern:
+
+```go
+type Client struct { config Config; http *http.Client }
+func NewClient(cfg Config) *Client { ... }
+func (c *Client) FetchQuote(ctx context.Context, symbol string) (*Quote, error) { ... }
+```
+
+- Each connector lives in its own package under `internal/connectors/`
+- Connectors return domain types, not raw JSON
+- Circuit breaker + rate limiting handled by the Data Router, not individual connectors
+
+## GCT Integration
+
+- GCT credentials: `GCT_USERNAME` / `GCT_PASSWORD` from `go-backend/.env`
+- Never expose exchange API keys through our API
+- Log every GCT action with user context (Audit)
+- Rate limit GCT order endpoints: max 2 req/min
+- See `docs/specs/AUTH_SECURITY.md` for full security model
+
+## API Contract
+
+All endpoints must match `docs/specs/API_CONTRACTS.md`. When adding/changing endpoints:
+1. Update the contract first
+2. Implement to match
+3. Verify response shapes match exactly
+
+## Integration Options
+
+See `docs/GO_GATEWAY.md` for detailed integration patterns:
+
+- **RSC (React Server Components):** Next.js Server Components fetch directly from Go. Same endpoints, no Go changes. SOTA 2026 for initial data load (Dashboard, GeoMap, Portfolio).
+- **MCP (optional):** Go MCP SDK for AI-Agent tool access. Requires Auth hardening (JWT, RBAC, Rate Limit) — see `AUTH_SECURITY.md` Sek. 8 before enabling.
+- **WebTransport, gRPC-Web:** Documented as future options. Not prioritized.

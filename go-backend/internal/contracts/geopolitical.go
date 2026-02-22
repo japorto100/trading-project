@@ -2,6 +2,7 @@ package contracts
 
 type GeopoliticalEvent struct {
 	ID           string  `json:"id"`
+	URL          string  `json:"url,omitempty"`
 	EventDate    string  `json:"eventDate"`
 	Country      string  `json:"country"`
 	Region       string  `json:"region,omitempty"`
@@ -18,6 +19,7 @@ type GeopoliticalEvent struct {
 }
 
 type GeopoliticalEventsFilters struct {
+	Source       string `json:"source,omitempty"`
 	Country      string `json:"country,omitempty"`
 	Region       string `json:"region,omitempty"`
 	EventType    string `json:"eventType,omitempty"`

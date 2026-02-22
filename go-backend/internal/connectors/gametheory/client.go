@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 const (
@@ -139,12 +141,15 @@ func (c *Client) ScoreImpact(ctx context.Context, input ImpactRequest) (ImpactRe
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
+		req.Header.Set("X-Request-ID", requestID)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return ImpactResponse{}, fmt.Errorf("gametheory request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= http.StatusBadRequest {
 		return ImpactResponse{}, fmt.Errorf("gametheory upstream status %d", resp.StatusCode)

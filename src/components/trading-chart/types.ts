@@ -18,6 +18,8 @@ export interface HoveredPrice {
 
 export interface ChartSeriesHandle {
 	setData: (data: Array<unknown>) => void;
+	priceToCoordinate?: (price: number) => number | null;
+	coordinateToPrice?: (coordinate: number) => number | null;
 	priceScale?: () => {
 		applyOptions: (options: Record<string, unknown>) => void;
 	};
@@ -28,6 +30,8 @@ export interface ChartTimeScaleHandle {
 	getVisibleRange: () => unknown;
 	setVisibleRange: (range: unknown) => void;
 	fitContent: () => void;
+	timeToCoordinate?: (time: number) => number | null;
+	coordinateToTime?: (coordinate: number) => unknown;
 }
 
 export interface CrosshairSeriesDataPoint {
@@ -41,6 +45,7 @@ export interface CrosshairSeriesDataPoint {
 export interface CrosshairMovePayload {
 	time?: number;
 	seriesData?: Map<unknown, CrosshairSeriesDataPoint>;
+	point?: { x: number; y: number };
 }
 
 export interface ChartHandle {
@@ -54,6 +59,8 @@ export interface ChartHandle {
 	timeScale: () => ChartTimeScaleHandle;
 	applyOptions: (options: Record<string, unknown>) => void;
 	subscribeCrosshairMove: (handler: (param: CrosshairMovePayload) => void) => void;
+	subscribeClick?: (handler: (param: CrosshairMovePayload) => void) => void;
+	unsubscribeClick?: (handler: (param: CrosshairMovePayload) => void) => void;
 }
 
 export interface LightweightChartsModule {

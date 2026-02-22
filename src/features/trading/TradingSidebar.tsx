@@ -133,30 +133,42 @@ export function TradingSidebar({
 			</div>
 
 			{activeSidebarPanel === "watchlist" && (
-				<>
-					<Tabs
-						value={activeTab}
-						onValueChange={(value) => onSetActiveTab(value as WatchlistTab)}
-						className="w-full"
-					>
-						<TabsList className="w-full justify-start px-2 pt-2">
-							<TabsTrigger value="all" className="text-xs">
-								All
-							</TabsTrigger>
-							<TabsTrigger value="favorites" className="text-xs">
-								Fav
-							</TabsTrigger>
-							<TabsTrigger value="crypto" className="text-xs">
-								Crypto
-							</TabsTrigger>
-							<TabsTrigger value="stocks" className="text-xs">
-								Stocks
-							</TabsTrigger>
-							<TabsTrigger value="forex" className="text-xs">
-								FX
-							</TabsTrigger>
-						</TabsList>
-					</Tabs>
+				<div className="flex flex-col flex-1 min-h-0">
+					<div className="relative border-b border-border">
+						<Tabs
+							value={activeTab}
+							onValueChange={(value) => onSetActiveTab(value as WatchlistTab)}
+							className="w-full"
+						>
+							<div className="relative w-full">
+								<TabsList className="w-full h-auto justify-start overflow-x-auto whitespace-nowrap px-2 py-1.5 scrollbar-hide bg-transparent border-none">
+									<TabsTrigger value="all" className="text-xs px-2.5 shrink-0">
+										All
+									</TabsTrigger>
+									<TabsTrigger value="favorites" className="text-xs px-2.5 shrink-0">
+										Fav
+									</TabsTrigger>
+									<TabsTrigger value="crypto" className="text-xs px-2.5 shrink-0">
+										Cry
+									</TabsTrigger>
+									<TabsTrigger value="stocks" className="text-xs px-2.5 shrink-0">
+										Stk
+									</TabsTrigger>
+									<TabsTrigger value="forex" className="text-xs px-2.5 shrink-0">
+										FX
+									</TabsTrigger>
+									<TabsTrigger value="commodities" className="text-xs px-2.5 shrink-0">
+										Com
+									</TabsTrigger>
+									<TabsTrigger value="indices" className="text-xs px-2.5 shrink-0">
+										Idx
+									</TabsTrigger>
+								</TabsList>
+								{/* Faded edges for horizontal scroll indication */}
+								<div className="absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-card/30 to-transparent pointer-events-none" />
+							</div>
+						</Tabs>
+					</div>
 					<WatchlistPanel
 						symbols={watchlistSymbols}
 						currentSymbol={currentSymbol}
@@ -164,7 +176,7 @@ export function TradingSidebar({
 						onSelectSymbol={onSelectSymbol}
 						onToggleFavorite={onToggleFavorite}
 					/>
-				</>
+				</div>
 			)}
 
 			{activeSidebarPanel === "indicators" && (

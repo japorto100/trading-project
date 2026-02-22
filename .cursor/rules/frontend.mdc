@@ -1,0 +1,73 @@
+---
+description: Frontend conventions. Next.js 16, React 19, Tailwind v4, Biome, state management, data flow.
+globs: src/**/*.ts,src/**/*.tsx,src/**/*.css
+alwaysApply: false
+---
+
+# Frontend Rules
+
+## Stack
+
+- Next.js 16 (App Router, Turbopack), React 19
+- Tailwind CSS v4 (CSS-first config in `globals.css`, NOT `tailwind.config.ts`)
+- shadcn/ui (Radix Primitives) — 50+ components in `components/ui/`
+- Biome for linting + formatting (NOT ESLint)
+- `lightweight-charts` for trading charts, `d3-geo` for GeoMap, `recharts` for analytics
+
+## Critical Rule: Only Call Go
+
+**Frontend darf nur den Go Gateway aufrufen.** Alle API-Routes in `src/app/api/` sind dünne Proxies:
+
+```typescript
+// RICHTIG: API Route ruft Go auf
+const res = await fetch(`${process.env.GO_GATEWAY_BASE_URL}/api/v1/quote?symbol=${symbol}`);
+
+// FALSCH: Direkt einen Provider aufrufen
+const res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`);
+```
+
+Keine Provider-API-Keys, keine Python-URLs im Frontend-Code.
+
+## State Management
+
+| State-Art | Tool | Beispiel |
+|:---|:---|:---|
+| UI State (lokal) | `useState` / `useReducer` | Modal open, Tab active, Sidebar width |
+| Domain State (shared) | Zustand (geplant) | GeoMap selections, Watchlist active symbol |
+| Server State (cache) | TanStack Query | OHLCV data, Portfolio positions, News |
+| Form State | `useState` | Order input, Marker creation |
+
+Zustand ist installiert aber noch unbenutzt. Wird schrittweise eingeführt (GeoMap Phase 3, Portfolio Phase 2).
+
+## Biome
+
+- Config: `biome.json`. Tabs, indent 2, line width 100, double quotes, semicolons.
+- `bun run lint` (check), `bun run lint:fix` (auto-fix), `bun run format`
+- No ESLint. Do not re-add ESLint dependencies.
+- Suppress: `// biome-ignore lint/rule/name: reason`
+
+## Tailwind v4
+
+- `globals.css` is source of truth (`@import "tailwindcss"`, `@theme inline`)
+- `tailwind.config.ts` is a v3 relic, ignored. Do not edit.
+- Use `tw-animate-css`, NOT `tailwindcss-animate`.
+
+## File Organization
+
+- Pages: `src/app/` (nur 2: Trading `/`, GeoMap `/geopolitical-map`)
+- Features: `src/features/trading/`, `src/features/geopolitical/`
+- Shared UI: `src/components/`, `src/components/ui/`
+- Domain Logic: `src/lib/` (indicators, orders, geopolitical, alerts, storage)
+- Server Logic: `src/lib/server/` (Prisma stores, bridges)
+
+## Coding Standards
+
+- TypeScript strict. No `any` in new code. Use proper types.
+- Error handling: `catch (error: unknown)` with `getErrorMessage()` from `@/lib/utils`.
+- Components: Keep small. Files >700 LoC should be split.
+- API Response Validation: Zod schemas (Phase 9, but start using for new endpoints).
+- Accessibility: Basic `aria-labels` on interactive elements.
+
+## Architecture Reference
+
+See `docs/FRONTEND_ARCHITECTURE.md` for full component map, state management plan, and dependency lifecycle.

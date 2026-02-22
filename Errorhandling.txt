@@ -1,0 +1,188 @@
+Unten ist ein **SOTA-2026 „minimal aber robust“ Setup** für Error-Handling & Boundaries – getrennt nach **React/TypeScript**, **Python**, **Go** – plus ein gemeinsamer **Baseline-Baukasten**, der in allen Stacks gleich funktioniert.
+
+---
+
+## 0) Gemeinsames Prinzip (für alle drei Stacks)
+
+### A) 2 Klassen von Fehlern
+
+1. **Expected / Domänenfehler** (z. B. „Payment declined“, „Validation failed“)
+   → **explizit behandeln**, Nutzer-Feedback geben, *kein* globales „Crash“-Handling.
+2. **Bugs / Uncaught Exceptions** (Null/undefined, invariant broken, panic)
+   → **Boundary / Crash-Schutz**, Logging/Tracing, optional „Retry / Reload“.
+
+Next.js beschreibt diese Trennung explizit als „expected errors vs uncaught exceptions“. ([Next.js][1])
+
+### B) 3 Schichten von „Boundaries“
+
+* **UI-Boundary** (Frontend): verhindert „white screen“, zeigt Fallback + Recovery.
+* **Request/Handler-Boundary** (Backend): wandelt Exceptions in saubere Error-Responses.
+* **Reliability-Boundary** (Resilience): Timeouts, Retries, Circuit Breaker, Backoff.
+
+### C) Observability als Default
+
+* **strukturierte Logs** + **Traces** + **Exceptions auf Spans recorden** (wenn wirklich Fehlerstatus)
+  OTel empfiehlt/standardisiert „exceptions als span events“ + Status-Handling. ([OpenTelemetry][2])
+  Und wichtig: `RecordError` setzt den Span-Status nicht automatisch – Status musst du bewusst setzen. ([OpenTelemetry][3])
+
+---
+
+## 1) React + TypeScript (SOTA 2026)
+
+### 1.1 UI-Boundaries (Crash-Schutz)
+
+**Empfehlung (einfach, effektiv):** `react-error-boundary`
+
+* Reusable `ErrorBoundary`, Reset/Recovery Patterns
+* Klarer Hinweis: fängt **nicht** SSR, Event-Handler, async/effects ab (React-Limit). ([GitHub][4])
+
+**Platzierung (praktisch bewährt):**
+
+* **Top-Level Boundary** (App Shell)
+* **Route-Level Boundary** (für „Segment kaputt, Rest bleibt nutzbar“)
+* **Widget-Level** nur für besonders fragilen Kram (Charts, WYSIWYG, komplexe 3rd-party Components)
+
+### 1.2 Router-Boundaries (Route-spezifische Fehler)
+
+Wenn du **React Router (Data Router)** nutzt:
+
+* Nutze `errorElement` bzw. `ErrorBoundary` pro Route/Segment (Errors „bubblen“ hoch). ([reactrouter.com][5])
+* Error im Boundary bekommst du via `useRouteError()`. ([reactrouter.com][6])
+* React Router sagt selbst: Error Boundaries sind **nicht** für Form-Validation/Reporting gedacht (das gehört in separate Flows). ([reactrouter.com][7])
+
+### 1.3 Async/Data Fehler (wo ErrorBoundaries NICHT greifen)
+
+Für Data Fetching ist 2026 weiterhin am „cleansten“:
+
+* **TanStack Query**: retries, error state, typed handling
+
+  * Query gilt als „errored“, wenn die QueryFn wirft / Promise rejected. ([tanstack.com][8])
+  * Retries sind standardmäßig drin und konfigurierbar (global/per query). ([tanstack.com][9])
+  * Du kannst Retries per Funktion abhängig vom Error entscheiden (z. B. 401 nicht retryn). ([GitHub][10])
+
+### 1.4 Error Reporting (Production)
+
+* **Sentry ErrorBoundary**: fängt Render-Fehler in einem Teilbaum und reportet mit React-Context. ([docs.sentry.io][11])
+* Dazu passend: Sentrys generelle React-Guides. ([docs.sentry.io][12])
+
+### 1.5 Wenn du Next.js App Router nutzt
+
+* Next.js hat **Segment-Error UI** (z. B. `error.js`) und betont wieder „expected vs uncaught“. ([Next.js][1])
+
+**Minimal-Stack (React/TS)**
+
+* `react-error-boundary` (UI Crash Schutz) ([GitHub][4])
+* React Router `errorElement`/`ErrorBoundary` (route isolation) ([reactrouter.com][5])
+* TanStack Query (async error states + retries) ([tanstack.com][9])
+* Sentry (prod reporting) ([docs.sentry.io][11])
+
+---
+
+## 2) Python (SOTA 2026)
+
+### 2.1 Request/Handler-Boundary (Web APIs)
+
+Wenn du **FastAPI** nutzt: baue die „Grenze“ dort, wo Exceptions zu HTTP werden.
+
+* FastAPI hat Default-Exception-Handler und du kannst sie überschreiben. ([fastapi.tiangolo.com][13])
+
+### 2.2 Validation-Errors klar vom Rest trennen
+
+* Pydantic liefert strukturierte Validation Errors und du kannst Error-Messages/Handling anpassen. ([docs.pydantic.dev][14])
+
+### 2.3 Retries richtig (nicht überall)
+
+**Tenacity** ist der Standard für robustes Retry-Verhalten (Backoff, Policies). ([tenacity.readthedocs.io][15])
+Regel: nur **transiente** Fehler retryen (Timeout, 429, kurzzeitige Netzaussetzer), und nur wenn **idempotent** oder abgesichert.
+
+### 2.4 Logging/Tracing
+
+* **structlog** für structured logging, oft der „Production-Default“, flexibel mit stdlib logging kombinierbar. ([structlog][16])
+* **loguru** ist beliebt, wenn du „schnell nice logging“ willst. ([loguru.readthedocs.io][17])
+* OpenTelemetry: exceptions recorden + status setzen (wenn wirklich error). ([OpenTelemetry][18])
+
+**Minimal-Stack (Python)**
+
+* FastAPI Exception Handlers ([fastapi.tiangolo.com][13])
+* Pydantic Validation Errors sauber behandeln ([docs.pydantic.dev][14])
+* Tenacity für retries ([tenacity.readthedocs.io][15])
+* structlog (oder loguru) + OpenTelemetry exception recording ([structlog][16])
+
+---
+
+## 3) Go (SOTA 2026)
+
+### 3.1 Idiomatisches Error-Handling (ohne „Framework-Magie“)
+
+* Standardlib `errors` + Wrapping/Unwrapping (`errors.Is/As`, `%w`) ist das Fundament. ([pkg.go.dev][19])
+* Go 1.20 unterstützt auch „multiple wrapped errors“. ([go.dev][20])
+
+### 3.2 Logging: 2026 klar Richtung `log/slog`
+
+* `log/slog` ist Structured Logging in der Standardlib. ([pkg.go.dev][21])
+* Wenn du maximale Performance brauchst: `uber-go/zap` ist weiterhin verbreitet. ([GitHub][22])
+
+### 3.3 Retries + Backoff + Circuit Breaker (Resilience-Boundary)
+
+* Backoff/Retry: `cenkalti/backoff` (v5) ist ein verbreiteter Baustein. ([GitHub][23])
+* Circuit Breaker: `sony/gobreaker`. ([GitHub][24])
+
+### 3.4 Tracing / Fehlerstatus in OTel (Go)
+
+* OTel Go Doku: `RecordError` + **Status explizit auf Error setzen**, wenn du den Span als failed markieren willst. ([OpenTelemetry][3])
+* OTel Spezifikations-„Error handling“ Grundprinzipien. ([OpenTelemetry][25])
+
+**Minimal-Stack (Go)**
+
+* stdlib `errors` + wrapping idioms ([pkg.go.dev][19])
+* `log/slog` (oder zap) ([pkg.go.dev][21])
+* `cenkalti/backoff` + `sony/gobreaker` für Resilience ([GitHub][23])
+* OpenTelemetry: RecordError + status bewusst setzen ([OpenTelemetry][3])
+
+---
+
+## 4) Eine kurze „Best-Practice Checkliste“, die wirklich zieht
+
+### Frontend (React)
+
+* [ ] Route-level Boundaries (Router `errorElement`/`ErrorBoundary`) ([reactrouter.com][5])
+* [ ] UI-Boundary via `react-error-boundary` für nicht-Router Bereiche ([GitHub][4])
+* [ ] Async errors über TanStack Query state (nicht über ErrorBoundary erwarten) ([tanstack.com][8])
+* [ ] Sentry für Production-Visibility ([docs.sentry.io][11])
+
+### Backend (Python/Go)
+
+* [ ] Ein zentraler „Boundary“-Layer, der Errors normalisiert (HTTP/gRPC responses)
+* [ ] Retries nur für transient + idempotent (Tenacity / backoff) ([tenacity.readthedocs.io][15])
+* [ ] Circuit breaker für downstream Abhängigkeiten (Go: gobreaker) ([GitHub][24])
+* [ ] OTel: Exceptions recorden + Span status bewusst setzen ([OpenTelemetry][2])
+
+---
+
+Wenn du mir sagst, ob dein Frontend eher **Next.js App Router** oder **React Router** ist, und ob dein Backend **FastAPI**/**Django** (Python) oder eher **Go HTTP/gRPC** ist, kann ich dir daraus eine konkrete „Reference Architecture“ bauen (Datei-/Layer-Struktur + Error-Typen + Konventionen).
+
+[1]: https://nextjs.org/docs/app/getting-started/error-handling?utm_source=chatgpt.com "Getting Started: Error Handling"
+[2]: https://opentelemetry.io/docs/specs/otel/trace/exceptions/?utm_source=chatgpt.com "Exceptions"
+[3]: https://opentelemetry.io/docs/languages/go/instrumentation/?utm_source=chatgpt.com "Instrumentation"
+[4]: https://github.com/bvaughn/react-error-boundary?utm_source=chatgpt.com "Simple reusable React error boundary component"
+[5]: https://reactrouter.com/6.30.3/route/error-element?utm_source=chatgpt.com "errorElement v6.30.3"
+[6]: https://reactrouter.com/api/hooks/useRouteError?utm_source=chatgpt.com "useRouteError"
+[7]: https://reactrouter.com/how-to/error-boundary?utm_source=chatgpt.com "Error Boundaries"
+[8]: https://tanstack.com/query/v5/docs/react/guides/query-functions?utm_source=chatgpt.com "Query Functions | TanStack Query React Docs"
+[9]: https://tanstack.com/query/v5/docs/react/guides/query-retries?utm_source=chatgpt.com "Query Retries | TanStack Query React Docs"
+[10]: https://github.com/TanStack/query/discussions/4581?utm_source=chatgpt.com "Is there a way to immediately handle error when `retry` is ..."
+[11]: https://docs.sentry.io/platforms/javascript/guides/react/features/error-boundary/?utm_source=chatgpt.com "React Error Boundary"
+[12]: https://docs.sentry.io/platforms/javascript/guides/react/?utm_source=chatgpt.com "React | Sentry for React"
+[13]: https://fastapi.tiangolo.com/tutorial/handling-errors/?utm_source=chatgpt.com "Handling Errors"
+[14]: https://docs.pydantic.dev/latest/errors/errors/?utm_source=chatgpt.com "Error Handling - Pydantic Validation"
+[15]: https://tenacity.readthedocs.io/?utm_source=chatgpt.com "Tenacity — Tenacity documentation"
+[16]: https://www.structlog.org/?utm_source=chatgpt.com "structlog — structlog 25.5.0 documentation"
+[17]: https://loguru.readthedocs.io/?utm_source=chatgpt.com "Table of Contents — loguru documentation"
+[18]: https://opentelemetry.io/docs/languages/python/instrumentation/?utm_source=chatgpt.com "Instrumentation"
+[19]: https://pkg.go.dev/errors?utm_source=chatgpt.com "errors package"
+[20]: https://go.dev/doc/go1.20?utm_source=chatgpt.com "Go 1.20 Release Notes"
+[21]: https://pkg.go.dev/log/slog?utm_source=chatgpt.com "slog package - log/slog"
+[22]: https://github.com/uber-go/zap?utm_source=chatgpt.com "uber-go/zap: Blazing fast, structured, leveled logging in Go."
+[23]: https://github.com/cenkalti/backoff?utm_source=chatgpt.com "The exponential backoff algorithm in Go"
+[24]: https://github.com/sony/gobreaker?utm_source=chatgpt.com "sony/gobreaker: Circuit Breaker implemented in Go"
+[25]: https://opentelemetry.io/docs/specs/otel/error-handling/?utm_source=chatgpt.com "Error handling in OpenTelemetry"

@@ -1,0 +1,63 @@
+---
+description: Core project architecture and conventions for TradeView Fusion. Multi-service trading platform.
+globs: 
+alwaysApply: true
+---
+
+# TradeView Fusion — Project Rules
+
+## Architecture (4 Services)
+
+- **Frontend:** Next.js 16 (App Router) on port 3000. Only communicates with Go Gateway.
+- **Go Gateway:** API Gateway + Data Router on port 9060. Single point of entry for all external data and internal service calls.
+- **Python Services:** FastAPI on ports 8090 (indicator), 8091 (soft-signals), 8092 (finance-bridge). Only Go calls Python. Python is a thin wrapper around Rust core.
+- **Rust Core:** PyO3 library inside `python-backend/rust_core/`. Called by Python, never directly.
+- **GCT (GoCryptoTrader):** Fork in `go-backend/vendor-forks/`. gRPC 9052, JSON-RPC 9053. Only Go Gateway connects to GCT.
+
+## Critical Architectural Rules
+
+1. **Frontend darf nur Go aufrufen.** Keine direkten Provider- oder Python-Calls aus `src/`.
+2. **Alle API Keys leben in `go-backend/.env`.** Frontend hat null Secrets.
+3. **Go ist der Network Layer.** Alles was extern geht (Provider, Exchanges) geht über Go.
+4. **Python ist Thin Wrapper.** Performance-kritische Berechnungen in Rust (PyO3). Python für HTTP/Orchestration.
+5. **Jeder Request hat eine Correlation ID** (`X-Request-ID`, UUID v4). Durchgehend von Frontend bis Rust.
+
+## Spec-Dateien (Source of Truth)
+
+Bevor du implementierst, lies die relevanten Specs:
+
+- `docs/specs/EXECUTION_PLAN.md` — Phasen, Tasks, Verify Gates, Boundary-Order
+- `docs/specs/API_CONTRACTS.md` — Alle Endpoint-Definitionen, Request/Response Schemas
+- `docs/specs/SYSTEM_STATE.md` — IST/SOLL pro Architektur-Bereich
+- `docs/specs/AUTH_SECURITY.md` — 3-Schichten Auth, RBAC, Exchange Key Hardening, MCP-Sicherheit
+- `docs/GO_GATEWAY.md` — RSC, MCP, WebTransport (Integration mit Frontend/AI-Agents)
+- `docs/RUST_LANGUAGE_IMPLEMENTATION.md` — Rust-Scope (PyO3, WASM, Backtester, Tauri)
+- `docs/FRONTEND_ARCHITECTURE.md` — Komponentenstruktur, State Management, Datenfluss
+
+## Vertical Development (Boundary-Order)
+
+Innerhalb jeder Phase: eine Service-Grenze nach der anderen stabilisieren.
+
+1. **TS ↔ Go** erst (Frontend-Contract + Go-Endpoint + Mock-Response)
+2. **Go ↔ Python/Rust** danach (echte Daten ersetzen Mocks)
+3. **End-to-End** zuletzt (vollständiger Durchstich)
+
+## Bug Tracking
+
+Frontend Bugs und Fixes in `docs/webapp.md` dokumentieren (Arbeitsdokument).
+
+## Dev Commands
+
+```bash
+# Frontend
+bun install && bun run db:generate && bun run dev
+
+# Go Gateway
+cd go-backend && go run ./cmd/gateway
+
+# Python
+cd python-backend && source .venv/bin/activate && uvicorn main:app --port 8090
+
+# Full Stack (PowerShell)
+.\scripts\dev-stack.ps1
+```

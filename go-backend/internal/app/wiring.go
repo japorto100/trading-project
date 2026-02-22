@@ -16,6 +16,7 @@ import (
 	"tradeviewfusion/go-backend/internal/connectors/fred"
 	"tradeviewfusion/go-backend/internal/connectors/gametheory"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/connectors/gdelt"
 	newsConnectors "tradeviewfusion/go-backend/internal/connectors/news"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
@@ -60,10 +61,15 @@ func NewServerFromEnv() (*Server, error) {
 		AccessKey:      envOr("ACLED_ACCESS_KEY", ""),
 		RequestTimeout: durationMsOr("ACLED_HTTP_TIMEOUT_MS", 5000),
 	})
+	gdeltGeoClient := gdelt.NewClient(gdelt.Config{
+		BaseURL:        envOr("GDELT_BASE_URL", gdelt.DefaultBaseURL),
+		RequestTimeout: durationMsOr("GDELT_HTTP_TIMEOUT_MS", 5000),
+		RequestRetries: intOr("GDELT_HTTP_RETRIES", intOr("NEWS_HTTP_RETRIES", 1)),
+	})
 	quoteClient := marketServices.NewQuoteClient(gctClient, finnhubClient, fredClient, ecbClient)
 	macroService := marketServices.NewMacroService(fredClient, ecbClient)
 	streamClient := marketServices.NewStreamClient(quoteClient, gctClient, finnhubClient)
-	geopoliticalEventsService := geopoliticalServices.NewEventsService(acledClient)
+	geopoliticalEventsService := geopoliticalServices.NewEventsService(acledClient, gdeltGeoClient)
 	cfrClient := cfr.NewClient()
 	crisiswatchClient := crisiswatch.NewClient(crisiswatch.Config{
 		RSSURL:         envOr("CRISISWATCH_RSS_URL", crisiswatch.DefaultRSSURL),
@@ -151,7 +157,7 @@ func NewServerFromEnv() (*Server, error) {
 		)
 	}
 
-	return NewServer(host, port, mux), nil
+	return NewServer(host, port, withRequestIDAndLogging(mux)), nil
 }
 
 func envOr(key, fallback string) string {

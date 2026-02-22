@@ -8,6 +8,7 @@ interface MapShellHeaderProps {
 	busy: boolean;
 	onRefresh: () => void;
 	onRunHardIngest: () => void;
+	onRunSoftIngest: () => void;
 }
 
 export function MapShellHeader({
@@ -16,6 +17,7 @@ export function MapShellHeader({
 	busy,
 	onRefresh,
 	onRunHardIngest,
+	onRunSoftIngest,
 }: MapShellHeaderProps) {
 	return (
 		<header className="flex h-14 items-center justify-between border-b border-border px-4">
@@ -45,12 +47,22 @@ export function MapShellHeader({
 				<Button
 					variant="outline"
 					size="sm"
+					onClick={onRunSoftIngest}
+					disabled={busy}
+					aria-label="Run soft signal ingestion (RSS)"
+				>
+					<WandSparkles className="mr-2 h-4 w-4 text-sky-400" />
+					Ingest Soft (RSS)
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
 					onClick={onRunHardIngest}
 					disabled={busy}
 					aria-label="Run hard signal ingestion"
 				>
-					<WandSparkles className="mr-2 h-4 w-4" />
-					Ingest hard signals
+					<WandSparkles className="mr-2 h-4 w-4 text-amber-400" />
+					Ingest Hard
 				</Button>
 				<div className="rounded-md border border-border bg-card px-2 py-1 text-xs text-muted-foreground">
 					Events: {eventsCount}

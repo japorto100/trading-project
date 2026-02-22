@@ -63,6 +63,11 @@ export interface GeoEvent {
 	createdBy: string;
 	updatedBy: string;
 	symbol: string;
+	externalSource?: string;
+	externalRegion?: string;
+	externalEventType?: string;
+	externalSubEventType?: string;
+	externalFatalities?: number;
 }
 
 export interface GeoEventsStoreFile {

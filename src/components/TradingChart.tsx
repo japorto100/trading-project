@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import { BarChart3, RefreshCw } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChartType } from "@/chart/types";
+import type { MouseEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import type { ChartType, DrawingType } from "@/chart/types";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import {
 	type IndicatorSeriesRefs,
@@ -34,6 +35,93 @@ interface TradingChartProps {
 	indicators: IndicatorSettings;
 	isDarkMode: boolean;
 	chartType?: ChartType;
+	activeDrawingTool?: DrawingType | null;
+	drawingsLocked?: boolean;
+	drawingsVisible?: boolean;
+	magnetMode?: "normal" | "weak" | "strong";
+	drawingCommand?: { kind: "undo" | "redo" | "clear"; nonce: number } | null;
+	onDrawingHistoryChange?: (state: { canUndo: boolean; canRedo: boolean; count: number }) => void;
+	historyRangePreset: HistoryRangePreset;
+	customStartYear: number;
+	minimumStartYear: number;
+	effectiveStartYear: number;
+	onHistoryRangeChange: (preset: HistoryRangePreset) => void;
+	onCustomStartYearChange: (year: number) => void;
+}
+
+type LwcDrawingTool = "trendline" | "rectangle" | "horizontalline" | "verticalline";
+
+interface LwcDrawingPoint {
+	time: number;
+	price: number;
+}
+
+interface LwcDrawing {
+	id: string;
+	type: LwcDrawingTool;
+	p1: LwcDrawingPoint;
+	p2?: LwcDrawingPoint;
+}
+
+interface DrawingState {
+	drawings: LwcDrawing[];
+	undo: LwcDrawing[][];
+	redo: LwcDrawing[][];
+}
+
+type DrawingAction =
+	| { type: "add"; drawing: LwcDrawing }
+	| { type: "undo" }
+	| { type: "redo" }
+	| { type: "clear" };
+
+const SUPPORTED_DRAWING_TOOLS: ReadonlySet<DrawingType> = new Set([
+	"trendline",
+	"rectangle",
+	"horizontalline",
+	"verticalline",
+]);
+
+function isSupportedDrawingTool(tool: DrawingType | null | undefined): tool is LwcDrawingTool {
+	return Boolean(tool && SUPPORTED_DRAWING_TOOLS.has(tool));
+}
+
+function drawingReducer(state: DrawingState, action: DrawingAction): DrawingState {
+	switch (action.type) {
+		case "add":
+			return {
+				drawings: [...state.drawings, action.drawing],
+				undo: [...state.undo, state.drawings],
+				redo: [],
+			};
+		case "undo": {
+			if (state.undo.length === 0) return state;
+			const previous = state.undo[state.undo.length - 1] ?? [];
+			return {
+				drawings: previous,
+				undo: state.undo.slice(0, -1),
+				redo: [...state.redo, state.drawings],
+			};
+		}
+		case "redo": {
+			if (state.redo.length === 0) return state;
+			const next = state.redo[state.redo.length - 1] ?? [];
+			return {
+				drawings: next,
+				undo: [...state.undo, state.drawings],
+				redo: state.redo.slice(0, -1),
+			};
+		}
+		case "clear":
+			if (state.drawings.length === 0) return state;
+			return {
+				drawings: [],
+				undo: [...state.undo, state.drawings],
+				redo: [],
+			};
+		default:
+			return state;
+	}
 }
 
 export function TradingChart({
@@ -41,6 +129,18 @@ export function TradingChart({
 	indicators,
 	isDarkMode,
 	chartType = "candlestick",
+	activeDrawingTool = null,
+	drawingsLocked = false,
+	drawingsVisible = true,
+	magnetMode = "normal",
+	drawingCommand = null,
+	onDrawingHistoryChange,
+	historyRangePreset,
+	customStartYear,
+	minimumStartYear,
+	effectiveStartYear,
+	onHistoryRangeChange,
+	onCustomStartYearChange,
 }: TradingChartProps) {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const rsiChartContainerRef = useRef<HTMLDivElement>(null);
@@ -73,10 +173,19 @@ export function TradingChart({
 	const supportResistanceSeriesRefs = useRef<ChartSeriesHandle[]>([]);
 	const chartSignatureRef = useRef<string | null>(null);
 	const lightweightChartsRef = useRef<LightweightChartsModule | null>(null);
+	const previousDrawingToolRef = useRef<LwcDrawingTool | null>(null);
+	const previousDrawingsLockedRef = useRef<boolean>(drawingsLocked);
 
 	const [chartLoaded, setChartLoaded] = useState(false);
 	const [chartError, setChartError] = useState<string | null>(null);
 	const [hoveredPrice, setHoveredPrice] = useState<HoveredPrice | null>(null);
+	const [drawingState, dispatchDrawing] = useReducer(drawingReducer, {
+		drawings: [],
+		undo: [],
+		redo: [],
+	});
+	const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+	const [pendingPoint, setPendingPoint] = useState<LwcDrawingPoint | null>(null);
 
 	const indicatorSeriesRefs = useMemo<IndicatorSeriesRefs>(
 		() => ({
@@ -131,6 +240,195 @@ export function TradingChart({
 		return adxData.adx[adxData.adx.length - 1]?.value;
 	}, [ohlcvData, indicators.adx?.enabled, indicators.adx?.period]);
 	const oscillatorEnabled = indicators.rsi.enabled || Boolean(indicators.adx?.enabled);
+	const drawingCount = drawingState.drawings.length;
+
+	const normalizeTime = useCallback((value: unknown): number | null => {
+		if (typeof value === "number" && Number.isFinite(value)) return value;
+		if (
+			typeof value === "object" &&
+			value !== null &&
+			"year" in value &&
+			"month" in value &&
+			"day" in value
+		) {
+			const candidate = value as { year: number; month: number; day: number };
+			if (
+				Number.isFinite(candidate.year) &&
+				Number.isFinite(candidate.month) &&
+				Number.isFinite(candidate.day)
+			) {
+				return Math.floor(
+					Date.UTC(candidate.year, candidate.month - 1, candidate.day, 0, 0, 0) / 1000,
+				);
+			}
+		}
+		return null;
+	}, []);
+
+	const nearestCandle = useCallback(
+		(time: number): TradingChartCandle | null => {
+			if (candleData.length === 0) return null;
+			let nearest = candleData[0];
+			let minDistance = Math.abs(nearest.time - time);
+			for (let index = 1; index < candleData.length; index += 1) {
+				const candidate = candleData[index];
+				const distance = Math.abs(candidate.time - time);
+				if (distance < minDistance) {
+					nearest = candidate;
+					minDistance = distance;
+				}
+			}
+			return nearest;
+		},
+		[candleData],
+	);
+
+	const mapMousePointToDrawing = useCallback(
+		(x: number, y: number): LwcDrawingPoint | null => {
+			const chart = chartRef.current;
+			const mainSeries = mainSeriesRef.current;
+			const container = chartContainerRef.current;
+			if (!chart || !mainSeries || !container) return null;
+
+			const rect = container.getBoundingClientRect();
+			if (rect.width <= 0 || rect.height <= 0) return null;
+
+			const clampedX = Math.max(0, Math.min(x, rect.width));
+			const clampedY = Math.max(0, Math.min(y, rect.height));
+
+			let time = normalizeTime(chart.timeScale().coordinateToTime?.(clampedX));
+			if (time === null) {
+				const fallbackIndex = Math.max(
+					0,
+					Math.min(
+						candleData.length - 1,
+						Math.round((clampedX / Math.max(1, rect.width)) * Math.max(0, candleData.length - 1)),
+					),
+				);
+				time = candleData[fallbackIndex]?.time ?? null;
+			}
+			if (time === null) return null;
+
+			let price = mainSeries.coordinateToPrice?.(clampedY) ?? null;
+			if (price === null || !Number.isFinite(price)) {
+				price = candleData[candleData.length - 1]?.close ?? null;
+			}
+			if (price === null || !Number.isFinite(price)) return null;
+
+			if (magnetMode !== "normal") {
+				const nearest = nearestCandle(time);
+				if (nearest) {
+					time = nearest.time;
+					if (magnetMode === "strong") {
+						const snapTargets = [nearest.open, nearest.high, nearest.low, nearest.close];
+						let snapped = snapTargets[0];
+						let minDistance = Math.abs(price - snapped);
+						for (let index = 1; index < snapTargets.length; index += 1) {
+							const target = snapTargets[index];
+							const distance = Math.abs(price - target);
+							if (distance < minDistance) {
+								snapped = target;
+								minDistance = distance;
+							}
+						}
+						price = snapped;
+					}
+				}
+			}
+
+			return { time, price };
+		},
+		[candleData, magnetMode, nearestCandle, normalizeTime],
+	);
+
+	const drawingToScreen = useCallback((point: LwcDrawingPoint): { x: number; y: number } | null => {
+		const chart = chartRef.current;
+		const mainSeries = mainSeriesRef.current;
+		if (!chart || !mainSeries) return null;
+		const x = chart.timeScale().timeToCoordinate?.(point.time) ?? null;
+		const y = mainSeries.priceToCoordinate?.(point.price) ?? null;
+		if (x === null || y === null || !Number.isFinite(x) || !Number.isFinite(y)) {
+			return null;
+		}
+		return { x, y };
+	}, []);
+
+	const supportedActiveTool = useMemo<LwcDrawingTool | null>(() => {
+		if (!isSupportedDrawingTool(activeDrawingTool)) return null;
+		return activeDrawingTool;
+	}, [activeDrawingTool]);
+
+	const handleOverlayClick = useCallback(
+		(event: MouseEvent<SVGSVGElement>) => {
+			if (!supportedActiveTool || drawingsLocked) return;
+			const container = chartContainerRef.current;
+			if (!container) return;
+			const rect = container.getBoundingClientRect();
+			const point = mapMousePointToDrawing(event.clientX - rect.left, event.clientY - rect.top);
+			if (!point) return;
+
+			if (supportedActiveTool === "horizontalline" || supportedActiveTool === "verticalline") {
+				dispatchDrawing({
+					type: "add",
+					drawing: {
+						id: `${supportedActiveTool}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+						type: supportedActiveTool,
+						p1: point,
+					},
+				});
+				return;
+			}
+
+			if (!pendingPoint) {
+				setPendingPoint(point);
+				return;
+			}
+
+			dispatchDrawing({
+				type: "add",
+				drawing: {
+					id: `${supportedActiveTool}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					type: supportedActiveTool,
+					p1: pendingPoint,
+					p2: point,
+				},
+			});
+			setPendingPoint(null);
+		},
+		[drawingsLocked, mapMousePointToDrawing, pendingPoint, supportedActiveTool],
+	);
+
+	useEffect(() => {
+		const toolChanged = previousDrawingToolRef.current !== supportedActiveTool;
+		const lockChanged = previousDrawingsLockedRef.current !== drawingsLocked;
+		if (toolChanged || lockChanged) {
+			setPendingPoint(null);
+		}
+		previousDrawingToolRef.current = supportedActiveTool;
+		previousDrawingsLockedRef.current = drawingsLocked;
+	}, [drawingsLocked, supportedActiveTool]);
+
+	useEffect(() => {
+		onDrawingHistoryChange?.({
+			canUndo: drawingState.undo.length > 0,
+			canRedo: drawingState.redo.length > 0,
+			count: drawingCount,
+		});
+	}, [drawingCount, drawingState.redo.length, drawingState.undo.length, onDrawingHistoryChange]);
+
+	useEffect(() => {
+		if (!drawingCommand) return;
+		if (drawingCommand.kind === "undo") {
+			dispatchDrawing({ type: "undo" });
+		}
+		if (drawingCommand.kind === "redo") {
+			dispatchDrawing({ type: "redo" });
+		}
+		if (drawingCommand.kind === "clear") {
+			dispatchDrawing({ type: "clear" });
+			setPendingPoint(null);
+		}
+	}, [drawingCommand]);
 
 	const getMainSeriesDataForType = useCallback(
 		(type: ChartType) => getMainSeriesData(candleData, type),
@@ -215,7 +513,10 @@ export function TradingChart({
 
 				if (!isMounted) return;
 				const chartContainer = chartContainerRef.current;
-				if (!chartContainer) return;
+				if (!chartContainer) {
+					setChartLoaded(true); // Don't leave it loading if container is gone
+					return;
+				}
 
 				if (chartRef.current) {
 					chartRef.current.remove();
@@ -516,6 +817,10 @@ export function TradingChart({
 				chartRef.current.applyOptions({
 					width: chartContainerRef.current.clientWidth,
 				});
+				setOverlaySize({
+					width: chartContainerRef.current.clientWidth,
+					height: chartContainerRef.current.clientHeight,
+				});
 			}
 			if (rsiChartContainerRef.current && rsiChartRef.current) {
 				rsiChartRef.current.applyOptions({
@@ -524,9 +829,29 @@ export function TradingChart({
 			}
 		};
 
+		handleResize();
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
+
+	const overlayInteractive = Boolean(supportedActiveTool && !drawingsLocked);
+	const drawingPrimitives = useMemo(() => {
+		return drawingState.drawings
+			.map((drawing) => {
+				const p1 = drawingToScreen(drawing.p1);
+				const p2 = drawing.p2 ? drawingToScreen(drawing.p2) : null;
+				return { drawing, p1, p2 };
+			})
+			.filter((item) => item.p1 !== null);
+	}, [drawingState.drawings, drawingToScreen]);
+
+	const pendingPrimitive = useMemo(() => {
+		if (!pendingPoint || !supportedActiveTool || !drawingsVisible) return null;
+		if (supportedActiveTool !== "trendline" && supportedActiveTool !== "rectangle") return null;
+		const p1 = drawingToScreen(pendingPoint);
+		if (!p1) return null;
+		return { p1 };
+	}, [drawingsVisible, drawingToScreen, pendingPoint, supportedActiveTool]);
 
 	if (chartError) {
 		return (
@@ -547,6 +872,12 @@ export function TradingChart({
 				lastCandle={lastCandle}
 				isPositive={isPositive}
 				priceChangePercent={priceChangePercent}
+				historyRangePreset={historyRangePreset}
+				customStartYear={customStartYear}
+				minimumStartYear={minimumStartYear}
+				effectiveStartYear={effectiveStartYear}
+				onHistoryRangeChange={onHistoryRangeChange}
+				onCustomStartYearChange={onCustomStartYearChange}
 			/>
 
 			<div className="flex-1 relative min-h-0">
@@ -559,6 +890,105 @@ export function TradingChart({
 					</div>
 				)}
 				<div ref={chartContainerRef} className="w-full h-full" />
+				{drawingsVisible && overlaySize.width > 0 && overlaySize.height > 0 && (
+					<svg
+						viewBox={`0 0 ${overlaySize.width} ${overlaySize.height}`}
+						className="absolute inset-0 h-full w-full"
+						onClick={handleOverlayClick}
+						style={{ pointerEvents: overlayInteractive ? "auto" : "none" }}
+					>
+						{drawingPrimitives.map(({ drawing, p1, p2 }) => {
+							if (!p1) return null;
+
+							if (drawing.type === "horizontalline") {
+								return (
+									<line
+										key={drawing.id}
+										x1={0}
+										y1={p1.y}
+										x2={overlaySize.width}
+										y2={p1.y}
+										stroke="#38bdf8"
+										strokeWidth={1.5}
+										strokeDasharray="6 4"
+										opacity={0.95}
+									/>
+								);
+							}
+
+							if (drawing.type === "verticalline") {
+								return (
+									<line
+										key={drawing.id}
+										x1={p1.x}
+										y1={0}
+										x2={p1.x}
+										y2={overlaySize.height}
+										stroke="#f59e0b"
+										strokeWidth={1.5}
+										strokeDasharray="6 4"
+										opacity={0.95}
+									/>
+								);
+							}
+
+							if (!p2) return null;
+
+							if (drawing.type === "trendline") {
+								return (
+									<line
+										key={drawing.id}
+										x1={p1.x}
+										y1={p1.y}
+										x2={p2.x}
+										y2={p2.y}
+										stroke="#22c55e"
+										strokeWidth={2}
+										opacity={0.95}
+									/>
+								);
+							}
+
+							if (drawing.type === "rectangle") {
+								const x = Math.min(p1.x, p2.x);
+								const y = Math.min(p1.y, p2.y);
+								const width = Math.max(1, Math.abs(p2.x - p1.x));
+								const height = Math.max(1, Math.abs(p2.y - p1.y));
+								return (
+									<rect
+										key={drawing.id}
+										x={x}
+										y={y}
+										width={width}
+										height={height}
+										fill="rgba(56, 189, 248, 0.15)"
+										stroke="#38bdf8"
+										strokeWidth={1.5}
+										opacity={0.95}
+									/>
+								);
+							}
+
+							return null;
+						})}
+
+						{pendingPrimitive && (
+							<circle
+								cx={pendingPrimitive.p1.x}
+								cy={pendingPrimitive.p1.y}
+								r={4}
+								fill="#f8fafc"
+								stroke="#0ea5e9"
+								strokeWidth={1.5}
+							/>
+						)}
+					</svg>
+				)}
+				{supportedActiveTool && pendingPoint && (
+					<div className="absolute left-3 top-3 rounded bg-slate-900/80 px-2 py-1 text-[11px] text-slate-200">
+						Select second point for {supportedActiveTool}
+					</div>
+				)}
 			</div>
 
 			{oscillatorEnabled && (

@@ -1,14 +1,29 @@
-﻿import { ChevronDown, ChevronUp, Clock, Volume2 } from "lucide-react";
+﻿import { Calendar, ChevronDown, ChevronUp, Clock, Volume2 } from "lucide-react";
 import type { HoveredPrice, TradingChartCandle } from "@/components/trading-chart/types";
 import { formatPrice, formatVolume } from "@/components/trading-chart/utils";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { HISTORY_RANGE_OPTIONS, type HistoryRangePreset } from "@/lib/history-range";
 
 interface TradingChartHeaderProps {
 	hoveredPrice: HoveredPrice | null;
 	lastCandle: TradingChartCandle | undefined;
 	isPositive: boolean;
 	priceChangePercent: string;
+	historyRangePreset: HistoryRangePreset;
+	customStartYear: number;
+	minimumStartYear: number;
+	effectiveStartYear: number;
+	onHistoryRangeChange: (preset: HistoryRangePreset) => void;
+	onCustomStartYearChange: (year: number) => void;
 }
 
 export function TradingChartHeader({
@@ -16,9 +31,15 @@ export function TradingChartHeader({
 	lastCandle,
 	isPositive,
 	priceChangePercent,
+	historyRangePreset,
+	customStartYear,
+	minimumStartYear,
+	effectiveStartYear,
+	onHistoryRangeChange,
+	onCustomStartYearChange,
 }: TradingChartHeaderProps) {
 	return (
-		<div className="p-3 border-b border-border bg-card/30">
+		<div className="p-3 border-b border-border bg-card/30 flex items-center justify-between gap-4 flex-wrap">
 			<div className="flex items-center gap-4 flex-wrap">
 				<div>
 					<div className="flex items-center gap-2">
@@ -82,6 +103,49 @@ export function TradingChartHeader({
 							</div>
 						</>
 					)}
+				</div>
+			</div>
+
+			<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1.5 bg-accent/20 rounded-md px-2 py-1 border border-border/50">
+					<Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+					<Select
+						value={historyRangePreset}
+						onValueChange={(value) => onHistoryRangeChange(value as HistoryRangePreset)}
+					>
+						<SelectTrigger className="h-7 w-[80px] bg-transparent border-none text-[11px] font-bold p-0 shadow-none focus:ring-0">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{HISTORY_RANGE_OPTIONS.map((option) => (
+								<SelectItem key={option.value} value={option.value} className="text-xs">
+									{option.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+
+					{historyRangePreset === "CUSTOM" && (
+						<Input
+							type="number"
+							className="h-6 w-[60px] text-[11px] px-1 bg-background/50"
+							min={minimumStartYear}
+							max={new Date().getFullYear()}
+							value={customStartYear}
+							onChange={(event) => {
+								const year = Number(event.target.value);
+								if (Number.isFinite(year)) {
+									onCustomStartYearChange(year);
+								}
+							}}
+						/>
+					)}
+
+					<Separator orientation="vertical" className="h-4 mx-1" />
+
+					<Badge variant="ghost" className="h-5 px-1 text-[10px] font-mono text-muted-foreground">
+						From {effectiveStartYear}
+					</Badge>
 				</div>
 			</div>
 		</div>

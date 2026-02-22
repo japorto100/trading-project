@@ -51,7 +51,7 @@ import type {
 } from "@/lib/geopolitical/types";
 import type { MarketNewsArticle } from "@/lib/news/types";
 
-type EventsSource = "local" | "acled";
+type EventsSource = "local" | "acled" | "gdelt";
 type ContextSource = "all" | "cfr" | "crisiswatch";
 
 export function GeopoliticalMapShell() {
@@ -111,12 +111,16 @@ export function GeopoliticalMapShell() {
 	const [acledHasMore, setAcledHasMore] = useState(false);
 	const [showCandidateQueue, setShowCandidateQueue] = useState(true);
 	const [showRegionLayer, setShowRegionLayer] = useState(true);
+	const [showHeatmap, setShowHeatmap] = useState(true);
+	const [showSoftSignals, setShowSoftSignals] = useState(true);
 	const [canUndoDrawings, setCanUndoDrawings] = useState(false);
 	const [canRedoDrawings, setCanRedoDrawings] = useState(false);
 
 	const undoStackRef = useRef<DrawingHistoryCommand[]>([]);
 	const redoStackRef = useRef<DrawingHistoryCommand[]>([]);
 	const eventsEditable = eventsSource === "local";
+	const isExternalSource = eventsSource !== "local";
+	const externalSourceLabel = eventsSource === "gdelt" ? "GDELT" : "ACLED";
 
 	const syncDrawingHistoryState = useCallback(() => {
 		setCanUndoDrawings(undoStackRef.current.length > 0);
@@ -252,7 +256,7 @@ export function GeopoliticalMapShell() {
 			return params.toString();
 		}
 
-		params.set("source", "acled");
+		params.set("source", eventsSource);
 		params.set("page", String(acledPage));
 		params.set("pageSize", String(acledPageSize));
 		if (acledCountryFilter.trim()) params.set("country", acledCountryFilter.trim());
@@ -358,7 +362,10 @@ export function GeopoliticalMapShell() {
 			const graphPayload = graphRes.ok ? ((await graphRes.json()) as GeoGraphResponse) : null;
 
 			setEvents(Array.isArray(eventsPayload.events) ? eventsPayload.events : []);
-			if (eventsPayload.source === "acled" && eventsPayload.meta) {
+			if (
+				(eventsPayload.source === "acled" || eventsPayload.source === "gdelt") &&
+				eventsPayload.meta
+			) {
 				setAcledPage(eventsPayload.meta.page);
 				setAcledPageSize(eventsPayload.meta.pageSize);
 				setAcledTotal(eventsPayload.meta.total);
@@ -447,10 +454,9 @@ export function GeopoliticalMapShell() {
 
 	const fetchRegionNews = useCallback(async () => {
 		try {
-			const regionParam =
-				eventsSource === "acled"
-					? acledRegionFilter.trim() || undefined
-					: activeRegionId || undefined;
+			const regionParam = isExternalSource
+				? acledRegionFilter.trim() || undefined
+				: activeRegionId || undefined;
 			const response = await fetch(
 				`/api/geopolitical/news?${new URLSearchParams({
 					...(regionParam ? { region: regionParam } : {}),
@@ -464,7 +470,7 @@ export function GeopoliticalMapShell() {
 		} catch {
 			// keep previous news
 		}
-	}, [acledRegionFilter, activeRegionId, eventsSource]);
+	}, [acledRegionFilter, activeRegionId, isExternalSource]);
 
 	useEffect(() => {
 		void fetchRegionNews();
@@ -473,10 +479,9 @@ export function GeopoliticalMapShell() {
 	const fetchGeopoliticalContext = useCallback(async () => {
 		setContextLoading(true);
 		try {
-			const regionParam =
-				eventsSource === "acled"
-					? acledRegionFilter.trim() || undefined
-					: activeRegionId || undefined;
+			const regionParam = isExternalSource
+				? acledRegionFilter.trim() || undefined
+				: activeRegionId || undefined;
 			const query = new URLSearchParams({
 				source: contextSource,
 				limit: "12",
@@ -496,7 +501,7 @@ export function GeopoliticalMapShell() {
 		} finally {
 			setContextLoading(false);
 		}
-	}, [acledRegionFilter, activeRegionId, contextSource, eventsSource, searchQuery]);
+	}, [acledRegionFilter, activeRegionId, contextSource, isExternalSource, searchQuery]);
 
 	useEffect(() => {
 		void fetchGeopoliticalContext();
@@ -551,7 +556,7 @@ export function GeopoliticalMapShell() {
 	}, [fetchGameTheoryImpact]);
 
 	useEffect(() => {
-		if (eventsSource === "acled") {
+		if (isExternalSource) {
 			setActiveRegionId("");
 			return;
 		}
@@ -564,7 +569,7 @@ export function GeopoliticalMapShell() {
 		setAcledPage(1);
 		setAcledTotal(0);
 		setAcledHasMore(false);
-	}, [eventsSource]);
+	}, [isExternalSource]);
 
 	useEffect(() => {
 		if (typeof window === "undefined" || typeof window.EventSource === "undefined") return;
@@ -669,7 +674,9 @@ export function GeopoliticalMapShell() {
 
 			setSelectedEventId(null);
 			if (!eventsEditable) {
-				setError("ACLED mode is read-only. Switch source to Local to place markers.");
+				setError(
+					`${externalSourceLabel} mode is read-only. Switch source to Local to place markers.`,
+				);
 				return;
 			}
 			setPendingPoint(coords);
@@ -688,6 +695,7 @@ export function GeopoliticalMapShell() {
 			executeDrawingCommand,
 			pendingLineStart,
 			selectedSymbol,
+			externalSourceLabel,
 		],
 	);
 
@@ -730,7 +738,9 @@ export function GeopoliticalMapShell() {
 
 	const createMarker = useCallback(async () => {
 		if (!eventsEditable) {
-			setError("ACLED mode is read-only. Switch source to Local to create/edit markers.");
+			setError(
+				`${externalSourceLabel} mode is read-only. Switch source to Local to create/edit markers.`,
+			);
 			return;
 		}
 		if (!pendingPoint) {
@@ -791,11 +801,14 @@ export function GeopoliticalMapShell() {
 		selectedSymbol,
 		activeRegionId,
 		eventsEditable,
+		externalSourceLabel,
 	]);
 
 	const updateMarker = useCallback(async () => {
 		if (!eventsEditable) {
-			setError("ACLED mode is read-only. Switch source to Local to create/edit markers.");
+			setError(
+				`${externalSourceLabel} mode is read-only. Switch source to Local to create/edit markers.`,
+			);
 			return;
 		}
 		if (!selectedEvent) {
@@ -837,11 +850,13 @@ export function GeopoliticalMapShell() {
 		} finally {
 			setBusy(false);
 		}
-	}, [editForm, eventsEditable, fetchAll, selectedEvent]);
+	}, [editForm, eventsEditable, fetchAll, selectedEvent, externalSourceLabel]);
 
 	const deleteMarker = useCallback(async () => {
 		if (!eventsEditable) {
-			setError("ACLED mode is read-only. Switch source to Local to create/edit markers.");
+			setError(
+				`${externalSourceLabel} mode is read-only. Switch source to Local to create/edit markers.`,
+			);
 			return;
 		}
 		if (!selectedEvent) {
@@ -876,11 +891,18 @@ export function GeopoliticalMapShell() {
 		} finally {
 			setBusy(false);
 		}
-	}, [eventsEditable, fetchAll, selectedEvent]);
+	}, [eventsEditable, fetchAll, selectedEvent, externalSourceLabel]);
 
 	const runHardIngest = useCallback(async () => {
 		setBusy(true);
 		await fetch("/api/geopolitical/candidates/ingest/hard", { method: "POST" });
+		setBusy(false);
+		await fetchAll();
+	}, [fetchAll]);
+
+	const runSoftIngest = useCallback(async () => {
+		setBusy(true);
+		await fetch("/api/geopolitical/candidates/ingest/soft", { method: "POST" });
 		setBusy(false);
 		await fetchAll();
 	}, [fetchAll]);
@@ -907,7 +929,9 @@ export function GeopoliticalMapShell() {
 			sourceTier?: "A" | "B" | "C";
 		}) => {
 			if (!eventsEditable) {
-				setError("ACLED mode is read-only. Switch source to Local to modify event sources.");
+				setError(
+					`${externalSourceLabel} mode is read-only. Switch source to Local to modify event sources.`,
+				);
 				return;
 			}
 			if (!selectedEvent) return;
@@ -920,7 +944,7 @@ export function GeopoliticalMapShell() {
 			setBusy(false);
 			await fetchAll();
 		},
-		[eventsEditable, fetchAll, selectedEvent],
+		[eventsEditable, fetchAll, selectedEvent, externalSourceLabel],
 	);
 
 	const addAssetToSelectedEvent = useCallback(
@@ -931,7 +955,9 @@ export function GeopoliticalMapShell() {
 			rationale?: string;
 		}) => {
 			if (!eventsEditable) {
-				setError("ACLED mode is read-only. Switch source to Local to modify event assets.");
+				setError(
+					`${externalSourceLabel} mode is read-only. Switch source to Local to modify event assets.`,
+				);
 				return;
 			}
 			if (!selectedEvent) return;
@@ -944,7 +970,7 @@ export function GeopoliticalMapShell() {
 			setBusy(false);
 			await fetchAll();
 		},
-		[eventsEditable, fetchAll, selectedEvent],
+		[eventsEditable, fetchAll, selectedEvent, externalSourceLabel],
 	);
 
 	const deleteSelectedDrawing = useCallback(async () => {
@@ -1014,6 +1040,8 @@ export function GeopoliticalMapShell() {
 			if (key === "t") setDrawingMode("text");
 			if (key === "c") setShowCandidateQueue((prev) => !prev);
 			if (key === "r") setShowRegionLayer((prev) => !prev);
+			if (key === "h") setShowHeatmap((prev) => !prev);
+			if (key === "s") setShowSoftSignals((prev) => !prev);
 
 			if (event.key === "Delete") {
 				if (selectedDrawingId) {
@@ -1038,12 +1066,12 @@ export function GeopoliticalMapShell() {
 	]);
 
 	const activeRegionLabel = useMemo(() => {
-		if (eventsSource === "acled") {
+		if (isExternalSource) {
 			return acledRegionFilter.trim() || "All regions";
 		}
 		if (!activeRegionId) return "All regions";
 		return regions.find((region) => region.id === activeRegionId)?.label ?? activeRegionId;
-	}, [acledRegionFilter, activeRegionId, eventsSource, regions]);
+	}, [acledRegionFilter, activeRegionId, isExternalSource, regions]);
 
 	return (
 		<div className="flex h-screen min-h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -1053,6 +1081,7 @@ export function GeopoliticalMapShell() {
 				busy={busy}
 				onRefresh={() => void fetchAll()}
 				onRunHardIngest={() => void runHardIngest()}
+				onRunSoftIngest={() => void runSoftIngest()}
 			/>
 
 			<div className="flex min-h-0 flex-1 overflow-hidden">
@@ -1095,6 +1124,7 @@ export function GeopoliticalMapShell() {
 						>
 							<option value="local">Local</option>
 							<option value="acled">ACLED (Go Gateway)</option>
+							<option value="gdelt">GDELT (Go Gateway)</option>
 						</select>
 						{eventsSource === "local" ? (
 							<select
@@ -1117,8 +1147,8 @@ export function GeopoliticalMapShell() {
 									setAcledCountryFilter(event.target.value);
 									setAcledPage(1);
 								}}
-								placeholder="ACLED country"
-								aria-label="ACLED country filter"
+								placeholder={`${externalSourceLabel} country`}
+								aria-label={`${externalSourceLabel} country filter`}
 							/>
 						)}
 						<select
@@ -1127,7 +1157,8 @@ export function GeopoliticalMapShell() {
 							onChange={(event) => setMinSeverityFilter(Number(event.target.value))}
 							aria-label="Minimum severity filter"
 						>
-							{[1, 2, 3, 4, 5].map((value) => (
+							<option value="1">All Severities</option>
+							{[2, 3, 4, 5].map((value) => (
 								<option key={value} value={value}>
 									Min S{value}
 								</option>
@@ -1139,7 +1170,7 @@ export function GeopoliticalMapShell() {
 							placeholder="Search events"
 							aria-label="Search geopolitical events"
 						/>
-						{eventsSource === "acled" && (
+						{isExternalSource && (
 							<>
 								<Input
 									value={acledRegionFilter}
@@ -1147,8 +1178,8 @@ export function GeopoliticalMapShell() {
 										setAcledRegionFilter(event.target.value);
 										setAcledPage(1);
 									}}
-									placeholder="ACLED region"
-									aria-label="ACLED region filter"
+									placeholder={`${externalSourceLabel} region`}
+									aria-label={`${externalSourceLabel} region filter`}
 								/>
 								<Input
 									value={acledEventTypeFilter}
@@ -1157,7 +1188,7 @@ export function GeopoliticalMapShell() {
 										setAcledPage(1);
 									}}
 									placeholder="Event type"
-									aria-label="ACLED event type filter"
+									aria-label={`${externalSourceLabel} event type filter`}
 								/>
 								<Input
 									value={acledSubEventTypeFilter}
@@ -1166,7 +1197,7 @@ export function GeopoliticalMapShell() {
 										setAcledPage(1);
 									}}
 									placeholder="Sub-event type"
-									aria-label="ACLED sub-event type filter"
+									aria-label={`${externalSourceLabel} sub-event type filter`}
 								/>
 								<Input
 									value={acledFromFilter}
@@ -1175,7 +1206,7 @@ export function GeopoliticalMapShell() {
 										setAcledPage(1);
 									}}
 									placeholder="From YYYY-MM-DD"
-									aria-label="ACLED from date"
+									aria-label={`${externalSourceLabel} from date`}
 								/>
 								<Input
 									value={acledToFilter}
@@ -1184,7 +1215,7 @@ export function GeopoliticalMapShell() {
 										setAcledPage(1);
 									}}
 									placeholder="To YYYY-MM-DD"
-									aria-label="ACLED to date"
+									aria-label={`${externalSourceLabel} to date`}
 								/>
 							</>
 						)}
@@ -1220,7 +1251,7 @@ export function GeopoliticalMapShell() {
 								</button>
 							))
 						)}
-						{eventsSource === "acled" && (
+						{isExternalSource && (
 							<>
 								<span className="ml-2 text-xs text-muted-foreground">
 									page {acledPage} | total {acledTotal}
@@ -1244,7 +1275,7 @@ export function GeopoliticalMapShell() {
 							</>
 						)}
 					</div>
-					{eventsSource === "acled" && (
+					{isExternalSource && (
 						<div className="flex flex-wrap gap-2 border-b border-border/60 px-3 py-2">
 							{acledRegionSuggestions.slice(0, 8).map((region) => (
 								<button
@@ -1283,8 +1314,11 @@ export function GeopoliticalMapShell() {
 						) : (
 							<MapCanvas
 								events={events}
+								candidates={candidates}
 								drawings={drawings}
 								showRegionLayer={showRegionLayer}
+								showHeatmap={showHeatmap}
+								showSoftSignals={showSoftSignals}
 								selectedEventId={selectedEventId}
 								selectedDrawingId={selectedDrawingId}
 								onSelectEvent={(eventId) => {
@@ -1299,7 +1333,7 @@ export function GeopoliticalMapShell() {
 									void handleMapClick(coords);
 								}}
 								onCountryClick={(countryId) => {
-									if (eventsSource === "acled") {
+									if (isExternalSource) {
 										setAcledCountryFilter(countryId);
 										setAcledPage(1);
 									} else {

@@ -89,6 +89,8 @@ Expected:
 - `http://127.0.0.1:9060/api/v1/macro/history?symbol=POLICY_RATE&exchange=boj&assetType=macro&limit=30`
 - `http://127.0.0.1:9060/api/v1/macro/history?symbol=POLICY_RATE&exchange=snb&assetType=macro&limit=30`
 - `http://127.0.0.1:9060/api/v1/news/headlines?symbol=AAPL&limit=3`
+- `http://127.0.0.1:9060/api/v1/geopolitical/events?source=acled&country=Ukraine&from=2026-01-01&to=2026-01-31&limit=50`
+- `http://127.0.0.1:9060/api/v1/geopolitical/events?source=gdelt&country=Ukraine&eventType=Battles&from=2026-01-01&to=2026-01-31&limit=50`
 - `http://127.0.0.1:9060/api/v1/geopolitical/game-theory/impact?country=Ukraine&eventType=Battles&from=2026-01-01&to=2026-01-31&limit=50`
 - `http://127.0.0.1:9060/api/v1/stream/market?symbol=AAPL&exchange=finnhub&assetType=equity`
 - `http://127.0.0.1:9060/api/v1/backtest/capabilities`
@@ -122,6 +124,12 @@ Environment for News:
 - `NEWS_RSS_FEEDS` (comma-separated feed URLs)
 - `GDELT_BASE_URL` (default: `https://api.gdeltproject.org/api/v2/doc/doc`)
 - `FINVIZ_RSS_BASE_URL` (default: `https://finviz.com/rss.ashx`)
+
+Environment for Geopolitical GDELT events:
+
+- `GDELT_BASE_URL` (default: `https://api.gdeltproject.org/api/v2/doc/doc`)
+- `GDELT_HTTP_TIMEOUT_MS` (default: `5000`)
+- `GDELT_HTTP_RETRIES` (default: `1`)
 
 Environment for Geopolitical GameTheory bridge:
 
@@ -186,3 +194,7 @@ Optional:
 
 - skip race run: `.\scripts\test-go.ps1 -SkipRace`
 - custom GCC path: `.\scripts\test-go.ps1 -GccBin C:\msys64\ucrt64\bin`
+- **golangci-lint** (optional, recommended before PR):  
+  `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest` then  
+  `golangci-lint run ./cmd/... ./internal/...`  
+  Config: `.golangci.yml` (excludes `vendor-forks`).

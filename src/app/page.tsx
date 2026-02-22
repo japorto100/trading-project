@@ -6,11 +6,12 @@ import type { ChartType } from "@/chart/types";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import { Button } from "@/components/ui/button";
 import { BottomStats } from "@/features/trading/BottomStats";
-import { TopMenuBar } from "@/features/trading/TopMenuBar";
 import { TradingHeader } from "@/features/trading/TradingHeader";
 import { TradingPageSkeleton } from "@/features/trading/TradingPageSkeleton";
-import { TradingSidebar } from "@/features/trading/TradingSidebar";
+import { WatchlistSidebar } from "@/features/trading/WatchlistSidebar";
+import { RightDetailsSidebar } from "@/features/trading/RightDetailsSidebar";
 import { TradingWorkspace } from "@/features/trading/TradingWorkspace";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type {
 	DataMode,
 	LayoutMode,
@@ -33,6 +34,7 @@ import {
 	clampStartYearForSymbol,
 	type HistoryRangePreset,
 } from "@/lib/history-range";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import {
 	analyzeHeartbeatPattern,
 	calculateATR,
@@ -97,9 +99,10 @@ export default function Home() {
 	const [layout, setLayout] = useState<LayoutMode>(() => readFusionPreferences().layout);
 	const [favorites, setFavorites] = useState<string[]>(() => readFusionPreferences().favorites);
 	const [activeTab, setActiveTab] = useState<WatchlistTab>("all");
-	const [activeSidebarPanel, setActiveSidebarPanel] = useState<SidebarPanel>("watchlist");
+	const [activeSidebarPanel, setActiveSidebarPanel] = useState<SidebarPanel>("indicators");
 	const [sidebarOpen, setSidebarOpen] = useState(true);
-	const [showDrawingToolbar, setShowDrawingToolbar] = useState(false);
+	const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+	const [showDrawingToolbar] = useState(true);
 	const [compareSymbol, setCompareSymbol] = useState<string | null>(null);
 	const [replayMode, setReplayMode] = useState(false);
 	const [replayPlaying, setReplayPlaying] = useState(false);
@@ -109,6 +112,12 @@ export default function Home() {
 	const dailySignalRequestRef = useRef(0);
 	const lastQuoteBySymbolRef = useRef<Record<string, number>>({});
 	const streamDegradedRef = useRef(false);
+	const [streamState, setStreamState] = useState<
+		"connecting" | "live" | "degraded" | "reconnecting"
+	>("connecting");
+	const [streamReconnects, setStreamReconnects] = useState(0);
+	const [streamLastTickAt, setStreamLastTickAt] = useState<number | null>(null);
+	const [streamClockMs, setStreamClockMs] = useState<number>(Date.now());
 
 	// Client-side only check
 	const mounted = useSyncExternalStore(
@@ -116,12 +125,23 @@ export default function Home() {
 		() => true,
 		() => false,
 	);
+	const debouncedSearchQuery = useDebouncedValue(searchQuery, 180);
 
 	useEffect(() => {
 		const root = document.documentElement;
 		root.classList.toggle("dark", isDarkMode);
 		root.style.colorScheme = isDarkMode ? "dark" : "light";
 	}, [isDarkMode]);
+
+	useEffect(() => {
+		if (!mounted) {
+			return;
+		}
+		const timer = setInterval(() => {
+			setStreamClockMs(Date.now());
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [mounted]);
 
 	const symbolMinimumStartYear = useMemo(() => getDefaultStartYear(currentSymbol), [currentSymbol]);
 
@@ -244,10 +264,13 @@ export default function Home() {
 			symbol: currentSymbol.symbol,
 			timeframe: currentTimeframe,
 		});
+		setStreamState("connecting");
+		setStreamLastTickAt(null);
 		const source = new window.EventSource(`/api/market/stream?${params.toString()}`);
 
 		const onReady = () => {
 			streamDegradedRef.current = false;
+			setStreamState("live");
 		};
 
 		const onCandle = (event: MessageEvent<string>) => {
@@ -308,8 +331,10 @@ export default function Home() {
 
 				if (streamDegradedRef.current) {
 					streamDegradedRef.current = false;
+					setStreamState("live");
 					setDataStatusMessage("Realtime stream reconnected.");
 				}
+				setStreamLastTickAt(Date.now());
 			} catch {
 				// ignore malformed stream payloads
 			}
@@ -318,22 +343,56 @@ export default function Home() {
 		const onError = () => {
 			if (!streamDegradedRef.current) {
 				streamDegradedRef.current = true;
+				setStreamState("degraded");
 				setDataStatusMessage("Realtime stream interrupted, retrying...");
+			} else {
+				setStreamState("reconnecting");
+			}
+			setStreamReconnects((prev) => prev + 1);
+		};
+
+		const onStreamStatus = (event: MessageEvent<string>) => {
+			try {
+				const payload = JSON.parse(event.data) as { state?: string };
+				switch (payload.state) {
+					case "live":
+						setStreamState("live");
+						break;
+					case "polling_fallback":
+						setStreamState("degraded");
+						break;
+					case "reconnecting":
+						setStreamState("reconnecting");
+						break;
+					default:
+						break;
+				}
+			} catch {
+				// ignore malformed stream status payloads
 			}
 		};
 
 		source.addEventListener("ready", onReady as EventListener);
 		source.addEventListener("candle", onCandle as EventListener);
+		source.addEventListener("stream_status", onStreamStatus as EventListener);
 		source.addEventListener("error", onError as EventListener);
 		source.onerror = onError;
 
 		return () => {
 			source.removeEventListener("ready", onReady as EventListener);
 			source.removeEventListener("candle", onCandle as EventListener);
+			source.removeEventListener("stream_status", onStreamStatus as EventListener);
 			source.removeEventListener("error", onError as EventListener);
 			source.close();
 		};
 	}, [currentSymbol.symbol, currentTimeframe, historyWindow.requestLimit, mounted, replayMode]);
+
+	const streamLastTickAgeSec = useMemo(() => {
+		if (!streamLastTickAt) {
+			return null;
+		}
+		return Math.max(0, Math.floor((streamClockMs - streamLastTickAt) / 1000));
+	}, [streamClockMs, streamLastTickAt]);
 
 	const loadDailySignalData = useCallback(async () => {
 		if (!mounted) {
@@ -432,7 +491,7 @@ export default function Home() {
 			showDrawingTool: showDrawingToolbar,
 			darkMode: isDarkMode,
 		});
-	}, [favorites, isDarkMode, layout, mounted, remoteHydrated, showDrawingToolbar, sidebarOpen]);
+	}, [favorites, isDarkMode, layout, mounted, remoteHydrated, sidebarOpen, showDrawingToolbar]);
 
 	// Refresh data
 	const handleRefresh = useCallback(() => {
@@ -511,11 +570,11 @@ export default function Home() {
 	const openSidebarPanel = useCallback(
 		(panel: SidebarPanel) => {
 			setActiveSidebarPanel(panel);
-			if (!sidebarOpen) {
-				setSidebarOpen(true);
+			if (!rightSidebarOpen) {
+				setRightSidebarOpen(true);
 			}
 		},
-		[sidebarOpen],
+		[rightSidebarOpen],
 	);
 
 	const {
@@ -754,8 +813,10 @@ export default function Home() {
 
 	// Filter symbols by search
 	const filteredSymbols = useMemo(() => {
-		return searchFusionSymbols(searchQuery, 10);
-	}, [searchQuery]);
+		return searchFusionSymbols(debouncedSearchQuery, 10);
+	}, [debouncedSearchQuery]);
+
+	const searchPending = searchQuery.trim() !== debouncedSearchQuery.trim();
 
 	const popularSymbols = useMemo(() => {
 		const preferred = ["AAPL", "BTC/USD", "EUR/USD", "NVDA"];
@@ -781,24 +842,11 @@ export default function Home() {
 
 	return (
 		<div className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
-			<TopMenuBar
-				dataMode={dataMode}
-				isDarkMode={isDarkMode}
-				sidebarOpen={sidebarOpen}
-				onToggleDrawingToolbar={() => setShowDrawingToolbar(!showDrawingToolbar)}
-				onOpenIndicators={() => openSidebarPanel("indicators")}
-				onOpenWatchlist={() => openSidebarPanel("watchlist")}
-				onOpenNews={() => openSidebarPanel("news")}
-				onOpenOrders={() => openSidebarPanel("orders")}
-				onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-				onRefresh={handleRefresh}
-				onThemeToggle={handleThemeToggle}
-			/>
-
 			<TradingHeader
 				currentSymbol={currentSymbol}
 				favorites={favorites}
 				searchQuery={searchQuery}
+				searchPending={searchPending}
 				showSearch={showSearch}
 				filteredSymbols={filteredSymbols}
 				popularSymbols={popularSymbols}
@@ -812,13 +860,12 @@ export default function Home() {
 				indicators={indicators}
 				loading={loading}
 				isDarkMode={isDarkMode}
+				dataMode={dataMode}
 				onQueryChange={setSearchQuery}
 				onOpenSearchChange={setShowSearch}
 				onSelectSymbol={handleSymbolChange}
 				onToggleFavorite={toggleFavorite}
 				onTimeframeChange={handleTimeframeChange}
-				onHistoryRangeChange={handleHistoryRangeChange}
-				onCustomStartYearChange={handleCustomStartYearChange}
 				onChartTypeChange={setChartType}
 				onCompare={setCompareSymbol}
 				onLayoutChange={handleLayoutChange}
@@ -827,89 +874,152 @@ export default function Home() {
 				onExport={handleExport}
 				onFullscreen={handleFullscreen}
 				onThemeToggle={handleThemeToggle}
+				replayMode={replayMode}
+				replayPlaying={replayPlaying}
+				replayIndex={replayIndex}
+				replayMax={candleData.length}
+				onToggleReplayMode={toggleReplayMode}
+				onToggleReplayPlaying={toggleReplayPlaying}
+				onResetReplay={resetReplay}
+				onSeekReplay={seekReplay}
 			/>
 
 			{/* Main Content */}
-			<div className="flex-1 flex overflow-hidden">
-				{/* Sidebar Toggle */}
+			<div className="flex-1 flex overflow-hidden relative">
+				<PanelGroup direction="horizontal" className="flex-1">
+					{/* Left Sidebar: Watchlist */}
+					{sidebarOpen && (
+						<>
+							<Panel defaultSize={20} minSize={15} maxSize={30}>
+								<WatchlistSidebar
+									activeTab={activeTab}
+									watchlistSymbols={watchlistSymbols}
+									currentSymbol={currentSymbol.symbol}
+									favorites={favorites}
+									onSetActiveTab={setActiveTab}
+									onSelectSymbol={handleSymbolChange}
+									onToggleFavorite={toggleFavorite}
+								/>
+							</Panel>
+							<PanelResizeHandle className="w-1 bg-border/50 hover:bg-emerald-500/50 transition-colors" />
+						</>
+					)}
+
+					{/* Main Workspace: Chart */}
+					<Panel minSize={40}>
+						<div className="flex-1 flex flex-col h-full overflow-hidden">
+							<TradingWorkspace
+								showDrawingToolbar={showDrawingToolbar}
+								dataStatusMessage={dataStatusMessage}
+								signalSnapshot={signalSnapshot}
+								loading={loading}
+								candleData={viewCandleData}
+								indicators={indicators}
+								isDarkMode={isDarkMode}
+								chartType={chartType}
+								layout={layout}
+								replayMode={replayMode}
+								replayPlaying={replayPlaying}
+								replayIndex={replayIndex}
+								replayMax={candleData.length}
+								onToggleReplayMode={toggleReplayMode}
+								onToggleReplayPlaying={toggleReplayPlaying}
+								onResetReplay={resetReplay}
+								onSeekReplay={seekReplay}
+								historyRangePreset={historyRangePreset}
+								customStartYear={customStartYear}
+								minimumStartYear={symbolMinimumStartYear}
+								effectiveStartYear={historyWindow.effectiveStartYear}
+								onHistoryRangeChange={handleHistoryRangeChange}
+								onCustomStartYearChange={handleCustomStartYearChange}
+							/>
+
+							<BottomStats
+								stats={stats}
+								dataMode={dataMode}
+								dataProvider={dataProvider}
+								streamState={streamState}
+								streamReconnects={streamReconnects}
+								streamLastTickAgeSec={streamLastTickAgeSec}
+								formatPrice={formatPrice}
+								formatVolume={formatVolume}
+							/>
+						</div>
+					</Panel>
+
+					{/* Right Sidebar: Details */}
+					{rightSidebarOpen && (
+						<>
+							<PanelResizeHandle className="w-1 bg-border/50 hover:bg-emerald-500/50 transition-colors" />
+							<Panel defaultSize={25} minSize={20} maxSize={40}>
+								<RightDetailsSidebar
+									activePanel={activeSidebarPanel}
+									currentSymbol={currentSymbol.symbol}
+									currentPrice={stats.lastPrice}
+									indicators={indicators}
+									onSetActivePanel={setActiveSidebarPanel}
+									onClose={() => setRightSidebarOpen(false)}
+									onSetCoreIndicatorEnabled={setCoreIndicatorEnabled}
+									onSetCoreIndicatorPeriod={setCoreIndicatorPeriod}
+									onSetMacdEnabled={setMacdEnabled}
+									onSetBollingerEnabled={setBollingerEnabled}
+									onSetBollingerPeriod={setBollingerPeriod}
+									onSetBollingerStdDev={setBollingerStdDev}
+									onSetVwapEnabled={setVwapEnabled}
+									onSetVwmaEnabled={setVwmaEnabled}
+									onSetVwmaPeriod={setVwmaPeriod}
+									onSetAtrEnabled={setAtrEnabled}
+									onSetAtrPeriod={setAtrPeriod}
+									onSetAtrChannelEnabled={setAtrChannelEnabled}
+									onSetAtrChannelSmaPeriod={setAtrChannelSmaPeriod}
+									onSetAtrChannelAtrPeriod={setAtrChannelAtrPeriod}
+									onSetAtrChannelMultiplier={setAtrChannelMultiplier}
+									onSetHmaEnabled={setHmaEnabled}
+									onSetHmaPeriod={setHmaPeriod}
+									onSetAdxEnabled={setAdxEnabled}
+									onSetAdxPeriod={setAdxPeriod}
+									onSetIchimokuEnabled={setIchimokuEnabled}
+									onSetParabolicSarEnabled={setParabolicSarEnabled}
+									onSetKeltnerEnabled={setKeltnerEnabled}
+									onSetVolumeProfileEnabled={setVolumeProfileEnabled}
+									onSetSupportResistanceEnabled={setSupportResistanceEnabled}
+								/>
+							</Panel>
+						</>
+					)}
+				</PanelGroup>
+
+				{/* Sidebar Toggles */}
 				<Button
 					variant="ghost"
 					size="icon"
-					className="absolute left-2 top-24 z-40 h-8 w-8 border border-border bg-card/90 shadow-sm"
+					className={`absolute left-2 top-4 z-40 h-8 w-8 border border-border bg-card/90 shadow-sm transition-transform ${!sidebarOpen ? "translate-x-[-100%]" : ""}`}
 					onClick={() => setSidebarOpen(!sidebarOpen)}
 				>
 					{sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
 				</Button>
 
-				{sidebarOpen && (
-					<TradingSidebar
-						activeSidebarPanel={activeSidebarPanel}
-						activeTab={activeTab}
-						watchlistSymbols={watchlistSymbols}
-						currentSymbol={currentSymbol.symbol}
-						currentPrice={stats.lastPrice}
-						favorites={favorites}
-						indicators={indicators}
-						onSetActiveSidebarPanel={openSidebarPanel}
-						onSetActiveTab={setActiveTab}
-						onSelectSymbol={handleSymbolChange}
-						onToggleFavorite={toggleFavorite}
-						onSetCoreIndicatorEnabled={setCoreIndicatorEnabled}
-						onSetCoreIndicatorPeriod={setCoreIndicatorPeriod}
-						onSetMacdEnabled={setMacdEnabled}
-						onSetBollingerEnabled={setBollingerEnabled}
-						onSetBollingerPeriod={setBollingerPeriod}
-						onSetBollingerStdDev={setBollingerStdDev}
-						onSetVwapEnabled={setVwapEnabled}
-						onSetVwmaEnabled={setVwmaEnabled}
-						onSetVwmaPeriod={setVwmaPeriod}
-						onSetAtrEnabled={setAtrEnabled}
-						onSetAtrPeriod={setAtrPeriod}
-						onSetAtrChannelEnabled={setAtrChannelEnabled}
-						onSetAtrChannelSmaPeriod={setAtrChannelSmaPeriod}
-						onSetAtrChannelAtrPeriod={setAtrChannelAtrPeriod}
-						onSetAtrChannelMultiplier={setAtrChannelMultiplier}
-						onSetHmaEnabled={setHmaEnabled}
-						onSetHmaPeriod={setHmaPeriod}
-						onSetAdxEnabled={setAdxEnabled}
-						onSetAdxPeriod={setAdxPeriod}
-						onSetIchimokuEnabled={setIchimokuEnabled}
-						onSetParabolicSarEnabled={setParabolicSarEnabled}
-						onSetKeltnerEnabled={setKeltnerEnabled}
-						onSetVolumeProfileEnabled={setVolumeProfileEnabled}
-						onSetSupportResistanceEnabled={setSupportResistanceEnabled}
-					/>
+				{!sidebarOpen && (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="absolute left-0 top-4 z-40 h-8 w-6 border-y border-r border-border bg-card/90 shadow-sm rounded-l-none"
+						onClick={() => setSidebarOpen(true)}
+					>
+						<ChevronRight className="h-4 w-4" />
+					</Button>
 				)}
 
-				<div className="flex-1 flex flex-col overflow-hidden">
-					<TradingWorkspace
-						showDrawingToolbar={showDrawingToolbar}
-						dataStatusMessage={dataStatusMessage}
-						signalSnapshot={signalSnapshot}
-						loading={loading}
-						candleData={viewCandleData}
-						indicators={indicators}
-						isDarkMode={isDarkMode}
-						chartType={chartType}
-						layout={layout}
-						replayMode={replayMode}
-						replayPlaying={replayPlaying}
-						replayIndex={replayIndex}
-						replayMax={candleData.length}
-						onToggleReplayMode={toggleReplayMode}
-						onToggleReplayPlaying={toggleReplayPlaying}
-						onResetReplay={resetReplay}
-						onSeekReplay={seekReplay}
-					/>
-
-					<BottomStats
-						stats={stats}
-						dataMode={dataMode}
-						dataProvider={dataProvider}
-						formatPrice={formatPrice}
-						formatVolume={formatVolume}
-					/>
-				</div>
+				{!rightSidebarOpen && (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="absolute right-0 top-4 z-40 h-8 w-6 border-y border-l border-border bg-card/90 shadow-sm rounded-r-none"
+						onClick={() => setRightSidebarOpen(true)}
+					>
+						<ChevronLeft className="h-4 w-4" />
+					</Button>
+				)}
 			</div>
 		</div>
 	);

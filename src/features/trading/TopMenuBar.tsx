@@ -1,6 +1,7 @@
 "use client";
 
 import { Clock, Moon, Sun, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +39,15 @@ export function TopMenuBar({
 	onRefresh,
 	onThemeToggle,
 }: TopMenuBarProps) {
+	const [clockTime, setClockTime] = useState(() => new Date().toLocaleTimeString());
+
+	useEffect(() => {
+		const timer = window.setInterval(() => {
+			setClockTime(new Date().toLocaleTimeString());
+		}, 1000);
+		return () => window.clearInterval(timer);
+	}, []);
+
 	return (
 		<div className="h-8 border-b border-border bg-card/70 backdrop-blur-sm flex items-center px-2 text-xs">
 			<div className="flex items-center gap-1">
@@ -122,7 +132,7 @@ export function TopMenuBar({
 			<div className="flex items-center gap-2">
 				<Badge variant="outline" className="text-xs">
 					<Clock className="h-3 w-3 mr-1" />
-					{new Date().toLocaleTimeString()}
+					{clockTime}
 				</Badge>
 				<Badge
 					variant="outline"

@@ -31,6 +31,8 @@ interface QuotesResponse {
 	quotes: Record<string, QuoteData>;
 }
 
+type StreamState = "connecting" | "live" | "degraded" | "reconnecting";
+
 function formatPrice(price: number): string {
 	if (price < 0.01) return price.toFixed(6);
 	if (price < 1) return price.toFixed(4);
@@ -67,26 +69,38 @@ export function WatchlistPanel({
 	const [loadingQuotes, setLoadingQuotes] = useState(false);
 	const [query, setQuery] = useState("");
 	const [sortMode, setSortMode] = useState<"default" | "movers" | "favorites">("default");
+	const [streamState, setStreamState] = useState<StreamState>("connecting");
+	const [streamReconnects, setStreamReconnects] = useState(0);
+	const [streamLastUpdateAt, setStreamLastUpdateAt] = useState<number | null>(null);
+	const [clockMs, setClockMs] = useState<number>(Date.now());
 
-	const _symbolsKey = useMemo(() => symbols.map((s) => s.symbol).join(","), [symbols]);
+	const symbolsKey = useMemo(() => symbols.map((s) => s.symbol).join(","), [symbols]);
 
 	useEffect(() => {
-		if (!symbols.length) {
+		const timer = setInterval(() => {
+			setClockMs(Date.now());
+		}, 1000);
+		return () => clearInterval(timer);
+	}, []);
+
+	useEffect(() => {
+		if (!symbolsKey) {
 			setQuotes({});
 			return;
 		}
 
 		let alive = true;
+		let fallbackTimer: ReturnType<typeof setInterval> | null = null;
 
 		const fetchQuotes = async () => {
 			try {
 				setLoadingQuotes(true);
-				const list = symbols.map((s) => s.symbol).join(",");
-				const response = await fetch(`/api/market/quote?symbols=${encodeURIComponent(list)}`);
+				const response = await fetch(`/api/market/quote?symbols=${encodeURIComponent(symbolsKey)}`);
 				if (!response.ok) return;
 				const data = (await response.json()) as QuotesResponse;
 				if (alive && data.success && data.quotes) {
 					setQuotes(data.quotes);
+					setStreamLastUpdateAt(Date.now());
 				}
 			} catch {
 				// keep UI usable with base prices when quote API fails
@@ -95,14 +109,100 @@ export function WatchlistPanel({
 			}
 		};
 
+		const stopFallbackPolling = () => {
+			if (fallbackTimer) {
+				clearInterval(fallbackTimer);
+				fallbackTimer = null;
+			}
+		};
+
+		const startFallbackPolling = () => {
+			if (fallbackTimer) return;
+			fallbackTimer = setInterval(() => {
+				void fetchQuotes();
+			}, 30000);
+		};
+
+		setStreamState("connecting");
+		setStreamReconnects(0);
+		setStreamLastUpdateAt(null);
 		fetchQuotes();
-		const timer = setInterval(fetchQuotes, 30000);
+
+		if (typeof window !== "undefined" && typeof window.EventSource !== "undefined") {
+			const source = new window.EventSource(
+				`/api/market/stream/quotes?symbols=${encodeURIComponent(symbolsKey)}&pollMs=4000`,
+			);
+
+			const onReady = () => {
+				setStreamState("live");
+				stopFallbackPolling();
+			};
+
+			const onQuoteBatch = (event: MessageEvent<string>) => {
+				try {
+					const payload = JSON.parse(event.data) as { quotes?: Record<string, QuoteData> };
+					const rows = payload.quotes && typeof payload.quotes === "object" ? payload.quotes : null;
+					if (!rows || Object.keys(rows).length === 0) return;
+					setQuotes((prev) => ({ ...prev, ...rows }));
+					setStreamState("live");
+					setStreamLastUpdateAt(Date.now());
+					stopFallbackPolling();
+				} catch {
+					// ignore malformed payload
+				}
+			};
+
+			const onStreamStatus = (event: MessageEvent<string>) => {
+				try {
+					const payload = JSON.parse(event.data) as { state?: string };
+					if (payload.state === "degraded") {
+						setStreamState("degraded");
+						startFallbackPolling();
+						return;
+					}
+					if (payload.state === "live") {
+						setStreamState("live");
+						stopFallbackPolling();
+					}
+				} catch {
+					// ignore malformed status payload
+				}
+			};
+
+			const onError = () => {
+				setStreamState("reconnecting");
+				setStreamReconnects((prev) => prev + 1);
+				startFallbackPolling();
+			};
+
+			source.addEventListener("ready", onReady as EventListener);
+			source.addEventListener("quote_batch", onQuoteBatch as EventListener);
+			source.addEventListener("stream_status", onStreamStatus as EventListener);
+			source.onerror = onError;
+
+			return () => {
+				alive = false;
+				stopFallbackPolling();
+				source.removeEventListener("ready", onReady as EventListener);
+				source.removeEventListener("quote_batch", onQuoteBatch as EventListener);
+				source.removeEventListener("stream_status", onStreamStatus as EventListener);
+				source.close();
+			};
+		}
+
+		startFallbackPolling();
 
 		return () => {
 			alive = false;
-			clearInterval(timer);
+			stopFallbackPolling();
 		};
-	}, [symbols]);
+	}, [symbolsKey]);
+
+	const streamAgeLabel = useMemo(() => {
+		if (!streamLastUpdateAt) return "n/a";
+		const seconds = Math.max(0, Math.floor((clockMs - streamLastUpdateAt) / 1000));
+		return `${seconds}s`;
+	}, [clockMs, streamLastUpdateAt]);
 
 	const visibleSymbols = useMemo(() => {
 		const normalizedQuery = query.trim().toLowerCase();
@@ -150,7 +250,7 @@ export function WatchlistPanel({
 	}, [quotes, symbols]);
 
 	return (
-		<ScrollArea className="flex-1 p-2">
+		<ScrollArea className="flex-1 min-h-0 p-2">
 			<div className="mb-2 space-y-2 px-1">
 				<div className="grid grid-cols-[1fr_auto] gap-2">
 					<Input
@@ -269,6 +369,9 @@ export function WatchlistPanel({
 			{loadingQuotes ? (
 				<div className="px-2 pt-2 text-[11px] text-muted-foreground">Refreshing quotes...</div>
 			) : null}
+			<div className="px-2 pt-1 text-[11px] text-muted-foreground">
+				Stream: {streamState} | last update {streamAgeLabel} | reconnects {streamReconnects}
+			</div>
 		</ScrollArea>
 	);
 }

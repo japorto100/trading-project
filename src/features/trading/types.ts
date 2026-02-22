@@ -1,5 +1,12 @@
 export type SidebarPanel = "watchlist" | "indicators" | "news" | "orders" | "portfolio";
-export type WatchlistTab = "all" | "favorites" | "crypto" | "stocks" | "forex";
+export type WatchlistTab =
+	| "all"
+	| "favorites"
+	| "crypto"
+	| "stocks"
+	| "forex"
+	| "commodities"
+	| "indices";
 export type DataMode = "api" | "fallback";
 export type LayoutMode = "single" | "2h" | "2v" | "4";
 

@@ -2,7 +2,8 @@
 
 import { BarChart3, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
-import type { ChartType } from "@/chart/types";
+import { useState } from "react";
+import type { ChartType, DrawingType } from "@/chart/types";
 import { DrawingToolbar } from "@/components/DrawingToolbar";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,18 @@ interface TradingWorkspaceProps {
 	onToggleReplayPlaying: () => void;
 	onResetReplay: () => void;
 	onSeekReplay: (index: number) => void;
+	historyRangePreset: HistoryRangePreset;
+	customStartYear: number;
+	minimumStartYear: number;
+	effectiveStartYear: number;
+	onHistoryRangeChange: (preset: HistoryRangePreset) => void;
+	onCustomStartYearChange: (year: number) => void;
 }
+
+type DrawingCommand = {
+	kind: "undo" | "redo" | "clear";
+	nonce: number;
+};
 
 export function TradingWorkspace({
 	showDrawingToolbar,
@@ -64,46 +76,23 @@ export function TradingWorkspace({
 	onToggleReplayPlaying,
 	onResetReplay,
 	onSeekReplay,
+	historyRangePreset,
+	customStartYear,
+	minimumStartYear,
+	effectiveStartYear,
+	onHistoryRangeChange,
+	onCustomStartYearChange,
 }: TradingWorkspaceProps) {
+	const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingType | null>(null);
+	const [drawingsLocked, setDrawingsLocked] = useState(false);
+	const [drawingsVisible, setDrawingsVisible] = useState(true);
+	const [magnetMode, setMagnetMode] = useState<"normal" | "weak" | "strong">("normal");
+	const [drawingCommand, setDrawingCommand] = useState<DrawingCommand | null>(null);
+	const [canUndoDrawings, setCanUndoDrawings] = useState(false);
+	const [canRedoDrawings, setCanRedoDrawings] = useState(false);
+
 	return (
 		<main className="flex-1 flex flex-col overflow-hidden bg-background" data-layout={layout}>
-			{showDrawingToolbar && <DrawingToolbar />}
-
-			<div className="mx-3 mt-2 rounded-md border border-border bg-card/30 px-3 py-2">
-				<div className="flex flex-wrap items-center gap-2">
-					<Button
-						variant={replayMode ? "secondary" : "outline"}
-						size="sm"
-						onClick={onToggleReplayMode}
-					>
-						Replay {replayMode ? "On" : "Off"}
-					</Button>
-					{replayMode && (
-						<>
-							<Button variant="outline" size="sm" onClick={onToggleReplayPlaying}>
-								{replayPlaying ? "Pause" : "Play"}
-							</Button>
-							<Button variant="outline" size="sm" onClick={onResetReplay}>
-								Reset
-							</Button>
-							<div className="flex items-center gap-2 text-xs text-muted-foreground min-w-[220px]">
-								<span>
-									{replayIndex}/{Math.max(replayMax, 1)}
-								</span>
-								<input
-									type="range"
-									min={1}
-									max={Math.max(replayMax, 1)}
-									value={Math.max(1, replayIndex)}
-									onChange={(event) => onSeekReplay(Number(event.target.value))}
-									className="w-40"
-								/>
-							</div>
-						</>
-					)}
-				</div>
-			</div>
-
 			{dataStatusMessage && (
 				<div className="mx-3 mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
 					{dataStatusMessage}
@@ -123,23 +112,58 @@ export function TradingWorkspace({
 			/>
 			<StrategyLabPanel candleData={candleData} />
 
-			<div className="flex-1 min-h-0">
-				{loading ? (
-					<div className="flex items-center justify-center h-full">
-						<RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
-					</div>
-				) : candleData.length > 0 ? (
-					<TradingChart
-						candleData={candleData}
-						indicators={indicators}
-						isDarkMode={isDarkMode}
-						chartType={chartType}
+			<div className="flex-1 flex min-h-0 relative">
+				{showDrawingToolbar && (
+					<DrawingToolbar
+						activeTool={activeDrawingTool ?? undefined}
+						onToolChange={setActiveDrawingTool}
+						locked={drawingsLocked}
+						onLockChange={setDrawingsLocked}
+						visible={drawingsVisible}
+						onVisibleChange={setDrawingsVisible}
+						magnetMode={magnetMode}
+						onMagnetModeChange={setMagnetMode}
+						canUndo={canUndoDrawings}
+						canRedo={canRedoDrawings}
+						onUndo={() => setDrawingCommand({ kind: "undo", nonce: Date.now() })}
+						onRedo={() => setDrawingCommand({ kind: "redo", nonce: Date.now() })}
+						onDeleteAll={() => setDrawingCommand({ kind: "clear", nonce: Date.now() })}
 					/>
-				) : (
-					<div className="flex items-center justify-center h-full">
-						<p className="text-muted-foreground">No data available</p>
-					</div>
 				)}
+
+				<div className="flex-1 min-h-0 relative">
+					{loading ? (
+						<div className="flex items-center justify-center h-full">
+							<RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
+						</div>
+					) : candleData.length > 0 ? (
+						<TradingChart
+							candleData={candleData}
+							indicators={indicators}
+							isDarkMode={isDarkMode}
+							chartType={chartType}
+							activeDrawingTool={activeDrawingTool}
+							drawingsLocked={drawingsLocked}
+							drawingsVisible={drawingsVisible}
+							magnetMode={magnetMode}
+							drawingCommand={drawingCommand}
+							onDrawingHistoryChange={(state) => {
+								setCanUndoDrawings(state.canUndo);
+								setCanRedoDrawings(state.canRedo);
+							}}
+							historyRangePreset={historyRangePreset}
+							customStartYear={customStartYear}
+							minimumStartYear={minimumStartYear}
+							effectiveStartYear={effectiveStartYear}
+							onHistoryRangeChange={onHistoryRangeChange}
+							onCustomStartYearChange={onCustomStartYearChange}
+						/>
+					) : (
+						<div className="flex items-center justify-center h-full">
+							<p className="text-muted-foreground">No data available</p>
+						</div>
+					)}
+				</div>
 			</div>
 		</main>
 	);

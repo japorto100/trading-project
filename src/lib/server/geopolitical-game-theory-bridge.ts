@@ -48,6 +48,7 @@ export interface GameTheoryBridgeFilters {
 	from?: string;
 	to?: string;
 	limit?: number;
+	requestId?: string;
 }
 
 export interface GameTheoryBridgeResult {
@@ -143,6 +144,7 @@ export async function fetchGeopoliticalGameTheoryViaGateway(
 	const from = normalizeDate(filters.from);
 	const to = normalizeDate(filters.to);
 	const limit = normalizeLimit(filters.limit);
+	const requestId = filters.requestId?.trim() || "";
 
 	const cacheTTL = clamp(
 		Number(process.env.GEOPOLITICAL_GAMETHEORY_CACHE_MS || DEFAULT_CACHE_MS),
@@ -179,7 +181,9 @@ export async function fetchGeopoliticalGameTheoryViaGateway(
 
 	const response = await fetch(endpoint.toString(), {
 		method: "GET",
-		headers: { Accept: "application/json" },
+		headers: requestId
+			? { Accept: "application/json", "X-Request-ID": requestId }
+			: { Accept: "application/json" },
 		cache: "no-store",
 	});
 	if (!response.ok) {
