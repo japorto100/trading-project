@@ -1,0 +1,5785 @@
+{
+  "candidates": [
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.82,
+      "countryHints": [
+        "PH"
+      ],
+      "generatedAt": "2026-02-23T16:31:53.526Z",
+      "headline": "Southeast Asia monitoring queue: strategic m\u0026a #1395",
+      "hotspotIds": [],
+      "id": "cmlze9i9o0092u1tk8vc8xrl5",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:53.503Z",
+          "id": "gs_e40315a5-537e-4fe3-89f3-ce1d7618fb51",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:53.503Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1394"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.78,
+      "countryHints": [
+        "BD"
+      ],
+      "generatedAt": "2026-02-23T16:31:53.304Z",
+      "headline": "South Asia rates watchlist item #1393",
+      "hotspotIds": [],
+      "id": "cmlze9i3h0091u1tkty1zt5xq",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:53.282Z",
+          "id": "gs_2c8050a1-4885-409e-ab61-b8f5f4e6670d",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:53.282Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1392"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.73,
+      "countryHints": [
+        "ZM"
+      ],
+      "generatedAt": "2026-02-23T16:31:53.081Z",
+      "headline": "Sub-Saharan Africa monitoring queue: export controls #1391",
+      "hotspotIds": [],
+      "id": "cmlze9hxb0090u1tkhlunw571",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:53.055Z",
+          "id": "gs_305641de-1e73-4f2f-8c4b-2ed803df6bc8",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:53.055Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1390"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.68,
+      "countryHints": [
+        "PL"
+      ],
+      "generatedAt": "2026-02-23T16:31:52.895Z",
+      "headline": "Europe shipping watchlist item #1389",
+      "hotspotIds": [],
+      "id": "cmlze9hs4008zu1tkpyexgb1y",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:52.869Z",
+          "id": "gs_a4d0d718-b1a2-48a1-b98d-71b14af78ec2",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:52.869Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1388"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.63,
+      "countryHints": [
+        "US"
+      ],
+      "generatedAt": "2026-02-23T16:31:52.676Z",
+      "headline": "North America monitoring queue: conflict #1387",
+      "hotspotIds": [],
+      "id": "cmlze9hm1008yu1tk7z8biy2a",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:52.657Z",
+          "id": "gs_752575f1-9d92-4d2f-9b4c-ab50af8b52ad",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:52.657Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1386"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.58,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:52.404Z",
+      "headline": "Oceania trade rupture watchlist item #1385",
+      "hotspotIds": [],
+      "id": "cmlze9heh008xu1tkkjfjha3s",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:52.380Z",
+          "id": "gs_ccfb0ccb-d831-480d-aec6-82b412c1a9ca",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:52.380Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1384"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.53,
+      "countryHints": [
+        "KP"
+      ],
+      "generatedAt": "2026-02-23T16:31:51.886Z",
+      "headline": "East Asia monitoring queue: election shock #1383",
+      "hotspotIds": [],
+      "id": "cmlze9h03008wu1tkycgml6ty",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:51.868Z",
+          "id": "gs_95b71e08-7081-4879-9f25-fc24c1acd1e6",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:51.868Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1382"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.48,
+      "countryHints": [
+        "KZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:51.713Z",
+      "headline": "Central Asia energy shock watchlist item #1381",
+      "hotspotIds": [],
+      "id": "cmlze9gva008vu1tkav8ggvb6",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:51.690Z",
+          "id": "gs_57b2be20-f362-429b-b812-109f25eb0f30",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:51.690Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1380"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.91,
+      "countryHints": [
+        "DZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:51.480Z",
+      "headline": "MENA monitoring queue: sanctions #1379",
+      "hotspotIds": [],
+      "id": "cmlze9got008uu1tkr76kp5tr",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:51.462Z",
+          "id": "gs_3dea1260-96df-4987-a6f9-369ef674dab9",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:51.462Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1378"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.87,
+      "countryHints": [
+        "EC"
+      ],
+      "generatedAt": "2026-02-23T16:31:51.225Z",
+      "headline": "South America strategic m\u0026a watchlist item #1377",
+      "hotspotIds": [],
+      "id": "cmlze9ghq008tu1tk45qha23u",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:51.201Z",
+          "id": "gs_4a15bbf2-19c7-4c40-9749-3144f8ab7004",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:51.201Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1376"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.82,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:51.025Z",
+      "headline": "Arctic/Polar monitoring queue: rates #1375",
+      "hotspotIds": [],
+      "id": "cmlze9gc6008su1tkgweetd0h",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:51.007Z",
+          "id": "gs_a4b055f2-0198-402c-9f5d-75107c853f1c",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:51.007Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1374"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.77,
+      "countryHints": [
+        "TH"
+      ],
+      "generatedAt": "2026-02-23T16:31:50.813Z",
+      "headline": "Southeast Asia export controls watchlist item #1373",
+      "hotspotIds": [],
+      "id": "cmlze9g6a008ru1tk4uu8l7rh",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:50.794Z",
+          "id": "gs_64a67447-daad-4d51-be35-ed3042451226",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:50.794Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1372"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.72,
+      "countryHints": [
+        "IN"
+      ],
+      "generatedAt": "2026-02-23T16:31:50.610Z",
+      "headline": "South Asia monitoring queue: shipping #1371",
+      "hotspotIds": [],
+      "id": "cmlze9g0n008qu1tks5gm6ntk",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:50.592Z",
+          "id": "gs_7864124d-79ef-4656-a0c5-ea2be7935eb9",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:50.592Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1370"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.67,
+      "countryHints": [
+        "ZA"
+      ],
+      "generatedAt": "2026-02-23T16:31:50.381Z",
+      "headline": "Sub-Saharan Africa conflict watchlist item #1369",
+      "hotspotIds": [],
+      "id": "cmlze9fua008pu1tkhgr7louv",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:50.364Z",
+          "id": "gs_3fc344d7-1190-4491-9d04-b3ec584480d2",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:50.364Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1368"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.62,
+      "countryHints": [
+        "SE"
+      ],
+      "generatedAt": "2026-02-23T16:31:50.137Z",
+      "headline": "Europe monitoring queue: trade rupture #1367",
+      "hotspotIds": [],
+      "id": "cmlze9fni008ou1tk4vmp130n",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:50.119Z",
+          "id": "gs_1bcac80c-b70a-4d66-bc6d-f54e93854bf2",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:50.119Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1366"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.57,
+      "countryHints": [
+        "MX"
+      ],
+      "generatedAt": "2026-02-23T16:31:49.900Z",
+      "headline": "North America election shock watchlist item #1365",
+      "hotspotIds": [],
+      "id": "cmlze9fgx008nu1tk1e31hrda",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:49.883Z",
+          "id": "gs_a85266d7-ca90-4ab6-a019-66f0f712a8d1",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:49.883Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1364"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.52,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:49.669Z",
+      "headline": "Oceania monitoring queue: energy shock #1363",
+      "hotspotIds": [],
+      "id": "cmlze9faj008mu1tku3w2e7k4",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:49.638Z",
+          "id": "gs_b103d39b-8452-426e-8e89-290ec60651de",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:49.638Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1362"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.48,
+      "countryHints": [
+        "KR"
+      ],
+      "generatedAt": "2026-02-23T16:31:49.435Z",
+      "headline": "East Asia sanctions watchlist item #1361",
+      "hotspotIds": [],
+      "id": "cmlze9f40008lu1tkd1dshxtn",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:49.418Z",
+          "id": "gs_572b0d45-b072-45b9-b81f-d605843e3c95",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:49.418Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1360"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.91,
+      "countryHints": [
+        "KG"
+      ],
+      "generatedAt": "2026-02-23T16:31:49.184Z",
+      "headline": "Central Asia monitoring queue: strategic m\u0026a #1359",
+      "hotspotIds": [],
+      "id": "cmlze9ex1008ku1tkdtl39qej",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:49.165Z",
+          "id": "gs_030fc133-df4d-435b-85bb-971f6266bf97",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:49.165Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1358"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.86,
+      "countryHints": [
+        "IR"
+      ],
+      "generatedAt": "2026-02-23T16:31:48.963Z",
+      "headline": "MENA rates watchlist item #1357",
+      "hotspotIds": [],
+      "id": "cmlze9eqw008ju1tkuaaz5r0q",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:48.946Z",
+          "id": "gs_d381eb58-5bed-4a04-a5c2-934577533632",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:48.946Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1356"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.81,
+      "countryHints": [
+        "GY"
+      ],
+      "generatedAt": "2026-02-23T16:31:48.735Z",
+      "headline": "South America monitoring queue: export controls #1355",
+      "hotspotIds": [],
+      "id": "cmlze9ekk008iu1tkaf1c5fyu",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:48.718Z",
+          "id": "gs_26f93e82-d9c8-44f8-bffd-123c9c23c82a",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:48.718Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1354"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.76,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:48.491Z",
+      "headline": "Arctic/Polar shipping watchlist item #1353",
+      "hotspotIds": [],
+      "id": "cmlze9edr008hu1tk7sb0cfen",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:48.473Z",
+          "id": "gs_28b66e96-7bb1-461f-b76e-716afc6fe1cd",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:48.473Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1352"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.71,
+      "countryHints": [
+        "SG"
+      ],
+      "generatedAt": "2026-02-23T16:31:48.274Z",
+      "headline": "Southeast Asia monitoring queue: conflict #1351",
+      "hotspotIds": [],
+      "id": "cmlze9e7r008gu1tkqqmzm72s",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:48.253Z",
+          "id": "gs_fa581fa3-0bc3-42e0-abeb-ef0ec638bf76",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:48.253Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1350"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.66,
+      "countryHints": [
+        "LK"
+      ],
+      "generatedAt": "2026-02-23T16:31:47.991Z",
+      "headline": "South Asia trade rupture watchlist item #1349",
+      "hotspotIds": [],
+      "id": "cmlze9dzx008fu1tkzp4obvn3",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:47.967Z",
+          "id": "gs_a00f5dbc-8d5c-41f6-8a03-5cd73e7fbb2f",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:47.967Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1348"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.61,
+      "countryHints": [
+        "KE"
+      ],
+      "generatedAt": "2026-02-23T16:31:47.728Z",
+      "headline": "Sub-Saharan Africa monitoring queue: election shock #1347",
+      "hotspotIds": [],
+      "id": "cmlze9dsl008eu1tkjet2h2bm",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:47.706Z",
+          "id": "gs_3e11687a-1f89-40cf-b8f2-28070cf259b5",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:47.706Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1346"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.57,
+      "countryHints": [
+        "NO"
+      ],
+      "generatedAt": "2026-02-23T16:31:47.471Z",
+      "headline": "Europe energy shock watchlist item #1345",
+      "hotspotIds": [],
+      "id": "cmlze9dlg008du1tkpuunbast",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:47.453Z",
+          "id": "gs_d7140058-8514-4e39-a849-9f95ea19ccb2",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:47.453Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1344"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.52,
+      "countryHints": [
+        "CA"
+      ],
+      "generatedAt": "2026-02-23T16:31:46.971Z",
+      "headline": "North America monitoring queue: sanctions #1343",
+      "hotspotIds": [],
+      "id": "cmlze9d7k008cu1tkvfwjubkq",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:46.950Z",
+          "id": "gs_59c071b0-ead8-4b2e-af33-70df47be206a",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:46.950Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1342"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.47,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:46.729Z",
+      "headline": "Oceania strategic m\u0026a watchlist item #1341",
+      "hotspotIds": [],
+      "id": "cmlze9d0u008bu1tkuk9yda8i",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:46.712Z",
+          "id": "gs_faac1baf-4e26-4ab6-8c91-a43e990c38c0",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:46.712Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1340"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.9,
+      "countryHints": [
+        "JP"
+      ],
+      "generatedAt": "2026-02-23T16:31:46.511Z",
+      "headline": "East Asia monitoring queue: rates #1339",
+      "hotspotIds": [],
+      "id": "cmlze9cus008au1tktdntoeto",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:46.493Z",
+          "id": "gs_0a662df6-5a59-4916-aa6b-11514148fbdf",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:46.493Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1338"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.85,
+      "countryHints": [
+        "UZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:46.253Z",
+      "headline": "Central Asia export controls watchlist item #1337",
+      "hotspotIds": [],
+      "id": "cmlze9cnm0089u1tkw55rdxgt",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:46.232Z",
+          "id": "gs_3356bc95-bc6b-4abd-a5a4-130b3ff13d09",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:46.232Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1336"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.8,
+      "countryHints": [
+        "TN"
+      ],
+      "generatedAt": "2026-02-23T16:31:46.029Z",
+      "headline": "MENA monitoring queue: shipping #1335",
+      "hotspotIds": [],
+      "id": "cmlze9che0088u1tkfy4sv1rc",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:46.012Z",
+          "id": "gs_0217dcb7-6a84-4ba9-b50e-feb5b6feb9a9",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:46.012Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1334"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.75,
+      "countryHints": [
+        "BR"
+      ],
+      "generatedAt": "2026-02-23T16:31:45.799Z",
+      "headline": "South America conflict watchlist item #1333",
+      "hotspotIds": [],
+      "id": "cmlze9cb00087u1tk18feik9m",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:45.783Z",
+          "id": "gs_104a0419-7cde-40fb-a785-d78afcc0733b",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:45.783Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1332"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.7,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:45.605Z",
+      "headline": "Arctic/Polar monitoring queue: trade rupture #1331",
+      "hotspotIds": [],
+      "id": "cmlze9c5m0086u1tkalphwbxz",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:45.588Z",
+          "id": "gs_0e2a15aa-efc1-4e83-ae18-ccc502be6731",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:45.588Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1330"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.66,
+      "countryHints": [
+        "MM"
+      ],
+      "generatedAt": "2026-02-23T16:31:45.352Z",
+      "headline": "Southeast Asia election shock watchlist item #1329",
+      "hotspotIds": [],
+      "id": "cmlze9byl0085u1tk310wf2ll",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:45.336Z",
+          "id": "gs_2305eeab-c32c-43ad-985c-7b5ddd8f0f97",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:45.336Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1328"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.61,
+      "countryHints": [
+        "PK"
+      ],
+      "generatedAt": "2026-02-23T16:31:45.139Z",
+      "headline": "South Asia monitoring queue: energy shock #1327",
+      "hotspotIds": [],
+      "id": "cmlze9bso0084u1tko86dloyr",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:45.116Z",
+          "id": "gs_7d9f59e1-25a4-43e6-9376-2e3b7ee5f83d",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:45.116Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1326"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.56,
+      "countryHints": [
+        "GH"
+      ],
+      "generatedAt": "2026-02-23T16:31:44.973Z",
+      "headline": "Sub-Saharan Africa sanctions watchlist item #1325",
+      "hotspotIds": [],
+      "id": "cmlze9bo20083u1tkeclzuww3",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:44.951Z",
+          "id": "gs_20ad6f06-d150-4c7d-9d29-8f1f48d75fbb",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:44.951Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1324"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.51,
+      "countryHints": [
+        "FI"
+      ],
+      "generatedAt": "2026-02-23T16:31:44.823Z",
+      "headline": "Europe monitoring queue: strategic m\u0026a #1323",
+      "hotspotIds": [],
+      "id": "cmlze9bjx0082u1tklq10fot4",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:44.806Z",
+          "id": "gs_a4e82a12-5aa5-4bec-b409-237605fa355d",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:44.806Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1322"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.46,
+      "countryHints": [
+        "US"
+      ],
+      "generatedAt": "2026-02-23T16:31:44.619Z",
+      "headline": "North America rates watchlist item #1321",
+      "hotspotIds": [],
+      "id": "cmlze9be80081u1tkz3ul1win",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:44.603Z",
+          "id": "gs_244a6f94-00a7-484c-b5a3-fb6d8b6db54b",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:44.603Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1320"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.89,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:44.383Z",
+      "headline": "Oceania monitoring queue: export controls #1319",
+      "hotspotIds": [],
+      "id": "cmlze9b7o0080u1tkwewa3hen",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:44.367Z",
+          "id": "gs_7266fb45-5067-41d1-8414-99a8f3d89d38",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:44.367Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1318"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.84,
+      "countryHints": [
+        "CN"
+      ],
+      "generatedAt": "2026-02-23T16:31:44.154Z",
+      "headline": "East Asia shipping watchlist item #1317",
+      "hotspotIds": [],
+      "id": "cmlze9b1b007zu1tk8nmn2izn",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:44.139Z",
+          "id": "gs_2a4ab1af-2563-41f2-8174-3f407e366f40",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:44.139Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1316"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.8,
+      "countryHints": [
+        "TJ"
+      ],
+      "generatedAt": "2026-02-23T16:31:43.935Z",
+      "headline": "Central Asia monitoring queue: conflict #1315",
+      "hotspotIds": [],
+      "id": "cmlze9av8007yu1tkapjr6tl8",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:43.919Z",
+          "id": "gs_402e7a3c-7936-4ecc-8c8d-25575f366ec5",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:43.919Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1314"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.75,
+      "countryHints": [
+        "IQ"
+      ],
+      "generatedAt": "2026-02-23T16:31:43.732Z",
+      "headline": "MENA trade rupture watchlist item #1313",
+      "hotspotIds": [],
+      "id": "cmlze9apl007xu1tkc6edixkh",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:43.716Z",
+          "id": "gs_0de53fe2-4404-4313-aa70-4af7d8518af2",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:43.716Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1312"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.7,
+      "countryHints": [
+        "CL"
+      ],
+      "generatedAt": "2026-02-23T16:31:43.520Z",
+      "headline": "South America monitoring queue: election shock #1311",
+      "hotspotIds": [],
+      "id": "cmlze9ajp007wu1tk2uol4npc",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:43.505Z",
+          "id": "gs_cc6c8744-f809-4908-bfad-fd533f25db7b",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:43.505Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1310"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.65,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:43.255Z",
+      "headline": "Arctic/Polar energy shock watchlist item #1309",
+      "hotspotIds": [],
+      "id": "cmlze9acc007vu1tk7tf886xh",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:43.239Z",
+          "id": "gs_67ff5602-e7fd-4d8f-b265-c950d3e05f28",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:43.239Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1308"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.6,
+      "countryHints": [
+        "KH"
+      ],
+      "generatedAt": "2026-02-23T16:31:43.041Z",
+      "headline": "Southeast Asia monitoring queue: sanctions #1307",
+      "hotspotIds": [],
+      "id": "cmlze9a6e007uu1tk0shrr8q8",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:43.020Z",
+          "id": "gs_8b2fd450-8c9c-4837-b2a8-696555b11eb6",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:43.020Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1306"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.55,
+      "countryHints": [
+        "NP"
+      ],
+      "generatedAt": "2026-02-23T16:31:42.806Z",
+      "headline": "South Asia strategic m\u0026a watchlist item #1305",
+      "hotspotIds": [],
+      "id": "cmlze99zv007tu1tkzhltm78q",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:42.783Z",
+          "id": "gs_42cbe1f0-2737-43fc-ba1a-b69412e22cf5",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:42.783Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1304"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.5,
+      "countryHints": [
+        "UG"
+      ],
+      "generatedAt": "2026-02-23T16:31:42.611Z",
+      "headline": "Sub-Saharan Africa monitoring queue: rates #1303",
+      "hotspotIds": [],
+      "id": "cmlze99ug007su1tkg71ikmlk",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:42.596Z",
+          "id": "gs_dbcc8ee0-9e7d-4ba2-8f3b-eaa0dd6a88fd",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:42.596Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1302"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.93,
+      "countryHints": [
+        "DK"
+      ],
+      "generatedAt": "2026-02-23T16:31:42.401Z",
+      "headline": "Europe export controls watchlist item #1301",
+      "hotspotIds": [],
+      "id": "cmlze99om007ru1tk8lmxhyhg",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:42.385Z",
+          "id": "gs_11a986e4-fb62-4fda-872e-02159be84572",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:42.385Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1300"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.89,
+      "countryHints": [
+        "MX"
+      ],
+      "generatedAt": "2026-02-23T16:31:42.206Z",
+      "headline": "North America monitoring queue: shipping #1299",
+      "hotspotIds": [],
+      "id": "cmlze99j8007qu1tkitfzz25h",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:42.183Z",
+          "id": "gs_e930e54d-171d-48c4-afca-f9b9f1696a8d",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:42.183Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1298"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.84,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:42.078Z",
+      "headline": "Oceania conflict watchlist item #1297",
+      "hotspotIds": [],
+      "id": "cmlze99fn007pu1tk4did7l77",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:42.063Z",
+          "id": "gs_c2982fdd-d740-4299-afd7-caaf59fc2529",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:42.063Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1296"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.79,
+      "countryHints": [
+        "HK"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.959Z",
+      "headline": "East Asia monitoring queue: trade rupture #1295",
+      "hotspotIds": [],
+      "id": "cmlze99cc007ou1tkmoijrbys",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.943Z",
+          "id": "gs_d7aba968-e8e0-46a0-ae60-54b9b8ce3038",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:41.943Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1294"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.74,
+      "countryHints": [
+        "TM"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.840Z",
+      "headline": "Central Asia election shock watchlist item #1293",
+      "hotspotIds": [],
+      "id": "cmlze9991007nu1tk309bknow",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.823Z",
+          "id": "gs_1ccb4253-1b54-486c-9fa9-a823775f2cbe",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:41.823Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1292"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.69,
+      "countryHints": [
+        "SA"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.696Z",
+      "headline": "MENA monitoring queue: energy shock #1291",
+      "hotspotIds": [],
+      "id": "cmlze9951007mu1tk1bj31ylw",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.678Z",
+          "id": "gs_2f8eb73c-c069-4b14-926f-2a519f7db471",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:41.678Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1290"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.64,
+      "countryHints": [
+        "PE"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.635Z",
+      "headline": "South America sanctions watchlist item #1289",
+      "hotspotIds": [],
+      "id": "cmlze993c007lu1tk4a0z2crz",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.613Z",
+          "id": "gs_d4819957-cb0b-497c-b3f3-f6c5f3c4fde7",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:41.613Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1288"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.59,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:41.517Z",
+      "headline": "Arctic/Polar monitoring queue: strategic m\u0026a #1287",
+      "hotspotIds": [],
+      "id": "cmlze9902007ku1tkv1e2z54w",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.493Z",
+          "id": "gs_015a78c6-a57e-44dc-bee9-a9a2fed524f5",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:41.493Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1286"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.54,
+      "countryHints": [
+        "PH"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.423Z",
+      "headline": "Southeast Asia rates watchlist item #1285",
+      "hotspotIds": [],
+      "id": "cmlze98xg007ju1tkjheosf4l",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.406Z",
+          "id": "gs_acca5812-eb68-4a46-84a9-95c299b94955",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:41.406Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1284"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.5,
+      "countryHints": [
+        "BD"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.293Z",
+      "headline": "South Asia monitoring queue: export controls #1283",
+      "hotspotIds": [],
+      "id": "cmlze98tu007iu1tkvkirv6jm",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.279Z",
+          "id": "gs_d8d8e2c8-a665-4222-8e39-2546fba1a92f",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:41.279Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1282"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.93,
+      "countryHints": [
+        "CI"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.111Z",
+      "headline": "Sub-Saharan Africa shipping watchlist item #1281",
+      "hotspotIds": [],
+      "id": "cmlze98or007hu1tkzfy4h8v0",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.093Z",
+          "id": "gs_8b7fc02b-7863-4b2e-9635-67896c1d4ca8",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:41.093Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1280"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.88,
+      "countryHints": [
+        "CH"
+      ],
+      "generatedAt": "2026-02-23T16:31:41.046Z",
+      "headline": "Europe monitoring queue: conflict #1279",
+      "hotspotIds": [],
+      "id": "cmlze98my007gu1tkziq62ho1",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:41.031Z",
+          "id": "gs_2ad6ce3f-7528-402e-99ce-2d0d75da0218",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:41.031Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1278"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.83,
+      "countryHints": [
+        "CA"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.985Z",
+      "headline": "North America trade rupture watchlist item #1277",
+      "hotspotIds": [],
+      "id": "cmlze98lb007fu1tkr75mgfjd",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.969Z",
+          "id": "gs_4138c5ff-8a69-47bf-bbf5-8e31ea43e9e9",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:40.969Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1276"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.78,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.915Z",
+      "headline": "Oceania monitoring queue: election shock #1275",
+      "hotspotIds": [],
+      "id": "cmlze98jd007eu1tkuwsndbem",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.891Z",
+          "id": "gs_6a07e6d6-ec58-4dd9-8b93-8e73720eb6ac",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:40.891Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1274"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.73,
+      "countryHints": [
+        "TW"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.831Z",
+      "headline": "East Asia energy shock watchlist item #1273",
+      "hotspotIds": [],
+      "id": "cmlze98h0007du1tkiipvf8vq",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.813Z",
+          "id": "gs_8903c03b-38a4-4420-876e-f3396e5da06e",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:40.813Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1272"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.68,
+      "countryHints": [
+        "KZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.757Z",
+      "headline": "Central Asia monitoring queue: sanctions #1271",
+      "hotspotIds": [],
+      "id": "cmlze98ey007cu1tkt77iwctj",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.743Z",
+          "id": "gs_4114cb08-9df3-461e-b6b4-96aa39ff1995",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:40.743Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1270"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.63,
+      "countryHints": [
+        "IL"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.613Z",
+      "headline": "MENA strategic m\u0026a watchlist item #1269",
+      "hotspotIds": [],
+      "id": "cmlze98ay007bu1tkyoyrdqjc",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.599Z",
+          "id": "gs_08631afd-0d5e-494e-ad61-cb079c393a26",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:40.599Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1268"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.59,
+      "countryHints": [
+        "PY"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.475Z",
+      "headline": "South America monitoring queue: rates #1267",
+      "hotspotIds": [],
+      "id": "cmlze9874007au1tkcalgo94g",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.461Z",
+          "id": "gs_a5bd36f5-25b6-4f26-b289-a92c141945aa",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:40.461Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1266"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.54,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:40.300Z",
+      "headline": "Arctic/Polar export controls watchlist item #1265",
+      "hotspotIds": [],
+      "id": "cmlze98290079u1tkaxdp01po",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.284Z",
+          "id": "gs_de5d629f-9c3d-4a66-aa02-034053b80809",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:40.284Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1264"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.49,
+      "countryHints": [
+        "TH"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.179Z",
+      "headline": "Southeast Asia monitoring queue: shipping #1263",
+      "hotspotIds": [],
+      "id": "cmlze97yw0078u1tk4ww2l8ny",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.154Z",
+          "id": "gs_9459af61-ce6d-4a44-8b1c-356f8d234d1c",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:40.154Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1262"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.92,
+      "countryHints": [
+        "IN"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.098Z",
+      "headline": "South Asia conflict watchlist item #1261",
+      "hotspotIds": [],
+      "id": "cmlze97wn0077u1tk4cudg49k",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.084Z",
+          "id": "gs_4731449a-cdeb-4d80-96eb-9f4d7939cad0",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:40.084Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1260"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.87,
+      "countryHints": [
+        "ZM"
+      ],
+      "generatedAt": "2026-02-23T16:31:40.046Z",
+      "headline": "Sub-Saharan Africa monitoring queue: trade rupture #1259",
+      "hotspotIds": [],
+      "id": "cmlze97v70076u1tkqwof7cz7",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:40.023Z",
+          "id": "gs_ff536023-1c4d-4ac8-a966-2368046394cc",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:40.023Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1258"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.82,
+      "countryHints": [
+        "AT"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.941Z",
+      "headline": "Europe election shock watchlist item #1257",
+      "hotspotIds": [],
+      "id": "cmlze97sa0075u1tk04g7ca90",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.927Z",
+          "id": "gs_e1a12fe9-a665-4c11-8dc1-d49c276035ca",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:39.927Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1256"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.77,
+      "countryHints": [
+        "US"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.863Z",
+      "headline": "North America monitoring queue: energy shock #1255",
+      "hotspotIds": [],
+      "id": "cmlze97q40074u1tky80tucop",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.849Z",
+          "id": "gs_f6aefe00-a449-4c5c-aaa4-0070d98beef5",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:39.849Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1254"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.72,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.701Z",
+      "headline": "Oceania sanctions watchlist item #1253",
+      "hotspotIds": [],
+      "id": "cmlze97lm0073u1tky0w11ky0",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.688Z",
+          "id": "gs_e7f6dc11-049f-4464-9ecd-055f3f77838a",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:39.688Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1252"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.68,
+      "countryHints": [
+        "MN"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.607Z",
+      "headline": "East Asia monitoring queue: strategic m\u0026a #1251",
+      "hotspotIds": [],
+      "id": "cmlze97j10072u1tkqnhiwhrz",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.584Z",
+          "id": "gs_fd56e1ba-f8a3-453a-a3e2-ae91867b6fac",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:39.584Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1250"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.63,
+      "countryHints": [
+        "KG"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.499Z",
+      "headline": "Central Asia rates watchlist item #1249",
+      "hotspotIds": [],
+      "id": "cmlze97g10071u1tk3u6uz94o",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.481Z",
+          "id": "gs_52e24354-34e8-432c-a259-9c8a3896acc7",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:39.481Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1248"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.58,
+      "countryHints": [
+        "AE"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.333Z",
+      "headline": "MENA monitoring queue: export controls #1247",
+      "hotspotIds": [],
+      "id": "cmlze97be0070u1tks5gnq38l",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.319Z",
+          "id": "gs_d893b8f8-5d41-4724-bfdb-cb00bcacc8b4",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:39.319Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1246"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.53,
+      "countryHints": [
+        "EC"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.196Z",
+      "headline": "South America shipping watchlist item #1245",
+      "hotspotIds": [],
+      "id": "cmlze977l006zu1tk2yk65vso",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.182Z",
+          "id": "gs_70faa492-4126-43d9-8bf4-79e4cfd86f64",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:39.182Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1244"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.48,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:39.126Z",
+      "headline": "Arctic/Polar monitoring queue: conflict #1243",
+      "hotspotIds": [],
+      "id": "cmlze975n006yu1tkfz9jgfel",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.113Z",
+          "id": "gs_fdfd505a-d489-4271-baba-dfc61cf48e29",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:39.113Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1242"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.91,
+      "countryHints": [
+        "SG"
+      ],
+      "generatedAt": "2026-02-23T16:31:39.020Z",
+      "headline": "Southeast Asia trade rupture watchlist item #1241",
+      "hotspotIds": [],
+      "id": "cmlze972p006xu1tkt11tom0e",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:39.002Z",
+          "id": "gs_714bf3a3-8f75-4b10-ade5-26012232da96",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:39.002Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1240"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.86,
+      "countryHints": [
+        "LK"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.952Z",
+      "headline": "South Asia monitoring queue: election shock #1239",
+      "hotspotIds": [],
+      "id": "cmlze970t006wu1tkf9v2y4eq",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.939Z",
+          "id": "gs_5acd3300-8938-4064-b8d5-46fff011a619",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.939Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1238"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.81,
+      "countryHints": [
+        "ZA"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.816Z",
+      "headline": "Sub-Saharan Africa energy shock watchlist item #1237",
+      "hotspotIds": [],
+      "id": "cmlze96x0006vu1tkg0xia2xq",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.802Z",
+          "id": "gs_b9c97519-aa1d-4c74-b5e9-409de945caf2",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:38.802Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1236"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.77,
+      "countryHints": [
+        "PT"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.754Z",
+      "headline": "Europe monitoring queue: sanctions #1235",
+      "hotspotIds": [],
+      "id": "cmlze96vb006uu1tkya007qrh",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.741Z",
+          "id": "gs_13e88c18-97ae-4d9a-8914-4697c88d0813",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.741Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1234"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.72,
+      "countryHints": [
+        "MX"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.701Z",
+      "headline": "North America strategic m\u0026a watchlist item #1233",
+      "hotspotIds": [],
+      "id": "cmlze96tu006tu1tk2pqgfuav",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.680Z",
+          "id": "gs_073fb721-86d6-4679-b035-2c894e43e38d",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.680Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1232"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.67,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.642Z",
+      "headline": "Oceania monitoring queue: rates #1231",
+      "hotspotIds": [],
+      "id": "cmlze96s7006su1tkl1oxjhwb",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.627Z",
+          "id": "gs_97204048-62eb-47c5-ad0f-afc27c566b28",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:38.627Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1230"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.62,
+      "countryHints": [
+        "KP"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.585Z",
+      "headline": "East Asia export controls watchlist item #1229",
+      "hotspotIds": [],
+      "id": "cmlze96qm006ru1tkmioixjz0",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.564Z",
+          "id": "gs_1e9d70e4-6a30-45e9-b63a-829fb960946e",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.564Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1228"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.57,
+      "countryHints": [
+        "UZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.491Z",
+      "headline": "Central Asia monitoring queue: shipping #1227",
+      "hotspotIds": [],
+      "id": "cmlze96o0006qu1tk2610v29h",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.469Z",
+          "id": "gs_4aec8282-7972-4b7c-9659-9736f7a17c1f",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.469Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1226"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.52,
+      "countryHints": [
+        "JO"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.414Z",
+      "headline": "MENA conflict watchlist item #1225",
+      "hotspotIds": [],
+      "id": "cmlze96lu006pu1tkk3lio75h",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.400Z",
+          "id": "gs_a6faabcc-ddca-4278-8c62-9dde7c4e3236",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:38.400Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1224"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.47,
+      "countryHints": [
+        "GY"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.345Z",
+      "headline": "South America monitoring queue: trade rupture #1223",
+      "hotspotIds": [],
+      "id": "cmlze96jy006ou1tkz02x6dww",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.330Z",
+          "id": "gs_89f96d4e-fb22-4579-8ab5-c74754442a13",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.330Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1222"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.9,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:38.290Z",
+      "headline": "Arctic/Polar election shock watchlist item #1221",
+      "hotspotIds": [],
+      "id": "cmlze96ie006nu1tkefbgh0l0",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.277Z",
+          "id": "gs_67c8d1f7-69a3-4bc0-be73-79bdb58e4b6c",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.277Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1220"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.86,
+      "countryHints": [
+        "MM"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.212Z",
+      "headline": "Southeast Asia monitoring queue: energy shock #1219",
+      "hotspotIds": [],
+      "id": "cmlze96ga006mu1tk5iw3k0h3",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.198Z",
+          "id": "gs_51692d47-b783-427b-a71e-f7182c41f15e",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:38.198Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1218"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.81,
+      "countryHints": [
+        "PK"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.109Z",
+      "headline": "South Asia sanctions watchlist item #1217",
+      "hotspotIds": [],
+      "id": "cmlze96de006lu1tkj9nmrlrp",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.094Z",
+          "id": "gs_d2d18bd2-4139-42ce-9ae3-90c8406e6928",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.095Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1216"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.76,
+      "countryHints": [
+        "KE"
+      ],
+      "generatedAt": "2026-02-23T16:31:38.051Z",
+      "headline": "Sub-Saharan Africa monitoring queue: strategic m\u0026a #1215",
+      "hotspotIds": [],
+      "id": "cmlze96bs006ku1tk3j0lq8a7",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:38.033Z",
+          "id": "gs_3f7ac325-f2fe-4d15-8065-657c78a803ec",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:38.033Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1214"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.71,
+      "countryHints": [
+        "CZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.906Z",
+      "headline": "Europe rates watchlist item #1213",
+      "hotspotIds": [],
+      "id": "cmlze967q006ju1tkim0bx109",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.889Z",
+          "id": "gs_1f62634b-9018-4060-acbf-f96fd3a68a86",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:37.889Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1212"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.66,
+      "countryHints": [
+        "CA"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.822Z",
+      "headline": "North America monitoring queue: export controls #1211",
+      "hotspotIds": [],
+      "id": "cmlze965f006iu1tkm136izr4",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.801Z",
+          "id": "gs_45d826f8-83a4-4162-a311-a3b0446f4a54",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:37.801Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1210"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.61,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.759Z",
+      "headline": "Oceania shipping watchlist item #1209",
+      "hotspotIds": [],
+      "id": "cmlze963o006hu1tkpytxzfct",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.748Z",
+          "id": "gs_f9aaa951-e387-4de4-803e-dd592cd70d90",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:37.748Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1208"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.56,
+      "countryHints": [
+        "KR"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.682Z",
+      "headline": "East Asia monitoring queue: conflict #1207",
+      "hotspotIds": [],
+      "id": "cmlze961j006gu1tkhglf835k",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.670Z",
+          "id": "gs_ce581c5c-84c8-4e8f-97c7-e16be17e414b",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:37.670Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1206"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.51,
+      "countryHints": [
+        "TJ"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.600Z",
+      "headline": "Central Asia trade rupture watchlist item #1205",
+      "hotspotIds": [],
+      "id": "cmlze95z9006fu1tkrbmbaosv",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.583Z",
+          "id": "gs_a1098dc9-a87a-478a-8aab-6207ca7679f8",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:37.584Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1204"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.47,
+      "countryHints": [
+        "QA"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.529Z",
+      "headline": "MENA monitoring queue: election shock #1203",
+      "hotspotIds": [],
+      "id": "cmlze95xa006eu1tk9gw3lza5",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.517Z",
+          "id": "gs_b3065982-137f-457b-b484-641d0ae7e072",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:37.517Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1202"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.9,
+      "countryHints": [
+        "BR"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.439Z",
+      "headline": "South America energy shock watchlist item #1201",
+      "hotspotIds": [],
+      "id": "cmlze95us006du1tktojxxrf1",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.423Z",
+          "id": "gs_159e9e5c-e549-4ce4-8472-9f2789ca922a",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:37.423Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1200"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.85,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:37.382Z",
+      "headline": "Arctic/Polar monitoring queue: sanctions #1199",
+      "hotspotIds": [],
+      "id": "cmlze95t6006cu1tkymb275jj",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.370Z",
+          "id": "gs_d45b4b9e-1a22-4e14-a685-1573b0bb8575",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:37.370Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1198"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.8,
+      "countryHints": [
+        "KH"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.309Z",
+      "headline": "Southeast Asia strategic m\u0026a watchlist item #1197",
+      "hotspotIds": [],
+      "id": "cmlze95r6006bu1tktvr74i5t",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.298Z",
+          "id": "gs_5b6ef13c-6bc4-4199-90fc-5ae18d73a69e",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:37.298Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1196"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.75,
+      "countryHints": [
+        "NP"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.240Z",
+      "headline": "South Asia monitoring queue: rates #1195",
+      "hotspotIds": [],
+      "id": "cmlze95p9006au1tkryifmh31",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.229Z",
+          "id": "gs_2d8a6172-116e-4472-9e78-1fe686b7afde",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:37.229Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1194"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.7,
+      "countryHints": [
+        "GH"
+      ],
+      "generatedAt": "2026-02-23T16:31:37.135Z",
+      "headline": "Sub-Saharan Africa export controls watchlist item #1193",
+      "hotspotIds": [],
+      "id": "cmlze95mc0069u1tkjn28jxqe",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:37.124Z",
+          "id": "gs_436aa6c5-632d-4369-8064-9820b652934d",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:37.124Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1192"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.65,
+      "countryHints": [
+        "HU"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.999Z",
+      "headline": "Europe monitoring queue: shipping #1191",
+      "hotspotIds": [],
+      "id": "cmlze95ik0068u1tk694tqn9s",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.988Z",
+          "id": "gs_0ad83439-b201-43bc-8cd9-e21a0ab2a03d",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:36.988Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1190"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.6,
+      "countryHints": [
+        "US"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.854Z",
+      "headline": "North America conflict watchlist item #1189",
+      "hotspotIds": [],
+      "id": "cmlze95ej0067u1tknmc7pf71",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.843Z",
+          "id": "gs_f201f27a-dc35-4c08-839f-e65e56cd748c",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:36.843Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1188"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.56,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.753Z",
+      "headline": "Oceania monitoring queue: trade rupture #1187",
+      "hotspotIds": [],
+      "id": "cmlze95br0066u1tkfgh9vdg0",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.739Z",
+          "id": "gs_4e5648a9-c437-4c37-99c7-2d4934113376",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:36.739Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1186"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.51,
+      "countryHints": [
+        "JP"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.672Z",
+      "headline": "East Asia election shock watchlist item #1185",
+      "hotspotIds": [],
+      "id": "cmlze959h0065u1tkpjnqn5fp",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.661Z",
+          "id": "gs_fce75b84-fbba-4d0b-ac99-50ee4fea8cb0",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:36.661Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1184"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.94,
+      "countryHints": [
+        "TM"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.577Z",
+      "headline": "Central Asia monitoring queue: energy shock #1183",
+      "hotspotIds": [],
+      "id": "cmlze956u0064u1tk1jpglans",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.558Z",
+          "id": "gs_648eea85-1980-43ce-a127-b4766b95814e",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:36.558Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1182"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.89,
+      "countryHints": [
+        "LB"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.474Z",
+      "headline": "MENA sanctions watchlist item #1181",
+      "hotspotIds": [],
+      "id": "cmlze953z0063u1tk66hndbmk",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.463Z",
+          "id": "gs_7794891b-efa4-4ba7-9e09-c51ad0273961",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:36.463Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1180"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.84,
+      "countryHints": [
+        "CL"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.366Z",
+      "headline": "South America monitoring queue: strategic m\u0026a #1179",
+      "hotspotIds": [],
+      "id": "cmlze950z0062u1tknyjwqjku",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.352Z",
+          "id": "gs_7ffac261-c8e7-4a23-8f17-4767ecdcdf40",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:36.352Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1178"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.79,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:36.283Z",
+      "headline": "Arctic/Polar rates watchlist item #1177",
+      "hotspotIds": [],
+      "id": "cmlze94yo0061u1tkv5rdxonj",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.272Z",
+          "id": "gs_5ba4f84b-8331-4bf7-b472-476d297ea700",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:36.272Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1176"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.74,
+      "countryHints": [
+        "PH"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.179Z",
+      "headline": "Southeast Asia monitoring queue: export controls #1175",
+      "hotspotIds": [],
+      "id": "cmlze94vr0060u1tktw8nczn1",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.167Z",
+          "id": "gs_b335e9f9-08ba-4d01-9767-3da7eb3d6bd7",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:36.167Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1174"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.69,
+      "countryHints": [
+        "BD"
+      ],
+      "generatedAt": "2026-02-23T16:31:36.117Z",
+      "headline": "South Asia shipping watchlist item #1173",
+      "hotspotIds": [],
+      "id": "cmlze94u2005zu1tkbcajle5k",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:36.104Z",
+          "id": "gs_7d7f98d2-d6df-498e-aa7f-00dd9948c422",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:36.104Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1172"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.65,
+      "countryHints": [
+        "UG"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.968Z",
+      "headline": "Sub-Saharan Africa monitoring queue: conflict #1171",
+      "hotspotIds": [],
+      "id": "cmlze94py005yu1tkoxxnkgki",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.950Z",
+          "id": "gs_d4b57511-6062-4814-bbd8-35802b8d96b6",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:35.950Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1170"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.6,
+      "countryHints": [
+        "RO"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.892Z",
+      "headline": "Europe trade rupture watchlist item #1169",
+      "hotspotIds": [],
+      "id": "cmlze94nt005xu1tk9yta9u9d",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.881Z",
+          "id": "gs_320c0ec1-51a1-4c8e-9a4a-dd37796d7a2a",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:35.881Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1168"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.55,
+      "countryHints": [
+        "MX"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.807Z",
+      "headline": "North America monitoring queue: election shock #1167",
+      "hotspotIds": [],
+      "id": "cmlze94lg005wu1tkc412wh2n",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.795Z",
+          "id": "gs_a3bd7ca6-db22-4833-a689-2b8191ddcfe4",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:35.795Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1166"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.5,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.705Z",
+      "headline": "Oceania energy shock watchlist item #1165",
+      "hotspotIds": [],
+      "id": "cmlze94im005vu1tkbgiaao22",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.691Z",
+          "id": "gs_e3f61a86-fe3a-4cc0-b8ff-3bb89d6fb00c",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:35.691Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1164"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.93,
+      "countryHints": [
+        "CN"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.605Z",
+      "headline": "East Asia monitoring queue: sanctions #1163",
+      "hotspotIds": [],
+      "id": "cmlze94fv005uu1tk3xedn56u",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.587Z",
+          "id": "gs_29660682-d854-41dd-9dbc-86fb9445bc79",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:35.587Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1162"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.88,
+      "countryHints": [
+        "KZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.465Z",
+      "headline": "Central Asia strategic m\u0026a watchlist item #1161",
+      "hotspotIds": [],
+      "id": "cmlze94by005tu1tkh7meiyrh",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.451Z",
+          "id": "gs_62b9da2e-9d0a-4374-a63c-25f8bf7368be",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:35.451Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1160"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.83,
+      "countryHints": [
+        "KW"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.347Z",
+      "headline": "MENA monitoring queue: rates #1159",
+      "hotspotIds": [],
+      "id": "cmlze948p005su1tk8tgonp8l",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.331Z",
+          "id": "gs_456b3c4f-f588-496d-a941-c5243411c4ae",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:35.331Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1158"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.78,
+      "countryHints": [
+        "PE"
+      ],
+      "generatedAt": "2026-02-23T16:31:35.182Z",
+      "headline": "South America export controls watchlist item #1157",
+      "hotspotIds": [],
+      "id": "cmlze9443005ru1tk23lx17b1",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.170Z",
+          "id": "gs_408c8424-4c1a-4fbf-9557-d5e486d4643b",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:35.170Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1156"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.74,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:35.071Z",
+      "headline": "Arctic/Polar monitoring queue: shipping #1155",
+      "hotspotIds": [],
+      "id": "cmlze9410005qu1tk4kx86bou",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:35.059Z",
+          "id": "gs_be40ec4b-0968-4aa7-8cda-320382d2df85",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:35.059Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1154"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.69,
+      "countryHints": [
+        "TH"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.884Z",
+      "headline": "Southeast Asia conflict watchlist item #1153",
+      "hotspotIds": [],
+      "id": "cmlze93vt005pu1tktuzq2dpa",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.871Z",
+          "id": "gs_53a820fe-7e0f-4cf6-828f-287df478527d",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:34.871Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1152"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.64,
+      "countryHints": [
+        "IN"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.759Z",
+      "headline": "South Asia monitoring queue: trade rupture #1151",
+      "hotspotIds": [],
+      "id": "cmlze93sc005ou1tkz1sdggkm",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.748Z",
+          "id": "gs_51fbfcd9-3769-49cf-87c4-65e9e7cfacd8",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:34.748Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1150"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.59,
+      "countryHints": [
+        "CI"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.629Z",
+      "headline": "Sub-Saharan Africa election shock watchlist item #1149",
+      "hotspotIds": [],
+      "id": "cmlze93oq005nu1tkmbtw21hm",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.610Z",
+          "id": "gs_65f81495-a1b0-4ab6-bb2c-8ffcebc95923",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:34.610Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1148"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.54,
+      "countryHints": [
+        "UA"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.439Z",
+      "headline": "Europe monitoring queue: energy shock #1147",
+      "hotspotIds": [],
+      "id": "cmlze93jg005mu1tkrkme1x8s",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.424Z",
+          "id": "gs_ef45c9e9-7e53-4136-8aa4-0caa22a741b9",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:34.424Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1146"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.49,
+      "countryHints": [
+        "CA"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.373Z",
+      "headline": "North America sanctions watchlist item #1145",
+      "hotspotIds": [],
+      "id": "cmlze93hn005lu1tk8bin3asp",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.355Z",
+          "id": "gs_adbe56b1-c419-4bee-be9c-72753c171f46",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:34.355Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1144"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.92,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.286Z",
+      "headline": "Oceania monitoring queue: strategic m\u0026a #1143",
+      "hotspotIds": [],
+      "id": "cmlze93f6005ku1tk9sf7g0kc",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.269Z",
+          "id": "gs_d59306df-bb4d-488c-8d4c-4e29fa9917c3",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:34.269Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1142"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.87,
+      "countryHints": [
+        "HK"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.226Z",
+      "headline": "East Asia rates watchlist item #1141",
+      "hotspotIds": [],
+      "id": "cmlze93dj005ju1tknk6a3837",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.215Z",
+          "id": "gs_fb4a35e2-7143-4591-b4a8-9564a7251f56",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:34.215Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1140"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.83,
+      "countryHints": [
+        "KG"
+      ],
+      "generatedAt": "2026-02-23T16:31:34.107Z",
+      "headline": "Central Asia monitoring queue: export controls #1139",
+      "hotspotIds": [],
+      "id": "cmlze93a8005iu1tkvvy05psf",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:34.094Z",
+          "id": "gs_22cb3301-8c1d-4bd9-b73f-97d29f1443a0",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:34.094Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1138"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.78,
+      "countryHints": [
+        "EG"
+      ],
+      "generatedAt": "2026-02-23T16:31:33.934Z",
+      "headline": "MENA shipping watchlist item #1137",
+      "hotspotIds": [],
+      "id": "cmlze935f005hu1tk2oobpuuh",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:33.925Z",
+          "id": "gs_bdc276f3-287d-412f-8118-3e220e9d2ef4",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:33.925Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1136"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.73,
+      "countryHints": [
+        "PY"
+      ],
+      "generatedAt": "2026-02-23T16:31:33.824Z",
+      "headline": "South America monitoring queue: conflict #1135",
+      "hotspotIds": [],
+      "id": "cmlze932c005gu1tkg0683edh",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:33.813Z",
+          "id": "gs_1806f38f-1a04-4802-93b2-2eaf2cff3b23",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:33.813Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1134"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.68,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:33.722Z",
+      "headline": "Arctic/Polar trade rupture watchlist item #1133",
+      "hotspotIds": [],
+      "id": "cmlze92zj005fu1tklx9wry5j",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:33.711Z",
+          "id": "gs_ec69f475-ef33-41c0-a528-fec431db0e32",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:33.711Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1132"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.63,
+      "countryHints": [
+        "SG"
+      ],
+      "generatedAt": "2026-02-23T16:31:33.627Z",
+      "headline": "Southeast Asia monitoring queue: election shock #1131",
+      "hotspotIds": [],
+      "id": "cmlze92ww005eu1tki5kgjvyq",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:33.615Z",
+          "id": "gs_26ca1dfa-5128-4f30-ba21-bed6bce44c4f",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:33.615Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1130"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.58,
+      "countryHints": [
+        "LK"
+      ],
+      "generatedAt": "2026-02-23T16:31:33.467Z",
+      "headline": "South Asia energy shock watchlist item #1129",
+      "hotspotIds": [],
+      "id": "cmlze92sh005du1tkmcobawnu",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:33.452Z",
+          "id": "gs_ad9d8cc6-1068-43d0-90ce-655bb3ba47d9",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:33.452Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1128"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.53,
+      "countryHints": [
+        "ZM"
+      ],
+      "generatedAt": "2026-02-23T16:31:33.290Z",
+      "headline": "Sub-Saharan Africa monitoring queue: sanctions #1127",
+      "hotspotIds": [],
+      "id": "cmlze92nj005cu1tk69665dag",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:33.280Z",
+          "id": "gs_623710ee-a1d6-4fc0-8b12-ffbc1cc7924e",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:33.280Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1126"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.48,
+      "countryHints": [
+        "GR"
+      ],
+      "generatedAt": "2026-02-23T16:31:33.100Z",
+      "headline": "Europe strategic m\u0026a watchlist item #1125",
+      "hotspotIds": [],
+      "id": "cmlze92i9005bu1tk4x3hl0si",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:33.090Z",
+          "id": "gs_6dd2a514-cc22-4b1c-b9ab-f41d31cd0e13",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:33.090Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1124"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.92,
+      "countryHints": [
+        "US"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.904Z",
+      "headline": "North America monitoring queue: rates #1123",
+      "hotspotIds": [],
+      "id": "cmlze92ct005au1tksp38ijwf",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.896Z",
+          "id": "gs_07083b6d-baef-42a6-83de-4310dd2a0a18",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:32.896Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1122"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.87,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.731Z",
+      "headline": "Oceania export controls watchlist item #1121",
+      "hotspotIds": [],
+      "id": "cmlze92810059u1tkwmnsy1rs",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.719Z",
+          "id": "gs_f20e92ab-d365-4b46-b88a-9ed4eafb3f89",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:32.719Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1120"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.82,
+      "countryHints": [
+        "TW"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.624Z",
+      "headline": "East Asia monitoring queue: shipping #1119",
+      "hotspotIds": [],
+      "id": "cmlze92510058u1tkorg8zc3d",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.615Z",
+          "id": "gs_2c9b435f-3cce-43bf-9316-37fd91bc8575",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:32.615Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1118"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.77,
+      "countryHints": [
+        "UZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.572Z",
+      "headline": "Central Asia conflict watchlist item #1117",
+      "hotspotIds": [],
+      "id": "cmlze923l0057u1tk3rnx0xja",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.563Z",
+          "id": "gs_39981230-251c-437d-9570-8dcd9d096866",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:32.563Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1116"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.72,
+      "countryHints": [
+        "OM"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.500Z",
+      "headline": "MENA monitoring queue: trade rupture #1115",
+      "hotspotIds": [],
+      "id": "cmlze921l0056u1tkswavth0z",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.491Z",
+          "id": "gs_7d2335a5-ab06-4db9-a0c4-c2111f70c198",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:32.491Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1114"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.67,
+      "countryHints": [
+        "EC"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.450Z",
+      "headline": "South America election shock watchlist item #1113",
+      "hotspotIds": [],
+      "id": "cmlze92070055u1tkie8x0edw",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.439Z",
+          "id": "gs_9cdb4080-a3dd-48aa-9cb7-7ec67312f74c",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:32.439Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1112"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.62,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:32.378Z",
+      "headline": "Arctic/Polar monitoring queue: energy shock #1111",
+      "hotspotIds": [],
+      "id": "cmlze91y70054u1tkih7kem9r",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.369Z",
+          "id": "gs_a9641379-7a32-4de9-b836-0d97228b09eb",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:32.369Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1110"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.57,
+      "countryHints": [
+        "MM"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.300Z",
+      "headline": "Southeast Asia sanctions watchlist item #1109",
+      "hotspotIds": [],
+      "id": "cmlze91w10053u1tk205iwpix",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.291Z",
+          "id": "gs_ba93b848-92c2-4107-925e-4e1e31248d1a",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:32.291Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1108"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.53,
+      "countryHints": [
+        "PK"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.248Z",
+      "headline": "South Asia monitoring queue: strategic m\u0026a #1107",
+      "hotspotIds": [],
+      "id": "cmlze91ul0052u1tk1bqx9c8f",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.238Z",
+          "id": "gs_c496b955-8043-4c1c-951a-220ffe2c367a",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:32.238Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1106"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.48,
+      "countryHints": [
+        "ZA"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.124Z",
+      "headline": "Sub-Saharan Africa rates watchlist item #1105",
+      "hotspotIds": [],
+      "id": "cmlze91r50051u1tkeiv80psm",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:32.112Z",
+          "id": "gs_bffe8ee1-ae2e-4f41-a9da-99463d56f248",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:32.112Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1104"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.91,
+      "countryHints": [
+        "BG"
+      ],
+      "generatedAt": "2026-02-23T16:31:32.008Z",
+      "headline": "Europe monitoring queue: export controls #1103",
+      "hotspotIds": [],
+      "id": "cmlze91nx0050u1tk5njn9hnd",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.998Z",
+          "id": "gs_ddc4d062-d98d-4ba5-8c12-e8a62c3b19ec",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:31.998Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1102"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.86,
+      "countryHints": [
+        "MX"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.856Z",
+      "headline": "North America shipping watchlist item #1101",
+      "hotspotIds": [],
+      "id": "cmlze91jp004zu1tkttvu046i",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.845Z",
+          "id": "gs_fb6ad856-6181-4955-a811-4bf8813515bb",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:31.845Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1100"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.81,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.720Z",
+      "headline": "Oceania monitoring queue: conflict #1099",
+      "hotspotIds": [],
+      "id": "cmlze91fx004yu1tkgx6zps5d",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.709Z",
+          "id": "gs_5ecaecd6-d74e-43b4-be9f-1c894a34ab02",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:31.709Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1098"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.76,
+      "countryHints": [
+        "MN"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.569Z",
+      "headline": "East Asia trade rupture watchlist item #1097",
+      "hotspotIds": [],
+      "id": "cmlze91bq004xu1tkkceilvng",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.556Z",
+          "id": "gs_85d57acf-4998-41a6-82b2-5439d5495eae",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:31.556Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1096"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.71,
+      "countryHints": [
+        "TJ"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.513Z",
+      "headline": "Central Asia monitoring queue: election shock #1095",
+      "hotspotIds": [],
+      "id": "cmlze91a6004wu1tki82w1o5l",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.502Z",
+          "id": "gs_12ff420f-fd36-4579-a461-5ba652ff3753",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:31.502Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1094"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.67,
+      "countryHints": [
+        "MA"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.458Z",
+      "headline": "MENA energy shock watchlist item #1093",
+      "hotspotIds": [],
+      "id": "cmlze918n004vu1tkxj0s1kvx",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.449Z",
+          "id": "gs_dc3b62b4-3ed3-4fc3-b184-eb7935bc0d44",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:31.449Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1092"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.62,
+      "countryHints": [
+        "GY"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.373Z",
+      "headline": "South America monitoring queue: sanctions #1091",
+      "hotspotIds": [],
+      "id": "cmlze916a004uu1tkyshi92bw",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.364Z",
+          "id": "gs_e0b35418-8cac-4c8f-a0e7-bf827ff4b083",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:31.364Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1090"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.57,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:31.279Z",
+      "headline": "Arctic/Polar strategic m\u0026a watchlist item #1089",
+      "hotspotIds": [],
+      "id": "cmlze913n004tu1tkoua5atk6",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.269Z",
+          "id": "gs_05f15944-6b40-4229-b620-6c057a934696",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:31.269Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1088"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.52,
+      "countryHints": [
+        "KH"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.199Z",
+      "headline": "Southeast Asia monitoring queue: rates #1087",
+      "hotspotIds": [],
+      "id": "cmlze911g004su1tk2xydaf6a",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.190Z",
+          "id": "gs_9e7a5d45-02f3-4072-b8ef-d01f2302524d",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:31.190Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1086"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.47,
+      "countryHints": [
+        "NP"
+      ],
+      "generatedAt": "2026-02-23T16:31:31.094Z",
+      "headline": "South Asia export controls watchlist item #1085",
+      "hotspotIds": [],
+      "id": "cmlze90yj004ru1tkz1lh6ygq",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:31.086Z",
+          "id": "gs_e961f541-582c-4895-81ef-c84ca3d754c7",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:31.086Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1084"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.9,
+      "countryHints": [
+        "KE"
+      ],
+      "generatedAt": "2026-02-23T16:31:30.893Z",
+      "headline": "Sub-Saharan Africa monitoring queue: shipping #1083",
+      "hotspotIds": [],
+      "id": "cmlze90sy004qu1tkl55zorge",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:30.883Z",
+          "id": "gs_fa5cc9a7-0b66-417d-beec-8aa16ce0a3f4",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:30.884Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1082"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.85,
+      "countryHints": [
+        "RS"
+      ],
+      "generatedAt": "2026-02-23T16:31:30.688Z",
+      "headline": "Europe conflict watchlist item #1081",
+      "hotspotIds": [],
+      "id": "cmlze90n9004pu1tkuwjo4mnk",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:30.681Z",
+          "id": "gs_8ae8ea23-50d0-438a-8acc-e70e11db833f",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:30.681Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1080"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.8,
+      "countryHints": [
+        "CA"
+      ],
+      "generatedAt": "2026-02-23T16:31:30.552Z",
+      "headline": "North America monitoring queue: trade rupture #1079",
+      "hotspotIds": [],
+      "id": "cmlze90jh004ou1tkndc5xzgw",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:30.545Z",
+          "id": "gs_53c78e67-d51e-49e0-baca-59e61949fe00",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:30.545Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1078"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.76,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:30.424Z",
+      "headline": "Oceania election shock watchlist item #1077",
+      "hotspotIds": [],
+      "id": "cmlze90fx004nu1tk3vjgkd4x",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:30.417Z",
+          "id": "gs_c4b41741-e369-463a-b743-317750b01baf",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:30.417Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1076"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.71,
+      "countryHints": [
+        "KP"
+      ],
+      "generatedAt": "2026-02-23T16:31:30.320Z",
+      "headline": "East Asia monitoring queue: energy shock #1075",
+      "hotspotIds": [],
+      "id": "cmlze90d1004mu1tk4v8jwjg8",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:30.312Z",
+          "id": "gs_492ab944-5f1c-47d3-84bc-26ffcfa00ba3",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:30.312Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1074"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.66,
+      "countryHints": [
+        "TM"
+      ],
+      "generatedAt": "2026-02-23T16:31:30.116Z",
+      "headline": "Central Asia sanctions watchlist item #1073",
+      "hotspotIds": [],
+      "id": "cmlze90am004lu1tkb9i306wk",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:30.110Z",
+          "id": "gs_3f1d3434-66e0-4f6c-850b-b7d23a394a8e",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:30.110Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1072"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.61,
+      "countryHints": [
+        "BH"
+      ],
+      "generatedAt": "2026-02-23T16:31:30.056Z",
+      "headline": "MENA monitoring queue: strategic m\u0026a #1071",
+      "hotspotIds": [],
+      "id": "cmlze905p004ku1tk0bxm2p5m",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:30.048Z",
+          "id": "gs_c7232b7a-9a60-42da-a220-8c6a8887a1b4",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:30.048Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1070"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.56,
+      "countryHints": [
+        "BR"
+      ],
+      "generatedAt": "2026-02-23T16:31:29.927Z",
+      "headline": "South America rates watchlist item #1069",
+      "hotspotIds": [],
+      "id": "cmlze9024004ju1tkteoys6rf",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:29.921Z",
+          "id": "gs_3ccdeb90-b518-41ec-a5e1-4c0fed9c61a6",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:29.921Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1068"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.51,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:29.720Z",
+      "headline": "Arctic/Polar monitoring queue: export controls #1067",
+      "hotspotIds": [],
+      "id": "cmlze8zwd004iu1tkxnsq5gvr",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:29.709Z",
+          "id": "gs_e8990de9-d4ff-4d95-aeaa-389472a89d3d",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:29.710Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1066"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.46,
+      "countryHints": [
+        "PH"
+      ],
+      "generatedAt": "2026-02-23T16:31:29.595Z",
+      "headline": "Southeast Asia shipping watchlist item #1065",
+      "hotspotIds": [],
+      "id": "cmlze8zsv004hu1tkpmj7ujv9",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:29.589Z",
+          "id": "gs_7eb87f34-4c2d-4fce-ac99-a04362263f21",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:29.589Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1064"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.89,
+      "countryHints": [
+        "BD"
+      ],
+      "generatedAt": "2026-02-23T16:31:29.435Z",
+      "headline": "South Asia monitoring queue: conflict #1063",
+      "hotspotIds": [],
+      "id": "cmlze8zog004gu1tkcdregcni",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:29.428Z",
+          "id": "gs_e7155648-0ce8-44d0-a83d-6fed8940705f",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:29.428Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1062"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.85,
+      "countryHints": [
+        "GH"
+      ],
+      "generatedAt": "2026-02-23T16:31:29.310Z",
+      "headline": "Sub-Saharan Africa trade rupture watchlist item #1061",
+      "hotspotIds": [],
+      "id": "cmlze8zkz004fu1tkieuafear",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:29.300Z",
+          "id": "gs_ffff006a-c2ae-4ad0-9fe1-eaa75388c3fb",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:29.300Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1060"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.8,
+      "countryHints": [
+        "GB"
+      ],
+      "generatedAt": "2026-02-23T16:31:29.170Z",
+      "headline": "Europe monitoring queue: election shock #1059",
+      "hotspotIds": [],
+      "id": "cmlze8zh3004eu1tkmjxr1w5w",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:29.164Z",
+          "id": "gs_76fd195f-683a-41e0-8c5d-4c31f4f70611",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:29.164Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1058"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.75,
+      "countryHints": [
+        "US"
+      ],
+      "generatedAt": "2026-02-23T16:31:29.036Z",
+      "headline": "North America energy shock watchlist item #1057",
+      "hotspotIds": [],
+      "id": "cmlze8zdc004du1tkw27vc93r",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:29.028Z",
+          "id": "gs_5507ddab-2d46-48ea-b97d-803f36a6513c",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:29.028Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1056"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.7,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:28.872Z",
+      "headline": "Oceania monitoring queue: sanctions #1055",
+      "hotspotIds": [],
+      "id": "cmlze8z8t004cu1tkkkl9jn8s",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:28.865Z",
+          "id": "gs_bef5f0a7-f72f-4782-a472-d22d001c8e9c",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:28.865Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1054"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.65,
+      "countryHints": [
+        "KR"
+      ],
+      "generatedAt": "2026-02-23T16:31:28.768Z",
+      "headline": "East Asia strategic m\u0026a watchlist item #1053",
+      "hotspotIds": [],
+      "id": "cmlze8z5w004bu1tk4flj1mc5",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:28.762Z",
+          "id": "gs_c46776f8-d7b6-4f10-ad62-9ac776c3a76e",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:28.762Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1052"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.6,
+      "countryHints": [
+        "KZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:28.642Z",
+      "headline": "Central Asia monitoring queue: rates #1051",
+      "hotspotIds": [],
+      "id": "cmlze8z2f004au1tkwpzof6og",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:28.634Z",
+          "id": "gs_181c618d-771e-4a6c-a2a4-2584faab3ec3",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:28.634Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1050"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.55,
+      "countryHints": [
+        "DZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:28.504Z",
+      "headline": "MENA export controls watchlist item #1049",
+      "hotspotIds": [],
+      "id": "cmlze8yyl0049u1tkzg9s5bkq",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:28.498Z",
+          "id": "gs_a4ff0a0e-af73-4199-822a-c2454b4921ae",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:28.498Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1048"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.5,
+      "countryHints": [
+        "CL"
+      ],
+      "generatedAt": "2026-02-23T16:31:28.368Z",
+      "headline": "South America monitoring queue: shipping #1047",
+      "hotspotIds": [],
+      "id": "cmlze8yus0048u1tkssrc38mb",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:28.362Z",
+          "id": "gs_fd0baa3f-e0c7-4a12-bcfd-6dc28675a467",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:28.362Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1046"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.94,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:28.113Z",
+      "headline": "Arctic/Polar conflict watchlist item #1045",
+      "hotspotIds": [],
+      "id": "cmlze8ynp0047u1tke4k3ilf8",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:28.106Z",
+          "id": "gs_87d259f1-75bd-428a-83d1-62d61ab9e411",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:28.106Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1044"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.89,
+      "countryHints": [
+        "TH"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.976Z",
+      "headline": "Southeast Asia monitoring queue: trade rupture #1043",
+      "hotspotIds": [],
+      "id": "cmlze8yjw0046u1tkk5rirxki",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.970Z",
+          "id": "gs_bdfdc7eb-ca2f-4227-bf50-dfb2de99ac39",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:27.970Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1042"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.84,
+      "countryHints": [
+        "IN"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.885Z",
+      "headline": "South Asia election shock watchlist item #1041",
+      "hotspotIds": [],
+      "id": "cmlze8yha0045u1tkk1a7ngfx",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.879Z",
+          "id": "gs_90c32361-f0f9-47f9-8923-1347eabe2ed5",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:27.879Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1040"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.79,
+      "countryHints": [
+        "UG"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.781Z",
+      "headline": "Sub-Saharan Africa monitoring queue: energy shock #1039",
+      "hotspotIds": [],
+      "id": "cmlze8yef0044u1tkz3ejr4gx",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.776Z",
+          "id": "gs_6d68598a-4de0-407a-81d7-8dffe4a763fb",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:27.776Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1038"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.74,
+      "countryHints": [
+        "IE"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.629Z",
+      "headline": "Europe sanctions watchlist item #1037",
+      "hotspotIds": [],
+      "id": "cmlze8ya60043u1tkirtyksqf",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.624Z",
+          "id": "gs_ec2c435d-4930-4ae5-9f10-19453ff364ac",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:27.624Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1036"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.69,
+      "countryHints": [
+        "MX"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.500Z",
+      "headline": "North America monitoring queue: strategic m\u0026a #1035",
+      "hotspotIds": [],
+      "id": "cmlze8y6l0042u1tkr6gli761",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.494Z",
+          "id": "gs_cf381fbe-8884-4310-80b5-6056f19aa73a",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:27.494Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1034"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.64,
+      "countryHints": [
+        "AU"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.388Z",
+      "headline": "Oceania rates watchlist item #1033",
+      "hotspotIds": [],
+      "id": "cmlze8y3h0041u1tkypq21aju",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.383Z",
+          "id": "gs_310d0b41-9e65-423e-a527-bfaf18b34179",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:27.383Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1032"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.59,
+      "countryHints": [
+        "JP"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.262Z",
+      "headline": "East Asia monitoring queue: export controls #1031",
+      "hotspotIds": [],
+      "id": "cmlze8xzz0040u1tkq2no4lv8",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.256Z",
+          "id": "gs_7d19de3d-752c-4683-b43b-0c06933fc6b3",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:27.256Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1030"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.55,
+      "countryHints": [
+        "KG"
+      ],
+      "generatedAt": "2026-02-23T16:31:27.141Z",
+      "headline": "Central Asia shipping watchlist item #1029",
+      "hotspotIds": [],
+      "id": "cmlze8xwm003zu1tka6qaj75j",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:27.136Z",
+          "id": "gs_37f8fb32-702e-4216-ada0-84165dc91bd7",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:27.136Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1028"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.5,
+      "countryHints": [
+        "IR"
+      ],
+      "generatedAt": "2026-02-23T16:31:26.988Z",
+      "headline": "MENA monitoring queue: conflict #1027",
+      "hotspotIds": [],
+      "id": "cmlze8xsd003yu1tk3o18s3d7",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.983Z",
+          "id": "gs_9cabf60b-98fb-48f6-a020-f6ba7b6afea6",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:26.983Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1026"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.93,
+      "countryHints": [
+        "PE"
+      ],
+      "generatedAt": "2026-02-23T16:31:26.826Z",
+      "headline": "South America trade rupture watchlist item #1025",
+      "hotspotIds": [],
+      "id": "cmlze8xnv003xu1tkh7vr5u8d",
+      "regionHint": "south-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.821Z",
+          "id": "gs_8970531f-f9b6-4597-8b0d-65bea5b42f57",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:26.821Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1024"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.88,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:31:26.659Z",
+      "headline": "Arctic/Polar monitoring queue: election shock #1023",
+      "hotspotIds": [],
+      "id": "cmlze8xj9003wu1tkjzwzxcxi",
+      "regionHint": "arctic-polar",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.652Z",
+          "id": "gs_1b79f04b-9996-4e11-87c3-25a2241c48d1",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:26.652Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1022"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "commodity_shock",
+      "confidence": 0.83,
+      "countryHints": [
+        "SG"
+      ],
+      "generatedAt": "2026-02-23T16:31:26.549Z",
+      "headline": "Southeast Asia energy shock watchlist item #1021",
+      "hotspotIds": [],
+      "id": "cmlze8xg7003vu1tk8bwu7rdn",
+      "regionHint": "southeast-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.545Z",
+          "id": "gs_fa91613a-8a05-405b-815a-11d1bd445358",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:26.545Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1020"
+        }
+      ],
+      "state": "open",
+      "symbol": "oil_drop",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_export_controls",
+      "confidence": 0.78,
+      "countryHints": [
+        "LK"
+      ],
+      "generatedAt": "2026-02-23T16:31:26.504Z",
+      "headline": "South Asia monitoring queue: sanctions #1019",
+      "hotspotIds": [],
+      "id": "cmlze8xex003uu1tkpn7jzgrm",
+      "regionHint": "south-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.499Z",
+          "id": "gs_efaa0298-ac24-4714-8fed-747a1b78bb4c",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:26.499Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1018"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "strategic_mna_takeover",
+      "confidence": 0.73,
+      "countryHints": [
+        "CI"
+      ],
+      "generatedAt": "2026-02-23T16:31:26.350Z",
+      "headline": "Sub-Saharan Africa strategic m\u0026a watchlist item #1017",
+      "hotspotIds": [],
+      "id": "cmlze8xan003tu1tkfhgizo69",
+      "regionHint": "sub-saharan-africa",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.346Z",
+          "id": "gs_7d54eb31-cd9d-43ab-935d-c208e04a20ab",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:26.346Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1016"
+        }
+      ],
+      "state": "open",
+      "symbol": "briefcase",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_rates",
+      "confidence": 0.68,
+      "countryHints": [
+        "FR"
+      ],
+      "generatedAt": "2026-02-23T16:31:26.192Z",
+      "headline": "Europe monitoring queue: rates #1015",
+      "hotspotIds": [],
+      "id": "cmlze8x69003su1tkwy9l2tek",
+      "regionHint": "europe",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.186Z",
+          "id": "gs_020edcc0-6ec3-4855-8255-f1e5b56d5e7e",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:26.186Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1014"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.64,
+      "countryHints": [
+        "CA"
+      ],
+      "generatedAt": "2026-02-23T16:31:26.087Z",
+      "headline": "North America export controls watchlist item #1013",
+      "hotspotIds": [],
+      "id": "cmlze8x3b003ru1tkhpn5x0ho",
+      "regionHint": "north-america",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:26.082Z",
+          "id": "gs_6796be60-f5cf-4a65-968e-b741cdbc8551",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:26.082Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1012"
+        }
+      ],
+      "state": "open",
+      "symbol": "microchip",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "shipping_chokepoint_risk",
+      "confidence": 0.59,
+      "countryHints": [
+        "PG"
+      ],
+      "generatedAt": "2026-02-23T16:31:25.983Z",
+      "headline": "Oceania monitoring queue: shipping #1011",
+      "hotspotIds": [],
+      "id": "cmlze8x0g003qu1tklukpg752",
+      "regionHint": "oceania",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:25.979Z",
+          "id": "gs_f6567dfe-4691-4449-93bb-2646212bb40c",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:25.979Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1010"
+        }
+      ],
+      "state": "open",
+      "symbol": "ship",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "war_armed_conflict",
+      "confidence": 0.54,
+      "countryHints": [
+        "CN"
+      ],
+      "generatedAt": "2026-02-23T16:31:25.898Z",
+      "headline": "East Asia conflict watchlist item #1009",
+      "hotspotIds": [],
+      "id": "cmlze8wy3003pu1tk76rw144g",
+      "regionHint": "east-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:25.892Z",
+          "id": "gs_74049689-fb3f-475e-b946-ad5acc6f6d9e",
+          "provider": "Reuters",
+          "publishedAt": "2026-02-23T16:31:25.892Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1008"
+        }
+      ],
+      "state": "open",
+      "symbol": "tank",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "trade_war_tariff_regime",
+      "confidence": 0.49,
+      "countryHints": [
+        "UZ"
+      ],
+      "generatedAt": "2026-02-23T16:31:25.761Z",
+      "headline": "Central Asia monitoring queue: trade rupture #1007",
+      "hotspotIds": [],
+      "id": "cmlze8wub003ou1tk7tpxqlla",
+      "regionHint": "central-asia",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 4,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:25.756Z",
+          "id": "gs_4a27e330-38d7-4071-af0e-4c35aed1e719",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:25.756Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1006"
+        }
+      ],
+      "state": "open",
+      "symbol": "handshake_broken",
+      "triggerType": "news_cluster"
+    },
+    {
+      "category": "regime_change_election_shock",
+      "confidence": 0.92,
+      "countryHints": [
+        "TN"
+      ],
+      "generatedAt": "2026-02-23T16:31:25.592Z",
+      "headline": "MENA election shock watchlist item #1005",
+      "hotspotIds": [],
+      "id": "cmlze8wpm003nu1tkj2ptesyv",
+      "regionHint": "mena",
+      "reviewNote": "seed:phase4-earth",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:31:25.516Z",
+          "id": "gs_6d0a5978-b397-4bbb-bd7f-8a979d9dc9ce",
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:31:25.516Z",
+          "reliability": 0.9,
+          "sourceTier": "B",
+          "title": "Earth seed source",
+          "url": "https://seed.local/candidate/1004"
+        }
+      ],
+      "state": "open",
+      "symbol": "ballot",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "monetary_policy_ecb_delta",
+      "confidence": 1,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:33:52.377Z",
+      "headline": "ECB statement delta detected",
+      "hotspotIds": [],
+      "id": "cmlzec2430093u1tki4w1wopx",
+      "regionHint": "europe",
+      "reviewNote": "auto:hard:monetary_policy_ecb_delta | trigger=hard_signal | category=monetary_policy_ecb_delta | confidence=C4 (1.00) | sources=1 | providers=1 | tiers=A:1 | delta=first_seen | keywordHits=4 | keywords=governing council,monetary policy,interest rate,press release | docType=statement | targets=eur,eurozone",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:33:52.309Z",
+          "id": "gs_4597720a-4919-48ad-9d1b-3345e5d3d9e0",
+          "provider": "ecb",
+          "publishedAt": "2026-02-23T16:33:52.306Z",
+          "reliability": 0.97,
+          "sourceTier": "A",
+          "title": "ECB Governing Council calendar",
+          "url": "https://www.ecb.europa.eu/press/calendars/html/index.en.html"
+        }
+      ],
+      "state": "open",
+      "symbol": "percent",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_ofac_delta",
+      "confidence": 1,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:33:52.519Z",
+      "headline": "OFAC sanctions delta detected (general license) · russia/iran",
+      "hotspotIds": [],
+      "id": "cmlzec27g0094u1tk41n22d84",
+      "regionHint": "global",
+      "reviewNote": "auto:hard:sanctions_ofac_delta | trigger=hard_signal | category=sanctions_ofac_delta | confidence=C4 (1.00) | sources=1 | providers=1 | tiers=A:1 | delta=first_seen | keywordHits=5 | keywords=sanctions,sdn,general license,iran,russia | docType=general_license | sanctionsAction=general_license | targets=russia,iran,north korea,us",
+      "severityHint": 3,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:33:52.501Z",
+          "id": "gs_027ce901-abc7-47ba-a108-5cf590a2db12",
+          "provider": "ofac",
+          "publishedAt": "2026-02-23T16:33:52.500Z",
+          "reliability": 0.98,
+          "sourceTier": "A",
+          "title": "OFAC sanctions list service",
+          "url": "https://ofac.treasury.gov/sanctions-list-service"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "sanctions_uk_delta",
+      "confidence": 1,
+      "countryHints": [],
+      "generatedAt": "2026-02-23T16:33:52.519Z",
+      "headline": "UK sanctions sanctions delta detected (delistings) · russia/iran",
+      "hotspotIds": [],
+      "id": "cmlzec29o0095u1tkrj3ryauu",
+      "regionHint": "global",
+      "reviewNote": "auto:hard:sanctions_uk_delta | trigger=hard_signal | category=sanctions_uk_delta | confidence=C4 (1.00) | sources=1 | providers=1 | tiers=A:1 | delta=first_seen | keywordHits=5 | keywords=uk sanctions list,financial sanctions,designated,ofsi,asset freeze | docType=consolidated_list | sanctionsAction=delistings | targets=russia,iran,syria,belarus,myanmar,sudan,uk",
+      "severityHint": 2,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:33:52.515Z",
+          "id": "gs_4dba1cfb-0268-418c-b1b6-ea117c0b86f6",
+          "provider": "uk_sanctions",
+          "publishedAt": "2026-02-23T16:33:52.512Z",
+          "reliability": 0.97,
+          "sourceTier": "A",
+          "title": "UK Sanctions List",
+          "url": "https://www.gov.uk/government/publications/the-uk-sanctions-list"
+        }
+      ],
+      "state": "open",
+      "symbol": "gavel",
+      "triggerType": "hard_signal"
+    },
+    {
+      "category": "energy_supply_shock",
+      "confidence": 0.74,
+      "countryHints": [
+        "DE"
+      ],
+      "generatedAt": "2026-02-23T16:37:05Z",
+      "headline": "Europe energy monitoring candidate #200",
+      "id": "gcg_4481ace3530a0937",
+      "regionHint": "europe",
+      "reviewNote": "seed:go-gateway",
+      "severityHint": 5,
+      "sourceRefs": [
+        {
+          "provider": "OfficialMonitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.72,
+          "sourceTier": "B",
+          "title": "Go-owned seed candidate source",
+          "url": "https://seed.local/candidates/199"
+        }
+      ],
+      "state": "open",
+      "symbol": "fuel",
+      "triggerType": "news_cluster"
+    },
+    {
+      "confidence": 0.77,
+      "countryHints": [
+        "DE"
+      ],
+      "generatedAt": "2026-02-23T16:55:13Z",
+      "headline": "Manual test candidate after Go cutover",
+      "id": "gcg_dgmhz3h4x2f8",
+      "regionHint": "europe",
+      "severityHint": 3,
+      "sourceRefs": [
+        {
+          "fetchedAt": "2026-02-23T16:55:13Z",
+          "id": "gs_dgmhz3h4x2f8",
+          "provider": "manual",
+          "reliability": 0,
+          "sourceTier": "C",
+          "title": "Manual note",
+          "url": "https://example.test/manual-candidate"
+        }
+      ],
+      "state": "open",
+      "triggerType": "manual_import"
+    }
+  ]
+}

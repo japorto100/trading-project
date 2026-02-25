@@ -26,13 +26,13 @@ uv sync --python .\.venv\Scripts\python.exe
 uv sync --python .\.venv\Scripts\python.exe --extra ml # optional
 
 cd services/finance-bridge
-..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8081
+..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8092
 
 cd ../geopolitical-soft-signals
 ..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8091
 
 cd ../indicator-service
-..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8092
+..\..\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8090
 ```
 
 ## Smoke-Test

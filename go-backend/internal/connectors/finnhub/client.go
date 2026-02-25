@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
@@ -26,10 +27,10 @@ type Config struct {
 }
 
 type Client struct {
-	baseURL    string
-	wsBaseURL  string
-	apiKey     string
-	httpClient *http.Client
+	baseClient     *base.Client
+	wsBaseURL      string
+	apiKey         string
+	requestTimeout time.Duration
 }
 
 func NewClient(cfg Config) *Client {
@@ -42,7 +43,6 @@ func NewClient(cfg Config) *Client {
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
-	baseURL = strings.TrimRight(baseURL, "/")
 	wsBaseURL := strings.TrimSpace(cfg.WSBaseURL)
 	if wsBaseURL == "" {
 		wsBaseURL = DefaultWSBaseURL
@@ -50,12 +50,14 @@ func NewClient(cfg Config) *Client {
 	wsBaseURL = strings.TrimRight(wsBaseURL, "/")
 
 	return &Client{
-		baseURL:   baseURL,
-		wsBaseURL: wsBaseURL,
-		apiKey:    strings.TrimSpace(cfg.APIKey),
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			BaseURL:    baseURL,
+			Timeout:    timeout,
+			RetryCount: 1,
+		}),
+		wsBaseURL:      wsBaseURL,
+		apiKey:         strings.TrimSpace(cfg.APIKey),
+		requestTimeout: timeout,
 	}
 }
 
@@ -84,21 +86,15 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 		}
 	}
 
-	endpoint, err := url.Parse(c.baseURL + "/quote")
-	if err != nil {
-		return gct.Ticker{}, fmt.Errorf("build finnhub url: %w", err)
-	}
-	query := endpoint.Query()
+	query := url.Values{}
 	query.Set("symbol", symbol)
 	query.Set("token", c.apiKey)
-	endpoint.RawQuery = query.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, "/quote", query, nil)
 	if err != nil {
-		return gct.Ticker{}, fmt.Errorf("build request: %w", err)
+		return gct.Ticker{}, err
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.baseClient.Do(req)
 	if err != nil {
 		timeout := false
 		var netErr net.Error
@@ -190,7 +186,7 @@ func (c *Client) OpenTradeStream(ctx context.Context, symbol string) (<-chan gct
 	endpoint.RawQuery = query.Encode()
 
 	dialer := websocket.Dialer{
-		HandshakeTimeout: c.httpClient.Timeout,
+		HandshakeTimeout: c.requestTimeout,
 	}
 	connection, _, err := dialer.DialContext(ctx, endpoint.String(), nil)
 	if err != nil {

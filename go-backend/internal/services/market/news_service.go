@@ -34,7 +34,7 @@ func NewNewsService(rssFetcher, gdeltFetcher, finvizFetcher newsFetcher) *NewsSe
 	}
 }
 
-func (s *NewsService) Headlines(ctx context.Context, symbol string, limit int) ([]Headline, error) {
+func (s *NewsService) Headlines(ctx context.Context, symbol string, query string, lang string, limit int) ([]Headline, error) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -42,14 +42,35 @@ func (s *NewsService) Headlines(ctx context.Context, symbol string, limit int) (
 		limit = 100
 	}
 
-	fetchers := []newsFetcher{s.rssFetcher, s.gdeltFetcher, s.finvizFetcher}
+	symbol = strings.TrimSpace(symbol)
+	query = strings.TrimSpace(query)
+	lang = normalizeNewsLanguage(lang)
+	queryOrSymbol := symbol
+	if query != "" {
+		queryOrSymbol = query
+	}
+
 	merged := make([]Headline, 0, limit*2)
 
-	for _, fetcher := range fetchers {
+	allowNonLanguageAwareFetchers := lang == "" || lang == "en"
+	gdeltTerm := queryOrSymbol
+	if lang != "" {
+		gdeltTerm = applyGDELTLanguageConstraint(queryOrSymbol, lang)
+	}
+
+	for _, call := range []struct {
+		fetcher newsFetcher
+		term    string
+	}{
+		{fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.rssFetcher), term: queryOrSymbol},
+		{fetcher: s.gdeltFetcher, term: gdeltTerm},
+		{fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.finvizFetcher), term: symbol},
+	} {
+		fetcher := call.fetcher
 		if fetcher == nil {
 			continue
 		}
-		items, err := fetcher.Fetch(ctx, symbol, limit)
+		items, err := fetcher.Fetch(ctx, call.term, limit)
 		if err != nil {
 			continue
 		}
@@ -61,6 +82,55 @@ func (s *NewsService) Headlines(ctx context.Context, symbol string, limit int) (
 		return unique[i].PublishedAt.After(unique[j].PublishedAt)
 	})
 	return applySourceQuota(unique, limit), nil
+}
+
+func chooseFetcher(enabled bool, fetcher newsFetcher) newsFetcher {
+	if !enabled {
+		return nil
+	}
+	return fetcher
+}
+
+func normalizeNewsLanguage(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "en", "eng", "english":
+		return "en"
+	case "de", "deu", "ger", "german", "deutsch":
+		return "de"
+	case "fr", "fra", "fre", "french":
+		return "fr"
+	case "es", "spa", "spanish":
+		return "es"
+	case "it", "ita", "italian":
+		return "it"
+	case "pt", "por", "portuguese":
+		return "pt"
+	case "ru", "rus", "russian":
+		return "ru"
+	case "zh", "zho", "chi", "chinese":
+		return "zh"
+	case "ja", "jpn", "japanese":
+		return "ja"
+	case "ar", "ara", "arabic":
+		return "ar"
+	default:
+		return ""
+	}
+}
+
+func applyGDELTLanguageConstraint(baseTerm, lang string) string {
+	lang = normalizeNewsLanguage(lang)
+	if lang == "" {
+		return strings.TrimSpace(baseTerm)
+	}
+
+	query := strings.TrimSpace(baseTerm)
+	if query == "" {
+		query = "finance OR markets"
+	}
+
+	// GDELT supports source language filtering; keep this best-effort in the transitional scaffold.
+	return "(" + query + ") AND sourcelang:" + lang
 }
 
 func deduplicateHeadlines(items []Headline) []Headline {

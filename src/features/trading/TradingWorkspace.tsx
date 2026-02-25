@@ -6,10 +6,9 @@ import { useState } from "react";
 import type { ChartType, DrawingType } from "@/chart/types";
 import { DrawingToolbar } from "@/components/DrawingToolbar";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
-import { Button } from "@/components/ui/button";
 import { SignalInsightsBar } from "@/features/trading/SignalInsightsBar";
-import { StrategyLabPanel } from "@/features/trading/StrategyLabPanel";
-import type { LayoutMode, SignalSnapshot } from "@/features/trading/types";
+import type { CompositeSignalInsights, LayoutMode, SignalSnapshot } from "@/features/trading/types";
+import type { HistoryRangePreset } from "@/lib/history-range";
 import type { OHLCVData } from "@/lib/providers/types";
 
 const TradingChart = dynamic(
@@ -31,20 +30,13 @@ interface TradingWorkspaceProps {
 	showDrawingToolbar: boolean;
 	dataStatusMessage: string | null;
 	signalSnapshot: SignalSnapshot;
+	compositeSignalInsights: CompositeSignalInsights | null;
 	loading: boolean;
 	candleData: OHLCVData[];
 	indicators: IndicatorSettings;
 	isDarkMode: boolean;
 	chartType: ChartType;
 	layout: LayoutMode;
-	replayMode: boolean;
-	replayPlaying: boolean;
-	replayIndex: number;
-	replayMax: number;
-	onToggleReplayMode: () => void;
-	onToggleReplayPlaying: () => void;
-	onResetReplay: () => void;
-	onSeekReplay: (index: number) => void;
 	historyRangePreset: HistoryRangePreset;
 	customStartYear: number;
 	minimumStartYear: number;
@@ -62,20 +54,13 @@ export function TradingWorkspace({
 	showDrawingToolbar,
 	dataStatusMessage,
 	signalSnapshot,
+	compositeSignalInsights,
 	loading,
 	candleData,
 	indicators,
 	isDarkMode,
 	chartType,
 	layout,
-	replayMode,
-	replayPlaying,
-	replayIndex,
-	replayMax,
-	onToggleReplayMode,
-	onToggleReplayPlaying,
-	onResetReplay,
-	onSeekReplay,
 	historyRangePreset,
 	customStartYear,
 	minimumStartYear,
@@ -109,8 +94,14 @@ export function TradingWorkspace({
 				heartbeatScore={signalSnapshot.heartbeatScore}
 				heartbeatCycleBars={signalSnapshot.heartbeatCycleBars}
 				atr={signalSnapshot.atr}
+				compositeSignal={compositeSignalInsights}
 			/>
-			<StrategyLabPanel candleData={candleData} />
+			{layout !== "single" ? (
+				<div className="mx-3 mt-2 rounded-md border border-dashed border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+					Multi-chart layouts ({layout}) are not implemented yet. The workspace currently renders a
+					single chart.
+				</div>
+			) : null}
 
 			<div className="flex-1 flex min-h-0 relative">
 				{showDrawingToolbar && (

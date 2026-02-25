@@ -37,7 +37,7 @@ func (s *MacroService) History(ctx context.Context, exchange string, pair gct.Pa
 	}
 
 	switch strings.ToUpper(strings.TrimSpace(exchange)) {
-	case "FRED", "FED", "BOJ", "SNB":
+	case "FRED", "FED", "BOJ", "SNB", "BCB", "BANXICO", "BOK", "BCRA", "TCMB", "RBI":
 		if s.macroClient == nil {
 			return nil, fmt.Errorf("macro client unavailable")
 		}

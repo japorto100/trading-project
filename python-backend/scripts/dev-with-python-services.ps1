@@ -10,8 +10,18 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..\\..")
 $pythonBackendRoot = Join-Path $repoRoot "python-backend"
 $venvPython = Join-Path $pythonBackendRoot ".venv\\Scripts\\python.exe"
+$cargoBin = Join-Path $env:USERPROFILE ".cargo\bin"
+$rustTargetDir = Join-Path $pythonBackendRoot "rust_core\\target-local"
 $services = @()
 $uvCmd = $null
+
+# Keep PyO3 builds deterministic in dev sessions.
+if (Test-Path $cargoBin) {
+    if (-not (($env:Path -split ';') -contains $cargoBin)) {
+        $env:Path = "$cargoBin;$env:Path"
+    }
+}
+$env:CARGO_TARGET_DIR = $rustTargetDir
 
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     $uvCmd = "uv"

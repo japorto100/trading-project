@@ -21,7 +21,7 @@ function safeUrl(value: string): string {
 }
 
 function hash(value: string): string {
-	return createHash("sha1").update(value).digest("hex");
+	return createHash("sha256").update(value).digest("hex");
 }
 
 export function titleFingerprint(title: string): string {
@@ -38,6 +38,39 @@ export function sourceUrlFingerprints(urls: string[]): string[] {
 function intersects<T>(left: T[], right: T[]): boolean {
 	const set = new Set(left);
 	return right.some((entry) => set.has(entry));
+}
+
+function tokenSet(value: string): Set<string> {
+	return new Set(
+		normalizeText(value)
+			.split(" ")
+			.map((token) => token.trim())
+			.filter((token) => token.length >= 3),
+	);
+}
+
+function jaccardSimilarity(left: Set<string>, right: Set<string>): number {
+	if (left.size === 0 || right.size === 0) return 0;
+	let intersection = 0;
+	for (const token of left) {
+		if (right.has(token)) intersection += 1;
+	}
+	const union = left.size + right.size - intersection;
+	return union > 0 ? intersection / union : 0;
+}
+
+function hasSimilarTitle(
+	leftTitle: string,
+	rightTitle: string,
+	threshold = 0.86,
+	minimumTokenCount = 3,
+): boolean {
+	const leftTokens = tokenSet(leftTitle);
+	const rightTokens = tokenSet(rightTitle);
+	if (leftTokens.size < minimumTokenCount || rightTokens.size < minimumTokenCount) {
+		return false;
+	}
+	return jaccardSimilarity(leftTokens, rightTokens) >= threshold;
 }
 
 export function findDuplicateCandidate(
@@ -60,6 +93,7 @@ export function findDuplicateCandidate(
 
 		const candidateTitle = titleFingerprint(candidate.headline);
 		if (candidateTitle === incomingTitle) return candidate;
+		if (hasSimilarTitle(candidate.headline, incoming.headline)) return candidate;
 
 		const candidateUrls = sourceUrlFingerprints(
 			candidate.sourceRefs.map((source) => source.url).filter(Boolean),
@@ -96,6 +130,7 @@ export function findDuplicateEvent(
 
 		const eventTitle = titleFingerprint(event.title);
 		if (eventTitle === incomingTitle) return event;
+		if (hasSimilarTitle(event.title, incoming.title)) return event;
 
 		const eventUrls = sourceUrlFingerprints(
 			event.sources.map((source) => source.url).filter(Boolean),

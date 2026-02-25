@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"tradeviewfusion/go-backend/internal/connectors/base"
 )
 
 const (
@@ -56,7 +58,7 @@ type Event struct {
 type Client struct {
 	baseURL        string
 	requestRetries int
-	httpClient     *http.Client
+	baseClient     *base.Client
 }
 
 func NewClient(cfg Config) *Client {
@@ -78,21 +80,17 @@ func NewClient(cfg Config) *Client {
 	return &Client{
 		baseURL:        strings.TrimSpace(baseURL),
 		requestRetries: retries,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			Timeout:    timeout,
+			RetryCount: 0,
+		}),
 	}
 }
 
 func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) {
 	limit := normalizeLimit(query.Limit)
 
-	endpoint, err := url.Parse(c.baseURL)
-	if err != nil {
-		return nil, fmt.Errorf("build gdelt url: %w", err)
-	}
-
-	values := endpoint.Query()
+	values := make(url.Values)
 	values.Set("query", buildQuery(query))
 	values.Set("mode", "artlist")
 	values.Set("format", "json")
@@ -104,8 +102,6 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 	if to := strings.TrimSpace(query.EndDate); to != "" {
 		values.Set("enddatetime", dateToEndDateTime(to))
 	}
-	endpoint.RawQuery = values.Encode()
-
 	var payload struct {
 		Articles []struct {
 			Title         string `json:"title"`
@@ -118,14 +114,14 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 
 	attempts := c.requestRetries + 1
 	for attempt := 1; attempt <= attempts; attempt++ {
-		req, reqErr := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+		req, reqErr := c.baseClient.NewRequest(ctx, http.MethodGet, c.baseURL, values, nil)
 		if reqErr != nil {
 			return nil, fmt.Errorf("build gdelt request: %w", reqErr)
 		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
 
-		resp, doErr := c.httpClient.Do(req)
+		resp, doErr := c.baseClient.Do(req)
 		if doErr != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {

@@ -50,10 +50,12 @@ export interface HistoryWindow {
 
 const TIMEFRAME_SECONDS: Record<TimeframeValue, number> = {
 	"1m": 60,
+	"3m": 180,
 	"5m": 300,
 	"15m": 900,
 	"30m": 1800,
 	"1H": 3600,
+	"2H": 7200,
 	"4H": 14400,
 	"1D": 86400,
 	"1W": 604800,

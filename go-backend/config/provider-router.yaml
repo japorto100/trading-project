@@ -1,0 +1,150 @@
+asset_classes:
+  crypto_spot:
+    providers: [binance, kraken, coinbase, okx, bybit]
+    strategy: latency_first
+  us_equities_realtime:
+    providers: [finnhub]
+    strategy: freshness_first
+  forex_spot:
+    providers: [ecb]
+    strategy: authority_first
+  macro:
+    providers: [fred, fed, boj, snb, bcb, banxico, bok, bcra, tcmb, rbi]
+    strategy: authority_first
+
+providers:
+  binance:
+    group: g2_websocket_streams
+    kind: exchange_ws_rest_hybrid
+    notes: Primary crypto spot realtime via GCT/Finnhub-style streaming path
+    capabilities:
+      quote: true
+      ohlcv: true
+      streaming: true
+  kraken:
+    group: g2_websocket_streams
+    kind: exchange_ws_rest_hybrid
+    capabilities:
+      quote: true
+      ohlcv: true
+      streaming: true
+  coinbase:
+    group: g2_websocket_streams
+    kind: exchange_ws_rest_hybrid
+    capabilities:
+      quote: true
+      ohlcv: true
+      streaming: true
+  okx:
+    group: g2_websocket_streams
+    kind: exchange_ws_rest_hybrid
+    capabilities:
+      quote: true
+      ohlcv: true
+      streaming: true
+  bybit:
+    group: g2_websocket_streams
+    kind: exchange_ws_rest_hybrid
+    capabilities:
+      quote: true
+      ohlcv: true
+      streaming: true
+  finnhub:
+    group: g1_rest_api_standard
+    kind: market_data_realtime
+    notes: REST quote/search + websocket stream integration
+    capabilities:
+      quote: true
+      batchQuote: true
+      search: true
+      news: true
+      streaming: true
+      requiresApiKey: true
+  ecb:
+    group: g4_centralbank_timeseries
+    kind: authority_fx_reference
+    notes: Daily ECB FX reference feed
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  fred:
+    group: g4_centralbank_timeseries
+    kind: macro_timeseries
+    notes: FRED observations (G1/G4 hybrid)
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+      requiresApiKey: true
+  fed:
+    group: g4_centralbank_timeseries
+    kind: macro_timeseries
+    notes: Placeholder for Fed/FRB time series adapter family
+    capabilities:
+      ohlcv: true
+      backfill: true
+  boj:
+    group: g4_centralbank_timeseries
+    kind: macro_timeseries
+    notes: Placeholder for Bank of Japan time series adapter
+    capabilities:
+      ohlcv: true
+      backfill: true
+  snb:
+    group: g4_centralbank_timeseries
+    kind: macro_timeseries
+    notes: Placeholder for Swiss National Bank time series adapter
+    capabilities:
+      ohlcv: true
+      backfill: true
+  bcb:
+    group: g4_centralbank_timeseries
+    kind: central_bank_timeseries_rest
+    notes: Banco Central do Brasil SGS series adapter (BCB_SGS_*)
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  banxico:
+    group: g4_centralbank_timeseries
+    kind: central_bank_timeseries_rest
+    notes: Banxico SIE series adapter (BANXICO_<id>, token required)
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+      requiresApiKey: true
+  bok:
+    group: g4_centralbank_timeseries
+    kind: central_bank_timeseries_rest
+    notes: Bank of Korea ECOS adapter (BOK_ECOS_<stat>_<cycle>_<item>, API key required)
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+      requiresApiKey: true
+  bcra:
+    group: g4_centralbank_timeseries
+    kind: central_bank_timeseries_rest
+    notes: BCRA principales variables v4 adapter (BCRA_<id>, public JSON)
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  tcmb:
+    group: g4_centralbank_timeseries
+    kind: central_bank_timeseries_rest
+    notes: TCMB EVDS3 adapter via igmevdsms-dis/fe (TCMB_EVDS_<series>)
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  rbi:
+    group: g4_centralbank_timeseries
+    kind: central_bank_timeseries_rest
+    notes: RBI DBIE gateway adapter (RBI_DBIE_FXRES_<reserve>_<currency>_<freq>) with session-token handshake
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true

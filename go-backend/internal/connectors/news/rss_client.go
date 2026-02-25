@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -18,7 +19,7 @@ type RSSClientConfig struct {
 type RSSClient struct {
 	feedURLs         []string
 	requestRetries   int
-	httpClient       *http.Client
+	baseClient       *base.Client
 	requestUserAgent string
 }
 
@@ -44,9 +45,10 @@ func NewRSSClient(cfg RSSClientConfig) *RSSClient {
 	return &RSSClient{
 		feedURLs:       feeds,
 		requestRetries: retries,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			Timeout:    timeout,
+			RetryCount: 0,
+		}),
 		requestUserAgent: "tradeview-fusion-go-backend/1.0",
 	}
 }
@@ -68,14 +70,14 @@ func (c *RSSClient) Fetch(ctx context.Context, _ string, limit int) ([]marketSer
 	for _, feedURL := range c.feedURLs {
 		attempts := c.requestRetries + 1
 		for attempt := 1; attempt <= attempts; attempt++ {
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, feedURL, nil)
+			req, err := c.baseClient.NewRequest(ctx, http.MethodGet, feedURL, nil, nil)
 			if err != nil {
 				break
 			}
 			req.Header.Set("Accept", "application/xml")
 			req.Header.Set("User-Agent", c.requestUserAgent)
 
-			resp, err := c.httpClient.Do(req)
+			resp, err := c.baseClient.Do(req)
 			if err != nil {
 				if attempt < attempts {
 					if !sleepWithContext(ctx, backoffDuration(attempt)) {

@@ -63,7 +63,7 @@
 
 | Aspekt | Status |
 |:---|:---|
-| next-auth | v4.24 installiert, **komplett inaktiv** |
+| next-auth | v5 Beta (`next-auth@5.0.0-beta.x`) aktiv als Transitional/Product-Baseline; Credentials + Passkey Provider verdrahtet |
 | Auth Flow | Keiner. Anonymer `profileKey` in Frontend. |
 | Rollen | Keine. Alles offen. |
 | Session | Keine. Kein Cookie, kein JWT. |
@@ -83,6 +83,82 @@
 | **JWT Claims** | `{ sub: userId, role: "trader", jti: unique-id, iat, exp }` | Rolle im Token für schnelle Autorisierung. `jti` (JWT ID) für Revocation-Blocklist. Kein Consent im Token (→ Server-Side Lookup, Sek. 9.1). |
 | **Token Lifetime** | Access: 15 min. Refresh: 7 Tage (rotierend, one-time-use). | Kurze Access Tokens limitieren Schaden bei Kompromiss. Refresh Tokens werden bei Nutzung invalidiert und neu ausgestellt (Rotation). |
 | **Refresh Token Storage** | DB-Tabelle `RefreshToken`: `{ tokenHash, userId, expiresAt, usedAt, replacedBy, createdByIp }` | Ermöglicht Replay-Detection: Wenn ein bereits genutzter Refresh Token erneut vorgelegt wird → alle Tokens des Users invalidieren (Token Family Revocation, RFC 9700 Sek. 4.14). |
+
+### 2.2a Implementierungs-Slice (22. Feb 2026, Codex) — Scaffold / Migration-Vorbereitung
+
+**Ziel dieses Slices:** Phase `1a`/`1b` vorbereiten ohne Produktions-Auth zu aktivieren.
+
+- **NextAuth/Auth.js-Scaffold erweitert (v5-Baseline):**
+  - `next-auth@5` (beta) ist als Transitional/Product-Baseline verdrahtet; Route-Handler exportiert `handlers` aus der zentralen Auth-Konfiguration.
+  - `next-auth` verwendet jetzt den **offiziellen Prisma Adapter** (`@auth/prisma-adapter`) als DB-Adapter-Baseline; der frühere lokale Transitional Adapter wurde entfernt.
+  - JWT/Session enthalten jetzt einen `role`-Claim (`viewer|analyst|trader|admin`) als Übergang für RBAC-Tests.
+  - **Next.js 16 Proxy-Konsolidierung:** `src/middleware.ts` entfernt (Konflikt mit `src/proxy.ts`); `src/proxy.ts` ist jetzt die einzige API-Interception-Schicht.
+  - `src/proxy.ts` nutzt path-basierte Public-/Protected-Regeln und kann bei aktivierter Auth (`NEXT_PUBLIC_ENABLE_AUTH=true`) `401/403` erzwingen.
+  - `src/proxy.ts` injiziert zusätzlich `X-User-Role` für Downstream-Proxies (transitional bis Go-JWT-Validation bzw. direkte Bearer-Clients aktiv sind).
+  - `src/proxy.ts` reicht außerdem `X-Auth-User` (aus `token.sub`), optional `X-Auth-JTI` (aus `token.jti`) und `X-Auth-Verified=next-proxy-session` weiter, damit Downstream-Audits bereits User-/Session-Kontext erfassen können.
+  - Role-Regeln in `src/proxy.ts` matchen jetzt auch reale **Next.js-API-Pfade** (z. B. `fusion/orders`, geopolitische Candidate-POSTs) methodensensitiv; zuvor waren Teile der Regeln nur auf interne `/api/v1/*`-Pfade ausgerichtet.
+  - `src/proxy.ts` setzt/propagiert außerdem `X-Request-ID` sowie konsolidierte API-Security-/CORS-Response-Header (inkl. API-CSP-Baseline).
+  - `src/proxy.ts` setzt zusätzlich **Page/UI-Security-Header** auf Nicht-API-Routen; das UI-CSP ist als transitional Hardening **toggbar** (`PAGE_SECURITY_HEADERS_ENABLED`, `PAGE_CSP_MODE=off|report-only|enforce`, optional `PAGE_CSP_POLICY`) und defaultet kompatibel (`off` in Dev, `report-only` in Prod).
+  - **Test-/Dev-Bypass (neu):** Mit `AUTH_STACK_BYPASS=true` (serverseitig) bzw. `NEXT_PUBLIC_AUTH_STACK_BYPASS=true` (Frontend/Proxy) kann die Auth-Kette für lokale Tests deaktiviert werden; `src/proxy.ts` markiert Requests dann mit `X-Auth-Bypass=1`, setzt einen konfigurierbaren Bypass-Role-Header (`NEXT_PUBLIC_AUTH_BYPASS_ROLE`/`AUTH_BYPASS_ROLE`, default `admin`) und überspringt Session-/RBAC-Checks.
+  - **Prod-Guard fuer Bypass (neu):** Next.js (`src/lib/auth.ts`) und Go-Gateway (`NewServerFromEnv`) blockieren den Auth-Bypass in Production standardmaessig (fail-closed), ausser ein expliziter Emergency-Override `ALLOW_PROD_AUTH_STACK_BYPASS=true` ist gesetzt.
+- **Go-Gateway Security-Scaffolds (flag-gated):**
+  - `AUTH_JWT_ENFORCE` — Bearer JWT Validation (HS256, transitional vorbereitend)
+  - Optional stricter Claim-/Parser-Checks im JWT-Scaffold: `AUTH_JWT_ISSUER`, `AUTH_JWT_AUDIENCE`, `AUTH_JWT_ALLOWED_ALGS` (HMAC allowlist) und `AUTH_JWT_LEEWAY_SEC` (Clock-Skew-Leeway) als Übergang Richtung finalem Auth.js-Token-Contract
+  - `AUTH_RBAC_ENFORCE` — path-basierte RBAC-Policy
+  - `AUTH_RATE_LIMIT_ENFORCE` — path-basierte In-Memory Rate Limits
+  - `AUTH_STACK_BYPASS` — globaler Test-/Dev-Bypass, der JWT/RBAC/RateLimit-Enforcement im Go-Wiring zentral deaktiviert (optional kann `NEXT_PUBLIC_AUTH_STACK_BYPASS` als Spiegel-Flag gelesen werden)
+  - Revocation-Audit besitzt jetzt optional eine **Go-native SQLite-Persistenz** (`AUTH_JWT_REVOCATION_AUDIT_DB_*`) als DB-Baseline; der In-Memory-Ringbuffer bleibt fuer schnelle Runtime-Reads erhalten, hash-chain JSONL bleibt als append-only Trail parallel moeglich.
+  - API-CSP-Baseline auf Go- und Next.js-**Proxy**-Ebene (`src/proxy.ts`) (`default-src 'none'; frame-ancestors 'none'; ...`)
+  - Phase-1c Scaffold: `/api/v1/gct/*` ist im Go-RBAC als `trader` klassifiziert (erster Endpunkt: `/api/v1/gct/health`) und im Rate-Limit-Scaffold auf 2/min begrenzt.
+  - Phase-1c Scaffold: Append-only GCT-Audit-JSONL Middleware (`GCT_AUDIT_ENABLED`, `GCT_AUDIT_JSONL_PATH`) loggt `/api/v1/gct/*` Requests persistent (transitional).
+  - Phase-1c Scaffold: Start-Up Hardening-Validation (`GCT_ENFORCE_HARDENING`) kann schwache GCT Service-Credentials und `InsecureSkipVerifyTLS` blockieren (mit expliziten Opt-in Overrides).
+- **Prisma Auth-Tabellen-Scaffold ergänzt (`prisma/schema.prisma`):**
+  - `User`, `Account`, `Session`, `VerificationToken`
+  - `Authenticator` (Passkey/WebAuthn Vorbereitung)
+  - `RefreshToken`, `TotpDevice`, `RecoveryCode`, `UserConsent`
+  - `User.passwordHash` (Credentials-Register/Login Baseline)
+- **Credentials-Register/Login Baseline (Next.js + Prisma):**
+  - `POST /api/auth/register` erstellt User mit Scrypt-Hash (`passwordHash`) in Prisma.
+  - `next-auth` Credentials-Provider prueft jetzt zuerst Prisma-User (`email`/`name`) und faellt erst danach auf den lokalen Env-Admin-Scaffold zurueck.
+  - `/auth/register` Seite vorhanden (auto sign-in nach erfolgreicher Registrierung, best-effort).
+- **Passkey/WebAuthn API-Scaffold ergänzt (feature-flagged, Next.js):**
+  - `POST /api/auth/passkeys/register/options`
+  - `GET/DELETE /api/auth/passkeys/devices` ist im **Auth-Bypass-Modus** testfreundlich: `GET` liefert eine synthetische, leere Geräteliste statt `401`; mutierende Calls bleiben geblockt (`409`) bis Bypass deaktiviert wird.
+  - `POST /api/auth/passkeys/register/verify`
+  - `POST /api/auth/passkeys/authenticate/options`
+  - `POST /api/auth/passkeys/authenticate/verify`
+  - Implementiert via `@simplewebauthn/server`, httpOnly Challenge-Cookies (TTL), Prisma-`Authenticator` Persistenz + Counter-Update.
+  - `authenticate/verify` kann bei aktivierter Auth (`NEXT_PUBLIC_ENABLE_AUTH=true`) zusaetzlich ein kurzlebiges `sessionBootstrap`-Proof fuer einen transitional NextAuth-Credentials-Exchange (`passkey-scaffold`) liefern.
+  - `src/lib/auth/passkey-client.ts` + `/auth/passkeys-lab` koennen diesen Exchange jetzt testweise bis zur NextAuth-Session durchziehen.
+- **Minimale Auth-UI (transitional→baseline) ergänzt:**
+  - `next-auth` Sign-In-Page zeigt jetzt auf `/auth/sign-in` statt `/`.
+  - `/auth/sign-in` bietet Credentials-Login plus **echten Auth.js Passkey-Provider-Login** (`next-auth/webauthn` → Provider `passkey`) und unterstuetzt `?next=/zielpfad` Redirect nach erfolgreichem Sign-in.
+  - `/auth/passkeys` bietet eine session-gebundene Passkey-Device-Ansicht (Liste + Registrieren + Entfernen, letzter Passkey ist geschützt); zusätzliche Passkeys können über den Auth.js-Passkey-Provider (`action=register`) registriert werden.
+  - `/auth/security` bündelt Login/Register/Passkeys/Consent/KG-Lab als zentralen Security-Hub für manuelle Verifikation und Dev/QA.
+  - Das bisherige `passkey-scaffold` (API + `passkeys-lab`) bleibt als Fallback/Testpfad optional erhalten.
+- **JWT Revocation Blocklist (Go-Gateway Scaffold) ergänzt:**
+  - `jti`-basierte In-Memory Blocklist mit expiry-aware Cleanup (on read).
+  - Transitional Preload via `AUTH_JWT_REVOKED_JTIS` + `AUTH_JWT_BLOCKLIST_DEFAULT_TTL_MS`.
+  - Runtime-Revocation-Audit als In-Memory-Ringbuffer + Admin-Read-Endpoint `GET /api/v1/auth/revocations/audit` (Kapazitaet via `AUTH_JWT_REVOCATION_AUDIT_CAPACITY`).
+  - Zusaetzlich persistenter append-only JSONL-Audit-Write (optional, default on) mit SHA-256-Hash-Chain (`AUTH_JWT_REVOCATION_AUDIT_JSONL_ENABLED`, `AUTH_JWT_REVOCATION_AUDIT_JSONL_PATH`) fuer tamper-evident Verlauf.
+- **Privacy/KG (Phase 1e/1f Scaffold) ergänzt:**
+  - `/auth/kg-encryption-lab` + `src/lib/kg/encrypted-indexeddb.ts` demonstrieren AES-GCM-verschlüsselte IndexedDB-Records (KG-ähnliche Daten) über Server-Fallback-Key-Material.
+  - `/auth/privacy` + `/api/auth/consent` (GET/PATCH) für serverseitige Consent-Toggles.
+  - `/auth/security` bündelt die Phase-1-Auth-/Security-Flows (Sign-In, Register, Passkeys, Consent, KG-Lab) als zentrale Bedienoberfläche für Dev/QA ohne E2E-Runner.
+  - Fehlender LLM-Consent wird auf ausgewählten geopolitischen LLM-nahen Routen (`game-theory/impact`, Soft-Ingest) bereits mit `403` erzwungen.
+- **CSP-/Header-Hardening (Phase 1b) erweitert:**
+  - `src/proxy.ts` setzt neben API-CSP jetzt auch Page-/UI-Security-Header (inkl. COOP/CORP) mit transitional UI-CSP (`PAGE_CSP_MODE`, optional `PAGE_CSP_POLICY`) und gestrafftem Default (`object-src 'none'`, `frame-src 'none'`, `manifest-src 'self'`).
+- **Revocation-Audit Persistenz (Phase 1b) erweitert:**
+  - Optionaler Go-nativer SQLite-Audit-Store (`AUTH_JWT_REVOCATION_AUDIT_DB_ENABLED`, `AUTH_JWT_REVOCATION_AUDIT_DB_PATH`) ist verdrahtet; `GET /api/v1/auth/revocations/audit` kann aus SQLite lesen und fällt bei DB-Fehlern auf den In-Memory-Ringbuffer zurück.
+- **Exchange-Key Hardening Scaffold (Phase 1c) ergänzt:**
+  - Go Utility `internal/security/aesgcm` (AES-GCM Encrypt/Decrypt + Base64-32B-Key Parsing) als Baustein für spätere verschlüsselte Exchange-Key-/Config-Blobs.
+  - GCT Service-Credentials können jetzt optional verschlüsselt via ENV geliefert werden (`GCT_USERNAME_ENC`, `GCT_PASSWORD_ENC`, optional auch `GCT_BACKTEST_USERNAME_ENC`, `GCT_BACKTEST_PASSWORD_ENC`) und werden beim Gateway-Start über `GCT_SERVICE_CREDS_AES256_KEY_B64` (Fallback `GCT_EXCHANGE_KEYS_AES256_KEY_B64`) entschlüsselt.
+- **Audit-Hardening (Phase 1c) erweitert:**
+  - GCT-JSONL-Audit nutzt jetzt ebenfalls eine SHA-256-Hash-Chain (append-only, tamper-evident pro Datei/Chain-Verlauf) statt reiner JSONL-Zeilen ohne Verknuepfung.
+- **Noch offen nach Phase-1-Baseline (ohne Browser/E2E):**
+  - Produkt-/UX-Polish für Auth-/Consent-/Security-Seiten (funktionale Flows sind vorhanden: `/auth/sign-in`, `/auth/register`, `/auth/passkeys`, `/auth/privacy`, `/auth/security`)
+  - GCT-spezifische Verfeinerungen: DB-Audit für GCT-Aktionen, persistente Exchange-Key-/Config-Storage-Verschlüsselung
+  - Optional: Service-issued Bearer-/OAuth-Flow falls Go-Gateway künftig Sessions unabhängig vom Next.js-Proxy validieren soll (aktueller Architekturpfad: Next.js-Proxy validiert Session-Cookie, Go validiert Bearer-Tokens)
 
 ### 2.3 RBAC Rollen
 
@@ -105,6 +181,8 @@
 | `GET /api/v1/portfolio/*` (read) | `viewer` | 30 req/s |
 | `POST /api/v1/portfolio/order/*` | **`trader`** | **2 req/min** |
 | `GET /api/v1/portfolio/balances/*` | **`trader`** | 10 req/s |
+| `GET /api/v1/gct/*` | **`trader`** | **2 req/min** (Scaffold, `/api/v1/gct/health` implementiert) |
+| `POST /api/v1/auth/revocations/jti` | **`admin`** | 5 req/min (**Scaffold implementiert**) |
 | `/health`, `/api/v1/stream/*` | Kein Auth (public) | 5 connections |
 
 ### 2.5 Auth Recovery & Device Management
@@ -177,8 +255,18 @@ Admin/System erkennt Kompromiss
 Nächster Request mit altem JWT:
     Go Gateway → Blocklist-Check → JTI gefunden → 401 Unauthorized
     Client → Refresh-Versuch → DB: Token revoked → 401
-    Client → Redirect zu Login
+Client → Redirect zu Login
 ```
+
+**Implementierungsstand (22. Feb 2026, Codex — Scaffold):**
+
+- Go-Gateway JWT-Middleware prueft bereits `jti` gegen eine In-Memory-Revocation-Blocklist (expiry-aware Cleanup bei Lookup).
+- Transitional Admin-Endpoint im Go-Gateway vorhanden: `POST /api/v1/auth/revocations/jti` (schreibt `jti` in die In-Memory-Blocklist).
+- Damit ist der technische Hook fuer Sofort-Sperrung auf Access-Token-Ebene vorhanden.
+- Noch offen fuer SOLL-Zustand:
+  - Admin-/System-Trigger, der `jti` dynamisch in die Blocklist schreibt
+  - Persistente Audit-Logs fuer Revocation-Events
+  - Gemeinsamer Flow mit Refresh-Token-Revocation (DB)
 
 ---
 

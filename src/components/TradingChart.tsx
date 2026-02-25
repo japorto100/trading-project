@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { BarChart3, RefreshCw } from "lucide-react";
 import type { MouseEvent } from "react";
@@ -27,6 +27,7 @@ import {
 	toOhlcvData,
 } from "@/components/trading-chart/utils";
 import { Badge } from "@/components/ui/badge";
+import type { HistoryRangePreset } from "@/lib/history-range";
 import { calculateADX, calculateATR, calculateRSI } from "@/lib/indicators";
 import { getErrorMessage } from "@/lib/utils";
 

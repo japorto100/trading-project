@@ -369,6 +369,192 @@ func TestQuoteHandler_ReturnsStableContractForBojMacroAlias(t *testing.T) {
 	}
 }
 
+func TestQuoteHandler_ReturnsStableContractForBcbMacroAlias(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700005555,
+			Last:        13.25,
+			Bid:         13.25,
+			Ask:         13.25,
+			High:        13.25,
+			Low:         13.25,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=POLICY_RATE&exchange=bcb&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	if client.lastExchange != "BCB" {
+		t.Fatalf("expected forwarded exchange BCB, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "POLICY_RATE" {
+		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
+	}
+}
+
+func TestQuoteHandler_ReturnsStableContractForBanxicoMacro(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700006666,
+			Last:        20.25,
+			Bid:         20.25,
+			Ask:         20.25,
+			High:        20.25,
+			Low:         20.25,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=SF43718&exchange=banxico&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	if client.lastExchange != "BANXICO" {
+		t.Fatalf("expected forwarded exchange BANXICO, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "SF43718" {
+		t.Fatalf("expected handler symbol SF43718, got %s", client.lastPair.Base)
+	}
+}
+
+func TestQuoteHandler_ReturnsStableContractForBokMacroAlias(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700007777,
+			Last:        3.5,
+			Bid:         3.5,
+			Ask:         3.5,
+			High:        3.5,
+			Low:         3.5,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=POLICY_RATE&exchange=bok&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	if client.lastExchange != "BOK" {
+		t.Fatalf("expected forwarded exchange BOK, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "POLICY_RATE" {
+		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
+	}
+}
+
+func TestQuoteHandler_ReturnsStableContractForBcraMacroAlias(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700008888,
+			Last:        29.0,
+			Bid:         29.0,
+			Ask:         29.0,
+			High:        29.0,
+			Low:         29.0,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=POLICY_RATE&exchange=bcra&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	if client.lastExchange != "BCRA" {
+		t.Fatalf("expected forwarded exchange BCRA, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "POLICY_RATE" {
+		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
+	}
+}
+
+func TestQuoteHandler_ReturnsStableContractForTcmbMacroSeries(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700009999,
+			Last:        211784.46,
+			Bid:         211784.46,
+			Ask:         211784.46,
+			High:        211784.46,
+			Low:         211784.46,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=TP_AB_TOPLAM&exchange=tcmb&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	if client.lastExchange != "TCMB" {
+		t.Fatalf("expected forwarded exchange TCMB, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "TP_AB_TOPLAM" {
+		t.Fatalf("expected handler symbol TP_AB_TOPLAM, got %s", client.lastPair.Base)
+	}
+}
+
+func TestQuoteHandler_ReturnsStableContractForRbiMacroSeries(t *testing.T) {
+	client := &fakeQuoteClient{
+		ticker: gct.Ticker{
+			LastUpdated: 1700010001,
+			Last:        7.1025e11,
+			Bid:         7.1025e11,
+			Ask:         7.1025e11,
+			High:        7.1025e11,
+			Low:         7.1025e11,
+		},
+	}
+	handler := QuoteHandler(client)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=FXRES_TR_USD_W&exchange=rbi&assetType=macro", nil)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	if client.lastExchange != "RBI" {
+		t.Fatalf("expected forwarded exchange RBI, got %s", client.lastExchange)
+	}
+	if client.lastAsset != "macro" {
+		t.Fatalf("expected forwarded asset macro, got %s", client.lastAsset)
+	}
+	if client.lastPair.Base != "FXRES_TR_USD_W" {
+		t.Fatalf("expected handler symbol FXRES_TR_USD_W, got %s", client.lastPair.Base)
+	}
+}
+
 func TestQuoteHandler_RejectsUnsupportedAssetTypeForExchange(t *testing.T) {
 	handler := QuoteHandler(&fakeQuoteClient{})
 	request := httptest.NewRequest(http.MethodGet, "/api/v1/quote?symbol=EUR/USD&exchange=ecb&assetType=spot", nil)

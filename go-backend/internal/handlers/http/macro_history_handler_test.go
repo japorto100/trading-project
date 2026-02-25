@@ -97,3 +97,123 @@ func TestMacroHistoryHandler_MapsBojPolicyAlias(t *testing.T) {
 		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBojPolicySeries, service.lastPair.Base)
 	}
 }
+
+func TestMacroHistoryHandler_MapsBcbPolicyAlias(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 13.25}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=POLICY_RATE&exchange=bcb&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "BCB" {
+		t.Fatalf("expected exchange BCB, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base != marketServices.DefaultBcbPolicySeries {
+		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBcbPolicySeries, service.lastPair.Base)
+	}
+}
+
+func TestMacroHistoryHandler_MapsBanxicoSeriesPrefix(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 20.25}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=SF43718&exchange=banxico&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "BANXICO" {
+		t.Fatalf("expected exchange BANXICO, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base != "BANXICO_SF43718" {
+		t.Fatalf("expected Banxico prefix alias, got %s", service.lastPair.Base)
+	}
+}
+
+func TestMacroHistoryHandler_MapsBokPolicyAlias(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 3.5}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=POLICY_RATE&exchange=bok&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "BOK" {
+		t.Fatalf("expected exchange BOK, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base != marketServices.DefaultBokPolicySeries {
+		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBokPolicySeries, service.lastPair.Base)
+	}
+}
+
+func TestMacroHistoryHandler_MapsBcraPolicyAlias(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 29.0}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=POLICY_RATE&exchange=bcra&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "BCRA" {
+		t.Fatalf("expected exchange BCRA, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base != marketServices.DefaultBcraPolicySeries {
+		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBcraPolicySeries, service.lastPair.Base)
+	}
+}
+
+func TestMacroHistoryHandler_MapsTcmbSeriesPrefix(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 211784.46}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=TP.AB.TOPLAM&exchange=tcmb&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "TCMB" {
+		t.Fatalf("expected exchange TCMB, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base != "TCMB_EVDS_TP_AB_TOPLAM" {
+		t.Fatalf("expected alias TCMB_EVDS_TP_AB_TOPLAM, got %s", service.lastPair.Base)
+	}
+}
+
+func TestMacroHistoryHandler_MapsRbiSeriesPrefix(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 7.1025e11}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=FXRES_TR_USD_W&exchange=rbi&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "RBI" {
+		t.Fatalf("expected exchange RBI, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base != "RBI_DBIE_FXRES_TR_USD_WEEKLY" {
+		t.Fatalf("expected alias RBI_DBIE_FXRES_TR_USD_WEEKLY, got %s", service.lastPair.Base)
+	}
+}

@@ -34,6 +34,7 @@ export interface ContextBridgeFilters {
 	region?: string;
 	limit?: number;
 	requestId?: string;
+	userRole?: string;
 }
 
 export interface ContextBridgeResult {
@@ -95,6 +96,7 @@ export async function fetchGeopoliticalContextViaGateway(
 	const region = normalizeText(filters.region);
 	const limit = normalizeLimit(filters.limit);
 	const requestId = filters.requestId?.trim() || "";
+	const userRole = filters.userRole?.trim() || "";
 
 	const cacheTTL = clamp(
 		Number(process.env.GEOPOLITICAL_CONTEXT_CACHE_MS || DEFAULT_CACHE_MS),
@@ -123,11 +125,12 @@ export async function fetchGeopoliticalContextViaGateway(
 	if (q) endpoint.searchParams.set("q", q);
 	if (region) endpoint.searchParams.set("region", region);
 
+	const headers: Record<string, string> = { Accept: "application/json" };
+	if (requestId) headers["X-Request-ID"] = requestId;
+	if (userRole) headers["X-User-Role"] = userRole;
 	const response = await fetch(endpoint.toString(), {
 		method: "GET",
-		headers: requestId
-			? { Accept: "application/json", "X-Request-ID": requestId }
-			: { Accept: "application/json" },
+		headers,
 		cache: "no-store",
 	});
 	if (!response.ok) {

@@ -1,0 +1,10 @@
+d:\tradingview-clones\tradeview-fusion\./python-backend/rust_core/target-local\debug\deps\getrandom-7f46971a3c3967eb.d: D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\lib.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\backends.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\error.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\util.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\../README.md D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\backends\windows.rs
+
+d:\tradingview-clones\tradeview-fusion\./python-backend/rust_core/target-local\debug\deps\libgetrandom-7f46971a3c3967eb.rmeta: D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\lib.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\backends.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\error.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\util.rs D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\../README.md D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\backends\windows.rs
+
+D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\lib.rs:
+D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\backends.rs:
+D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\error.rs:
+D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\util.rs:
+D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\../README.md:
+D:\DevCache\cargo\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.4.1\src\backends\windows.rs:

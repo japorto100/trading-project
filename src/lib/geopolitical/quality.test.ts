@@ -80,6 +80,32 @@ describe("geopolitical quality engines", () => {
 		expect(duplicate?.id).toBe("c1");
 	});
 
+	it("detects near-duplicate candidates by title similarity fallback", () => {
+		const existing: GeoCandidate[] = [
+			{
+				id: "c_similar",
+				generatedAt: new Date().toISOString(),
+				triggerType: "news_cluster",
+				confidence: 0.61,
+				severityHint: 3,
+				headline: "ECB signals emergency rate review after inflation surprise in euro area",
+				sourceRefs: [],
+				state: "open",
+			},
+		];
+
+		const duplicate = findDuplicateCandidate(
+			{
+				headline: "ECB signals emergency rate review after euro area inflation surprise",
+				generatedAt: new Date().toISOString(),
+				sourceRefs: [],
+			},
+			existing,
+		);
+
+		expect(duplicate?.id).toBe("c_similar");
+	});
+
 	it("suppresses repeated alerts within cooldown for same region/category", () => {
 		const now = new Date();
 		const current: Pick<

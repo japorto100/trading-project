@@ -445,6 +445,8 @@ type PolygonOption struct {
 >
 > **Ist-Zustand-Analyse:** Jeder der 10 bestehenden Connectors hat eigenes `Config` struct, eigenen `NewClient()`, eigene HTTP-Request-Logik, eigenes Error-Wrapping in `gct.RequestError`. Shared Types (`Ticker`, `SeriesPoint`, `Pair`, `RequestError`) leben in `gct/client.go` -- historisch bedingt, nicht intuitiv. `news/retry.go` hat Backoff-Logik die nur im `news/`-Package sichtbar ist. Interfaces sind implizit am Consumer (Services) definiert, nicht am Provider -- das ist Go-idiomatic und soll so bleiben.
 
+> **Implementierungs-Update (23. Feb 2026, Codex):** Baseline fuer Sek. 12 ist gestartet: `internal/connectors/base` enthaelt bereits `http_client`, `retry`, `ratelimit`, `types` plus erste Gruppen-Scaffolds (`sdmx_client`, `timeseries`, `bulk_fetcher`, `rss_client`, `diff_watcher`, `translation`, `oracle_client`). Der Adaptive Router (`internal/router/adaptive`) kann optionale Provider-Metadaten (`group`, `kind`) aus `provider-router.yaml` laden und im Status-Snapshot ausgeben. Zusaetzlich wurden `capabilities.go` (Provider-Capability-Matrix) und `error_classification.go` (Retry/Auth/Quota/Schema-Drift-Klassen) als GCT-inspirierte Base-Bausteine angelegt.
+
 ### 12.1 Die 10 Quellen-Gruppen
 
 Nicht alle Quellen funktionieren gleich. Jede Gruppe hat eigenes Fetch-Pattern, eigene Fehlerbehandlung und eigene Base-Abstraktion.
@@ -656,6 +658,49 @@ func (w *DiffWatcher) CheckForUpdates(ctx context.Context) (*DiffResult, error) 
 ```
 
 > **Provider in dieser Gruppe:** SECO Sanktionslisten, OFAC SDN, UN Consolidated Sanctions, EU Sanctions Map.
+
+#### 12.7a Phase-14 Addendum: GeoMap Official Source Delta/Decision Pipeline (Go-owned)
+
+> **Kontext:** In Phase 4 (GeoMap v2.0) wurden Hard-Signal-Deltas/Heuristiken teilweise in Next.js-Servercode umgesetzt, um GeoMap-UX und Candidate-Qualitaet schnell voranzubringen. Das ist **transitional**. In Phase 14 sollen offizielle Quellen + Delta-Detection in den Go-Layer verlagert werden.
+
+**Ziel:** Go ist Source-of-Truth fuer offizielle GeoMap-Quellen (Sanctions + Zentralbank-/Policy-Quellen), inkl. Fetching, Header-basierter Delta-Erkennung und provider-spezifischen Parsing-Hinweisen. UIL/GeoMap erhalten standardisierte Change-Events/Records statt raw HTML-Delta-Heuristiken aus Next.js.
+
+##### Scope (Phase 14)
+
+| Quelle/Gruppe | Go-Verantwortung | Output fuer UIL/GeoMap |
+|---|---|---|
+| OFAC / UN / UK / SECO / EU (G7) | Download + Diff (`ETag`, `Last-Modified`, Hash), XML/HTML/CSV Parse-Hints, Added/Removed/Changed | Geo hard-signal candidates / diff records / audit metadata |
+| Fed / ECB (+ spaeter weitere Zentralbanken) | Official calendar/statement fetch, delta detection, einfache decision hints (meeting/statement/minutes, hold/hike/cut heuristics) | Geo hard-signal candidates / policy delta records |
+| Legal / Regulatory RSS (G6) | Polling + dedup + source metadata | UIL/GeoMap input queue (nicht direkt Event-Truth) |
+
+##### Gemeinsamer Go-Output (empfohlen)
+
+Statt provider-spezifischer Sonderformen pro Endpoint:
+
+- `sourceId` / `provider`
+- `fetchedAt`
+- `delta.changed` + `delta.reason`
+- `delta.headers` (`etag`, `lastModified`)
+- `changeSummary` (counts: added/removed/changed)
+- `semanticHints` (z. B. `rateAction=hold|hike|cut`, `sanctionsAction=designations|delistings|general_license`)
+- `evidenceRefs` / source links
+- `requestId`
+
+> Diese Struktur ist absichtlich kompatibel mit den in Phase 4 eingefuehrten GeoMap `reviewNote`-/Adapter-Stats-Ideen und soll die TS->Go Migration erleichtern.
+
+##### Migrationsreihenfolge (Phase 14)
+
+1. **G7 Sanctions via DiffWatcher** (OFAC/UN zuerst, dann UK/SECO/EU)
+2. **Fed/ECB official delta sources** (policy/calendar)
+3. **Weitere Zentralbanken / Legal feeds** (regional rollout)
+4. **Next.js hard-signals TS route auf thin proxy / compatibility mode zurueckbauen**
+
+##### Verify (GeoMap-relevant, Phase 14)
+
+- OFAC/UN Delta wird im Go-Layer erkannt und als standardisierter change-record ausgegeben
+- Fed/ECB Delta mit `semanticHints` (`docType`, optional `rateAction`) verfuegbar
+- GeoMap/UIL consume denselben Go-output ohne provider-spezifische UI-Sonderlogik
+- Next.js Geo hard-signal TS code ist nicht mehr Fetch-Owner fuer offizielle Quellen
 
 ### 12.8 TranslationBridge (Gruppe G8 -- Non-English)
 

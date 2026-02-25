@@ -23,10 +23,27 @@ Das Frontend kommuniziert ausschließlich mit dem Go Gateway auf Port `9060`. Al
 ### 1.1 Health Check
 - **`GET /health`**
 - Response: `200 OK` mit Status-Objekt
+- **`GET /api/v1/gct/health`** (Phase 1c scaffold, implementiert)
+- Zweck: GCT-Health unter geschütztem `/api/v1/gct/*` Prefix (RBAC/Rate-Limit/Audit prüfbar).
+
+### 1.1b Provider Router Status (Phase 0a scaffold)
+- **`GET /api/v1/router/providers`** (optional, wenn Router-Config geladen)
+- Response `200`: `{ "success": true, "providers": [{ "name": string, "group"?: string, "kind"?: string, "capabilities"?: object, "healthy": boolean, "circuitOpen": boolean, "score": number, "lastErrorClass"?: string, "failureClasses"?: Record<string, number>, ... }] }`
+- Hinweis: `group`/`kind`/`capabilities` kommen aus `go-backend/config/provider-router.yaml` und dienen der spaeteren gruppenspezifischen Fallback-/Routing-Semantik (Phase 7/14 Provider-Expansion).
 
 ### 1.2 Market Data — Quote
 - **`GET /api/v1/quote`**
-- Query: `symbol` (AAPL, BTC/USD), `exchange` (finnhub, gct, ecb), `assetType` (equity, crypto, forex)
+- Query: `symbol` (AAPL, BTC/USD), `exchange` (`auto`, finnhub, ecb, fred, bcb, banxico, bok, bcra, tcmb, rbi, binance/kraken/...), `assetType` (equity, spot, forex, macro)
+- Hinweis: `exchange=auto` aktiviert im Go-Quote-Pfad ein Adaptive-Router/Fallback-Scaffold (Health-Score + Circuit-State).
+- Hinweis (G4 Start, 23. Feb 2026): `exchange=bcb` (Banco Central do Brasil / SGS) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `POLICY_RATE` (Alias auf `BCB_SGS_432`), `BCB_SGS_<id>` oder numerische SGS-IDs.
+- Hinweis (G4 Slice, 23. Feb 2026): `exchange=banxico` (Banxico SIE) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `BANXICO_<seriesId>` oder rohe Serien-IDs (z. B. `SF43718`). Ein projektweiter `POLICY_RATE`-Alias fuer Banxico wird spaeter fest standardisiert.
+- Hinweis (G4 Slice, 23. Feb 2026): `exchange=bok` (Bank of Korea ECOS) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `BOK_ECOS_<statCode>_<cycle>_<itemCode1>` oder rohe ECOS-Serien-Triaden (`722Y001_M_0101000`). `POLICY_RATE` ist auf `BOK_ECOS_722Y001_M_0101000` gemappt.
+- Hinweis (G4 Slice, 23. Feb 2026): `exchange=bcra` (BCRA Principales Variables v4) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `BCRA_<idVariable>` oder rohe numerische IDs (z. B. `160`). `POLICY_RATE` ist temporaer auf `BCRA_160` gemappt.
+- Hinweis (G4 Slice, 23. Feb 2026): `exchange=tcmb` (TCMB EVDS3 / Tuerkei) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `TCMB_EVDS_<seriesCode>` (kanonisch mit `_` statt `.`) oder rohe EVDS-Seriencodes (`TP_AB_TOPLAM` / `TP.AB.TOPLAM`). Der Connector nutzt den EVDS3 JSON-Endpoint `POST /igmevdsms-dis/fe` (serverseitig verifiziert, aktuell ohne API-Key). Ein projektweiter `POLICY_RATE`-Alias fuer TCMB bleibt vorerst offen.
+- Hinweis (G4 Slice, 23. Feb 2026): `exchange=rbi` (RBI DBIE / Indien) ist implementiert fuer `assetType=macro` im ersten DBIE-Slice **FX Reserves**. Symbolformat akzeptiert `RBI_DBIE_FXRES_<reserveCode>_<currencyCode>_<freq>` oder Kurzformen wie `FXRES_TR_USD_W` (`W|M|D` → `WEEKLY|MONTHLY|DAILY`). Der Connector nutzt den RBI DBIE Gateway-Handshake `POST /CIMS_Gateway_DBIE/GATEWAY/SERVICES/security_generateSessionToken` plus `POST /CIMS_Gateway_DBIE/GATEWAY/SERVICES/dbie_foreignExchangeReserves` (live via Browser-Network verifiziert). `POLICY_RATE`-Alias fuer RBI bleibt vorerst offen.
+- **`GET /api/v1/quote/fallback`** (Transitional, **implementiert 22. Feb 2026**)
+- Query: `symbol`, `assetType` (z. B. `index`, `etf`, `commodity`)
+- Zweck: Go-Proxy auf Python Finance-Bridge `/quote`, damit Next.js keine direkten Provider/ Python-Calls fuer diese Asset-Typen braucht waehrend Phase 0c.
 - Response `200`:
 ```json
 {
@@ -43,16 +60,18 @@ Das Frontend kommuniziert ausschließlich mit dem Go Gateway auf Port `9060`. Al
 - **`GET /api/v1/macro/history`**
 - Query: `series` (GDP, CPI, UNRATE), `startDate`, `endDate`
 - Response `200`: Array von `{ date, value, source }` Objekten
+- **Implementierungsstand (23. Feb 2026, Go Baseline):** Die bestehende Route verwendet aktuell Query-Form `symbol`, `exchange`, `assetType`, `limit` (statt `series/startDate/endDate`) und unterstuetzt `exchange` = `fred|fed|boj|snb|bcb|banxico|bok|bcra|tcmb|rbi|ecb`. Fuer `bcb`/`banxico`/`bok`/`bcra`/`tcmb`/`rbi` gilt `assetType=macro`; `bcb` nutzt den SGS-Aliaspfad, `banxico` nutzt `BANXICO_<id>` bzw. rohe Serien-IDs, `bok` nutzt `BOK_ECOS_<stat>_<cycle>_<item1>` bzw. rohe Triaden + `POLICY_RATE`-Alias, `bcra` nutzt `BCRA_<id>` bzw. rohe IDs + `POLICY_RATE -> BCRA_160`, `tcmb` nutzt `TCMB_EVDS_<series>` (kanonisch `_` statt `.`) bzw. rohe EVDS-Seriencodes und `rbi` nutzt `RBI_DBIE_FXRES_<reserve>_<currency>_<freq>` bzw. Kurzformen wie `FXRES_TR_USD_W`.
 
 ### 1.4 Streaming — Market Data (SSE)
 - **`GET /api/v1/stream/market`**
-- Query: `symbols` (komma-getrennt)
+- Query: `symbol` (ein Symbol, z. B. `BTC/USDT` oder `AAPL`), `exchange`, `assetType`, `timeframe` (optional; aktiviert serverseitige Candle-Aggregation), `alertRules` (optional, JSON-Array; transitional intern fuer serverseitige Alert-Evaluierung im Go-Stream)
 - Response: SSE Event Stream (siehe Sektion 7)
 
 ### 1.5 News Headlines
 - **`GET /api/v1/news/headlines`**
-- Query: `category` (general, forex, crypto, merger), `limit`
-- Response `200`: Array von Headlines mit `title`, `url`, `source`, `publishedAt`, `sentiment`
+- Query: `symbol` (optional), `q` (optional Freitext-Query), `lang` (optional, best-effort), `limit`
+- Response `200`: Objekt `{ success, data: { symbol, query?, lang?, items[] } }` mit Headlines (`title`, `url`, `source`, `publishedAt`, `summary?`)
+- Hinweis: `lang` ist im Go-News-Scaffold aktuell **best-effort** (GDELT-Sprachconstraint + Skip nicht-sprachfaehiger Fetcher bei non-EN).
 
 ### 1.6 Geopolitical Events
 - **`GET /api/v1/geopolitical/events`**
@@ -89,9 +108,10 @@ Das Frontend kommuniziert ausschließlich mit dem Go Gateway auf Port `9060`. Al
 
 Diese Endpoints existieren noch nicht und werden in den jeweiligen Phasen gebaut.
 
-### 2.1 Market Data — OHLCV (Phase 0)
+### 2.1 Market Data — OHLCV (Phase 0, **Teilimplementiert**)
 - **`GET /api/v1/ohlcv`**
 - Query: `symbol`, `timeframe` (1m, 5m, 15m, 1h, 4h, 1D, 1W), `limit` (max 2000), `exchange`, `assetType`
+- **Aktueller Stand (23. Feb 2026):** Go Gateway Endpoint existiert und proxied OHLCV derzeit an den Python Finance-Bridge Service (yfinance) fuer die Frontend-Migration (`Frontend -> Go only`). `exchange`/`assetType` werden noch nicht voll fuer Provider-Routing genutzt; der Adaptive Router ist vorerst primär im Quote-Pfad (`exchange=auto`) verdrahtet. OHLCV besitzt jedoch ein Go-seitiges Upstream-Failover über `FINANCE_BRIDGE_URLS` (sequenzieller Retry bei Netzwerk-/5xx-Fehlern).
 - Response `200`:
 ```json
 {
@@ -104,10 +124,11 @@ Diese Endpoints existieren noch nicht und werden in den jeweiligen Phasen gebaut
 }
 ```
 
-### 2.2 Indicator Proxy — Composite Signal (Phase 1)
+### 2.2 Indicator Proxy — Composite Signal (Phase 1, **Teilimplementiert**)
 - **`POST /api/v1/indicators/composite`**
 - Body: `{ "symbol": "AAPL", "timeframe": "1D", "limit": 500 }`
 - Go holt OHLCV intern, sendet an Python, gibt Ergebnis zurück.
+- **Aktueller Stand (22. Feb 2026):** Go Gateway exponiert bereits einen transitional Proxy für `POST /api/v1/signals/composite` (passthrough an Python `indicator-service`). Die contract-konforme Variante mit Go-seitigem OHLCV-Fetch und `POST /api/v1/indicators/composite` ist noch offen.
 - Response `200`:
 ```json
 {
@@ -153,11 +174,142 @@ Diese Endpoints existieren noch nicht und werden in den jeweiligen Phasen gebaut
 - Body: `{ "sourceType": "manual"|"youtube"|"reddit", "content": string, "url"?: string }`
 - Go leitet an Python LLM Pipeline weiter.
 
+### 2.5a GeoMap Candidate Review + Contradictions (Phase 9, Geplant)
+
+> **Kontext:** Phase 4 hat GeoMap-Review/Candidate/Contradictions im Frontend/Next-TS funktionsfaehig gemacht. In Phase 9 werden diese Domainflows hinter Go/UIL konsolidiert. Next.js bleibt UI/Visualization und (uebergangsweise) thin proxy.
+
+#### Candidate Queue / Review
+
+- **`GET /api/v1/geopolitical/candidates`**
+- Query: `status` (`open|accepted|rejected|snoozed`), `source`, `category`, `limit`, `cursor`
+- Response `200`:
+```json
+{
+  "items": [{ "id": "uuid", "headline": "...", "confidence": 0.87, "severityHint": 4, "reviewNote": "...", "auditMeta": { "requestId": "uuid", "provider": "acled" } }],
+  "nextCursor": "opaque-cursor",
+  "stats": { "open": 42, "accepted": 120, "rejected": 31, "snoozed": 5 }
+}
+```
+
+- **`POST /api/v1/geopolitical/candidates`** (manual/admin or ingest-created compatibility)
+- Body (minimal):
+```json
+{
+  "headline": "string",
+  "summary": "string",
+  "category": "string",
+  "confidence": 0.74,
+  "geoHints": { "countryHints": ["US"], "regionHint": "north-america" }
+}
+```
+- Response `201`: `GeoCandidate`
+
+- **`POST /api/v1/geopolitical/candidates/:id/accept`**
+- Body (optional): `{ "analystNote"?: "string", "mergeIntoEventId"?: "uuid" }`
+- Response `200`: `{ "candidate": GeoCandidate, "event"?: GeoEvent, "auditId": "uuid", "requestId": "uuid" }`
+
+- **`POST /api/v1/geopolitical/candidates/:id/reject`**
+- Body: `{ "reason": "noise|duplicate|out_of_scope|invalid", "analystNote"?: "string" }`
+- Response `200`: `{ "candidate": GeoCandidate, "auditId": "uuid", "requestId": "uuid" }`
+
+- **`POST /api/v1/geopolitical/candidates/:id/snooze`**
+- Body: `{ "until"?: "2026-03-01T00:00:00Z", "reason"?: "awaiting_confirmation|low_priority|needs_more_evidence" }`
+- Response `200`: `{ "candidate": GeoCandidate, "auditId": "uuid", "requestId": "uuid" }`
+
+#### Contradictions / Evidence / Resolution
+
+- **`GET /api/v1/geopolitical/contradictions`**
+- Query: `state` (`open|resolved|all`), `limit`, `cursor`
+- Response `200`: `{ "items": GeoContradiction[], "nextCursor"?: "opaque-cursor" }`
+
+- **`POST /api/v1/geopolitical/contradictions`**
+- Body (minimal):
+```json
+{
+  "summary": "string",
+  "severity": "low|medium|high|critical",
+  "candidateIds": ["uuid"],
+  "eventIds": ["uuid"]
+}
+```
+- Response `201`: `{ "contradiction": GeoContradiction, "auditId": "uuid", "requestId": "uuid" }`
+
+- **`GET /api/v1/geopolitical/contradictions/:id`**
+- Response `200`: `{ "contradiction": GeoContradiction }`
+
+- **`PATCH /api/v1/geopolitical/contradictions/:id`**
+- Body (partial update, one or more fields):
+```json
+{
+  "state": "open|resolved",
+  "summary": "optional string",
+  "resolution": {
+    "outcome": "merge|dismiss|defer|escalate",
+    "note": "optional string",
+    "mergedIntoEventId": "optional uuid",
+    "mergedIntoCandidateId": "optional uuid"
+  },
+  "addEvidence": [{ "type": "url|note|document", "label": "string", "ref": "string" }],
+  "removeEvidenceIds": ["uuid"]
+}
+```
+- Response `200`: `{ "contradiction": GeoContradiction, "auditIds": ["uuid"], "requestId": "uuid" }`
+
+#### Audit / Timeline Read Model (Geo Review)
+
+- **`GET /api/v1/geopolitical/timeline`**
+- Query: `entityType` (`candidate|event|contradiction` optional), `entityId` (optional), `limit`, `cursor`
+- Response `200`: `{ "items": GeoTimelineEntry[], "nextCursor"?: "opaque-cursor" }`
+
+#### Security / Ops Hinweise (Phase 1 Abhaengigkeit)
+
+- Mutierende Endpunkte (`POST`/`PATCH`) sollen vor finalem Cutover mindestens RBAC (`analyst` oder enger) erhalten.
+- Alle Responses muessen `X-Request-ID` zurueckgeben.
+- Error Responses folgen Sektion 8 (Unified Error Contract).
+
+### 2.5b GeoMap Ingest Trigger + Admin Seed (Phase 9, Geplant)
+
+#### Ingest Trigger (Go -> UIL Orchestration)
+
+- **`POST /api/v1/geopolitical/ingest/hard`**
+- Body (optional):
+```json
+{
+  "sources": ["ofac", "un", "fed", "ecb"],
+  "lookbackHours": 24,
+  "dryRun": false
+}
+```
+- Response `200`:
+```json
+{
+  "runId": "uuid",
+  "mode": "hard",
+  "produced": 12,
+  "created": 5,
+  "deduped": 7,
+  "adapterStats": [{ "adapterId": "fed_decisions", "produced": 2, "promoted": 2, "created": 1, "deduped": 1 }]
+}
+```
+
+- **`POST /api/v1/geopolitical/ingest/soft`**
+- Body (optional): `{ "sources"?: ["rss","reddit","youtube","manual"], "limit"?: 100, "dryRun"?: false }`
+- Response `200`: gleiches Shape wie `hard` (mit `mode: "soft"`)
+
+#### Admin / Test Tooling (nicht produktiver Truth Path)
+
+- **`POST /api/v1/geopolitical/admin/seed`**
+- Mindest-Rolle: `analyst` (oder dedizierte `admin` Rolle sobald vorhanden)
+- Body (optional): `{ "targets"?: { "events"?: 50, "candidates"?: 200, "contradictions"?: 10 }, "reset"?: false }`
+- Response `200`: `{ "seeded": { "events": number, "candidates": number, "contradictions": number }, "requestId": "uuid" }`
+
 ---
 
 ## 3. Go → Python: Soft-Signals Service (Port 8091)
 
 Go ruft diese Endpoints auf dem Python Soft-Signals Service auf. Python antwortet, Go leitet an Frontend weiter.
+
+> **Teilfortschritt (22. Feb 2026):** Go Gateway exponiert bereits transitional Passthrough-Proxies fuer die bestehenden Python-Endpunkte `POST /api/v1/cluster-headlines`, `POST /api/v1/social-surge`, `POST /api/v1/narrative-shift`, damit Frontend/Next.js nicht direkt auf Port `8091` zugreifen muessen.
 
 ### 3.1 Game-Theory Impact (Bestehend)
 - **`POST /api/v1/game-theory/impact`**
@@ -223,6 +375,20 @@ Go ruft diese Endpoints auf. Go liefert OHLCV-Daten als Payload mit — Python f
 }
 ```
 - Response `200`: Composite Signal mit Confidence, Direction, Breakdown
+- **Aktueller Stand (23. Feb 2026, Phase 2 Slice):** Python `indicator-service` liefert `signal`, `confidence`, `timestamp` und `components` (`sma50_slope`, `heartbeat`, `volume_power`). `components.sma50_slope.details.engine` ist aktuell `\"rust\" | \"python\"` (Rust bevorzugt fuer SMA50-Slope via PyO3-Bridge, Fallback Python). Heartbeat-/Volume-Details enthalten zusaetzlich Runtime-Marker wie `heartbeat.details.engine` und `volume_power.details.rvolEngine` (`\"rust\" | \"python\"`). Component-Details enthalten ausserdem `dataframeEngine = \"polars\" | \"python\"` fuer den Composite-Preprocessing-Pfad.
+- Beispiel (vereinfacht):
+```json
+{
+  "signal": "neutral",
+  "confidence": 0.52,
+  "timestamp": 1708430400,
+  "components": {
+    "sma50_slope": { "score": 0.31, "details": { "value": 0.0018, "raw": 0.42, "direction": "rising", "engine": "rust" } },
+    "heartbeat": { "score": 0.75, "details": { "cycleBars": 7.8 } },
+    "volume_power": { "score": 0.49, "details": { "rvol": 1.14, "obv_trend": "up", "cmf": 0.03 } }
+  }
+}
+```
 
 ### 4.2 Pattern Detection
 - **`POST /api/v1/patterns/candlestick`** — Candlestick Patterns (Doji, Hammer, Engulfing, etc.)
@@ -282,6 +448,9 @@ Go ruft diese Endpoints auf. Go liefert OHLCV-Daten als Payload mit — Python f
 - **`GET /ohlcv`**
 - Query: `symbol`, `interval` (1m–1mo), `period` (1d–max)
 - Response: Array von OHLCV-Objekten
+- **Aktueller Stand (23. Feb 2026, Phase 2b/2c Slice):** Python `finance-bridge` verwendet einen optionalen Rust-Core-`redb` Read-Through-Cache (PyO3) fuer OHLCV-Responses und normalisiert OHLCV-Rows best-effort via Polars. Response kann zusaetzlich folgende transitional Debug-/Observability-Felder enthalten:
+  - `cache: { hit: boolean, engine: "redb"|null, lookupMs?: number, storeMs?: number }`
+  - `dataframe: { engine: "polars"|"python" }`
 
 ### 5.3 Search
 - **`GET /search`**
@@ -292,12 +461,19 @@ Go ruft diese Endpoints auf. Go liefert OHLCV-Daten als Payload mit — Python f
 
 ## 6. Python → Rust Core (PyO3 Interface)
 
-Rust ist kein HTTP-Server. Python importiert Rust via `import tradeview_rust_core` (PyO3-Modul, gebaut mit `maturin`).
+Rust ist kein HTTP-Server. Python importiert Rust via `import tradeviewfusion_rust_core` (PyO3-Modul, gebaut mit `maturin`).
+**Aktueller Stand (23. Feb 2026):** Implementiert und teilweise produktiv verdrahtet sind bereits `composite_sma50_slope_norm(...)`, `calculate_heartbeat(...)`, `calculate_indicators_batch(...)` sowie der redb-Cache-Scaffold (`redb_cache_set`, `redb_cache_get`). Der redb-Scaffold wird bereits als read-through OHLCV-Cache im Python `finance-bridge` (transitional) genutzt.
 
 ### 6.1 Indicator Functions
 
 ```rust
-// Heartbeat Score (Composite Signal Baustein)
+// Bereits implementiert (Phase 2a Slice)
+#[pyfunction]
+pub fn composite_sma50_slope_norm(
+    closes: Vec<f64>
+) -> PyResult<(f64, f64, f64)>
+
+// Bereits implementiert (Phase 2a Slice)
 #[pyfunction]
 pub fn calculate_heartbeat(
     closes: Vec<f64>,
@@ -306,7 +482,7 @@ pub fn calculate_heartbeat(
     sensitivity: f64
 ) -> PyResult<f64>
 
-// Batch Indicator Calculation (Rayon parallel)
+// Bereits implementiert (Phase 2a Slice)
 #[pyfunction]
 pub fn calculate_indicators_batch(
     timestamps: Vec<i64>,
@@ -315,8 +491,27 @@ pub fn calculate_indicators_batch(
     lows: Vec<f64>,
     closes: Vec<f64>,
     volumes: Vec<f64>,
-    indicators: Vec<String>  // ["sma_50", "rsi_14", "macd"]
+    indicators: Vec<String>
 ) -> PyResult<HashMap<String, Vec<f64>>>
+
+// Bereits implementiert (Phase 2c Scaffold)
+#[pyfunction]
+pub fn redb_cache_set(
+    path: String,
+    key: String,
+    payload_json: String,
+    ttl_ms: u64
+) -> PyResult<()>
+
+#[pyfunction]
+pub fn redb_cache_get(
+    path: String,
+    key: String,
+    now_ms: Option<u64>
+) -> PyResult<Option<String>>
+
+// Geplant (naechste Rust-Funktionen / Ausbau)
+// echte kand-/parallelisierte Batch-Pfade, weitere Composite-Bausteine, Pattern-Kerne
 ```
 
 ### 6.2 Pattern Functions
@@ -391,31 +586,46 @@ async def calculate_composite(req: SignalRequest):
 
 Go Gateway sendet Server-Sent Events an das Frontend.
 
-### 7.1 Stream Status
+> **Transitional Next.js Stream-Proxies (Phase 3):** `GET /api/market/stream` und `GET /api/market/stream/quotes` sind stream-first auf Go-SSE. Wenn ein Legacy-Polling-Fallback aktiv genutzt wird, markieren die Next.js-Routen dies via `X-Stream-Fallback: legacy-polling` und `X-Stream-Fallback-Reason` (z. B. `unsupported_symbol_type`, `go_stream_unavailable`, `mixed_or_unsupported_symbols`) sowie per `ready`/`stream_status` Event-Metadaten. Fallbacks sind runtime-flag-gated.
+
+### 7.1 Ready (Market Stream)
 ```
-event: stream_status
-data: {"status":"connected","symbols":["AAPL","BTC/USD"],"timestamp":"2026-02-20T10:00:00Z"}
+event: ready
+data: {"symbol":"BTC/USDT","exchange":"binance","assetType":"spot","timeframe":"1m"}
 ```
 
-### 7.2 Quote Update
+### 7.2 Stream Status
+``` 
+event: stream_status
+data: {"state":"live","message":"live stream connected","reconnectAttempts":0,"lastQuoteAt":"","timeframe":"1m","reconnectBackoffMs":10000}
+```
+_Hinweis:_ In Next.js-Legacy-Fallback-Pfaden kann `stream_status` zusaetzlich `fallbackReason` enthalten.
+
+### 7.3 Snapshot (Market Stream)
+```
+event: snapshot
+data: {"symbol":"BTC/USDT","exchange":"binance","assetType":"spot","timeframe":"1m","quote":{...},"candle":{...},"candles":[...],"updatedAt":"2026-02-23T21:00:00.123Z"}
+```
+
+### 7.4 Quote Update
 ```
 event: quote
-data: {"symbol":"AAPL","price":185.30,"change":2.10,"volume":1200000,"timestamp":"2026-02-20T10:00:01Z"}
+data: {"symbol":"BTC/USDT","exchange":"binance","assetType":"spot","last":96321.5,"bid":96321.1,"ask":96321.9,"high":96800,"low":95800,"volume":1234.56,"timestamp":1708426861,"source":"gct"}
 ```
 
-### 7.3 Candle Update (Geplant, Phase 5)
+### 7.5 Candle Update (Phase 3a Baseline)
 ```
 event: candle
-data: {"symbol":"AAPL","timeframe":"1m","t":1708426860,"o":185.20,"h":185.50,"l":185.10,"c":185.40,"v":15000,"closed":true}
+data: {"symbol":"BTC/USDT","exchange":"binance","assetType":"spot","timeframe":"1m","candle":{"time":1708426860,"open":96300.0,"high":96340.0,"low":96290.0,"close":96321.5,"volume":1234.56},"outOfOrder":false,"wasNewCandle":false,"emittedAt":"2026-02-23T21:00:01.456Z"}
 ```
 
-### 7.4 Alert Trigger (Geplant, Phase 5)
+### 7.6 Alert Trigger (Phase 3b Zielbild)
 ```
 event: alert
-data: {"alertId":"uuid","symbol":"AAPL","type":"price_threshold","trigger":"above","value":186.00,"currentPrice":186.05,"timestamp":"2026-02-20T10:01:00Z"}
+data: {"id":"alert_evt_rule123_1708426860","ruleId":"alert_rule_123","symbol":"AAPL","condition":"crosses_up","target":186.0,"price":186.05,"previous":185.9,"triggeredAt":"2026-02-23T21:01:00Z","message":"AAPL crossed above 186.00"}
 ```
 
-### 7.5 Geopolitical Events (Bestehend)
+### 7.7 Geopolitical Events (Bestehend)
 ```
 event: candidate.new
 data: {"id":"uuid","headline":"OFAC SDN Update","severity":4,"confidence":0.89,...}
@@ -491,7 +701,7 @@ Browser → Next.js (generiert X-Request-ID: UUID v4)
 
 | Service | Wie |
 |:---|:---|
-| **Next.js** | Middleware generiert `X-Request-ID` (UUID v4) falls nicht vorhanden. Sendet als Header an Go. |
+| **Next.js** | `src/proxy.ts` generiert `X-Request-ID` (UUID v4) falls nicht vorhanden. Sendet als Header an Go. |
 | **Go Gateway** | Liest `X-Request-ID` aus Request Header. Setzt als Context-Value. Gibt an alle internen Requests weiter. Inkludiert in Response Header + Error Body. |
 | **Python** | Liest `X-Request-ID` aus Request Header. Loggt in jedem Log-Eintrag. Inkludiert in Response Header. |
 | **Rust** | Erhält `request_id: String` als optionalen Parameter. Inkludiert in `PyResult::Err` Messages. |
@@ -909,3 +1119,302 @@ Real-Time State-Change Events fuer proaktive Agent-Reaktion.
 ```
 
 **Nutzung:** REST (`/api/agent/state`) fuer On-Demand Context Assembly bei Agent-Aufruf. WebSocket (`/api/agent/state-stream`) fuer proaktive Reaktion — z.B. "User hat auf Iran-Sanktions-Event geklickt → Game Theory Analyse vorbereiten".
+
+---
+
+## 14. Passkey / WebAuthn Scaffold Endpoints (Transitional, Phase 1a)
+
+> **Service:** Next.js API Routes (`/api/auth/passkeys/*`)  
+> **Status:** Scaffold / Feature-Flag (`AUTH_PASSKEY_SCAFFOLD_ENABLED=true`)  
+> **Zweck:** Vorbereitende WebAuthn Registration/Assertion-Flows mit Prisma-`Authenticator` Persistenz. **Noch keine NextAuth-Session-Erstellung**.
+
+### 14.1 Registration Options
+
+- **`POST /api/auth/passkeys/register/options`**
+
+```json
+// Request
+{
+  "email": "trader@example.com",
+  "displayName": "Trader"
+}
+```
+
+```json
+// Response 200 OK (Scaffold)
+{
+  "options": {
+    "challenge": "base64url...",
+    "rp": { "name": "TradeView Fusion", "id": "localhost" },
+    "user": { "id": "base64url...", "name": "trader@example.com", "displayName": "Trader" }
+  },
+  "meta": {
+    "mode": "scaffold",
+    "flow": "register",
+    "existingAuthenticators": 0,
+    "rpID": "localhost"
+  }
+}
+```
+
+**Serververhalten:**
+- Erstellt (oder findet) `User` via `email`.
+- Setzt httpOnly Challenge-Cookie (`tvf_passkey_reg_challenge`, TTL ~5min).
+
+### 14.2 Registration Verify
+
+- **`POST /api/auth/passkeys/register/verify`**
+
+```json
+// Request
+{
+  "credential": { "...": "RegistrationResponseJSON from browser" },
+  "nickname": "YubiKey 5C"
+}
+```
+
+```json
+// Response 200 OK (Scaffold)
+{
+  "verified": true,
+  "sessionEstablished": false,
+  "nextStep": "wire-passkey-verify-to-next-auth-session",
+  "userId": "usr_...",
+  "credential": {
+    "id": "base64urlCredentialId",
+    "deviceType": "singleDevice",
+    "backedUp": false,
+    "counter": 0
+  }
+}
+```
+
+**Serververhalten:**
+- Verifiziert WebAuthn Registration via `@simplewebauthn/server`.
+- Persistiert/updatet Prisma `Authenticator`.
+- Loescht Challenge-Cookie nach erfolgreicher Verifikation.
+
+### 14.3 Authentication Options
+
+- **`POST /api/auth/passkeys/authenticate/options`**
+
+```json
+// Request (optional discoverable flow, email optional)
+{
+  "email": "trader@example.com"
+}
+```
+
+```json
+// Response 200 OK (Scaffold)
+{
+  "options": {
+    "challenge": "base64url...",
+    "rpId": "localhost",
+    "allowCredentials": [{ "id": "base64urlCredentialId", "type": "public-key" }]
+  },
+  "meta": {
+    "mode": "scaffold",
+    "flow": "authenticate",
+    "allowCredentialsCount": 1,
+    "discoverableAllowed": false,
+    "rpID": "localhost"
+  }
+}
+```
+
+**Serververhalten:**
+- Setzt httpOnly Challenge-Cookie (`tvf_passkey_auth_challenge`, TTL ~5min).
+- Wenn `email` fehlt, wird discoverable Passkey-Flow erlaubt (`allowCredentials` leer/undefiniert).
+
+### 14.4 Authentication Verify
+
+- **`POST /api/auth/passkeys/authenticate/verify`**
+
+```json
+// Request
+{
+  "credential": { "...": "AuthenticationResponseJSON from browser" }
+}
+```
+
+```json
+// Response 200 OK (Scaffold)
+{
+  "verified": true,
+  "sessionEstablished": false,
+  "nextStep": "exchange-passkey-verification-for-next-auth-session",
+  "user": {
+    "id": "usr_...",
+    "email": "trader@example.com",
+    "role": "trader"
+  },
+  "credential": {
+    "id": "base64urlCredentialId",
+    "newCounter": 12,
+    "userVerified": true
+  },
+  "sessionBootstrap": {
+    "provider": "passkey-scaffold",
+    "userId": "usr_...",
+    "proof": "short-lived-proof-token",
+    "expiresAt": 1766751000000
+  }
+}
+```
+
+**Serververhalten:**
+- Liest `Authenticator` aus Prisma (via `credentialID`), verifiziert Assertion, updated `counter` + `lastUsedAt`.
+- Optionaler Scaffold-`sessionBootstrap` wird nur erzeugt, wenn `NEXT_PUBLIC_ENABLE_AUTH=true`; der Browser kann damit anschliessend `next-auth` Credentials-Provider `passkey-scaffold` aufrufen.
+- Finale Session-/JWT-Ausgabe fuer den produktiven Passkey-Flow (next-auth v5/Auth.js Passkey Provider + Prisma Adapter) bleibt weiterhin offen.
+
+### 14.5 JWT Revocation Admin Endpoint (Transitional, Phase 1b)
+
+- **`POST /api/v1/auth/revocations/jti`** (Go Gateway)
+- **RBAC:** `admin` (path-basiertes Go-RBAC-Scaffold)
+
+```json
+// Request
+{
+  "jti": "jwt-id-123",
+  "exp": 1893456000
+}
+```
+
+```json
+// Response 202 Accepted
+{
+  "accepted": true,
+  "jti": "jwt-id-123",
+  "expiresAt": "2030-01-01T00:00:00Z"
+}
+```
+
+**Hinweise:**
+- `exp` ist optional. Ohne `exp` nutzt die Blocklist die Default-TTL (`AUTH_JWT_BLOCKLIST_DEFAULT_TTL_MS`).
+- Endpoint fuellt die In-Memory-Revocation-Blocklist (transitional). Persistentes Audit + Refresh-Token-Revocation folgen spaeter.
+- Im aktuellen Go-Rate-Limit-Scaffold ist fuer diesen Endpoint eine Regel von **5 Requests / Minute** hinterlegt (`AUTH_RATE_LIMIT_ENFORCE=true`).
+- Ein transitional Audit-Read-Endpoint `GET /api/v1/auth/revocations/audit` ist vorhanden (admin-only, In-Memory-Ringbuffer).
+
+- **`GET /api/v1/auth/revocations/audit`** (Go Gateway, Transitional)
+- **RBAC:** `admin` (path-basiertes Go-RBAC-Scaffold)
+
+```json
+// Response 200 OK
+{
+  "items": [
+    {
+      "jti": "jwt-id-123",
+      "recordedAt": "2026-02-22T19:15:12.123456Z",
+      "expiresAt": "2030-01-01T00:00:00Z",
+      "requestId": "req_...",
+      "actorUser": "local-admin",
+      "actorRole": "admin",
+      "sourceIp": "203.0.113.10"
+    }
+  ],
+  "count": 1,
+  "limit": 50,
+  "newest": true
+}
+```
+
+**Hinweise (Audit):**
+- Optionaler Query-Parameter `limit` (Default `50`, Clamp `1..200`).
+- In-Memory-Audit-Ringbuffer (Runtime-Read), Kapazitaet via `AUTH_JWT_REVOCATION_AUDIT_CAPACITY`.
+- Optionaler Go-native SQLite-Store als DB-Baseline fuer Revocation-Audit (`AUTH_JWT_REVOCATION_AUDIT_DB_ENABLED`, `AUTH_JWT_REVOCATION_AUDIT_DB_PATH`); Handler liest bei Aktivierung bevorzugt aus SQLite und faellt bei Fehlern auf den Ringbuffer zurueck.
+- Faellt unter das bestehende Revocation-Rate-Limit-Scaffold (`/api/v1/auth/revocations/*`).
+
+### 14.6 Passkey Device Management (Transitional, Phase 1a)
+
+- **`GET /api/auth/passkeys/devices`** (Next.js, session-gebunden)
+
+```json
+// Response 200 OK
+{
+  "user": {
+    "id": "usr_...",
+    "email": "trader@example.com",
+    "role": "trader"
+  },
+  "items": [
+    {
+      "id": "cuid...",
+      "name": "Primary Passkey",
+      "credentialId": "base64urlCredentialId",
+      "deviceType": "singleDevice",
+      "backedUp": false,
+      "counter": 12,
+      "transports": ["internal"],
+      "createdAt": "2026-02-22T18:00:00.000Z",
+      "lastUsedAt": "2026-02-22T18:20:00.000Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+- **`DELETE /api/auth/passkeys/devices`** (Next.js, session-gebunden)
+
+```json
+// Request
+{
+  "authenticatorId": "cuid..."
+}
+```
+
+```json
+// Response 200 OK
+{
+  "deleted": true,
+  "authenticatorId": "cuid...",
+  "remaining": 1
+}
+```
+
+**Serververhalten:**
+- Verwendet NextAuth-Session (`getServerSession`) und ermittelt den User via `session.user.id` (Fallback `email`).
+- `DELETE` ist auf eigene Devices begrenzt und blockiert das Entfernen des letzten Passkeys (`409`), um Self-Lockout im Scaffold zu vermeiden.
+- `GET` liefert zusaetzlich eine minimale `user`-Payload (Session/User-Kontext) fuer die transitional Passkey-Settings-UI.
+- Im **Auth-Bypass-Modus** (`AUTH_STACK_BYPASS` / `NEXT_PUBLIC_AUTH_STACK_BYPASS`) liefert `GET` eine synthetische leere Liste (`bypass: true`) fuer testfreundliche UI-Smokes; mutierende Calls bleiben geblockt (`409`).
+
+### 14.7 Credentials Registration Baseline (Transitional, Phase 1a)
+
+- **`POST /api/auth/register`** (Next.js, Prisma-backed)
+
+```json
+// Request
+{
+  "email": "trader@example.com",
+  "name": "Trader",
+  "password": "correct horse battery staple"
+}
+```
+
+```json
+// Response 201 Created
+{
+  "created": true,
+  "user": {
+    "id": "cuid...",
+    "email": "trader@example.com",
+    "name": "Trader",
+    "role": "viewer",
+    "createdAt": "2026-02-23T22:00:00.000Z"
+  },
+  "nextStep": "sign-in"
+}
+```
+
+```json
+// Response 409 (auth disabled / bypass)
+{
+  "error": "registration disabled while auth bypass is enabled",
+  "bypass": true
+}
+```
+
+**Serververhalten:**
+- Erstellt einen Prisma-`User` mit optionalem `passwordHash` (Scrypt, serverseitig generiert).
+- Validiert minimale Passwortregeln (derzeit Baseline: `>=12` Zeichen).
+- Ist absichtlich **deaktiviert**, wenn Auth global aus oder im Test-/Dev-Bypass ist, damit CI/Smokes keine persistenten User erzeugen.

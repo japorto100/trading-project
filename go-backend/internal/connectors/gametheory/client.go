@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -72,8 +73,7 @@ type ImpactResponse struct {
 }
 
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
+	baseClient *base.Client
 }
 
 func NewClient(cfg Config) *Client {
@@ -81,18 +81,17 @@ func NewClient(cfg Config) *Client {
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
-	baseURL = strings.TrimRight(baseURL, "/")
-
 	timeout := cfg.RequestTimeout
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
 
 	return &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			BaseURL:    baseURL,
+			Timeout:    timeout,
+			RetryCount: 0,
+		}),
 	}
 }
 
@@ -130,12 +129,7 @@ func (c *Client) ScoreImpact(ctx context.Context, input ImpactRequest) (ImpactRe
 		return ImpactResponse{}, fmt.Errorf("encode gametheory payload: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		c.baseURL+defaultPath,
-		bytes.NewReader(body),
-	)
+	req, err := c.baseClient.NewRequest(ctx, http.MethodPost, defaultPath, nil, bytes.NewReader(body))
 	if err != nil {
 		return ImpactResponse{}, fmt.Errorf("build gametheory request: %w", err)
 	}
@@ -145,7 +139,7 @@ func (c *Client) ScoreImpact(ctx context.Context, input ImpactRequest) (ImpactRe
 		req.Header.Set("X-Request-ID", requestID)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.baseClient.Do(req)
 	if err != nil {
 		return ImpactResponse{}, fmt.Errorf("gametheory request failed: %w", err)
 	}

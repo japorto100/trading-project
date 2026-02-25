@@ -7,13 +7,17 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"tradeviewfusion/go-backend/internal/contracts"
+	marketstreaming "tradeviewfusion/go-backend/internal/services/market/streaming"
 )
 
 var streamSymbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
+var marketStreamSnapshotStore = marketstreaming.NewSnapshotStore()
+var marketStreamBuilders sync.Map
 
 type streamExchangeConfig struct {
 	upstream          string
@@ -102,6 +106,8 @@ type streamParams struct {
 	AssetType        string
 	Pair             gct.Pair
 	Source           string
+	Timeframe        string
+	AlertRules       []marketstreaming.AlertRule
 }
 
 func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
@@ -142,14 +148,91 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 
 		reconnectAttempts := 0
 		lastQuoteAt := ""
+		var candleBuilder *marketstreaming.CandleBuilder
+		var alertEngine *marketstreaming.AlertEngine
+		if params.Timeframe != "" {
+			builder, builderErr := getOrCreateStreamCandleBuilder(params)
+			if builderErr != nil {
+				http.Error(w, "invalid timeframe", http.StatusBadRequest)
+				return
+			}
+			candleBuilder = builder
+		}
+		if len(params.AlertRules) > 0 {
+			alertEngine = marketstreaming.NewAlertEngine()
+		}
+		snapshotKey := marketstreaming.SnapshotKey{
+			Symbol:    params.Symbol,
+			Exchange:  params.Exchange,
+			AssetType: params.AssetType,
+			Timeframe: params.Timeframe,
+		}
 
 		emitStreamStatus := func(state string, message string) {
 			_ = writeSSEEvent(w, "stream_status", map[string]any{
-				"state":             state,
-				"message":           message,
-				"reconnectAttempts": reconnectAttempts,
-				"lastQuoteAt":       lastQuoteAt,
+				"state":              state,
+				"message":            message,
+				"reconnectAttempts":  reconnectAttempts,
+				"lastQuoteAt":        lastQuoteAt,
+				"timeframe":          params.Timeframe,
+				"reconnectBackoffMs": 10000,
 			})
+			flusher.Flush()
+		}
+
+		emitSnapshot := func() {
+			snapshot, ok := marketStreamSnapshotStore.Get(snapshotKey)
+			if !ok {
+				return
+			}
+			_ = writeSSEEvent(w, "snapshot", snapshot)
+			flusher.Flush()
+		}
+
+		emitQuoteAndDerived := func(quote contracts.Quote) {
+			lastQuoteAt = time.Unix(quote.Timestamp, 0).UTC().Format(time.RFC3339)
+			marketStreamSnapshotStore.UpsertQuote(snapshotKey, quote)
+			_ = writeSSEEvent(w, "quote", quote)
+			if candleBuilder != nil {
+				res := candleBuilder.ApplyTick(marketstreaming.Tick{
+					Symbol:    quote.Symbol,
+					Exchange:  quote.Exchange,
+					AssetType: quote.AssetType,
+					Source:    quote.Source,
+					Timestamp: quote.Timestamp,
+					Last:      quote.Last,
+					Bid:       quote.Bid,
+					Ask:       quote.Ask,
+					High:      quote.High,
+					Low:       quote.Low,
+					Volume:    quote.Volume,
+				})
+				if res.Changed && !res.Dropped {
+					history := candleBuilder.Snapshot(8)
+					marketStreamSnapshotStore.UpsertCandle(snapshotKey, res.Candle, history)
+					_ = writeSSEEvent(w, "candle", map[string]any{
+						"symbol":       params.Symbol,
+						"exchange":     params.Exchange,
+						"assetType":    params.AssetType,
+						"timeframe":    params.Timeframe,
+						"candle":       res.Candle,
+						"outOfOrder":   res.OutOfOrder,
+						"wasNewCandle": res.WasNewCandle,
+						"emittedAt":    time.Now().UTC().Format(time.RFC3339Nano),
+					})
+				}
+			}
+			if alertEngine != nil {
+				alertEvents := alertEngine.EvaluateQuote(
+					params.Symbol,
+					quote.Last,
+					params.AlertRules,
+					time.Unix(quote.Timestamp, 0),
+				)
+				for _, alertEvent := range alertEvents {
+					_ = writeSSEEvent(w, "alert", alertEvent)
+				}
+			}
 			flusher.Flush()
 		}
 
@@ -196,12 +279,17 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 		} else {
 			emitStreamStatus("live", "live stream connected")
 		}
-		_ = writeSSEEvent(w, "ready", map[string]string{
+		readyPayload := map[string]string{
 			"symbol":    params.Symbol,
 			"exchange":  params.Exchange,
 			"assetType": params.AssetType,
-		})
+		}
+		if params.Timeframe != "" {
+			readyPayload["timeframe"] = params.Timeframe
+		}
+		_ = writeSSEEvent(w, "ready", readyPayload)
 		flusher.Flush()
+		emitSnapshot()
 
 		for {
 			select {
@@ -245,10 +333,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					Timestamp: timestamp,
 					Source:    params.Source,
 				}
-				lastQuoteAt = time.Unix(timestamp, 0).UTC().Format(time.RFC3339)
-
-				_ = writeSSEEvent(w, "quote", quote)
-				flusher.Flush()
+				emitQuoteAndDerived(quote)
 			case streamErr, ok := <-streamErrorChannel:
 				if !ok {
 					streamErrorChannel = nil
@@ -283,10 +368,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 					Timestamp: timestamp,
 					Source:    params.Source,
 				}
-				lastQuoteAt = time.Unix(timestamp, 0).UTC().Format(time.RFC3339)
-
-				_ = writeSSEEvent(w, "quote", quote)
-				flusher.Flush()
+				emitQuoteAndDerived(quote)
 			case <-reconnectTick:
 				reconnectAttempts++
 				emitStreamStatus("reconnecting", "attempting live stream reconnect")
@@ -309,6 +391,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 				disablePolling()
 				disableReconnect()
 				emitStreamStatus("live", "live stream reconnected")
+				emitSnapshot()
 			}
 		}
 	}
@@ -318,6 +401,7 @@ func resolveStreamParams(r *http.Request) (streamParams, error) {
 	symbol := streamValueOrDefault(r.URL.Query().Get("symbol"), "BTC/USDT")
 	exchange := strings.ToLower(streamValueOrDefault(r.URL.Query().Get("exchange"), "binance"))
 	assetType := strings.ToLower(streamValueOrDefault(r.URL.Query().Get("assetType"), "spot"))
+	timeframeRaw := strings.TrimSpace(r.URL.Query().Get("timeframe"))
 
 	exchangeConfig, ok := streamAllowedExchanges[exchange]
 	if !ok {
@@ -331,14 +415,29 @@ func resolveStreamParams(r *http.Request) (streamParams, error) {
 		return streamParams{}, fmt.Errorf("unsupported assetType")
 	}
 
-	return streamParams{
+	params := streamParams{
 		Symbol:           normalizedSymbol,
 		Exchange:         exchange,
 		UpstreamExchange: exchangeConfig.upstream,
 		AssetType:        assetType,
 		Pair:             pair,
 		Source:           exchangeConfig.source,
-	}, nil
+	}
+	if timeframeRaw != "" {
+		timeframe, err := marketstreaming.ParseTimeframe(timeframeRaw)
+		if err != nil {
+			return streamParams{}, fmt.Errorf("unsupported timeframe")
+		}
+		params.Timeframe = timeframe.Label
+	}
+	if rawAlertRules := strings.TrimSpace(r.URL.Query().Get("alertRules")); rawAlertRules != "" {
+		alertRules, err := parseStreamAlertRules(rawAlertRules)
+		if err != nil {
+			return streamParams{}, fmt.Errorf("invalid alertRules")
+		}
+		params.AlertRules = alertRules
+	}
+	return params, nil
 }
 
 func streamValueOrDefault(value, fallback string) string {
@@ -409,4 +508,81 @@ func writeSSEEvent(w http.ResponseWriter, event string, payload any) error {
 	}
 	_, err = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
 	return err
+}
+
+func getOrCreateStreamCandleBuilder(params streamParams) (*marketstreaming.CandleBuilder, error) {
+	if strings.TrimSpace(params.Timeframe) == "" {
+		return nil, nil
+	}
+	key := strings.Join([]string{
+		strings.ToUpper(strings.TrimSpace(params.Symbol)),
+		strings.ToLower(strings.TrimSpace(params.Exchange)),
+		strings.ToLower(strings.TrimSpace(params.AssetType)),
+		params.Timeframe,
+	}, "|")
+	if existing, ok := marketStreamBuilders.Load(key); ok {
+		builder, ok := existing.(*marketstreaming.CandleBuilder)
+		if !ok {
+			return nil, fmt.Errorf("stream candle builder type mismatch")
+		}
+		return builder, nil
+	}
+	builder, err := marketstreaming.NewCandleBuilder(params.Timeframe, marketstreaming.CandleBuilderOptions{
+		MaxCandles:           512,
+		MaxOutOfOrderBuckets: 4,
+	})
+	if err != nil {
+		return nil, err
+	}
+	actual, loaded := marketStreamBuilders.LoadOrStore(key, builder)
+	if loaded {
+		typed, ok := actual.(*marketstreaming.CandleBuilder)
+		if !ok {
+			return nil, fmt.Errorf("stream candle builder type mismatch")
+		}
+		return typed, nil
+	}
+	return builder, nil
+}
+
+type streamAlertRulePayload struct {
+	ID        string  `json:"id"`
+	Symbol    string  `json:"symbol"`
+	Condition string  `json:"condition"`
+	Target    float64 `json:"target"`
+	Message   string  `json:"message"`
+	Enabled   bool    `json:"enabled"`
+}
+
+func parseStreamAlertRules(raw string) ([]marketstreaming.AlertRule, error) {
+	var payload []streamAlertRulePayload
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 {
+		return nil, nil
+	}
+	out := make([]marketstreaming.AlertRule, 0, len(payload))
+	for _, rule := range payload {
+		symbol := strings.TrimSpace(strings.ToUpper(rule.Symbol))
+		id := strings.TrimSpace(rule.ID)
+		if id == "" || symbol == "" {
+			continue
+		}
+		condition := marketstreaming.AlertCondition(strings.TrimSpace(rule.Condition))
+		switch condition {
+		case marketstreaming.AlertAbove, marketstreaming.AlertBelow, marketstreaming.AlertCrossesUp, marketstreaming.AlertCrossesDown:
+		default:
+			continue
+		}
+		out = append(out, marketstreaming.AlertRule{
+			ID:        id,
+			Symbol:    symbol,
+			Condition: condition,
+			Target:    rule.Target,
+			Message:   strings.TrimSpace(rule.Message),
+			Enabled:   rule.Enabled,
+		})
+	}
+	return out, nil
 }

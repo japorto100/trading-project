@@ -11,6 +11,7 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
+	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
 	try {
 		const result = await fetchGeopoliticalContextViaGateway({
 			source: (request.nextUrl.searchParams.get("source") ?? undefined) as
@@ -22,6 +23,7 @@ export async function GET(request: NextRequest) {
 			region: request.nextUrl.searchParams.get("region") ?? undefined,
 			limit: Number(request.nextUrl.searchParams.get("limit") ?? "12"),
 			requestId,
+			userRole,
 		});
 		return withRequestIdHeader(
 			NextResponse.json({

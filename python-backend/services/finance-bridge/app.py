@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import os
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -8,14 +11,40 @@ import sys
 from fastapi import HTTPException, Query
 import yfinance as yf
 
+try:
+    import polars as pl
+except Exception:  # noqa: BLE001
+    pl = None
+
 PYTHON_BACKEND_ROOT = Path(__file__).resolve().parents[2]
 if str(PYTHON_BACKEND_ROOT) not in sys.path:
     sys.path.append(str(PYTHON_BACKEND_ROOT))
 
 from services._shared import create_service_app  # noqa: E402
 
+try:
+    import tradeviewfusion_rust_core as _rust_core
+except Exception as error:  # noqa: BLE001
+    _rust_core = None
+    _rust_core_import_error = error
+else:
+    _rust_core_import_error = None
+
 
 app = create_service_app("finance-bridge")
+
+
+RUST_OHLCV_CACHE_ENABLED = os.getenv("RUST_OHLCV_CACHE_ENABLED", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+RUST_OHLCV_CACHE_PATH = str(
+    (PYTHON_BACKEND_ROOT / ".cache" / "rust-ohlcv-cache.redb")
+    if not os.getenv("RUST_OHLCV_CACHE_PATH")
+    else Path(os.environ["RUST_OHLCV_CACHE_PATH"])
+)
 
 
 INDEX_SYMBOL_MAP = {
@@ -113,9 +142,105 @@ def as_unix_timestamp(value: Any) -> int:
     return 0
 
 
+def rust_ohlcv_cache_status() -> dict[str, Any]:
+    has_cache_fns = bool(
+        _rust_core is not None
+        and hasattr(_rust_core, "redb_cache_set")
+        and hasattr(_rust_core, "redb_cache_get")
+    )
+    return {
+        "enabled": RUST_OHLCV_CACHE_ENABLED,
+        "available": has_cache_fns,
+        "path": RUST_OHLCV_CACHE_PATH,
+        "error": None if _rust_core_import_error is None else str(_rust_core_import_error),
+    }
+
+
+def dataframe_status() -> dict[str, Any]:
+    if pl is None:
+        return {"available": False, "engine": None, "version": None, "error": "polars import failed"}
+    return {
+        "available": True,
+        "engine": "polars",
+        "version": getattr(pl, "__version__", None),
+        "error": None,
+    }
+
+
+def ohlcv_cache_key(symbol: str, timeframe: str, limit: int, start: int | None, end: int | None) -> str:
+    return f"{symbol.upper()}|{timeframe}|{limit}|{start or 0}|{end or 0}"
+
+
+def ohlcv_cache_ttl_ms(timeframe: str) -> int:
+    if timeframe in {"1m", "5m", "15m", "30m"}:
+        return 15_000
+    if timeframe in {"1H", "4H"}:
+        return 60_000
+    if timeframe == "1D":
+        return 300_000
+    return 900_000
+
+
+def rust_cache_get_json(key: str) -> list[dict[str, Any]] | None:
+    if not RUST_OHLCV_CACHE_ENABLED or _rust_core is None:
+        return None
+    if not hasattr(_rust_core, "redb_cache_get"):
+        return None
+    try:
+        cached = _rust_core.redb_cache_get(RUST_OHLCV_CACHE_PATH, key, None)
+    except Exception:  # noqa: BLE001
+        return None
+    if not cached:
+        return None
+    try:
+        decoded = json.loads(cached)
+    except Exception:  # noqa: BLE001
+        return None
+    return decoded if isinstance(decoded, list) else None
+
+
+def rust_cache_set_json(key: str, rows: list[dict[str, Any]], ttl_ms: int) -> None:
+    if not RUST_OHLCV_CACHE_ENABLED or _rust_core is None:
+        return
+    if not hasattr(_rust_core, "redb_cache_set"):
+        return
+    try:
+        Path(RUST_OHLCV_CACHE_PATH).parent.mkdir(parents=True, exist_ok=True)
+        _rust_core.redb_cache_set(
+            RUST_OHLCV_CACHE_PATH,
+            key,
+            json.dumps(rows, separators=(",", ":"), ensure_ascii=True),
+            int(ttl_ms),
+        )
+    except Exception:  # noqa: BLE001
+        return
+
+
+def normalize_ohlcv_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], str]:
+    if not rows:
+        return rows, "python"
+    if pl is None:
+        return rows, "python"
+    try:
+        frame = pl.DataFrame(rows).sort("time")
+        normalized = frame.select(
+            [
+                pl.col("time").cast(pl.Int64),
+                pl.col("open").cast(pl.Float64),
+                pl.col("high").cast(pl.Float64),
+                pl.col("low").cast(pl.Float64),
+                pl.col("close").cast(pl.Float64),
+                pl.col("volume").cast(pl.Float64),
+            ]
+        )
+        return [dict(row) for row in normalized.iter_rows(named=True)], "polars"
+    except Exception:  # noqa: BLE001
+        return rows, "python"
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"ok": True}
+    return {"ok": True, "rustOhlcvCache": rust_ohlcv_cache_status(), "dataframe": dataframe_status()}
 
 
 @app.get("/quote")
@@ -157,6 +282,18 @@ def ohlcv(
     start: int | None = Query(default=None),
     end: int | None = Query(default=None),
 ) -> dict[str, Any]:
+    cache_key = ohlcv_cache_key(symbol, timeframe, limit, start, end)
+    cache_lookup_started = time.perf_counter()
+    cached_rows = rust_cache_get_json(cache_key)
+    cache_lookup_ms = round((time.perf_counter() - cache_lookup_started) * 1000.0, 3)
+    if cached_rows is not None:
+        normalized_rows, dataframe_engine = normalize_ohlcv_rows(cached_rows)
+        return {
+            "data": normalized_rows,
+            "cache": {"hit": True, "engine": "redb", "lookupMs": cache_lookup_ms},
+            "dataframe": {"engine": dataframe_engine},
+        }
+
     yahoo_symbol = to_yahoo_symbol(symbol)
     interval, period = map_timeframe(timeframe)
     ticker = yf.Ticker(yahoo_symbol)
@@ -184,7 +321,7 @@ def ohlcv(
 
     rows: list[dict[str, Any]] = []
     for ts, row in hist.tail(limit).iterrows():
-        unix_time = int(ts.timestamp())
+        unix_time = as_unix_timestamp(ts)
         rows.append(
             {
                 "time": unix_time,
@@ -196,7 +333,20 @@ def ohlcv(
             }
         )
 
-    return {"data": rows}
+    rows, dataframe_engine = normalize_ohlcv_rows(rows)
+    cache_store_started = time.perf_counter()
+    rust_cache_set_json(cache_key, rows, ohlcv_cache_ttl_ms(timeframe))
+    cache_store_ms = round((time.perf_counter() - cache_store_started) * 1000.0, 3)
+    return {
+        "data": rows,
+        "cache": {
+            "hit": False,
+            "engine": "redb" if rust_ohlcv_cache_status()["available"] else None,
+            "lookupMs": cache_lookup_ms,
+            "storeMs": cache_store_ms,
+        },
+        "dataframe": {"engine": dataframe_engine},
+    }
 
 
 @app.get("/search")

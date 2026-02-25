@@ -150,10 +150,12 @@ export class DemoProvider implements MarketDataProvider {
 
 		const timeframeMs: Record<TimeframeValue, number> = {
 			"1m": 60 * 1000,
+			"3m": 3 * 60 * 1000,
 			"5m": 5 * 60 * 1000,
 			"15m": 15 * 60 * 1000,
 			"30m": 30 * 60 * 1000,
 			"1H": 60 * 60 * 1000,
+			"2H": 2 * 60 * 60 * 1000,
 			"4H": 4 * 60 * 60 * 1000,
 			"1D": 24 * 60 * 60 * 1000,
 			"1W": 7 * 24 * 60 * 60 * 1000,

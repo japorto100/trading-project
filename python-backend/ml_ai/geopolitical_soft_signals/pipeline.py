@@ -234,7 +234,6 @@ def _finbert_cache_key(text: str) -> str:
 
 
 def _finbert_cache_get(key: str, now: float) -> float | None:
-    ttl_seconds = env_int("FINBERT_HF_CACHE_TTL_MS", 600000) / 1000.0
     with _FINBERT_CACHE_LOCK:
         cached = _FINBERT_CACHE.get(key)
         if not cached:
@@ -390,7 +389,7 @@ def build_news_cluster_ml(payload: SignalRequest) -> SignalResponse | None:
     try:
         vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1, max_features=1500)
         features = vectorizer.fit_transform(texts)
-        model = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        model = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         labels = model.fit_predict(features)
     except Exception:
         return None

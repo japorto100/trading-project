@@ -14,6 +14,7 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
+	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
 	const source = request.nextUrl.searchParams.get("source")?.trim().toLowerCase() ?? "local";
 	if (source !== "local" && source !== "acled" && source !== "gdelt") {
 		return withRequestIdHeader(
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
 				page: Number(request.nextUrl.searchParams.get("page") ?? "1"),
 				pageSize: Number(request.nextUrl.searchParams.get("pageSize") ?? "50"),
 				requestId,
+				userRole,
 			});
 
 			const normalizedQuery = q?.trim().toLowerCase();

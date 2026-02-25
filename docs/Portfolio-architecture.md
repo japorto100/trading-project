@@ -434,6 +434,11 @@ Wir brauchen drei verschiedene Visualisierungstypen:
 
 Aktueller PortfolioPanel (`src/features/trading/PortfolioPanel.tsx`, 245 LoC) wird erweitert mit Tab-Navigation:
 
+> **Ausfuehrungs-Hinweis (Execution Plan):**
+> - **Phase 5e** deckt die strukturelle Trading-/Portfolio-UX-Konsolidierung ab (Panel-Komposition, konsistente States, responsive Verhalten, Prototype-Cleanup).
+> - **Phase 13** bleibt fuer fortgeschrittene Portfolio-/Optimize-Features.
+> - **Phase 21** bleibt fuer finalen cross-app UI-Polish / Hardening.
+
 ```
 ┌─────────────────────────────────────────────────┐
 │ Portfolio Tracker                    [Live]      │

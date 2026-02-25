@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,8 @@ function num(value: string): number {
 export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 	const [orders, setOrders] = useState<PaperOrder[]>([]);
 	const [loadingOrders, setLoadingOrders] = useState(false);
+	const [ordersError, setOrdersError] = useState<string | null>(null);
+	const [lastOrdersLoadAt, setLastOrdersLoadAt] = useState<string | null>(null);
 	const [side, setSide] = useState<OrderSide>("buy");
 	const [orderType, setOrderType] = useState<OrderType>("market");
 	const [quantity, setQuantity] = useState("1");
@@ -37,38 +40,48 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 	const [takeProfit, setTakeProfit] = useState("");
 	const profileKey = useMemo(() => getClientProfileKey(), []);
 
-	const loadOrders = useCallback(async () => {
-		setLoadingOrders(true);
-		try {
-			const params = new URLSearchParams({
-				profileKey,
-				symbol,
-			});
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 5000);
-			const response = await fetch(`/api/fusion/orders?${params.toString()}`, {
-				cache: "no-store",
-				signal: controller.signal,
-			});
-			clearTimeout(timeoutId);
-
-			if (!response.ok) {
-				throw new Error(`Orders fetch failed (${response.status})`);
-			}
-
-			const payload = (await response.json()) as { orders?: PaperOrder[] };
-			setOrders(Array.isArray(payload.orders) ? payload.orders : []);
-		} catch (error) {
-			if (!(error instanceof DOMException && error.name === "AbortError")) {
-				toast({
-					title: "Orders unavailable",
-					description: error instanceof Error ? error.message : "Could not load paper orders.",
+	const loadOrders = useCallback(
+		async (options?: { manual?: boolean }) => {
+			const manual = options?.manual ?? false;
+			setLoadingOrders(true);
+			try {
+				const params = new URLSearchParams({
+					profileKey,
+					symbol,
 				});
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 5000);
+				const response = await fetch(`/api/fusion/orders?${params.toString()}`, {
+					cache: "no-store",
+					signal: controller.signal,
+				});
+				clearTimeout(timeoutId);
+
+				if (!response.ok) {
+					throw new Error(`Orders fetch failed (${response.status})`);
+				}
+
+				const payload = (await response.json()) as { orders?: PaperOrder[] };
+				setOrders(Array.isArray(payload.orders) ? payload.orders : []);
+				setOrdersError(null);
+				setLastOrdersLoadAt(new Date().toISOString());
+			} catch (error) {
+				if (!(error instanceof DOMException && error.name === "AbortError")) {
+					const message = error instanceof Error ? error.message : "Could not load paper orders.";
+					setOrdersError(message);
+					if (manual) {
+						toast({
+							title: "Orders unavailable",
+							description: message,
+						});
+					}
+				}
+			} finally {
+				setLoadingOrders(false);
 			}
-		} finally {
-			setLoadingOrders(false);
-		}
-	}, [profileKey, symbol]);
+		},
+		[profileKey, symbol],
+	);
 
 	useEffect(() => {
 		void loadOrders();
@@ -194,9 +207,40 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 		<div className="flex h-full flex-col">
 			<div className="border-b border-border p-3 space-y-3">
 				<div className="flex items-center justify-between gap-2">
-					<p className="text-sm font-medium">Paper Order Ticket</p>
-					<Badge variant="outline">Mark {markPrice.toFixed(4)}</Badge>
+					<div>
+						<p className="text-sm font-medium">Paper Order Ticket</p>
+						<p className="text-xs text-muted-foreground">
+							Orders{" "}
+							{lastOrdersLoadAt
+								? `updated ${new Date(lastOrdersLoadAt).toLocaleTimeString()}`
+								: "not loaded yet"}
+						</p>
+					</div>
+					<div className="flex items-center gap-2">
+						<Badge variant="outline">Mark {markPrice.toFixed(4)}</Badge>
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							className="h-8"
+							onClick={() => void loadOrders({ manual: true })}
+							disabled={loadingOrders}
+						>
+							{loadingOrders ? "Refreshing..." : "Refresh"}
+						</Button>
+					</div>
 				</div>
+				{ordersError ? (
+					<Alert>
+						<AlertTitle>Order sync unavailable</AlertTitle>
+						<AlertDescription>
+							<p>{ordersError}</p>
+							<p>
+								Existing order data remains visible. Manual actions still show toasts on failure.
+							</p>
+						</AlertDescription>
+					</Alert>
+				) : null}
 
 				<div className="grid grid-cols-2 gap-2">
 					<Button

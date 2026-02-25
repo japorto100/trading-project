@@ -1,4 +1,10 @@
-export type SidebarPanel = "watchlist" | "indicators" | "news" | "orders" | "portfolio";
+export type SidebarPanel =
+	| "watchlist"
+	| "indicators"
+	| "news"
+	| "orders"
+	| "portfolio"
+	| "strategy";
 export type WatchlistTab =
 	| "all"
 	| "favorites"
@@ -9,6 +15,16 @@ export type WatchlistTab =
 	| "indices";
 export type DataMode = "api" | "fallback";
 export type LayoutMode = "single" | "2h" | "2v" | "4";
+
+export interface CompositeSignalInsights {
+	signal: "buy" | "sell" | "neutral";
+	confidence: number;
+	heartbeatScore: number | null;
+	sma50SlopeScore: number | null;
+	sma50SlopeEngine: string | null;
+	volumePowerScore: number | null;
+	timestamp: number;
+}
 
 export interface SignalSnapshot {
 	lineState: "above" | "below" | "neutral";

@@ -96,11 +96,67 @@ export interface GeoCandidatesStoreFile {
 	candidates: GeoCandidate[];
 }
 
+export interface GeoContradictionEvidence {
+	id: string;
+	kind: "source" | "note" | "candidate_link" | "event_link";
+	label: string;
+	note?: string;
+	url?: string;
+	candidateId?: string;
+	eventId?: string;
+	createdAt: string;
+	createdBy: string;
+}
+
+export interface GeoContradictionResolution {
+	outcome:
+		| "prefer_statement_a"
+		| "prefer_statement_b"
+		| "merged_into_event"
+		| "merged_into_candidate"
+		| "defer_monitoring"
+		| "insufficient_evidence";
+	note?: string;
+	mergedEventId?: string;
+	mergedCandidateId?: string;
+	resolvedAt: string;
+	resolvedBy: string;
+}
+
+export interface GeoContradiction {
+	id: string;
+	title: string;
+	state: "open" | "resolved";
+	severityHint: GeoSeverity;
+	regionId?: string;
+	countryCode?: string;
+	summary?: string;
+	statementA: string;
+	statementB: string;
+	sourceRefs: GeoSourceRef[];
+	candidateIds?: string[];
+	evidence: GeoContradictionEvidence[];
+	resolution?: GeoContradictionResolution;
+	createdAt: string;
+	updatedAt: string;
+	createdBy: string;
+	updatedBy: string;
+}
+
+export interface GeoContradictionsStoreFile {
+	contradictions: GeoContradiction[];
+}
+
 export interface GeoTimelineEntry {
 	id: string;
 	eventId: string;
 	action:
 		| "created"
+		| "contradiction_created"
+		| "contradiction_resolution_updated"
+		| "contradiction_evidence_updated"
+		| "contradiction_resolved"
+		| "contradiction_reopened"
 		| "status_changed"
 		| "severity_changed"
 		| "confidence_changed"

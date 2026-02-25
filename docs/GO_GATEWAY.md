@@ -3,6 +3,7 @@
 > **Stand:** 20. Februar 2026  
 > **Zweck:** Detaillierte Integration des Go Gateways mit Frontend, AI-Agents und alternativen Protokollen. Ergänzt `.cursor/rules/go-backend.mdc` und `docs/specs/API_CONTRACTS.md`.  
 > **Auth-Referenz:** `docs/specs/AUTH_SECURITY.md` — MCP-Sicherheit siehe dort Sek. 8.
+> **Reihenfolge-Hinweis (23. Feb 2026, Codex):** Vor der breiten `REFERENCE_PROJECTS.md`-Expansion wurde die priorisierte Bestands-HTTP-Connector-Queue auf `internal/connectors/base.Client` vereinheitlicht. Ab hier gilt: **Reference-Quellen gruppenweise (G4 -> G3) und contract-first**, nicht ad hoc.
 
 ---
 
@@ -54,6 +55,42 @@ export default async function TradingPage() {
 ### Go-Seite: Keine Änderung nötig
 
 Go Gateway bleibt unverändert. RSC nutzt dieselben REST-Endpoints. Einzige Anforderung: Go muss **server-seitige Requests** akzeptieren (andere `User-Agent`, gleiche Auth via Cookie-Forwarding durch Next.js).
+
+---
+
+## 1b. Provider-Expansion-Methodik (GCT-inspirierte Patterns)
+
+> **Kontext:** Fuer 40+ zusaetzliche Quellen (Phase 7/14) nutzen wir die in Phase 0 eingefuehrte BaseConnector-/Adaptive-Router-Struktur. Dabei werden **Methoden aus GoCryptoTrader** uebernommen (Robustheit, WS-Lifecycle, Fehlerklassen), aber Nicht-Crypto-Quellen bleiben in unserer eigenen `internal/connectors/base` Architektur.
+
+### Prinzip
+
+- **GCT als Pattern-Referenz**, nicht als universelles Domaenenmodell fuer Macro/Legal/Geo
+- **Router-Metadaten (`group`, `kind`)** in `go-backend/config/provider-router.yaml`
+- **Capability-Matrix** pro Provider (statt riesigem Interface)
+- **Fehlerklassen** fuer Retry/Circuit/Fallback-Entscheidungen
+
+### Bereits begonnen (Go-Layer)
+
+- `internal/connectors/base/capabilities.go`
+- `internal/connectors/base/error_classification.go`
+- `internal/connectors/base/sdmx_client.go`
+- `internal/connectors/base/timeseries.go`
+- `internal/connectors/base/bulk_fetcher.go`
+- `internal/connectors/base/rss_client.go`
+- `internal/connectors/base/diff_watcher.go`
+- `internal/connectors/base/translation.go`
+- `internal/connectors/base/oracle_client.go`
+- **Bereits migrierte Bestands-Connectoren auf `base.Client`:** `acled`, `finnhub`, `fred`, `ecb`, `indicatorservice`, `financebridge`, `softsignals`, `geopoliticalnext`, `gdelt`, `news/*`, `gametheory`, `crisiswatch`
+- **Bestands-Queue Status:** Die priorisierten produktiven HTTP-Connectoren sind auf `base.Client` vereinheitlicht. Naechster Fokus: **Reference-Quellen gruppenweise** (`G4` Zentralbank-Zeitreihen, dann `G3` SDMX), contract-first + router metadata/capabilities gepflegt.
+- **Reference-Start (G4):** `BCB` (SGS), `Banxico` (SIE), `BoK ECOS`, `BCRA` (Principales Variables v4), `TCMB EVDS3` und ein erster `RBI DBIE`-Slice (FX Reserves) sind integriert (`internal/connectors/bcb`, `internal/connectors/banxico`, `internal/connectors/bok`, `internal/connectors/bcra`, `internal/connectors/tcmb`, `internal/connectors/rbi`) und via `market.NewRoutedMacroClient(...)` + Prefix-Registry in Quote-/Macro-History-Pfade verdrahtet. Prefixe: `BCB_SGS_*`, `BANXICO_*`, `BOK_ECOS_*`, `BCRA_*`, `TCMB_EVDS_*`, `RBI_DBIE_FXRES_*`. Dieses Prefix-Routing reduziert source-spezifische Sonderfaelle in `internal/app/wiring.go` und ist die Basis fuer weitere G4-Provider und spaetere RBI-DBIE-Dataset-Erweiterungen.
+- **G3-SDMX Foundation (vor Connector-Batch):** `internal/connectors/base/sdmx_client.go` besitzt jetzt einen geordneten Dimension-Key-Builder, Dataflow-/Datastructure-Pfad-Helper, Query-Optionen und einen generischen SDMX-JSON-Single-Series-Parser. Damit koennen `ECB`/`OECD`/`IMF`-Connectoren im naechsten Schritt gruppenweise statt als Einzelloesungen gebaut werden (Research-Matrix: `docs/tmp/G3_SDMX_SOURCE_INTAKE_2026-02-23.md`).
+
+### Empfohlene Reihenfolge (effizient)
+
+1. **G1 + G4** (REST + Zentralbank-Zeitreihen): hoechster Hebel bei moderater Komplexitaet  
+2. **G3 SDMX**: ein Client erschliesst mehrere globale Makroquellen  
+3. **G5/G6/G7** (Bulk/RSS/Diff): starke Coverage fuer Geo/Legal ohne Realtime-Komplexitaet  
+4. **G8/G9/G10** gezielt nach Produktbedarf/Lizenz/Freigaben
 
 ---
 

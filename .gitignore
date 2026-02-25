@@ -16,9 +16,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# env files
+# env
 .env
 .env.local
+.env.development
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local
@@ -35,8 +37,14 @@ Thumbs.db
 # bun
 .bun/
 
-# local backend storage
-data/
+# local backend storage (repo root only)
+/data/
+tmp/
+docs/tmp/
+screenshots/
+test-results/
+trace_geomap.json
+.claude/
 
 # python
 **/.venv/
@@ -44,6 +52,7 @@ data/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+**/.cache/
 *.pyc
 
 # Go
@@ -55,6 +64,8 @@ go.work.sum
 
 # Go backend local artifacts
 go-backend/.env
+go-backend/.env.development
+go-backend/.env.production
 go-backend/gateway
 go-backend/gateway.exe
 go-backend/vendor-forks/gocryptotrader/gocryptotrader
@@ -64,3 +75,16 @@ go-backend/vendor-forks/gocryptotrader/.cache/
 
 # local backup files
 **/*.go.[0-9]*
+
+# local databases / sqlite
+*.db
+*.sqlite
+*.sqlite3
+
+# rust build artifacts
+**/target/
+
+# accidental local artifacts
+python-backend/=1,
+
+python-backend/.env

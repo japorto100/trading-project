@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { scoreCandidateConfidence } from "@/lib/geopolitical/confidence";
+import { formatGeoAutoReviewNote } from "@/lib/geopolitical/ingestion-contracts";
 import type { GeoCandidate, GeoSourceRef } from "@/lib/geopolitical/types";
-import { fetchMarketNews } from "@/lib/news/aggregator";
 
 export interface SoftSignalAdapter {
 	id: string;
 	description: string;
 	enabledByDefault: boolean;
-	run: () => Promise<GeoCandidate[]>;
+	run: (context?: { requestId?: string; userRole?: string }) => Promise<GeoCandidate[]>;
 }
 
 interface SoftSignalArticle {
@@ -41,8 +41,24 @@ interface SoftSignalResponse {
 	candidates?: SoftSignalCandidatePayload[];
 }
 
-const DEFAULT_SOFT_SIGNAL_BASE_URL = "http://127.0.0.1:8091";
+interface GatewayNewsHeadline {
+	title: string;
+	url: string;
+	source: string;
+	publishedAt: string;
+	summary?: string;
+}
+
+interface GatewayNewsResponse {
+	success?: boolean;
+	data?: {
+		items?: GatewayNewsHeadline[];
+	};
+}
+
+const DEFAULT_GO_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 const DEFAULT_SOFT_SIGNAL_TIMEOUT_MS = 8000;
+const DEFAULT_NEWS_TIMEOUT_MS = 8000;
 
 function isSoftSignalEnabled(): boolean {
 	const raw = process.env.GEOPOLITICAL_SOFT_SIGNAL_ENABLED;
@@ -52,14 +68,19 @@ function isSoftSignalEnabled(): boolean {
 }
 
 function getSoftSignalBaseUrl(): string {
-	const raw = process.env.GEOPOLITICAL_SOFT_SIGNAL_URL?.trim();
-	if (!raw) return DEFAULT_SOFT_SIGNAL_BASE_URL;
-	return raw.replace(/\/$/, "");
+	const gatewayBaseUrl = process.env.GO_GATEWAY_BASE_URL?.trim();
+	if (gatewayBaseUrl) return gatewayBaseUrl.replace(/\/$/, "");
+	return DEFAULT_GO_GATEWAY_BASE_URL;
 }
 
 function getSoftSignalTimeoutMs(): number {
 	const parsed = Number(process.env.GEOPOLITICAL_SOFT_SIGNAL_TIMEOUT_MS);
 	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_SOFT_SIGNAL_TIMEOUT_MS;
+}
+
+function getGatewayNewsTimeoutMs(): number {
+	const parsed = Number(process.env.NEWS_HTTP_TIMEOUT_MS);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_NEWS_TIMEOUT_MS;
 }
 
 function sanitizeTier(value: unknown): "A" | "B" | "C" {
@@ -175,35 +196,77 @@ function toSoftCandidate(
 		? Math.min(1, Math.max(0, hintedConfidence))
 		: undefined;
 
+	const confidence =
+		boundedHint !== undefined
+			? Math.max(boundedHint, scoreCandidateConfidence(candidateBase))
+			: scoreCandidateConfidence(candidateBase);
+
 	return {
 		...candidateBase,
-		confidence:
-			boundedHint !== undefined
-				? Math.max(boundedHint, scoreCandidateConfidence(candidateBase))
-				: scoreCandidateConfidence(candidateBase),
+		confidence,
+		reviewNote: formatGeoAutoReviewNote({
+			pipeline: "soft",
+			adapterId,
+			triggerType: candidateBase.triggerType,
+			confidence,
+			sourceRefs: candidateBase.sourceRefs,
+			category: candidateBase.category,
+		}),
 	};
 }
 
-async function fetchSoftSignalArticles(query: string, limit: number): Promise<SoftSignalArticle[]> {
-	const news = await fetchMarketNews({
-		q: query,
-		limit,
-		forceRefresh: true,
-	});
+async function fetchSoftSignalArticles(
+	query: string,
+	limit: number,
+	options?: { requestId?: string; userRole?: string },
+): Promise<SoftSignalArticle[]> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), getGatewayNewsTimeoutMs());
 
-	return news.articles.map((article) => ({
-		title: article.title,
-		url: article.url,
-		publishedAt: article.publishedAt,
-		source: article.source,
-		summary: article.summary,
-	}));
+	try {
+		const endpoint = new URL("/api/v1/news/headlines", getSoftSignalBaseUrl());
+		endpoint.searchParams.set("q", query);
+		endpoint.searchParams.set("limit", String(limit));
+
+		const headers: Record<string, string> = {
+			Accept: "application/json",
+			"X-Request-ID": options?.requestId?.trim() || randomUUID(),
+		};
+		if (options?.userRole?.trim()) {
+			headers["X-User-Role"] = options.userRole.trim();
+		}
+
+		const response = await fetch(endpoint.toString(), {
+			method: "GET",
+			headers,
+			signal: controller.signal,
+			cache: "no-store",
+		});
+		if (!response.ok) {
+			return [];
+		}
+
+		const payload = (await response.json()) as GatewayNewsResponse;
+		const items = Array.isArray(payload.data?.items) ? payload.data.items : [];
+		return items.map((article) => ({
+			title: article.title,
+			url: article.url,
+			publishedAt: article.publishedAt,
+			source: article.source,
+			summary: article.summary,
+		}));
+	} catch {
+		return [];
+	} finally {
+		clearTimeout(timeout);
+	}
 }
 
 async function callSoftSignalService(
 	path: string,
 	articles: SoftSignalArticle[],
 	adapterId: string,
+	options?: { requestId?: string; userRole?: string },
 ): Promise<GeoCandidate[]> {
 	if (articles.length === 0) {
 		return [];
@@ -213,12 +276,18 @@ async function callSoftSignalService(
 	const timeout = setTimeout(() => controller.abort(), getSoftSignalTimeoutMs());
 
 	try {
+		const headers: Record<string, string> = {
+			"Content-Type": "application/json",
+			Accept: "application/json",
+			"X-Request-ID": options?.requestId?.trim() || randomUUID(),
+		};
+		if (options?.userRole?.trim()) {
+			headers["X-User-Role"] = options.userRole.trim();
+		}
+
 		const response = await fetch(`${getSoftSignalBaseUrl()}${path}`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "application/json",
-			},
+			headers,
 			body: JSON.stringify({
 				adapterId,
 				generatedAt: new Date().toISOString(),
@@ -254,31 +323,43 @@ async function callSoftSignalService(
 	}
 }
 
-async function runNewsClusterAdapter(): Promise<GeoCandidate[]> {
+async function runNewsClusterAdapter(context?: {
+	requestId?: string;
+	userRole?: string;
+}): Promise<GeoCandidate[]> {
 	if (!isSoftSignalEnabled()) return [];
 	const articles = await fetchSoftSignalArticles(
 		"geopolitics sanctions central bank conflict ceasefire election",
 		30,
+		context,
 	);
-	return callSoftSignalService("/api/v1/cluster-headlines", articles, "news_cluster");
+	return callSoftSignalService("/api/v1/cluster-headlines", articles, "news_cluster", context);
 }
 
-async function runSocialSurgeAdapter(): Promise<GeoCandidate[]> {
+async function runSocialSurgeAdapter(context?: {
+	requestId?: string;
+	userRole?: string;
+}): Promise<GeoCandidate[]> {
 	if (!isSoftSignalEnabled()) return [];
 	const articles = await fetchSoftSignalArticles(
 		"reddit OR social media OR x.com geopolitics sanctions narrative",
 		30,
+		context,
 	);
-	return callSoftSignalService("/api/v1/social-surge", articles, "social_surge");
+	return callSoftSignalService("/api/v1/social-surge", articles, "social_surge", context);
 }
 
-async function runNarrativeShiftAdapter(): Promise<GeoCandidate[]> {
+async function runNarrativeShiftAdapter(context?: {
+	requestId?: string;
+	userRole?: string;
+}): Promise<GeoCandidate[]> {
 	if (!isSoftSignalEnabled()) return [];
 	const articles = await fetchSoftSignalArticles(
 		"narrative shift policy escalation sanctions rhetoric central bank messaging",
 		36,
+		context,
 	);
-	return callSoftSignalService("/api/v1/narrative-shift", articles, "narrative_shift");
+	return callSoftSignalService("/api/v1/narrative-shift", articles, "narrative_shift", context);
 }
 
 export const SOFT_SIGNAL_ADAPTERS: SoftSignalAdapter[] = [

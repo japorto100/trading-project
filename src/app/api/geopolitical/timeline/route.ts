@@ -1,12 +1,11 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { listGeoTimeline } from "@/lib/server/geopolitical-timeline-store";
+import type { NextRequest } from "next/server";
+import { proxyGeopoliticalGatewayRequest } from "@/lib/server/geopolitical-gateway-proxy";
 
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-	const eventId = request.nextUrl.searchParams.get("eventId") ?? undefined;
-	const limitRaw = Number(request.nextUrl.searchParams.get("limit") ?? "120");
-	const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, limitRaw)) : 120;
-	const timeline = await listGeoTimeline(eventId, limit);
-	return NextResponse.json({ success: true, timeline });
+	return proxyGeopoliticalGatewayRequest(request, "/api/v1/geopolitical/timeline", {
+		method: "GET",
+		copyQuery: true,
+	});
 }

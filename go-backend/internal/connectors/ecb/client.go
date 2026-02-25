@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
@@ -22,8 +23,8 @@ type Config struct {
 }
 
 type Client struct {
+	baseClient  *base.Client
 	ratesURL    string
-	httpClient  *http.Client
 	defaultPath string
 }
 
@@ -57,11 +58,12 @@ func NewClient(cfg Config) *Client {
 	}
 
 	return &Client{
+		baseClient: base.NewClient(base.Config{
+			Timeout:    timeout,
+			RetryCount: 1,
+		}),
 		ratesURL:    ratesURL,
 		defaultPath: "/ecb/daily-rates",
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
 	}
 }
 
@@ -154,7 +156,7 @@ func (c *Client) fetchRates(ctx context.Context) (fxEnvelope, error) {
 	}
 	req.Header.Set("Accept", "application/xml")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.baseClient.Do(req)
 	if err != nil {
 		timeout := false
 		var netErr net.Error

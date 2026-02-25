@@ -639,4 +639,188 @@ flowchart TD
 
 ---
 
+## 8.1 Addendum (Phase 9): GeoMap Candidate/Review Backend Konsolidierung
+
+> **Kontext (Stand nach Phase 4 / GeoMap v2.0):** Die GeoMap-Frontend-/Rendering-Arbeit ist weitgehend abgeschlossen, aber Teile der GeoMap-Domainlogik laufen noch ueber Next.js API-Routes + lokale Stores (transitional path), z. B. Candidates, Contradictions, Seed-Bootstrap und Review-Aktionen.
+> **Ziel in Phase 9:** Diese Logik in den **UIL- und Go-Layer** ziehen, sodass Next.js fuer GeoMap nur noch Review-UI / Visualization / thin proxy ist.
+
+### 8.1.1 Was migriert wird (GeoMap-spezifisch)
+
+| Bereich | Ist (transitional) | Ziel (Phase 9) |
+|---|---|---|
+| Hard-/Soft Ingest Orchestration | Next.js server routes (TS) | Go orchestriert Fetch + Provider/Diff; Python verarbeitet Klassifizierung/Dedup/Scoring; UIL-Contracts |
+| Candidate Truth Path | Lokale TS Stores / Next APIs | Go/Python (UIL) Source-of-Truth, Next nur Review-UI |
+| Review-Aktionen (`accept/reject/snooze`) | Next.js API-Routes | Go Gateway Endpoints mit UIL-domain services |
+| Contradictions + Evidence | Next.js file store + API | UIL-domain service (Go-owned contracts; Persistenz je nach Phase 6+ Stack) |
+| Seed/Golden-Set Bootstrap | Next.js `/api/geopolitical/seed` | Test/fixture tooling im UIL/Go-Kontext (oder dedizierter admin-only helper) |
+
+### 8.1.2 Sprachgrenzen (scharf)
+
+- **Go**: Fetching, polling, provider auth, rate limits, scheduling, delta-checks, request tracing, routing endpoints
+- **Python**: LLM-Classification, entity extraction, dedup/similarity, confidence scoring, explanations
+- **Next.js / TypeScript**: Review UI, visualization, keyboard shortcuts, local optimistic UI, no source-of-truth for ingestion domain state
+
+### 8.1.3 GeoMap-UIL Contracts (zusaetzlich zu UIL v1)
+
+GeoMap braucht ueber den generischen UIL-Candidate-Flow hinaus ein paar spezifische Felder:
+
+- `geoHints`: `regionHint`, `countryHints[]`, `symbol`, `category`, optional `hotspotIds[]`
+- `evidenceRefs[]`: Source refs plus analyst-added evidence bundle links
+- `contradictionRefs[]`: IDs verknuepfter Contradictions
+- `reviewReason`: maschinenlesbare + menschenlesbare Explain-Why payloads (nicht nur Freitext)
+- `auditMeta`: `requestId`, `provider`, `deltaReason`, `classifierVersion`, `dedupHash`
+
+> **Wichtig:** Phase 4 hat bereits ein gutes `reviewNote`-Muster und Adapter-Stats-DTOs. Diese sollen als **Transitional Contract-Vorlage** fuer UIL-Go/Python-Endpunkte dienen, statt parallel neue Formate zu erfinden.
+
+### 8.1.4 Migrationsreihenfolge (empfohlen, vertikal)
+
+1. **Review-Aktionen zuerst** (`accept/reject/snooze`)
+   - Geringes Risiko, klarer UI-Impact, wenig Provider-Abhaengigkeit
+   - Next UI bleibt unveraendert, tauscht nur Route-Target/Response-Schema
+
+2. **Contradictions/Evidence/Resolution API**
+   - Bestehende Phase-4-Basisfunktion in Go/UIL contracts heben
+   - Audit-Events + Evidence-Struktur beibehalten
+
+3. **Hard/Soft ingest orchestration**
+   - Next-TS routes werden thin proxies / deprecated
+   - Dedup/scoring/delta contract outputs zentralisieren
+
+4. **Seed/Golden-set tooling**
+   - in admin/test tooling verschieben (nicht produktive UI-route als Truth Path)
+
+### 8.1.5 Verify fuer Phase 9 (GeoMap-zusatz)
+
+- GeoMap Candidate Queue verwendet Go/UIL-backed endpoints (keine lokalen TS truth stores)
+- `accept/reject/snooze` erzeugt Audits mit `X-Request-ID` End-to-End
+- Contradiction create/update/evidence/resolution bleibt funktional nach Go-Migration
+- Delta/Dedup/Reason-Felder erscheinen in derselben oder kompatiblen Form im GeoMap-Review-UI
+
+### 8.1.6 Phase-9 Startpaket (Best-Practice Rollout)
+
+> **Leitprinzip:** Zuerst die **Wahrheitspfade** (Candidate Review + Contradictions), danach Ingest-Orchestration und Seed-Tooling. Das minimiert Rework im Frontend und schafft frueh echte `Frontend -> Go -> UIL` Vertikalschnitte.
+
+#### Schrittfolge (konkret)
+
+1. **Inventory + Contract Freeze**
+   - Alle aktuellen Next-GeoMap-Routes inventarisieren (inkl. Methoden, Payloads, Antwortformen)
+   - `API_CONTRACTS.md` fuer GeoMap-UIL Endpunkte festziehen (`v1alpha`)
+   - Payload-Kompatibilitaet fuer bestehende Frontend-Components explizit festhalten
+
+2. **Go Frontdoor Skeleton**
+   - Neue Go-Endpunkte fuer GeoMap-Review/Contradictions/Ingest/Seed anlegen
+   - `X-Request-ID`, Logging, Error Contract, RBAC-Hooks, Timeouts verdrahten
+   - Noch ohne finalen UIL-Owner moeglich (passthrough / mock / feature flag)
+
+3. **Vertical Slice A: Candidate Review Actions**
+   - `accept/reject/snooze` zuerst auf Go umstellen
+   - Frontend-Queue unveraendert lassen, nur Route-Targets + Response-Schema angleichen
+   - Ziel: Next-TS nicht mehr Source-of-Truth fuer Review-Aktionen
+
+4. **Vertical Slice B: Contradictions + Evidence + Resolution**
+   - Create/List/Get/Patch ueber Go/UIL contracts
+   - Audit-Events (`created/resolved/reopened/resolution_updated/evidence_updated`) beibehalten
+   - Bestehende Phase-4-UI wiederverwenden
+
+5. **Vertical Slice C: Ingest Trigger + Adapter Stats**
+   - Hard/Soft ingest trigger/status via Go
+   - Adapter-Stats-DTO (Phase 4 transitional contract) in Go/UIL uebernehmen
+   - Next-TS ingest routes auf thin proxy / deprecated setzen
+
+6. **Vertical Slice D: Seed / Golden-Set Tooling (dev/admin only)**
+   - Seed-Bootstrap von Next.js Route in Go-admin/Testtooling verschieben
+   - Nicht als produktiver Truth Path behandeln
+
+7. **Shadow Run + Cutover**
+   - Parallelbetrieb (dev/staging): alte Next-TS vs neue Go/UIL Pipeline vergleichen
+   - Vergleiche: candidate count, deduped rate, contradictions count, review actions, audit trail
+   - Danach Next-TS Domainroutes entfernen oder auf thin proxy reduzieren
+
+#### Phase-1 Parallelisierung (empfohlen)
+
+- **Phase 1 (Auth/Security)** kann parallel laufen.
+- **Wichtiges Gating:** Der finale Cutover von **mutierenden Endpunkten** (`review`, `contradictions`, `seed/admin`) sollte erst erfolgen, wenn eine minimale RBAC-Baseline aktiv ist (mindestens Rollenpruefung + Audit + Request-ID).
+
+### 8.1.7 GeoMap Migrationsmatrix (Next -> Go/UIL, Phase 9 Fokus)
+
+| Bereich | Aktuelle Next-Route (transitional) | Ziel-Endpunkt (Go Frontdoor) | Owner hinter Go | Wave |
+|---|---|---|---|---|
+| Candidate Queue read | `GET /api/geopolitical/candidates` | `GET /api/v1/geopolitical/candidates` | UIL domain service | 9e-A |
+| Candidate create/manual | `POST /api/geopolitical/candidates` | `POST /api/v1/geopolitical/candidates` | UIL domain service | 9e-C |
+| Candidate accept | `POST /api/geopolitical/candidates/:id/accept` | `POST /api/v1/geopolitical/candidates/:id/accept` | UIL domain service | 9e-A |
+| Candidate reject | `POST /api/geopolitical/candidates/:id/reject` | `POST /api/v1/geopolitical/candidates/:id/reject` | UIL domain service | 9e-A |
+| Candidate snooze | `POST /api/geopolitical/candidates/:id/snooze` | `POST /api/v1/geopolitical/candidates/:id/snooze` | UIL domain service | 9e-A |
+| Hard ingest trigger | `POST /api/geopolitical/candidates/ingest/hard` | `POST /api/v1/geopolitical/ingest/hard` | Go orchestration + UIL | 9e-C |
+| Soft ingest trigger | `POST /api/geopolitical/candidates/ingest/soft` | `POST /api/v1/geopolitical/ingest/soft` | Go orchestration + UIL | 9e-C |
+| Contradictions list/create | `GET/POST /api/geopolitical/contradictions` | `GET/POST /api/v1/geopolitical/contradictions` | UIL domain service | 9e-B |
+| Contradiction detail/patch | `GET/PATCH /api/geopolitical/contradictions/:id` | `GET/PATCH /api/v1/geopolitical/contradictions/:id` | UIL domain service | 9e-B |
+| Seed bootstrap (dev) | `POST /api/geopolitical/seed` | `POST /api/v1/geopolitical/admin/seed` | Go admin/test helper | 9e-D |
+| Timeline read (Geo review audit) | `GET /api/geopolitical/timeline` | `GET /api/v1/geopolitical/timeline` | UIL/audit read model | 9e-B/C |
+| SSE stream (compat bridge) | `GET /api/geopolitical/stream` | `GET /api/v1/geopolitical/stream` (oder Alias) | Go stream gateway | 9e-C |
+
+> **Nicht Primärscope in 9e (separat behandeln):** `events/*`, `drawings/*`, `news`, `context`, `graph`, `alerts`, `regions`, `game-theory/impact`. Diese sind teils bereits Go-gebunden oder gehoeren funktional eher zu GeoMap CRUD/Analytics als zur UIL-Candidate-Truth-Migration.
+> **Aktualisierung (23. Feb 2026, nach Cutover-Cleanup):** Diese Nicht-Primärscope-Routen sind weiterhin lokal in Next vorhanden und gelten **nicht** als offener 9e-Cutover-Fehler. Der 9e-Cutover bezieht sich auf Candidate/Review/Contradictions/Timeline/Ingest/Seed-Truth-Pfade. `sources/health` und `stream` bleiben ebenfalls separat zu behandeln (Ops/Streaming/UX-Kompatibilitaet).
+
+### 8.1.8 GeoMap Shadow-Run & Cutover Runbook (Phase 9e)
+
+> **Status (23. Feb 2026):** Infrastruktur fuer Shadow-Run/Cutover ist vorhanden (`/api/v1/geopolitical/ingest/runs`, `/api/v1/geopolitical/migration/status`, Mode-Flags, Next thin proxies) und ein **echter Shadow-Run (lokal/dev)** wurde ausgefuehrt. Ergebnis: In `next-proxy`-Modi zeigten die gesampelten `hard/soft` Runs konsistent `openCountDelta = 0`. Danach wurde der Gateway testweise auf `go-owned-gateway-v1` fuer `hard/soft/seed` umgeschaltet und per `migration/status` verifiziert. `soft` und `seed` liefen im go-owned Modus erfolgreich; `hard` wurde anschliessend so gehaertet, dass Provider-/Events-Fehler im go-owned Modus als `HTTP 200` mit Adapter-Fehlerstatus (`ok=false`) zurueckgegeben werden (statt Top-Level-`502`), sodass der Cutover-Pfad/Thin-Proxy stabil bleibt. Lokal beobachteter Beispiel-Fehler ohne ACLED-Credentials: `request /acled/read failed with status 401`. **Post-Cutover Cleanup:** Next-Aliase fuer `POST /api/geopolitical/candidates`, `POST /api/geopolitical/candidates/ingest/{hard|soft}` und `POST /api/geopolitical/seed` sind nun thin-proxy-only (keine lokale Domainlogik mehr); `ingest/seed` geben bei fehlendem `go-owned-gateway-v1` Mode bewusst `503` mit Cutover-Hinweis zurueck statt auf lokale Fallback-Implementierungen zurueckzufallen.
+
+#### Ziel
+
+- Cutover von Next-transitional GeoMap-Ingestpfaden auf Go-owned Frontdoor/UIL, ohne Frontend-Routen zu brechen
+- Vergleichbarkeit der Open-Candidate-Counts und Run-Stats vor dem Umschalten
+
+#### Voraussetzungen
+
+1. Go Gateway laeuft mit GeoMap Frontdoor aktiv
+2. `GEOPOLITICAL_INGEST_SHADOW_COMPARE=1` (fuer Shadow-Compare-Deltas)
+3. RBAC-Baseline aus Phase 1 mindestens fuer mutierende Endpunkte aktiv (oder kontrollierte Dev-Umgebung)
+4. Next-GeoMap-Routen sind fuer Go-owned Pfade als thin proxy verdrahtet; `GET /api/geopolitical/candidates` kann fuer Shadow-Compare bewusst lokal bleiben
+5. Optional: `scripts/geomap-phase9e-shadow-run.ps1` fuer reproduzierbare Seed/Shadow-Run-Abfolge nutzen
+
+#### Schrittfolge
+
+1. **Modi in Shadow-Stellung setzen**
+   - `GEOPOLITICAL_INGEST_HARD_MODE=next-proxy`
+   - `GEOPOLITICAL_INGEST_SOFT_MODE=next-proxy`
+   - `GEOPOLITICAL_ADMIN_SEED_MODE=next-proxy+go-sync` (oder `go-owned-gateway-v1`, wenn Seed bereits verglichen wurde)
+
+2. **Baseline erstellen**
+   - `POST /api/v1/geopolitical/admin/seed`
+   - `GET /api/v1/geopolitical/migration/status` speichern (Store-Counts / letzte Runs / aktive Modi)
+
+3. **Shadow-Runs ausfuehren**
+   - Hard ingest mehrfach triggern (z. B. 5x)
+   - Soft ingest mehrfach triggern (z. B. 5x, zeitlich verteilt)
+   - Optional unterschiedliche Payloads/Filter fuer Soft-Ingest testen
+
+4. **Auswertung**
+   - `GET /api/v1/geopolitical/ingest/runs?limit=50`
+   - Pruefen:
+     - `success` / `statusCode`
+     - `adapterStats`
+     - `candidateSyncCount`
+     - `openCountDelta` (wenn Shadow-Compare aktiv)
+     - Fehler- oder Timeout-Muster
+
+5. **Cutover**
+   - `GEOPOLITICAL_INGEST_HARD_MODE=go-owned-gateway-v1`
+   - `GEOPOLITICAL_INGEST_SOFT_MODE=go-owned-gateway-v1`
+   - optional `GEOPOLITICAL_ADMIN_SEED_MODE=go-owned-gateway-v1`
+   - Frontend benutzt weiterhin `/api/geopolitical/*`; Next thin proxy leitet auf Go um
+
+6. **Post-Cutover Verifikation (manuell, ohne Browser-Automation zwingend)**
+   - Candidate Queue laden
+   - Review `accept/reject/snooze`
+   - Contradictions create/patch/evidence
+   - Timeline lesen
+   - Ingest hard/soft triggern
+   - Seed triggern (admin/dev)
+
+7. **Rückbau / Stabilisierung**
+   - Next-TS Domainlogik fuer bereits Go-owned Pfade entfernen oder als minimalen thin proxy belassen (Post-Cutover Status: `ingest/seed`, `POST /api/geopolitical/candidates` sowie Review/Contradictions/Timeline-Aliase sind bereits thin-proxy oder thin-proxy+Shadow-Compare-guarded)
+   - Cutover-Flags und Betriebsmodus dokumentieren (`SYSTEM_STATE.md`, `EXECUTION_PLAN.md`)
+
+---
+
 *Recherche-Datum: Februar 2026. SOTA-Quellen: Double-Threshold Policy (arxiv 2601.05974), HITL Review Queues (alldaystech.com/guides), Hi-Guard Hierarchical Classification (arxiv 2508.03296).*

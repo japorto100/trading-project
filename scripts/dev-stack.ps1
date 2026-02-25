@@ -1,15 +1,11 @@
-# Start full stack: Go Gateway + Python services + Next.js
-# Optional: -WithGCT starts GoCryptoTrader first (Crypto quotes + real backtest).
-# Loads go-backend/.env so the gateway has FINNHUB_API_KEY, GEOPOLITICAL_GAMETHEORY_URL, etc.
-# Usage: from repo root: bun run dev:full   or   powershell -File ./scripts/dev-stack.ps1
-#        with GCT: bun run dev:full -- -WithGCT   or   .\scripts\dev-stack.ps1 -WithGCT
+# Start full stack: Go Gateway + GCT + Python (Rust-powered) services + Next.js
+# Usage: from repo root: bun run dev:full:gct:python
+# Optional: -SkipGo, -SkipGCT, -SkipPython, -NoNext, -InstallMl
 
 param(
     [switch]$SkipGo,
-    [switch]$WithGCT,
-    [switch]$SkipYfinance,
-    [switch]$SkipSoftSignals,
-    [switch]$SkipIndicatorService,
+    [switch]$SkipGCT,
+    [switch]$SkipPython,
     [switch]$InstallMl,
     [switch]$NoNext
 )
@@ -19,25 +15,37 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $goBackendDir = Join-Path $repoRoot "go-backend"
 $pythonBackendRoot = Join-Path $repoRoot "python-backend"
 $venvPython = Join-Path $pythonBackendRoot ".venv\Scripts\python.exe"
-$goEnvPath = Join-Path $goBackendDir ".env"
+$cargoBin = Join-Path $env:USERPROFILE ".cargo\bin"
+$rustTargetDir = Join-Path $pythonBackendRoot "rust_core\target-local"
 $processes = @()
 $uvCmd = $null
+
+# Ensure Rust toolchain binaries and cache path are stable for PyO3 builds in dev flow.
+if (Test-Path $cargoBin) {
+    if (-not (($env:Path -split ';') -contains $cargoBin)) {
+        $env:Path = "$cargoBin;$env:Path"
+    }
+}
+$env:CARGO_TARGET_DIR = $rustTargetDir
 
 if (Get-Command uv -ErrorAction SilentlyContinue) { $uvCmd = "uv" }
 elseif (Get-Command python -ErrorAction SilentlyContinue) { $uvCmd = "python -m uv" }
 else { $uvCmd = $null }
 
-function Import-GoEnv {
-    if (-not (Test-Path $goEnvPath)) { return }
-    Get-Content $goEnvPath | ForEach-Object {
+function Import-EnvFile {
+    param([string]$Path)
+    if (-not (Test-Path $Path)) { return }
+    Get-Content $Path | ForEach-Object {
         $line = $_.Trim()
         if ($line -and -not $line.StartsWith("#") -and $line -match '^\s*([^#=]+)=(.*)$') {
             $key = $matches[1].Trim()
             $value = $matches[2].Trim()
+            # Remove quotes if present
+            $value = $value -replace '^["'']|["'']$', ''
             [Environment]::SetEnvironmentVariable($key, $value, "Process")
         }
     }
-    Write-Host "[env] Loaded go-backend\.env into process"
+    Write-Host "[env] Loaded $Path"
 }
 
 function Start-ServiceProcess {
@@ -48,94 +56,122 @@ function Start-ServiceProcess {
     return $proc
 }
 
+function Wait-ForPort {
+    param([int]$Port, [string]$Name, [int]$TimeoutSecs = 30)
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $TimeoutSecs) {
+        try {
+            $tcp = New-Object System.Net.Sockets.TcpClient
+            $tcp.Connect("127.0.0.1", $Port)
+            $tcp.Close()
+            Write-Host "[$Name] Ready on :$Port" -ForegroundColor Green
+            return $true
+        } catch {
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    Write-Host "[$Name] Timeout after ${TimeoutSecs}s waiting for :$Port" -ForegroundColor Yellow
+    return $false
+}
+
 try {
-    Import-GoEnv
-    $gctProcess = $null
-    if ($WithGCT) {
+    # 0) Load Environment
+    Write-Host "--- Loading Environment ---" -ForegroundColor Cyan
+    Import-EnvFile -Path (Join-Path $repoRoot ".env.development")
+    Import-EnvFile -Path (Join-Path $goBackendDir ".env.development")
+
+    # Verify critical cross-service vars
+    Write-Host "Go Gateway:   $($env:GO_GATEWAY_BASE_URL)"
+    Write-Host "Indicator:    $($env:INDICATOR_SERVICE_URL)"
+    Write-Host "Soft Signals: $($env:GEOPOLITICAL_SOFT_SIGNAL_URL)"
+    Write-Host "Finance:      $($env:FINANCE_BRIDGE_URL)"
+
+    # 1) GoCryptoTrader (GCT) — must start first; Go Gateway connects via gRPC :9052
+    if (-not $SkipGCT) {
         $gctDir = Join-Path $goBackendDir "vendor-forks\gocryptotrader"
         $gctExe = Join-Path $gctDir "gocryptotrader.exe"
         if (-not (Test-Path $gctExe)) {
-            Write-Host "[GCT] Binary not found - building automatically..." -ForegroundColor Yellow
+            Write-Host "[GCT] Building engine..." -ForegroundColor Yellow
             Push-Location $gctDir
-            try {
-                & go build -o $gctExe .
-                if ($LASTEXITCODE -ne 0) { throw "GCT build failed with exit code $LASTEXITCODE" }
-                Write-Host "[GCT] Build successful: $gctExe" -ForegroundColor Green
-            } finally {
-                Pop-Location
-            }
+            & go build -o $gctExe .
+            Pop-Location
         }
         $gctDataDir = Join-Path $env:TEMP "gct-data"
-        New-Item -ItemType Directory -Path $gctDataDir -Force | Out-Null
+        if (-not (Test-Path $gctDataDir)) { New-Item -ItemType Directory -Path $gctDataDir -Force | Out-Null }
+
         $configPath = Join-Path $gctDataDir "config.min.json"
         $configTemplate = Join-Path $gctDir "config_example.json"
         $config = Get-Content $configTemplate -Raw | ConvertFrom-Json
         $config.dataDirectory = $gctDataDir
-        $config.ntpclient.enabled = 0
-        $gctUser = if ($env:GCT_USERNAME) { $env:GCT_USERNAME } else { "admin" }
-        $gctPass = if ($env:GCT_PASSWORD) { $env:GCT_PASSWORD } else { "Password" }
-        $config.remoteControl.username = $gctUser
-        $config.remoteControl.password = $gctPass
+        # Read credentials from env with sensible defaults
+        $config.remoteControl.username = if ($env:GCT_ADMIN_USER) { $env:GCT_ADMIN_USER } else { "admin" }
+        $config.remoteControl.password = if ($env:GCT_ADMIN_PASS) { $env:GCT_ADMIN_PASS } else { "Password" }
         $config.remoteControl.gRPC.enabled = $true
         $config.remoteControl.gRPC.listenAddress = "127.0.0.1:9052"
         $config.remoteControl.gRPC.grpcProxyEnabled = $true
         $config.remoteControl.gRPC.grpcProxyListenAddress = "127.0.0.1:9053"
-        $config.remoteControl.gRPC.grpcAllowBotShutdown = $false
-        $config.remoteControl.gRPC.timeInNanoSeconds = $false
         $gctExchange = if ($env:GCT_EXCHANGE) { $env:GCT_EXCHANGE } else { "Kraken" }
-        foreach ($ex in $config.exchanges) {
-            $ex.enabled = ($ex.name -eq $gctExchange)
-        }
+        foreach ($ex in $config.exchanges) { $ex.enabled = ($ex.name -eq $gctExchange) }
         $config | ConvertTo-Json -Depth 100 | Set-Content -Path $configPath -NoNewline
-        $env:GCT_GRPC_ADDRESS = "127.0.0.1:9052"
-        $env:GCT_JSONRPC_ADDRESS = "https://127.0.0.1:9053"
-        $env:GCT_USERNAME = $gctUser
-        $env:GCT_PASSWORD = $gctPass
-        $env:GCT_JSONRPC_INSECURE_TLS = "true"
-        Write-Host "[gct] Starting ($gctExchange, public data - no API key needed)..."
-        $gctProcess = Start-Process -FilePath $gctExe -ArgumentList @("-config", $configPath, "-datadir", $gctDataDir, "-ntpclient=false", "-grpcproxy", "-exchanges", $gctExchange) -WorkingDirectory $gctDir -PassThru
-        $processes += $gctProcess
-        Start-Sleep -Seconds 10
+
+        Write-Host "[gct] Starting ($gctExchange)..."
+        $processes += Start-Process -FilePath $gctExe -ArgumentList @("-config", $configPath, "-datadir", $gctDataDir, "-ntpclient=false", "-grpcproxy") -WorkingDirectory $gctDir -PassThru -WindowStyle Hidden
+        Wait-ForPort -Port 9052 -Name "gct" -TimeoutSecs 30 | Out-Null
     }
-    # 1) Go Gateway (optional)
+
+    # 2) Go Gateway + Python — start in parallel after GCT is ready
     if (-not $SkipGo) {
         Write-Host "[go-gateway] Starting on port 9060"
-        $gatewayProc = Start-Process -FilePath "go" -ArgumentList @("run", "./cmd/gateway") -WorkingDirectory $goBackendDir -PassThru
-        $processes += $gatewayProc
-        Start-Sleep -Seconds 3
+        $processes += Start-Process -FilePath "go" -ArgumentList @("run", "./cmd/gateway") -WorkingDirectory $goBackendDir -PassThru -WindowStyle Hidden
     }
 
-    # 2) Python venv + services
-    if (-not (Test-Path $venvPython)) {
-        Write-Host "[python-backend] Creating shared .venv..."
+    # 3) Python + Rust Services — start in parallel with Go Gateway
+    if (-not $SkipPython) {
+        if (-not (Test-Path $venvPython)) {
+            Write-Host "[python] Creating shared .venv..."
+            Push-Location $pythonBackendRoot
+            & $uvCmd venv .venv
+            Pop-Location
+        }
+
+        Write-Host "[python] Syncing dependencies..."
         Push-Location $pythonBackendRoot
-        if ($uvCmd) { Invoke-Expression "$uvCmd venv .venv" }
-        else { throw "uv or python required for Python services" }
+        if ($InstallMl) { & $uvCmd sync --python `"$venvPython`" --extra ml }
+        else { & $uvCmd sync --python `"$venvPython`" --inexact }
+
+        # Build Rust core if present
+        if (Test-Path "rust_core") {
+            Write-Host "[rust] Building & installing core bindings..." -ForegroundColor Cyan
+            Push-Location $pythonBackendRoot
+            & $uvCmd pip install -e ./rust_core
+            Pop-Location
+        }
         Pop-Location
-    }
-    Push-Location $pythonBackendRoot
-    if ($uvCmd) {
-        if ($InstallMl) { Invoke-Expression "$uvCmd sync --python `"$venvPython`" --extra ml" | Out-Null }
-        else { Invoke-Expression "$uvCmd sync --python `"$venvPython`" --inexact" | Out-Null }
-    }
-    Pop-Location
 
-    if (-not $SkipYfinance) {
-        $processes += Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\finance-bridge") -Name "finance-bridge" -App "app:app" -Port 8081
+        # Map ports according to go-gateway .env.development — all start in parallel
+        $processes += Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\indicator-service") -Name "indicator" -App "app:app" -Port 8090
+        $processes += Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\geopolitical-soft-signals") -Name "soft-signals" -App "app:app" -Port 8091
+        $processes += Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\finance-bridge") -Name "finance-bridge" -App "app:app" -Port 8092
     }
-    if (-not $SkipSoftSignals) {
-        $processes += Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\geopolitical-soft-signals") -Name "geopolitical-soft-signals" -App "app:app" -Port 8091
-    }
-    if (-not $SkipIndicatorService) {
-        $processes += Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\indicator-service") -Name "indicator-service" -App "app:app" -Port 8092
-    }
-    Start-Sleep -Seconds 2
 
-    Write-Host ""
-    Write-Host "Stack: Go=9060, finance-bridge=8081, soft-signals=8091, indicator=8092, Next=3000"
-    Write-Host "Health: http://127.0.0.1:9060/health"
+    # Wait for all background services to be ready
+    if (-not $SkipGo) {
+        Wait-ForPort -Port 9060 -Name "go-gateway" -TimeoutSecs 30 | Out-Null
+    }
+    if (-not $SkipPython) {
+        Wait-ForPort -Port 8090 -Name "indicator"      -TimeoutSecs 30 | Out-Null
+        Wait-ForPort -Port 8091 -Name "soft-signals"   -TimeoutSecs 30 | Out-Null
+        Wait-ForPort -Port 8092 -Name "finance-bridge" -TimeoutSecs 30 | Out-Null
+    }
+
+    Write-Host "`n--- Stack Ready ---" -ForegroundColor Green
+    Write-Host "Next.js UI:   http://localhost:3000"
+    Write-Host "Go Gateway:   http://127.0.0.1:9060"
+    Write-Host "Python API:   8090, 8091, 8092"
+    if (-not $SkipGCT) { Write-Host "GCT gRPC:     127.0.0.1:9052" }
+
     if (-not $NoNext) {
-        Write-Host "[nextjs] Starting bun dev (Ctrl+C stops all)"
+        Write-Host "[nextjs] Starting frontend..."
         Push-Location $repoRoot
         bun run dev
         Pop-Location
@@ -144,7 +180,7 @@ try {
 finally {
     foreach ($proc in $processes) {
         if ($null -ne $proc -and -not $proc.HasExited) {
-            Write-Host "Stopping process $($proc.Id)"
+            Write-Host "Stopping process $($proc.Id) ($($proc.ProcessName))"
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
         }
     }

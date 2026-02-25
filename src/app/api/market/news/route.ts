@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
-import { fetchMarketNews } from "@/lib/news/aggregator";
 import { NEWS_SOURCES } from "@/lib/news/sources";
 import type { MarketNewsResponse } from "@/lib/news/types";
 
@@ -30,20 +29,30 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 
 async function fetchNewsViaGateway(
 	symbol: string | undefined,
+	q: string | undefined,
+	lang: string | undefined,
 	limit: number | undefined,
 	requestId: string,
+	userRole?: string,
 ): Promise<MarketNewsResponse | null> {
 	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
 	const endpoint = new URL("/api/v1/news/headlines", gatewayBaseURL);
 	if (symbol) endpoint.searchParams.set("symbol", symbol);
+	if (q) endpoint.searchParams.set("q", q);
+	if (lang) endpoint.searchParams.set("lang", lang);
 	if (Number.isFinite(limit)) endpoint.searchParams.set("limit", String(limit));
+
+	const headers: Record<string, string> = {
+		Accept: "application/json",
+		"X-Request-ID": requestId,
+	};
+	if (userRole) {
+		headers["X-User-Role"] = userRole;
+	}
 
 	const response = await fetch(endpoint.toString(), {
 		method: "GET",
-		headers: {
-			Accept: "application/json",
-			"X-Request-ID": requestId,
-		},
+		headers,
 		cache: "no-store",
 	});
 	if (!response.ok) return null;
@@ -77,35 +86,30 @@ async function fetchNewsViaGateway(
 
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
+	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
 	try {
 		const url = request.nextUrl;
 		const symbol = url.searchParams.get("symbol") || undefined;
 		const q = url.searchParams.get("q") || undefined;
 		const lang = url.searchParams.get("lang") || undefined;
 		const limit = url.searchParams.get("limit") ? Number(url.searchParams.get("limit")) : undefined;
-		const forceRefresh = url.searchParams.get("refresh") === "1";
+		// `refresh=1` remains accepted for backward compatibility, but fetching is Go-only now.
+		void url.searchParams.get("refresh");
 
-		const canUseGateway = !q && !lang;
-		if (canUseGateway) {
-			const gatewayNews = await fetchNewsViaGateway(symbol, limit, requestId);
-			if (gatewayNews) {
-				return withRequestIdHeader(
-					NextResponse.json({
-						...gatewayNews,
+		const news = await fetchNewsViaGateway(symbol, q, lang, limit, requestId, userRole);
+		if (!news) {
+			return withRequestIdHeader(
+				NextResponse.json(
+					{
+						success: false,
+						error: "Gateway news request failed",
 						sources: NEWS_SOURCES,
-					}),
-					requestId,
-				);
-			}
+					},
+					{ status: 502 },
+				),
+				requestId,
+			);
 		}
-
-		const news = await fetchMarketNews({
-			symbol,
-			q,
-			lang,
-			limit,
-			forceRefresh,
-		});
 
 		return withRequestIdHeader(
 			NextResponse.json({

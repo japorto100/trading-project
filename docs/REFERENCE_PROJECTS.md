@@ -2,6 +2,11 @@
 
 > **Vollständige Version (alle Sektionen 1–9, Detailbeschreibungen, Review-Vermerk):**  
 > [`docs/archive/REFERENCE_PROJECTS_full.md`](./archive/REFERENCE_PROJECTS_full.md)
+>
+> **Status-Hinweis (23. Feb 2026, Codex — wichtig fuer Reihenfolge):**  
+> Die priorisierte **Bestands-Connector-Queue im Go-Gateway** wurde vor der Reference-Expansion bereits weitgehend auf die gemeinsame `internal/connectors/base.Client`-Basis migriert (`acled`, `finnhub`, `fred`, `ecb`, `indicatorservice`, `financebridge`, `softsignals`, `geopoliticalnext`, `gdelt`, `news/*`, `gametheory`, `crisiswatch`).  
+> **Naechster Schritt ab jetzt:** `REFERENCE_PROJECTS.md`-Quellen **gruppenweise und contract-first** integrieren (zuerst **G4 Zentralbank-Zeitreihen**, dann **G3 SDMX**), inklusive Router-Metadaten (`group`, `kind`, `capabilities`) und ENV-Examples bei neuen Keys/Tokens.
+> **Fortschritt (23. Feb 2026, Codex — G4 gestartet):** Die ersten echten Reference-Provider aus `G4` sind integriert: **BCB SGS (Banco Central do Brasil)**, **Banxico SIE (Mexiko)**, **Bank of Korea ECOS**, **BCRA Principales Variables v4 (Argentinien)**, **TCMB EVDS3 (Tuerkei)** und ein erster **RBI DBIE (Indien)**-Slice (FX Reserves) als Go-Connectoren (`internal/connectors/bcb`, `internal/connectors/banxico`, `internal/connectors/bok`, `internal/connectors/bcra`, `internal/connectors/tcmb`, `internal/connectors/rbi`) auf `base.Client`, vertikal verdrahtet in Quote/Macro-History (`exchange=bcb|banxico|bok|bcra|tcmb|rbi`). `BCB` hat `POLICY_RATE -> BCB_SGS_432`, `BoK` hat `POLICY_RATE -> BOK_ECOS_722Y001_M_0101000`, `BCRA` hat derzeit `POLICY_RATE -> BCRA_160`; `Banxico`, `TCMB` und `RBI` nutzen vorerst explizite Serien-IDs/Patterns (`BANXICO_<id>` bzw. `TCMB_EVDS_<series>` bzw. `RBI_DBIE_FXRES_<reserve>_<currency>_<freq>`). Das Prefix-basierte Macro-Routing (`BCB_SGS_*`, `BANXICO_*`, `BOK_ECOS_*`, `BCRA_*`, `TCMB_EVDS_*`, `RBI_DBIE_FXRES_*`) ist damit als Muster fuer weitere G4-Quellen etabliert.
 
 **Zweck:** Schnell-Navigator und Kategorien (Baseline / Sekundär / Offen) fuer den beschleunigten Ausbau von Tradeview Fusion. Welche Projekte nutzen wir aktiv, welche optional, welche noch zu prüefen.
 
@@ -207,12 +212,12 @@ Gezielte Suche nach **Frontend-**, **Python-**, **Go-** und **Rust-**Referenzen.
 | **IMF WEO** | Offen | JSON | Go | Global Macro |
 | **World Bank WDI (Erweiterung)** | Offen | JSON | Go | Global Macro |
 | **OECD Data Explorer** | Offen | SDMX/JSON | Go | Global Macro |
-| **BCB SGS (Brasilien)** | Offen | JSON | Go | Global CB |
-| **Bank of Korea ECOS** | Offen | JSON/XML | Go | Global CB |
-| **RBI DBIE (Indien)** | Offen | JSON/CSV | Go | Global CB |
-| **TCMB EVDS (Tuerkei)** | Offen | JSON | Go | Global CB |
-| **Banxico SIE (Mexiko)** | Offen | JSON | Go | Global CB |
-| **BCRA (Argentinien)** | Offen | JSON | Go | Global CB |
+| **BCB SGS (Brasilien)** | Baseline | JSON | Go | Global CB |
+| **Bank of Korea ECOS** | Baseline | JSON/XML | Go | Global CB |
+| **RBI DBIE (Indien)** | Baseline | JSON/CSV | Go | Global CB |
+| **TCMB EVDS (Tuerkei)** | Baseline | JSON | Go | Global CB |
+| **Banxico SIE (Mexiko)** | Baseline | JSON | Go | Global CB |
+| **BCRA (Argentinien)** | Baseline | JSON | Go | Global CB |
 | **Tushare (China)** | Offen | JSON | Go | Global Equities |
 | **J-Quants (Japan)** | Offen | JSON | Go | Global Equities |
 | **IBGE SIDRA (Brasilien)** | Offen | JSON | Go | Global Stats |
@@ -236,6 +241,64 @@ Gezielte Suche nach **Frontend-**, **Python-**, **Go-** und **Rust-**Referenzen.
 > **Hintergrund-Recherche:** Web, Reddit (r/algotrading, r/Commodities, r/quant), YouTube, API-Dokumentationen, Community-Vergleiche.
 >
 > **Bewertete und verworfene Meta-Projekte:** OpenBB Platform (Python-only, passt nicht in Go-Data-Layer), AKShare (China-lastig, Scraping), pandas-datareader (veraltet, <20 Quellen), OpenAlgo (Indien-Broker, kein Daten-Aggregator). Diese Projekte sind als **Research-Referenz** nuetzlich (z.B. OpenBB im Jupyter-Notebook zum Testen von Endpoints), aber nicht als Produktions-Dependency.
+
+### Implementierungsprinzip fuer viele Quellen (Go Data Layer)
+
+> **Wichtig:** Die 50+ Quellen werden **nicht** als 50 vollstaendige Einzel-Clients gebaut. Stattdessen: **Quellen-Gruppen + BaseConnector-Module** (siehe `go-research-financial-data-aggregation-2025-2026.md`, Sek. 12). Dadurch sinkt der Aufwand pro neuer Quelle von „voller Client mit Boilerplate“ auf „dunne Config + Parser“.
+
+| Quellen-Gruppe | Typische Quellen | Base-Modul (Go) | Implementierungs-Strategie |
+|---|---|---|---|
+| **G1 REST-API (Standard)** | Finnhub, FMP, Polygon, Banxico, BCB | `internal/connectors/base/http_client.go` | Standardfall: `base.Client` + Provider-spezifischer Parser + Router-Metadaten |
+| **G2 WebSocket Streams** | Finnhub WS, Exchange WS (GCT), Tiingo WS | `services/market/streaming/*` + Connector-Layer | Reconnect/Heartbeat zentral; Provider nur Subscribe-/Payload-Mapping |
+| **G3 SDMX** | IMF IFS/WEO, OECD, ECB SDW, UN | `internal/connectors/base/sdmx_client.go` | Ein generischer SDMX-Client, pro Provider nur Config/Dataflow |
+| **G4 Zentralbank-Zeitreihen** | FRED, BCB, RBI, BoK, TCMB, Banxico | `internal/connectors/base/timeseries.go` | `URLTemplate` + Feldmapping (`date/value`) + AuthStyle statt Full-Client |
+| **G5 Bulk/Periodic** | CFTC COT, FINRA ATS, LBMA, FXCM Hist | `internal/connectors/base/bulk_fetcher.go` | Scheduler + Parser + Idempotenz; kein Realtime-Fallback nötig |
+| **G6 RSS/Atom** | Legal/Regulatory Feeds, News-Feeds | `internal/connectors/base/rss_client.go` | Poll + Dedup + UIL/News-Routing |
+| **G7 Diff-Listen (XML/JSON)** | SECO/OFAC/UN/EU Sanctions | `internal/connectors/base/diff_watcher.go` | Version speichern, Diff berechnen, nur Änderungen emittieren |
+| **G8 Non-English Quellen** | NBS China, PBoC, lokale Gerichte/Behörden | `internal/connectors/base/translation.go` | Go fetcht roh; Python LLM-Pipeline übersetzt/extrahiert |
+| **G9 Inoffiziell/Scraping** | Yahoo (inoffiziell), NSE, investing.com | `base.Client` + Schema-Drift-Checks | Nur Fallback-Quelle; strenge Formatvalidierung/Monitoring |
+| **G10 Oracle Networks** | Chainlink, Pyth, Band, Redstone | `internal/connectors/base/oracle_client.go` | Web2-Cross-Check, Disagreement-Signal statt Primärpreisquelle |
+
+### Effiziente Reihenfolge (empfohlen)
+
+1. **G1 + G4 zuerst**: deckt den Großteil der „offenen“ Makro-/Zentralbank-/Standard-APIs ab.
+2. **G3 (SDMX)**: hoher Hebel, weil mehrere globale Quellen mit einem Client erschlossen werden.
+3. **G5/G6/G7**: Batch-/Regulatory-/Legal-Quellen für Geo/Compliance ohne Realtime-Komplexität.
+4. **G8/G9** nur gezielt bei Produktbedarf/Lizenzfreigabe.
+5. **G10** als Verifikations-/Stress-Signal-Layer nach stabilem Web2-Fundament.
+
+### Operative Regel im Go-Router
+
+- Jeder Provider bekommt in `go-backend/config/provider-router.yaml` mindestens:
+  - `group` (z. B. `g4_centralbank_timeseries`)
+  - `kind` (z. B. `macro_timeseries`)
+- Diese Metadaten dienen später für:
+  - gruppenspezifische Fallback-Semantik
+  - Priorisierung im Router
+  - Migrations-Tracking („welche Gruppen sind bereits im Go-Layer abgedeckt?“)
+
+### GCT als Methoden-Quelle (nicht als harte Kopplung)
+
+> **Strategie:** Fuer die breite Quellen-Expansion uebernehmen wir aus **GoCryptoTrader** vor allem **Betriebs-/Robustheitsmuster**, nicht blind dessen interne Paketstruktur fuer alle Nicht-Crypto-Provider.
+
+Was wir aktiv uebernehmen sollten (Pattern-Ebene):
+
+- **WebSocket-Lifecycle-Management** (Reconnect, Heartbeat, Resubscribe, Stale Detection)
+- **Capability-Matrix pro Provider** statt „ein Interface fuer alles“
+- **Fehlerklassifizierung** (`retryable`, `auth`, `quota`, `schema drift`, `temporary upstream`)
+- **Symbol-/Market-Normalisierung**
+- **Transport-Hygiene** (Timeouts, Retries, Rate Limits, strukturierte Logs)
+
+Was wir vermeiden sollten:
+
+- tiefe Kopplung an GCT-Internals fuer Nicht-Crypto-Domaenen
+- ein monolithisches „Super-Interface“ fuer alle Quellen
+- Copy/Paste von Exchange-spezifischen Payload-Modellen in Macro/Legal/Geo-Connectoren
+
+**Technische Umsetzung (Go-Layer, begonnen):**
+- `internal/connectors/base/capabilities.go` (Capability-Matrix-Scaffold)
+- `internal/connectors/base/error_classification.go` (Fehlerklassen fuer Router/Fallback)
+- spaeter: `base/ws_client.go` + `streaming/reconnect_policy.go` / `subscription_registry.go`
 
 ### Provider-Inventar: Was wir HABEN (alle Schichten)
 

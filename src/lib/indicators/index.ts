@@ -19,6 +19,11 @@ export interface OHLCV {
 // Moving Averages
 // ============================================
 
+/**
+ * @deprecated Python is the authoritative implementation. Use the indicator-service API
+ * via `callIndicatorService('/api/v1/indicators/exotic-ma', { maType: 'sma', ... })`.
+ * This function will be removed in Phase 8 cleanup.
+ */
 export function calculateSMA(data: OHLCV[], period: number): IndicatorData[] {
 	if (period <= 0 || data.length < period) return [];
 	const result: IndicatorData[] = [];
@@ -37,6 +42,11 @@ export function calculateSMA(data: OHLCV[], period: number): IndicatorData[] {
 	return result;
 }
 
+/**
+ * @deprecated Python is the authoritative implementation. Use the indicator-service API
+ * via `callIndicatorService('/api/v1/indicators/exotic-ma', { maType: 'ema', ... })`.
+ * This function will be removed in Phase 8 cleanup.
+ */
 export function calculateEMA(data: OHLCV[], period: number): IndicatorData[] {
 	if (period <= 0 || data.length < period) return [];
 	const result: IndicatorData[] = [];
@@ -95,6 +105,11 @@ export function calculateWMA(data: OHLCV[], period: number): IndicatorData[] {
 // Oscillators
 // ============================================
 
+/**
+ * @deprecated Python is the authoritative implementation. Use the indicator-service API
+ * via `callIndicatorService('/api/v1/indicators/rsi/atr-adjusted', ...)` or the composite
+ * signal endpoint. This function will be removed in Phase 8 cleanup.
+ */
 export function calculateRSI(data: OHLCV[], period: number = 14): IndicatorData[] {
 	if (period <= 0 || data.length <= period) return [];
 	const result: IndicatorData[] = [];
@@ -864,6 +879,10 @@ export function calculateRVOL(data: OHLCV[], period: number = 20): IndicatorData
 	return result;
 }
 
+/**
+ * @deprecated Python is the authoritative implementation. OBV is computed internally by
+ * the composite-signal endpoint. This function will be removed in Phase 8 cleanup.
+ */
 export function calculateOBV(data: OHLCV[]): IndicatorData[] {
 	if (data.length === 0) return [];
 
@@ -890,6 +909,10 @@ export function calculateOBV(data: OHLCV[]): IndicatorData[] {
 	return result;
 }
 
+/**
+ * @deprecated Python is the authoritative implementation. CMF is computed internally by
+ * the composite-signal endpoint. This function will be removed in Phase 8 cleanup.
+ */
 export function calculateCMF(data: OHLCV[], period: number = 20): IndicatorData[] {
 	if (period <= 0 || data.length < period) return [];
 

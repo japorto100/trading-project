@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
+import { requireLLMConsentOrResponse } from "@/lib/server/consent-guard";
 import { fetchGeopoliticalGameTheoryViaGateway } from "@/lib/server/geopolitical-game-theory-bridge";
 
 export const runtime = "nodejs";
@@ -11,6 +12,11 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
+	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
+	const consentError = await requireLLMConsentOrResponse();
+	if (consentError) {
+		return withRequestIdHeader(consentError, requestId);
+	}
 	try {
 		const result = await fetchGeopoliticalGameTheoryViaGateway({
 			country: request.nextUrl.searchParams.get("country") ?? undefined,
@@ -21,6 +27,7 @@ export async function GET(request: NextRequest) {
 			to: request.nextUrl.searchParams.get("to") ?? undefined,
 			limit: Number(request.nextUrl.searchParams.get("limit") ?? "50"),
 			requestId,
+			userRole,
 		});
 
 		return withRequestIdHeader(

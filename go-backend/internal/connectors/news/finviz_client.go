@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -20,7 +21,7 @@ type FinvizClientConfig struct {
 type FinvizClient struct {
 	baseURL        string
 	requestRetries int
-	httpClient     *http.Client
+	baseClient     *base.Client
 }
 
 func NewFinvizClient(cfg FinvizClientConfig) *FinvizClient {
@@ -39,9 +40,10 @@ func NewFinvizClient(cfg FinvizClientConfig) *FinvizClient {
 	return &FinvizClient{
 		baseURL:        baseURL,
 		requestRetries: retries,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			Timeout:    timeout,
+			RetryCount: 0,
+		}),
 	}
 }
 
@@ -63,14 +65,14 @@ func (c *FinvizClient) Fetch(ctx context.Context, symbol string, limit int) ([]m
 
 	attempts := c.requestRetries + 1
 	for attempt := 1; attempt <= attempts; attempt++ {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+		req, err := c.baseClient.NewRequest(ctx, http.MethodGet, requestURL, nil, nil)
 		if err != nil {
 			return nil, err
 		}
 		req.Header.Set("Accept", "application/xml")
 		req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
 
-		resp, err := c.httpClient.Do(req)
+		resp, err := c.baseClient.Do(req)
 		if err != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {

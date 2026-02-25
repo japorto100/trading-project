@@ -7,11 +7,15 @@ import (
 )
 
 type fakeHeadlineFetcher struct {
-	items []Headline
-	err   error
+	items     []Headline
+	err       error
+	lastTerm  string
+	lastLimit int
 }
 
-func (f *fakeHeadlineFetcher) Fetch(_ context.Context, _ string, _ int) ([]Headline, error) {
+func (f *fakeHeadlineFetcher) Fetch(_ context.Context, term string, limit int) ([]Headline, error) {
+	f.lastTerm = term
+	f.lastLimit = limit
 	return f.items, f.err
 }
 
@@ -33,7 +37,7 @@ func TestNewsService_Headlines_DeduplicatesAndSorts(t *testing.T) {
 	finviz := &fakeHeadlineFetcher{}
 
 	service := NewNewsService(rss, gdelt, finviz)
-	items, err := service.Headlines(context.Background(), "AAPL", 10)
+	items, err := service.Headlines(context.Background(), "AAPL", "", "", 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -56,7 +60,7 @@ func TestNewsService_Headlines_RespectsLimit(t *testing.T) {
 	}
 
 	service := NewNewsService(rss, &fakeHeadlineFetcher{}, &fakeHeadlineFetcher{})
-	items, err := service.Headlines(context.Background(), "", 2)
+	items, err := service.Headlines(context.Background(), "", "", "", 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -76,7 +80,7 @@ func TestNewsService_Headlines_NormalizesAndFiltersInvalidItems(t *testing.T) {
 	}
 
 	service := NewNewsService(rss, &fakeHeadlineFetcher{}, &fakeHeadlineFetcher{})
-	items, err := service.Headlines(context.Background(), "", 10)
+	items, err := service.Headlines(context.Background(), "", "", "", 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -111,7 +115,7 @@ func TestNewsService_Headlines_AppliesSourceQuota(t *testing.T) {
 	}
 
 	service := NewNewsService(rss, gdelt, &fakeHeadlineFetcher{})
-	items, err := service.Headlines(context.Background(), "", 4)
+	items, err := service.Headlines(context.Background(), "", "", "", 4)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -134,5 +138,46 @@ func TestNewsService_Headlines_AppliesSourceQuota(t *testing.T) {
 	}
 	if gdeltCount == 0 {
 		t.Fatal("expected at least one gdelt item in limited set")
+	}
+}
+
+func TestNewsService_Headlines_UsesQueryForRSSAndGDELTButSymbolForFinviz(t *testing.T) {
+	rss := &fakeHeadlineFetcher{}
+	gdelt := &fakeHeadlineFetcher{}
+	finviz := &fakeHeadlineFetcher{}
+
+	service := NewNewsService(rss, gdelt, finviz)
+	_, err := service.Headlines(context.Background(), "AAPL", "geopolitics sanctions", "", 6)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if rss.lastTerm != "geopolitics sanctions" {
+		t.Fatalf("expected rss term to use query, got %q", rss.lastTerm)
+	}
+	if gdelt.lastTerm != "geopolitics sanctions" {
+		t.Fatalf("expected gdelt term to use query, got %q", gdelt.lastTerm)
+	}
+	if finviz.lastTerm != "AAPL" {
+		t.Fatalf("expected finviz term to use symbol, got %q", finviz.lastTerm)
+	}
+}
+
+func TestNewsService_Headlines_LanguageFilterDisablesNonLanguageAwareFetchers(t *testing.T) {
+	rss := &fakeHeadlineFetcher{}
+	gdelt := &fakeHeadlineFetcher{}
+	finviz := &fakeHeadlineFetcher{}
+
+	service := NewNewsService(rss, gdelt, finviz)
+	_, err := service.Headlines(context.Background(), "AAPL", "election", "de", 5)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if rss.lastLimit != 0 || finviz.lastLimit != 0 {
+		t.Fatalf("expected rss/finviz to be skipped for non-en lang, got rss=%d finviz=%d", rss.lastLimit, finviz.lastLimit)
+	}
+	if gdelt.lastTerm == "" {
+		t.Fatal("expected gdelt to be called with a language-constrained term")
 	}
 }

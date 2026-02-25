@@ -2332,6 +2332,9 @@ Toolbar: [Conflict] [Sanctions] [Trade] [Energy] ... [Central Banks ▼]
 
 ### Sprint 1: Foundation Fix (v1.1-alpha)
 
+> **Transition-Hinweis (nach Phase-4-Implementierung, Feb 2026):** Der GeoMap-Frontend-/Rendering- und UX-Stack kann fuer v2.0 bereits ausgeliefert/tested werden, aber Teile der Domainlogik (Candidates/Contradictions/Seed/Review APIs) laufen vorerst noch ueber Next.js-Serverrouten + lokale Stores als **transitional path**. Die Backend-Konsolidierung auf **Frontend -> Go -> Python/Rust** ist als Folgearbeit in `EXECUTION_PLAN.md` bei **Phase 9 (UIL Workflow/Review)** und **Phase 14 (offizielle Quellen/DiffWatcher im Go-Layer)** eingeplant.
+> **Update (23. Feb 2026, Phase 9e-Cutover):** Der Candidate/Review/Ingest/Contradictions/Timeline-Truth-Path laeuft inzwischen ueber Go-Frontdoor/Go-owned Stores (Cutover via Next Thin-Proxies). Verbleibende lokale Next-GeoMap-Routen (`events/*`, `drawings/*`, `alerts`, `regions`, `news`, `context`, `graph`, `game-theory/impact`, `stream`, `sources/health`) sind **separater GeoMap-CRUD/Analytics/Streaming-Backlog** und nicht Teil des UIL-Candidate-Cutovers.
+
 | # | Task | Aufwand | Abhaengigkeit |
 |---|---|---|---|
 | 1 | Shell-Refactor: Zustand Store + Domain-Slices | 3-5 Tage | Keine (Blocker fuer alles andere) |

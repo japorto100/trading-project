@@ -80,6 +80,20 @@ var allowedExchanges = map[string]exchangeConfig{
 		defaultQuote: "USDT",
 		symbolFormat: "pair",
 	},
+	"auto": {
+		upstream: "AUTO",
+		source:   "router",
+		allowedAssetTypes: map[string]struct{}{
+			"spot":    {},
+			"margin":  {},
+			"futures": {},
+			"equity":  {},
+			"forex":   {},
+			"macro":   {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument_or_pair",
+	},
 	"ecb": {
 		upstream: "ECB",
 		source:   "ecb",
@@ -128,6 +142,60 @@ var allowedExchanges = map[string]exchangeConfig{
 	"snb": {
 		upstream: "SNB",
 		source:   "fred",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"bcb": {
+		upstream: "BCB",
+		source:   "bcb",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"banxico": {
+		upstream: "BANXICO",
+		source:   "banxico",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"bok": {
+		upstream: "BOK",
+		source:   "bok",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"bcra": {
+		upstream: "BCRA",
+		source:   "bcra",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"tcmb": {
+		upstream: "TCMB",
+		source:   "tcmb",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
+	"rbi": {
+		upstream: "RBI",
+		source:   "rbi",
 		allowedAssetTypes: map[string]struct{}{
 			"macro": {},
 		},

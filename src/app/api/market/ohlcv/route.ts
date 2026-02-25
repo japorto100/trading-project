@@ -1,7 +1,15 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
-import { getProviderManager } from "@/lib/providers";
 import type { OHLCVData, TimeframeValue } from "@/lib/providers/types";
+
+const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+
+interface GatewayOhlcvPayload {
+	success?: boolean;
+	provider?: string;
+	data?: OHLCVData[];
+}
 
 function toInt(input: string | null): number | null {
 	if (!input) return null;
@@ -18,44 +26,80 @@ function filterByRange(data: OHLCVData[], start: number | null, end: number | nu
 	});
 }
 
-async function fetchWithHistoricalPriority(
-	symbol: string,
-	timeframe: TimeframeValue,
-	limit: number,
-	start: number | null,
-	end: number | null,
-): Promise<{ data: OHLCVData[]; provider: string }> {
-	const manager = getProviderManager();
-	const preferredProviders = ["yahoo", "yfinance", "fmp", "eodhd", "demo"];
+function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {
+	response.headers.set("X-Request-ID", requestId);
+	return response;
+}
 
-	for (const providerName of preferredProviders) {
-		const provider = manager.getProvider(providerName);
-		if (!provider) continue;
+async function fetchOhlcvViaGateway(input: {
+	symbol: string;
+	timeframe: TimeframeValue;
+	limit: number;
+	start: number | null;
+	end: number | null;
+	requestId: string;
+	userRole?: string;
+}): Promise<{ data: OHLCVData[]; provider: string } | null> {
+	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const endpoint = new URL("/api/v1/ohlcv", gatewayBaseURL);
+	endpoint.searchParams.set("symbol", input.symbol);
+	endpoint.searchParams.set("timeframe", input.timeframe);
+	endpoint.searchParams.set("limit", String(input.limit));
+	if (input.start !== null) endpoint.searchParams.set("start", String(input.start));
+	if (input.end !== null) endpoint.searchParams.set("end", String(input.end));
+
+	const headers: Record<string, string> = {
+		Accept: "application/json",
+		"X-Request-ID": input.requestId,
+	};
+	if (input.userRole) {
+		headers["X-User-Role"] = input.userRole;
+	}
+
+	let attempts = 0;
+	const maxAttempts = 2;
+
+	while (attempts < maxAttempts) {
 		try {
-			const rows = await provider.fetchOHLCV(symbol, timeframe, limit, {
-				start: start ?? undefined,
-				end: end ?? undefined,
+			const response = await fetch(endpoint.toString(), {
+				method: "GET",
+				headers,
+				cache: "no-store",
+				// Adding a reasonable timeout for the gateway request
+				signal: AbortSignal.timeout(15000),
 			});
-			const filtered = filterByRange(rows, start, end);
-			if (filtered.length > 0) {
-				return { data: filtered, provider: providerName };
+
+			if (response.ok) {
+				const payload = (await response.json()) as GatewayOhlcvPayload;
+				if (payload.success && Array.isArray(payload.data)) {
+					return {
+						data: filterByRange(payload.data, input.start, input.end),
+						provider: payload.provider || "go-gateway",
+					};
+				}
 			}
-		} catch {
-			// ignore and continue with next provider
+
+			// If not ok, we wait a bit before retrying
+			attempts++;
+			if (attempts < maxAttempts) {
+				await new Promise((resolve) => setTimeout(resolve, 500 * attempts));
+			}
+		} catch (error) {
+			attempts++;
+			if (attempts >= maxAttempts) {
+				console.error(`OHLCV Gateway fetch failed after ${maxAttempts} attempts:`, error);
+				return null;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 500 * attempts));
 		}
 	}
 
-	const fallback = await manager.fetchOHLCV(symbol, timeframe, limit, {
-		start: start ?? undefined,
-		end: end ?? undefined,
-	});
-	return {
-		data: filterByRange(fallback.data, start, end),
-		provider: fallback.provider,
-	};
+	return null;
 }
 
 export async function GET(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
+	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
 	try {
 		const searchParams = request.nextUrl.searchParams;
 		const rawSymbol = searchParams.get("symbol");
@@ -66,45 +110,60 @@ export async function GET(request: NextRequest) {
 		const end = toInt(searchParams.get("end"));
 
 		if (!rawSymbol) {
-			return NextResponse.json({ error: "Symbol parameter is required" }, { status: 400 });
+			return withRequestIdHeader(
+				NextResponse.json({ error: "Symbol parameter is required" }, { status: 400 }),
+				requestId,
+			);
 		}
 		if (start !== null && end !== null && start >= end) {
-			return NextResponse.json(
-				{ error: "Invalid time range: start must be less than end" },
-				{ status: 400 },
+			return withRequestIdHeader(
+				NextResponse.json(
+					{ error: "Invalid time range: start must be less than end" },
+					{ status: 400 },
+				),
+				requestId,
 			);
 		}
 		const symbol = canonicalizeFusionSymbol(rawSymbol);
 
-		const hasExplicitRange = Boolean(start || end);
-		const prefersLongHistory =
-			hasExplicitRange && (timeframe === "1D" || timeframe === "1W" || timeframe === "1M");
-		const manager = getProviderManager();
-		const result = prefersLongHistory
-			? await fetchWithHistoricalPriority(symbol, timeframe, limit, start, end)
-			: await manager.fetchOHLCV(symbol, timeframe, limit, {
-					start: start ?? undefined,
-					end: end ?? undefined,
-				});
-		const data = prefersLongHistory ? result.data : filterByRange(result.data, start, end);
-		const provider = result.provider;
-
-		return NextResponse.json({
-			success: true,
+		const gatewayResult = await fetchOhlcvViaGateway({
 			symbol,
 			timeframe,
-			provider,
 			limit,
 			start,
 			end,
-			count: data.length,
-			data,
+			requestId,
+			userRole,
 		});
+		if (gatewayResult) {
+			return withRequestIdHeader(
+				NextResponse.json({
+					success: true,
+					symbol,
+					timeframe,
+					provider: gatewayResult.provider,
+					limit,
+					start,
+					end,
+					count: gatewayResult.data.length,
+					data: gatewayResult.data,
+				}),
+				requestId,
+			);
+		}
+
+		return withRequestIdHeader(
+			NextResponse.json({ error: "Gateway OHLCV request failed" }, { status: 502 }),
+			requestId,
+		);
 	} catch (error: unknown) {
 		console.error("OHLCV API Error:", error);
-		return NextResponse.json(
-			{ error: error instanceof Error ? error.message : "Failed to fetch OHLCV data" },
-			{ status: 500 },
+		return withRequestIdHeader(
+			NextResponse.json(
+				{ error: error instanceof Error ? error.message : "Failed to fetch OHLCV data" },
+				{ status: 500 },
+			),
+			requestId,
 		);
 	}
 }

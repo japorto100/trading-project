@@ -77,11 +77,19 @@ Multi-service trading platform: real-time charting, geopolitical risk map, portf
 
 ## Database
 
-- **Provider:** SQLite (not PostgreSQL). `DATABASE_URL="file:./dev.db"` in `.env`.
+- **Provider:** SQLite (not PostgreSQL). `DATABASE_URL="file:./dev.db"` in `.env` (Dev). **Für Production:** echte Datenbank setzen (z. B. `DATABASE_URL="postgresql://…"`) in `.env.production` / Deployment-Env; nicht `file:./dev.db` in Prod nutzen.
 - **ORM:** Prisma. Schema: `prisma/schema.prisma`.
-- After `bun install`, always run `bun run db:generate` before dev or build.
+- After `bun install`, always run **`bun run db:generate`** before dev or build.
 - Enums are commented out (SQLite limitation). Fields use `String` instead.
 - **Geplant (Phase 6):** Redis fuer Caching + Working Memory. PostgreSQL fuer Episodic Store. KuzuDB WASM fuer Client-Side Knowledge Graph.
+
+**Local dev:** For API calls without login, set `AUTH_STACK_BYPASS=true` and/or `NEXT_PUBLIC_AUTH_STACK_BYPASS=true` in `.env`. **In production these must be off** (or use explicit emergency override `ALLOW_PROD_AUTH_STACK_BYPASS=true`). Rust Core: run `cd python-backend/rust_core && maturin develop --release` once so Python can use the PyO3 crate.
+
+**Production secrets:** For production, generate and set **AUTH_SECRET**, **NEXTAUTH_SECRET**, **AUTH_JWT_SECRET** (Go), and **AUTH_KG_FALLBACK_KEY** via your deployment env (not in committed files). Use the same value for Auth in Next.js and Go. Example: `openssl rand -base64 32`. Replace any `CHANGE-ME-use-openssl-rand-base64-32` placeholders before going live.
+
+**Env (Next.js):** `.env.development` und `.env.production` (umbenannt aus `.env.dev`/`.env.prod`) – Next.js lädt sie automatisch bei `bun run dev` (development) bzw. `bun run build`/`start` (production). Kein Copy nach `.env` nötig. Referenz aller Keys: `.env.example`. **Prod:** Domain/URL-Platzhalter (`your-domain.com`, `api.your-domain.com`) in `.env.production` bis zur echten Domain so lassen; bei Deployment ersetzen. Secrets: `openssl rand -base64 32`, gleicher Wert in Next und Go. Siehe `review.md` (Checkliste, verbundene Variablen Frontend ↔ Go).
+
+**Frontend-Env Kurz erklärt:** (1) **News:** Primär im Go-Backend; Frontend (`src/lib/news/aggregator.ts`, Soft-Signal-Adapter) nutzt NEWS_* nur für Fallback/Legacy-Pfade – NEWS_* im Frontend-Env optional. (2) **NEXTAUTH_ADMIN_ROLE:** Rolle des Users beim Login per Credentials Provider (Admin-Benutzer/Passwort) in Auth.js; lebt im Frontend, weil Auth in Next.js läuft. (3) **AUTH_BYPASS_ROLE:** Wenn Auth-Bypass aktiv ist (Dev), bekommt der virtuelle User diese Rolle (z. B. `admin`); Server-Fallback zu `NEXT_PUBLIC_AUTH_BYPASS_ROLE`. (4) **ACLED_THRESHOLD_* / GEOPOLITICAL_MAX_PROVIDER_CALLS_PER_RUN:** Nur relevant, wenn Geo-Ingest im Next-Proxy-Modus läuft (`GEOPOLITICAL_INGEST_*_MODE=next-proxy`); sonst macht Go den Ingest – dann Defaults im Code reichen, kein Muss im Frontend-Env.
 
 ## Dev Commands
 

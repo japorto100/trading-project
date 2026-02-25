@@ -51,7 +51,7 @@ interface TradingHeaderProps {
 	indicators: IndicatorSettings;
 	loading: boolean;
 	isDarkMode: boolean;
-	dataMode?: "api" | "fallback";
+	supportedLayouts?: LayoutMode[];
 	onQueryChange: (query: string) => void;
 	onOpenSearchChange: (open: boolean) => void;
 	onSelectSymbol: (symbol: FusionSymbol) => void;
@@ -89,7 +89,7 @@ export function TradingHeader({
 	indicators,
 	loading,
 	isDarkMode,
-	dataMode = "api",
+	supportedLayouts = ["single"],
 	onQueryChange,
 	onOpenSearchChange,
 	onSelectSymbol,
@@ -131,10 +131,10 @@ export function TradingHeader({
 						className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg px-3 py-1.5 hover:opacity-90 transition-opacity"
 					>
 						<BarChart3 className="h-5 w-5 text-white" />
-						<span className="font-bold text-white text-lg">TradeView Pro</span>
+						<span className="font-bold text-white text-lg">TradeView Fusion</span>
 					</Link>
 
-					<Link href="/geopolitical-map">
+					<Link href="/geopolitical-map" data-testid="link-geomap">
 						<Button
 							variant="ghost"
 							size="sm"
@@ -251,17 +251,6 @@ export function TradingHeader({
 							<Clock className="h-3 w-3" />
 							{clockTime}
 						</Badge>
-						<Badge
-							variant="outline"
-							className={`h-7 gap-1 text-[10px] bg-background/50 ${
-								dataMode === "api"
-									? "text-emerald-500 border-emerald-500/30"
-									: "text-amber-500 border-amber-500/30"
-							}`}
-						>
-							<Zap className={`h-3 w-3 ${dataMode === "api" ? "fill-emerald-500/20" : ""}`} />
-							{dataMode === "api" ? "LIVE" : "FALLBACK"}
-						</Badge>
 					</div>
 				</div>
 			</div>
@@ -282,20 +271,40 @@ export function TradingHeader({
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent>
-							<DropdownMenuItem onClick={() => onLayoutChange("single")}>
+							<DropdownMenuItem
+								disabled={!supportedLayouts.includes("single")}
+								onClick={() => onLayoutChange("single")}
+							>
 								Single Chart
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => onLayoutChange("2h")}>
-								2 Charts (Horizontal)
+							<DropdownMenuItem
+								disabled={!supportedLayouts.includes("2h")}
+								onClick={() => onLayoutChange("2h")}
+							>
+								2 Charts (Horizontal) {!supportedLayouts.includes("2h") ? "• Planned" : ""}
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => onLayoutChange("2v")}>
-								2 Charts (Vertical)
+							<DropdownMenuItem
+								disabled={!supportedLayouts.includes("2v")}
+								onClick={() => onLayoutChange("2v")}
+							>
+								2 Charts (Vertical) {!supportedLayouts.includes("2v") ? "• Planned" : ""}
 							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => onLayoutChange("4")}>4 Charts</DropdownMenuItem>
+							<DropdownMenuItem
+								disabled={!supportedLayouts.includes("4")}
+								onClick={() => onLayoutChange("4")}
+							>
+								4 Charts {!supportedLayouts.includes("4") ? "• Planned" : ""}
+							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={onRefresh} disabled={loading}>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-8 w-8 p-0"
+						onClick={onRefresh}
+						disabled={loading}
+					>
 						<RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
 					</Button>
 

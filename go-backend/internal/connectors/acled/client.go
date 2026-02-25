@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
@@ -58,11 +59,10 @@ type Event struct {
 }
 
 type Client struct {
-	baseURL    string
+	baseClient *base.Client
 	apiToken   string
 	email      string
 	accessKey  string
-	httpClient *http.Client
 }
 
 func NewClient(cfg Config) *Client {
@@ -75,16 +75,16 @@ func NewClient(cfg Config) *Client {
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
-	baseURL = strings.TrimRight(baseURL, "/")
 
 	return &Client{
-		baseURL:   baseURL,
+		baseClient: base.NewClient(base.Config{
+			BaseURL:    baseURL,
+			Timeout:    timeout,
+			RetryCount: 1,
+		}),
 		apiToken:  strings.TrimSpace(cfg.APIToken),
 		email:     strings.TrimSpace(cfg.Email),
 		accessKey: strings.TrimSpace(cfg.AccessKey),
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
 	}
 }
 
@@ -97,12 +97,7 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 		}
 	}
 
-	endpoint, err := url.Parse(c.baseURL + defaultPath)
-	if err != nil {
-		return nil, fmt.Errorf("build acled url: %w", err)
-	}
-
-	urlQuery := endpoint.Query()
+	urlQuery := url.Values{}
 	urlQuery.Set("_format", "json")
 	urlQuery.Set("fields", "event_id_cnty,event_date,country,region,event_type,sub_event_type,actor1,actor2,fatalities,location,latitude,longitude,source,notes")
 	urlQuery.Set("limit", strconv.Itoa(normalizeLimit(query.Limit)))
@@ -148,18 +143,16 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 		urlQuery.Set("key", c.accessKey)
 	}
 
-	endpoint.RawQuery = urlQuery.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, defaultPath, urlQuery, nil)
 	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
+		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 	if c.apiToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.baseClient.Do(req)
 	if err != nil {
 		timeout := false
 		var netErr net.Error

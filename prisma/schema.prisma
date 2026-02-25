@@ -15,6 +15,147 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id             String          @id @default(cuid())
+  name           String?
+  email          String?         @unique
+  emailVerified  DateTime?
+  image          String?
+  role           String          @default("viewer")
+  passwordHash   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  accounts       Account[]
+  sessions       Session[]
+  authenticators Authenticator[]
+  refreshTokens  RefreshToken[]
+  totpDevices    TotpDevice[]
+  recoveryCodes  RecoveryCode[]
+  consent        UserConsent?
+
+  @@index([role])
+}
+
+model Account {
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  refresh_token_expires_in Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @id
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@index([expires])
+}
+
+model Authenticator {
+  id                   String   @id @default(cuid())
+  userId               String
+  credentialID         String   @unique
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  name                 String?
+  createdAt            DateTime @default(now())
+  lastUsedAt           DateTime?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id                String   @id @default(cuid())
+  userId            String
+  tokenHash         String   @unique
+  familyId          String?
+  expiresAt         DateTime
+  usedAt            DateTime?
+  revokedAt         DateTime?
+  replacedByTokenId String?
+  createdByIp       String?
+  userAgent         String?
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([familyId])
+}
+
+model TotpDevice {
+  id           String   @id @default(cuid())
+  userId       String
+  label        String
+  secretEnc    String
+  isPrimary    Boolean  @default(false)
+  lastUsedAt   DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, revokedAt])
+}
+
+model RecoveryCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash])
+  @@index([userId, usedAt])
+}
+
+model UserConsent {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  llmProcessing      Boolean  @default(false)
+  analyticsEnabled   Boolean  @default(false)
+  marketingEnabled   Boolean  @default(false)
+  privacyVersion     String   @default("v1")
+  consentedAt        DateTime?
+  withdrawnAt        DateTime?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 // --- Enums (not supported by SQLite, replaced with String in models) ---
 // enum AlertCondition {
 //   above | below | crosses_up | crosses_down | rsi_overbought | rsi_oversold

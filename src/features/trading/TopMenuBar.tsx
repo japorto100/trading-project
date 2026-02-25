@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * @deprecated Legacy top menu prototype.
+ * The active trading page uses `TradingHeader` + workspace status strip instead.
+ * Retained temporarily as a reference during the Trading/Portfolio UX consolidation.
+ */
+
 import { Clock, Moon, Sun, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";

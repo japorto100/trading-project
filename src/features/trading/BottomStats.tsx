@@ -15,25 +15,11 @@ interface TradingStats {
 
 interface BottomStatsProps {
 	stats: TradingStats;
-	dataMode: "api" | "fallback";
-	dataProvider: string;
-	streamState: "connecting" | "live" | "degraded" | "reconnecting";
-	streamReconnects: number;
-	streamLastTickAgeSec: number | null;
 	formatPrice: (value: number) => string;
 	formatVolume: (value: number) => string;
 }
 
-export function BottomStats({
-	stats,
-	dataMode,
-	dataProvider,
-	streamState,
-	streamReconnects,
-	streamLastTickAgeSec,
-	formatPrice,
-	formatVolume,
-}: BottomStatsProps) {
+export function BottomStats({ stats, formatPrice, formatVolume }: BottomStatsProps) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	if (stats.lastPrice === 0) {
@@ -56,23 +42,11 @@ export function BottomStats({
 					</span>
 					<span className="text-muted-foreground/60">|</span>
 					<span>Vol {formatVolume(stats.volume24h)}</span>
-					<span className="text-muted-foreground/60">|</span>
-					<span
-						className={`capitalize ${
-							streamState === "live"
-								? "text-emerald-500"
-								: streamState === "degraded"
-									? "text-red-500"
-									: "text-muted-foreground"
-						}`}
-					>
-						{streamState}
-					</span>
 				</span>
 				<span className="text-[10px]">{collapsed ? "Show details" : "Hide"}</span>
 			</button>
 			{!collapsed && (
-				<div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 p-2 h-24">
+				<div className="grid h-24 grid-cols-2 gap-2 p-2 md:grid-cols-3 lg:grid-cols-5">
 					<Card className="bg-background/50 border-border">
 						<CardHeader className="p-2 pb-0">
 							<CardTitle className="text-xs font-medium text-muted-foreground">Price</CardTitle>
@@ -126,47 +100,6 @@ export function BottomStats({
 						</CardHeader>
 						<CardContent className="p-2 pt-0">
 							<div className="text-base font-bold">{formatVolume(stats.volume24h)}</div>
-						</CardContent>
-					</Card>
-
-					<Card className="bg-background/50 border-border">
-						<CardHeader className="p-2 pb-0">
-							<CardTitle className="text-xs font-medium text-muted-foreground">
-								Data Source
-							</CardTitle>
-						</CardHeader>
-						<CardContent className="p-2 pt-0">
-							<div className="text-base font-bold capitalize">{dataProvider}</div>
-							<div
-								className={`text-[10px] ${dataMode === "api" ? "text-emerald-500" : "text-amber-500"}`}
-							>
-								{dataMode === "api" ? "API feed" : "Demo fallback"}
-							</div>
-						</CardContent>
-					</Card>
-
-					<Card className="bg-background/50 border-border">
-						<CardHeader className="p-2 pb-0">
-							<CardTitle className="text-xs font-medium text-muted-foreground">Stream</CardTitle>
-						</CardHeader>
-						<CardContent className="p-2 pt-0">
-							<div
-								className={`text-base font-bold capitalize ${
-									streamState === "live"
-										? "text-emerald-500"
-										: streamState === "reconnecting"
-											? "text-amber-500"
-											: streamState === "degraded"
-												? "text-red-500"
-												: "text-muted-foreground"
-								}`}
-							>
-								{streamState}
-							</div>
-							<div className="text-[10px] text-muted-foreground">
-								last tick: {streamLastTickAgeSec === null ? "n/a" : `${streamLastTickAgeSec}s`} | rc{" "}
-								{streamReconnects}
-							</div>
 						</CardContent>
 					</Card>
 				</div>

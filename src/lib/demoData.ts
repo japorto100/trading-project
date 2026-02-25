@@ -67,10 +67,12 @@ const SYMBOL_CONFIGS: Record<string, SymbolConfig> = {
 
 const TIMEFRAME_MS: Record<TimeframeValue, number> = {
 	"1m": 60000,
+	"3m": 180000,
 	"5m": 300000,
 	"15m": 900000,
 	"30m": 1800000,
 	"1H": 3600000,
+	"2H": 7200000,
 	"4H": 14400000,
 	"1D": 86400000,
 	"1W": 604800000,

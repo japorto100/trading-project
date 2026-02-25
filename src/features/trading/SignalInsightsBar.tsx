@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import type { CompositeSignalInsights } from "@/features/trading/types";
 
 interface SignalInsightsBarProps {
 	lineState: "above" | "below" | "neutral";
@@ -12,6 +13,7 @@ interface SignalInsightsBarProps {
 	heartbeatScore: number;
 	heartbeatCycleBars: number | null;
 	atr: number | null;
+	compositeSignal: CompositeSignalInsights | null;
 }
 
 function metricBadgeTone(value: number): string {
@@ -30,10 +32,17 @@ export function SignalInsightsBar({
 	heartbeatScore,
 	heartbeatCycleBars,
 	atr,
+	compositeSignal,
 }: SignalInsightsBarProps) {
 	return (
 		<div className="mx-3 mt-2 rounded-md border border-border bg-card/30 px-3 py-2">
-			<div className="flex flex-wrap items-center gap-2 text-xs">
+			<div className="mb-2 flex items-center justify-between gap-2">
+				<div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+					Market Context
+				</div>
+				<div className="text-[10px] text-muted-foreground">Signal + regime snapshots</div>
+			</div>
+			<div className="flex flex-wrap items-center gap-1.5 text-xs">
 				<Badge
 					variant="outline"
 					className={
@@ -95,6 +104,66 @@ export function SignalInsightsBar({
 				>
 					ATR: {atr === null ? "n/a" : atr.toFixed(3)}
 				</Badge>
+				{compositeSignal ? (
+					<>
+						<Badge
+							variant="outline"
+							className={
+								compositeSignal.signal === "buy"
+									? "text-emerald-500 border-emerald-500/40"
+									: compositeSignal.signal === "sell"
+										? "text-red-500 border-red-500/40"
+										: "text-muted-foreground border-border"
+							}
+							title="Go -> Python -> Rust composite signal (Phase 2 slice)"
+						>
+							Composite: {compositeSignal.signal} ({(compositeSignal.confidence * 100).toFixed(0)}%)
+						</Badge>
+						<Badge
+							variant="outline"
+							className={
+								compositeSignal.sma50SlopeScore === null
+									? "border-border text-muted-foreground"
+									: metricBadgeTone(compositeSignal.sma50SlopeScore - 0.5)
+							}
+							title="Composite SMA50 slope subscore"
+						>
+							SMA50 Slope*:{" "}
+							{compositeSignal.sma50SlopeScore === null
+								? "n/a"
+								: `${(compositeSignal.sma50SlopeScore * 100).toFixed(0)}%`}
+							{compositeSignal.sma50SlopeEngine ? ` (${compositeSignal.sma50SlopeEngine})` : ""}
+						</Badge>
+						<Badge
+							variant="outline"
+							className={
+								compositeSignal.heartbeatScore === null
+									? "border-border text-muted-foreground"
+									: metricBadgeTone(compositeSignal.heartbeatScore - 0.5)
+							}
+							title="Composite heartbeat subscore"
+						>
+							Heartbeat*:{" "}
+							{compositeSignal.heartbeatScore === null
+								? "n/a"
+								: `${(compositeSignal.heartbeatScore * 100).toFixed(0)}%`}
+						</Badge>
+						<Badge
+							variant="outline"
+							className={
+								compositeSignal.volumePowerScore === null
+									? "border-border text-muted-foreground"
+									: metricBadgeTone(compositeSignal.volumePowerScore - 0.5)
+							}
+							title="Composite smart-money / volume power subscore"
+						>
+							Smart Money*:{" "}
+							{compositeSignal.volumePowerScore === null
+								? "n/a"
+								: `${(compositeSignal.volumePowerScore * 100).toFixed(0)}%`}
+						</Badge>
+					</>
+				) : null}
 			</div>
 		</div>
 	);

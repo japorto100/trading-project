@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { callIndicatorService } from "@/lib/strategy/indicator-service";
 
@@ -18,29 +19,48 @@ const compositeRequestSchema = z.object({
 	params: z.record(z.string(), z.unknown()).optional(),
 });
 
-export async function POST(request: Request) {
+function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {
+	response.headers.set("X-Request-ID", requestId);
+	return response;
+}
+
+export async function POST(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
+	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
 	let payload: unknown;
 	try {
 		payload = await request.json();
 	} catch {
-		return NextResponse.json({ success: false, error: "invalid JSON body" }, { status: 400 });
+		return withRequestIdHeader(
+			NextResponse.json({ success: false, error: "invalid JSON body" }, { status: 400 }),
+			requestId,
+		);
 	}
 
 	const parsed = compositeRequestSchema.safeParse(payload);
 	if (!parsed.success) {
-		return NextResponse.json(
-			{ success: false, error: "invalid payload", details: parsed.error.flatten() },
-			{ status: 400 },
+		return withRequestIdHeader(
+			NextResponse.json(
+				{ success: false, error: "invalid payload", details: parsed.error.flatten() },
+				{ status: 400 },
+			),
+			requestId,
 		);
 	}
 
-	const result = await callIndicatorService<unknown>("/api/v1/signals/composite", parsed.data);
+	const result = await callIndicatorService<unknown>("/api/v1/signals/composite", parsed.data, {
+		requestId,
+		userRole,
+	});
 	if (!result.ok) {
-		return NextResponse.json(
-			{ success: false, error: result.error ?? "indicator service request failed" },
-			{ status: result.status || 502 },
+		return withRequestIdHeader(
+			NextResponse.json(
+				{ success: false, error: result.error ?? "indicator service request failed" },
+				{ status: result.status || 502 },
+			),
+			requestId,
 		);
 	}
 
-	return NextResponse.json({ success: true, data: result.data });
+	return withRequestIdHeader(NextResponse.json({ success: true, data: result.data }), requestId);
 }

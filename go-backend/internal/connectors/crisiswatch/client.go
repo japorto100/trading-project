@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"tradeviewfusion/go-backend/internal/connectors/base"
 )
 
 const (
@@ -37,7 +39,7 @@ type Item struct {
 
 type Client struct {
 	rssURL      string
-	httpClient  *http.Client
+	baseClient  *base.Client
 	cacheTTL    time.Duration
 	persistPath string
 
@@ -64,9 +66,10 @@ func NewClient(cfg Config) *Client {
 
 	client := &Client{
 		rssURL: rssURL,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			Timeout:    timeout,
+			RetryCount: 0,
+		}),
 		cacheTTL:    cacheTTL,
 		persistPath: strings.TrimSpace(cfg.PersistPath),
 	}
@@ -97,14 +100,14 @@ func (c *Client) List(ctx context.Context, limit int, region string, q string) (
 }
 
 func (c *Client) fetchFromUpstream(ctx context.Context) ([]Item, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.rssURL, nil)
+	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, c.rssURL, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build crisiswatch request: %w", err)
 	}
 	req.Header.Set("Accept", "application/rss+xml, application/xml;q=0.9, */*;q=0.8")
 	req.Header.Set("User-Agent", defaultUA)
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.baseClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("crisiswatch request failed: %w", err)
 	}

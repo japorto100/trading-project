@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -23,7 +24,7 @@ type GDELTClientConfig struct {
 type GDELTClient struct {
 	baseURL        string
 	requestRetries int
-	httpClient     *http.Client
+	baseClient     *base.Client
 }
 
 func NewGDELTClient(cfg GDELTClientConfig) *GDELTClient {
@@ -42,9 +43,10 @@ func NewGDELTClient(cfg GDELTClientConfig) *GDELTClient {
 	return &GDELTClient{
 		baseURL:        baseURL,
 		requestRetries: retries,
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			Timeout:    timeout,
+			RetryCount: 0,
+		}),
 	}
 }
 
@@ -91,7 +93,7 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
 
-		resp, err := c.httpClient.Do(req)
+		resp, err := c.baseClient.Do(req)
 		if err != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {

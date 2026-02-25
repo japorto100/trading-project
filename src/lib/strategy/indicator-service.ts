@@ -1,19 +1,19 @@
 import { getErrorMessage } from "@/lib/utils";
 
-const DEFAULT_INDICATOR_SERVICE_URL = "http://127.0.0.1:8092";
+const DEFAULT_GO_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 const DEFAULT_INDICATOR_SERVICE_TIMEOUT_MS = 8000;
 
 function isEnabled(): boolean {
 	const raw = process.env.INDICATOR_SERVICE_ENABLED;
-	if (!raw) return false;
+	if (!raw) return true;
 	const normalized = raw.trim().toLowerCase();
 	return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
 function baseUrl(): string {
-	const raw = process.env.INDICATOR_SERVICE_URL?.trim();
-	if (!raw) return DEFAULT_INDICATOR_SERVICE_URL;
-	return raw.replace(/\/$/, "");
+	const gatewayBaseUrl = process.env.GO_GATEWAY_BASE_URL?.trim();
+	if (gatewayBaseUrl) return gatewayBaseUrl.replace(/\/$/, "");
+	return DEFAULT_GO_GATEWAY_BASE_URL;
 }
 
 function timeoutMs(): number {
@@ -31,6 +31,7 @@ export interface IndicatorServiceResult<T> {
 export async function callIndicatorService<T>(
 	path: string,
 	payload: unknown,
+	options?: { requestId?: string; userRole?: string },
 ): Promise<IndicatorServiceResult<T>> {
 	if (!isEnabled()) {
 		return {
@@ -43,12 +44,20 @@ export async function callIndicatorService<T>(
 	const controller = new AbortController();
 	const timer = setTimeout(() => controller.abort(), timeoutMs());
 	try {
+		const headers: Record<string, string> = {
+			"Content-Type": "application/json",
+			Accept: "application/json",
+		};
+		if (options?.requestId) {
+			headers["X-Request-ID"] = options.requestId;
+		}
+		if (options?.userRole) {
+			headers["X-User-Role"] = options.userRole;
+		}
+
 		const response = await fetch(`${baseUrl()}${path}`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "application/json",
-			},
+			headers,
 			body: JSON.stringify(payload),
 			signal: controller.signal,
 			cache: "no-store",

@@ -43,7 +43,7 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid symbol format"})
 			return
 		}
-		if (exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb") && assetType != "macro" {
+		if (exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi") && assetType != "macro" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unsupported assetType"})
 			return
 		}
@@ -82,9 +82,10 @@ func parseMacroSymbol(symbol, exchange string) (gct.Pair, string, bool) {
 	normalized := strings.TrimSpace(strings.ToUpper(symbol))
 	normalized = strings.ReplaceAll(normalized, "-", "/")
 
-	if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" {
+	if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi" {
 		trimmed := strings.ReplaceAll(normalized, "/", "")
 		trimmed = strings.ReplaceAll(trimmed, "-", "_")
+		trimmed = strings.ReplaceAll(trimmed, ".", "_")
 		trimmed = strings.ReplaceAll(trimmed, " ", "_")
 		if !macroSeriesPattern.MatchString(trimmed) {
 			return gct.Pair{}, "", false

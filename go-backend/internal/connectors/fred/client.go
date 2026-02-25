@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
@@ -24,9 +25,8 @@ type Config struct {
 }
 
 type Client struct {
-	baseURL    string
+	baseClient *base.Client
 	apiKey     string
-	httpClient *http.Client
 }
 
 func NewClient(cfg Config) *Client {
@@ -39,14 +39,14 @@ func NewClient(cfg Config) *Client {
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
-	baseURL = strings.TrimRight(baseURL, "/")
 
 	return &Client{
-		baseURL: baseURL,
-		apiKey:  strings.TrimSpace(cfg.APIKey),
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
+		baseClient: base.NewClient(base.Config{
+			BaseURL:    baseURL,
+			Timeout:    timeout,
+			RetryCount: 1,
+		}),
+		apiKey: strings.TrimSpace(cfg.APIKey),
 	}
 }
 
@@ -114,24 +114,18 @@ func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string,
 		limit = 500
 	}
 
-	endpoint, err := url.Parse(c.baseURL + "/series/observations")
-	if err != nil {
-		return nil, fmt.Errorf("build fred url: %w", err)
-	}
-	query := endpoint.Query()
+	query := url.Values{}
 	query.Set("series_id", seriesID)
 	query.Set("api_key", c.apiKey)
 	query.Set("file_type", "json")
 	query.Set("sort_order", "desc")
-	query.Set("limit", strconv.Itoa(limit))
-	endpoint.RawQuery = query.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	query.Set("limit", fmt.Sprintf("%d", limit))
+	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, "/series/observations", query, nil)
 	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
+		return nil, err
 	}
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.baseClient.Do(req)
 	if err != nil {
 		timeout := false
 		var netErr net.Error

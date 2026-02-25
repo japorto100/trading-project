@@ -1,4 +1,4 @@
-﻿import type {
+import type {
 	MarketDataProvider,
 	OHLCVData,
 	ProviderInfo,
@@ -18,6 +18,8 @@ function timeframeToInterval(timeframe: TimeframeValue): string {
 	switch (timeframe) {
 		case "1m":
 			return "1m";
+		case "3m":
+			return "3m";
 		case "5m":
 			return "5m";
 		case "15m":
@@ -26,6 +28,8 @@ function timeframeToInterval(timeframe: TimeframeValue): string {
 			return "30m";
 		case "1H":
 			return "1h";
+		case "2H":
+			return "2h";
 		case "4H":
 			return "4h";
 		case "1D":
@@ -34,6 +38,8 @@ function timeframeToInterval(timeframe: TimeframeValue): string {
 			return "7d";
 		case "1M":
 			return "30d";
+		default:
+			return (timeframe as string).toLowerCase();
 	}
 }
 

@@ -1,0 +1,264 @@
+{
+  "contradictions": [
+    {
+      "id": "gctrd_9eb223ac0b332b0a",
+      "title": "North America: contradictory signals for sanctions",
+      "state": "open",
+      "severityHint": 2,
+      "regionId": "north-america",
+      "countryCode": "US",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "North America reports escalation affecting sanctions flows",
+      "statementB": "North America officials deny escalation affecting sanctions flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/0"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_1ae79a8517d29483",
+      "title": "Europe: contradictory signals for rates",
+      "state": "open",
+      "severityHint": 3,
+      "regionId": "europe",
+      "countryCode": "DE",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "Europe reports escalation affecting rates flows",
+      "statementB": "Europe officials deny escalation affecting rates flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/1"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_84d1ba7dc8bd5c48",
+      "title": "MENA: contradictory signals for conflict",
+      "state": "open",
+      "severityHint": 4,
+      "regionId": "mena",
+      "countryCode": "SA",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "MENA reports escalation affecting conflict flows",
+      "statementB": "MENA officials deny escalation affecting conflict flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/2"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_1599a8ab932727ec",
+      "title": "East Asia: contradictory signals for energy",
+      "state": "open",
+      "severityHint": 2,
+      "regionId": "east-asia",
+      "countryCode": "CN",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "East Asia reports escalation affecting energy flows",
+      "statementB": "East Asia officials deny escalation affecting energy flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/3"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_dd3073cb4d81aa1a",
+      "title": "South Asia: contradictory signals for sanctions",
+      "state": "open",
+      "severityHint": 3,
+      "regionId": "south-asia",
+      "countryCode": "IN",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "South Asia reports escalation affecting sanctions flows",
+      "statementB": "South Asia officials deny escalation affecting sanctions flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/4"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_7855fd4da577c6c8",
+      "title": "Southeast Asia: contradictory signals for rates",
+      "state": "open",
+      "severityHint": 4,
+      "regionId": "southeast-asia",
+      "countryCode": "SG",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "Southeast Asia reports escalation affecting rates flows",
+      "statementB": "Southeast Asia officials deny escalation affecting rates flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/5"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_fb97fcac0cfa3c76",
+      "title": "North America: contradictory signals for conflict",
+      "state": "open",
+      "severityHint": 2,
+      "regionId": "north-america",
+      "countryCode": "US",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "North America reports escalation affecting conflict flows",
+      "statementB": "North America officials deny escalation affecting conflict flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/6"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_d70a29786516aa67",
+      "title": "Europe: contradictory signals for energy",
+      "state": "open",
+      "severityHint": 3,
+      "regionId": "europe",
+      "countryCode": "DE",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "Europe reports escalation affecting energy flows",
+      "statementB": "Europe officials deny escalation affecting energy flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/7"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_449522f5913e7763",
+      "title": "MENA: contradictory signals for sanctions",
+      "state": "open",
+      "severityHint": 4,
+      "regionId": "mena",
+      "countryCode": "SA",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "MENA reports escalation affecting sanctions flows",
+      "statementB": "MENA officials deny escalation affecting sanctions flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/8"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    },
+    {
+      "id": "gctrd_baafe2f844eaed2d",
+      "title": "East Asia: contradictory signals for rates",
+      "state": "open",
+      "severityHint": 2,
+      "regionId": "east-asia",
+      "countryCode": "CN",
+      "summary": "Seed contradiction for GeoMap review workflow and cutover validation.",
+      "statementA": "East Asia reports escalation affecting rates flows",
+      "statementB": "East Asia officials deny escalation affecting rates flows",
+      "sourceRefs": [
+        {
+          "provider": "seed:official-monitor",
+          "publishedAt": "2026-02-23T16:37:05Z",
+          "reliability": 0.8,
+          "sourceTier": "B",
+          "title": "Go-owned contradiction seed",
+          "url": "https://seed.local/contradictions/9"
+        }
+      ],
+      "evidence": [],
+      "createdAt": "2026-02-23T16:37:05Z",
+      "updatedAt": "2026-02-23T16:37:05Z",
+      "createdBy": "phase9e-shadow-runner",
+      "updatedBy": "phase9e-shadow-runner"
+    }
+  ]
+}

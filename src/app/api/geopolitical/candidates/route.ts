@@ -1,18 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { runHardSignalAdapters } from "@/lib/geopolitical/adapters/hard-signals";
-import { shouldPromoteCandidate } from "@/lib/geopolitical/anti-noise";
-import { parseCreateGeoCandidateInput } from "@/lib/geopolitical/candidate-validation";
-import {
-	GeopoliticalIngestionBudget,
-	getGeopoliticalIngestionBudgetConfig,
-} from "@/lib/geopolitical/ingestion-budget";
-import type { GeoCandidate } from "@/lib/geopolitical/types";
-import { createGeoCandidate, listGeoCandidates } from "@/lib/server/geopolitical-candidates-store";
-import { appendGeoTimelineEntry } from "@/lib/server/geopolitical-timeline-store";
+import { listGeoCandidates } from "@/lib/server/geopolitical-candidates-store";
+import { proxyGeopoliticalGatewayRequest } from "@/lib/server/geopolitical-gateway-proxy";
 
 export const runtime = "nodejs";
 
+function useGoOwnedCandidatesReadAlias(): boolean {
+	if ((process.env.GEOPOLITICAL_INGEST_SHADOW_COMPARE ?? "").trim() === "1") {
+		return false;
+	}
+	const hardMode = (process.env.GEOPOLITICAL_INGEST_HARD_MODE ?? "next-proxy").trim();
+	const softMode = (process.env.GEOPOLITICAL_INGEST_SOFT_MODE ?? "next-proxy").trim();
+	return hardMode === "go-owned-gateway-v1" && softMode === "go-owned-gateway-v1";
+}
+
 export async function GET(request: NextRequest) {
+	if (useGoOwnedCandidatesReadAlias()) {
+		return proxyGeopoliticalGatewayRequest(request, "/api/v1/geopolitical/candidates", {
+			method: "GET",
+			copyQuery: true,
+		});
+	}
 	const state = request.nextUrl.searchParams.get("state") as
 		| "open"
 		| "accepted"
@@ -37,62 +44,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
 	const mode = request.nextUrl.searchParams.get("mode");
-
 	if (mode === "hard") {
-		const budget = new GeopoliticalIngestionBudget(getGeopoliticalIngestionBudgetConfig());
-		const adapterResults = await runHardSignalAdapters(budget);
-		const created: Array<{ candidate: GeoCandidate; deduped: boolean }> = [];
-		for (const result of adapterResults) {
-			for (const candidate of result.candidates) {
-				if (!shouldPromoteCandidate(candidate)) {
-					continue;
-				}
-				const upserted = await createGeoCandidate(candidate);
-				created.push(upserted);
-			}
-		}
-		return NextResponse.json({
-			success: true,
-			mode: "hard",
-			adapters: adapterResults.map((result) => ({
-				provider: result.provider,
-				ok: result.ok,
-				message: result.message,
-				count: result.candidates.length,
-			})),
-			created: created.map((entry) => entry.candidate),
-			budget: budget.snapshot(),
+		return proxyGeopoliticalGatewayRequest(request, "/api/v1/geopolitical/ingest/hard", {
+			method: "POST",
+			copyQuery: false,
 		});
 	}
-
-	let payload: unknown;
-	try {
-		payload = await request.json();
-	} catch {
-		return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
-	}
-
-	const parsed = parseCreateGeoCandidateInput(payload);
-	if (!parsed.ok) {
-		return NextResponse.json({ error: parsed.error }, { status: 400 });
-	}
-
-	const result = await createGeoCandidate(parsed.value);
-	if (!result.deduped) {
-		await appendGeoTimelineEntry({
-			eventId: result.candidate.id,
-			action: "created",
-			actor: "candidate-engine",
-			diffSummary: `New candidate: ${result.candidate.headline}`,
-		});
-	}
-
-	return NextResponse.json(
-		{
-			success: true,
-			candidate: result.candidate,
-			deduped: result.deduped,
-		},
-		{ status: result.deduped ? 200 : 201 },
-	);
+	return proxyGeopoliticalGatewayRequest(request, "/api/v1/geopolitical/candidates", {
+		method: "POST",
+		copyQuery: false,
+	});
 }

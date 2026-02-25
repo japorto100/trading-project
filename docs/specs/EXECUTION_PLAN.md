@@ -1,6 +1,6 @@
 # MASTER EXECUTION PLAN
 
-> **Stand:** 22. Februar 2026 (Rev. 3 — Vollstaendige Neufassung: 22+1 Phasen mit Sub-Phasen, korrekte Abhaengigkeitsreihenfolge, ~90% Doc-Abdeckung)
+> **Stand:** 25. Februar 2026 (Rev. 3.6 — Phase 1 GCT Audit SQLite implementiert; Playwright E2E Specs repariert; dev-stack.ps1 parallelisiert)
 > **Zweck:** Hoechst-Level Roadmap und **vollstaendiger Index** ueber alle `docs/*.md` Planungsdokumente. Jede Phase ist ein End-to-End Deliverable. Jede Sub-Phase referenziert die Detail-Sektion im jeweiligen Fach-Dokument. Keine Phase wird begonnen bevor die vorherige ihr Verify Gate bestanden hat.
 >
 > **Quellen (alle docs/*.md ohne Subdirectories, exkl. CHERI/Future-Quant/ENV_VARS/REMOTE_DEV):**
@@ -36,6 +36,11 @@
 > - Rev. 2 (22. Feb 2026) — Phasen 10-12 ergaenzt, Auth/Memory/GT
 > - Rev. 3 (22. Feb 2026) — **Vollstaendige Neufassung.** 22+1 Phasen mit Sub-Phasen. Auth auf Phase 1 hochgezogen. Memory vor Agents. Fehlende Themen eingefuegt (Entropy, Connector Expansion, Indicator Catalog, Backtesting, Options/DeFi, ML Pipeline, GeoMap v2.5/v3, WASM). ~90% der 661 geplanten Tasks jetzt referenziert.
 > - Rev. 3.1 (22. Feb 2026) — Aktueller-Stand-Sektion eingefuegt. `API_CONTRACTS.md` um Sek. 11-13 (Memory, Agent, Agent State) erweitert. `FRONTEND_ARCHITECTURE.md` Phasen-Referenzen auf Rev. 3 Nummerierung aktualisiert.
+> - Rev. 3.2 (25. Feb 2026) — Phase 7 (Indicator Catalog Core) abgeschlossen: 7 neue Python-Endpoints, 16 neue Go-Gateway-Proxy-Routen, Fibonacci-Extension, TS-Deprecation-Markierungen.
+> - Rev. 3.3 (25. Feb 2026) — Phase 7 Rust-Integration abgeschlossen: PyO3-Implementierungen fuer EMA, RSI, ATR, BB-Bandwidth, BB-%B. Rust-first-with-Python-fallback Muster. 59/59 Tests pass (Phase 2: 12, Phase 7: 47); `go build ./...` + `bun run lint` clean.
+> - Rev. 3.4 (25. Feb 2026) — Phase 8 Pattern Detection Code-Baseline: Elliott Wave Fibonacci Rules (R1–R6), XABCD Harmonics (Gartley/Bat/Butterfly/Crab), FEIW, Candlestick-Erweiterungen (11 neue Typen), TD Countdown 13 + TDST, Head & Shoulders. `test_phase8_patterns.py` mit ~50 Tests. Verify Gate ausstehend.
+> - Rev. 3.5 (25. Feb 2026) — Phase 4 formal abgeschlossen (Code vollstaendig, Live-Verify/E2E deferred). Phase 8 Code-Review bestanden: Elliott Wave (R1-R6), XABCD, Candlestick (11 Typen), TD Countdown/TDST, H&S alle korrekt implementiert und manuell verifiziert. Pytest-Verify Gate fuer Phase 8 bleibt User-Action (`uv run pytest tests/test_phase8_patterns.py -v`).
+> - Rev. 3.6 (25. Feb 2026) — **Phase 1 Code-Gap geschlossen:** GCT Audit SQLite (`gct_audit_sqlite.go`, `GCTAuditSQLiteStore`) implementiert; `gctAuditConfig.onRecord` Callback in Middleware; Wiring via `GCT_AUDIT_DB_ENABLED`/`GCT_AUDIT_DB_PATH`. **Playwright E2E repariert:** 4 Specs komplett ueberarbeitet (testid-basiert, kein `force:true`, Service-Skip-Guards fuer Backend-Tests). **data-testid Attribute** hinzugefuegt: `watchlist-sidebar`, `sidebar-right`, `tab-{id}` (5 Tabs), `timeline-strip`, `link-geomap`. **dev-stack.ps1 parallelisiert:** `Wait-ForPort` Health-Check-Funktion ersetzt feste Sleeps; Go-Gateway + Python starten parallel nach GCT-Ready; GCT-Credentials aus `GCT_ADMIN_USER`/`GCT_ADMIN_PASS` ENV.
 
 ---
 
@@ -45,12 +50,15 @@
 
 | Phase | Status | Bemerkung |
 |:------|:-------|:----------|
-| Phase 0 (Foundation) | **NICHT GESTARTET** | Go BaseConnector Scaffold existiert, Go Gateway laeuft auf Port 9060, 6 bestehende Endpoints funktional. Kein Provider produktiv ueber BaseConnector. |
-| Phase 1 (Auth) | **NICHT GESTARTET** | Kein Auth implementiert. Alle Endpoints offen. |
-| Phase 2 (Rust Core) | **NICHT GESTARTET** | Rust Workspace existiert (`rust-core/`), PyO3 Skeleton vorhanden. |
-| Phase 3 (Streaming) | **NICHT GESTARTET** | SSE-Endpoint `/api/geopolitical/stream` existiert als Prototyp. |
-| Phase 4 (GeoMap v2.0) | **NICHT GESTARTET** | GeoMap v1 funktional (d3-geo Orthographic, SVG, Marker). Keine Color-Scale, keine Animation. |
-| Phase 5-22 | NICHT GESTARTET | — |
+| Phase 0 (Foundation) | **ABGESCHLOSSEN (Baseline, 23. Feb 2026)** | Frontend-Market-Routen Go-first/strict Go-only, Adaptive Router + BaseConnector-Scaffolds aktiv, ACLED/Finnhub auf BaseConnector migriert, Failover-Scaffolds vorhanden. |
+| Phase 1 (Auth) | **ABGESCHLOSSEN (Code vollstaendig inkl. GCT Audit SQLite, 25. Feb 2026)** | Auth.js/next-auth v5 (beta) + Prisma Adapter + Credentials Register/Login + echter Passkey Provider (`passkey`) als Baseline implementiert; RBAC/JWT/Request-ID/GCT-Hardening-Scaffolds vorhanden. **GCT Audit SQLite** (`GCTAuditSQLiteStore`) implementiert (Rev. 3.6): opt-in via `GCT_AUDIT_DB_ENABLED=true`, Pfad via `GCT_AUDIT_DB_PATH`. Live-Verifikation (Browser/E2E) deferred. |
+| Phase 2 (Rust Core) | **ABGESCHLOSSEN (Implementierungs-Baseline, Live-Verify deferred, 23. Feb 2026)** | PyO3-Rust-Core (SMA50/Heartbeat/Batch) aktiv, Polars-Preprocessing in `indicator-service` + `finance-bridge` aktiv, redb-OHLCV-Cache (PyO3) als Finance-Bridge read-through aktiv, Trading-UI zeigt Backend-Composite-Badges (inkl. Heartbeat). Zwei offene Verify-Punkte (Browser/E2E) sind explizit deferred. |
+| Phase 3 (Streaming) | **ABGESCHLOSSEN (Code-Baseline, Live-Verify deferred, 23. Feb 2026)** | Go Candle Builder + Alert Engine + Snapshot/Reconnect-Basis aktiv; `market/stream` stream-first via Go-SSE, `market/stream/quotes` nutzt Go-SSE-Multiplex fuer streamfaehige Symbolsets. Browser/E2E-Live-Verify bleibt deferred. |
+| Phase 4 (GeoMap v2.0) | **ABGESCHLOSSEN (Code-Baseline + Implementierung vollstaendig, Live-Verify/E2E deferred, 25. Feb 2026)** | Shell-Split + Zustand-Workspace-Basis aktiv. Multi-Body (`Earth/Moon`) Toggle + Moon Seed-Layer vorhanden. D3 v1.1 + v1.5 Phase-4-Scope integriert (inkl. Inertia/Voronoi/Axis/Brush/Hierarchy/Annotation/Legend). Hybrid-Rendering aktiv (Canvas-Basemap + Canvas-Country/Heatmap + Canvas-BodyPointLayer-Stage, SVG-Hit-Layer) + `supercluster` Zoom-Out-Cluster. Hard-/Soft-Candidate-Pipelines gehaertet, Seed-Bootstrap + Contradictions Basis-Workflow inkl. API/Sidebar/Audit vorhanden. Browser/E2E-Live-Verify bleibt deferred (kein Blocker). |
+| Phase 5-6 | NICHT GESTARTET | — |
+| Phase 7 (Indicator Catalog Core) | **ABGESCHLOSSEN (Code-Baseline + Rust + Tests, 25. Feb 2026)** | Phase 7a–7e implementiert: `detect_swings` als public API (`/api/v1/indicators/swings`), Bollinger Bandwidth/Percent-B/Squeeze (TTM-Kern), ATR-adjusted RSI, Bollinger-on-RSI, Fibonacci Confluence (multi-swing cluster) in Python. Rust-first-with-Python-fallback fuer EMA, RSI, ATR, BB-BW, BB-%B. 16 neue Go-Gateway Proxy-Routen registriert. Fibonacci-Ratios auf 2.618 erweitert. TypeScript-Duplikate (SMA/EMA/RSI/OBV/CMF) als `@deprecated` markiert. **59/59 Tests pass** (Phase 2: 12, Phase 7: 47). `go build ./...` + `bun run lint` clean. Live-Verify deferred. |
+| Phase 8 (Pattern Detection) | **ABGESCHLOSSEN (Code-Baseline + manuell verifiziert, pytest-Abnahme User-Action, 25. Feb 2026)** | 8a: Elliott Wave Fibonacci Validation (R1–R6, 0.42+0.07×rules confidence, wave_lengths/fib_ratios/rules_passed in details). 8b: Full XABCD Harmonics (Gartley/Bat/Butterfly/Crab) + FEIW failed-breakout/breakdown mit invalidation_level. 8c: Candlestick-Erweiterungen (Dragonfly/Gravestone Doji, Spinning Top, Piercing Line, Dark Cloud Cover, Morning/Evening Star, Three White Soldiers/Three Black Crows, Bottle, Double Trouble, Extreme Euphoria). 8d: TD Countdown 13-bar bearish/bullish + TDST Resistance/Support Level. 8e: Head & Shoulders + Inverse H&S (neckline_level, target_price in details). `test_phase8_patterns.py` ~50 Tests manuell geprueft und korrekt. **Verify Gate:** `uv run pytest tests/test_phase8_patterns.py -v && uv run pytest -v` (User-Action). `go build ./...` + `bun run lint` unveraendert clean (keine neuen Go/TS-Aenderungen). |
+| Phase 9-22 | NICHT GESTARTET | — |
 
 > **Empfohlener Startpunkt:** Phase 0 + Phase 1 parallel.
 > Phase 0a-0c (Foundation) und Phase 1a-1c (Auth) haben keine Abhaengigkeiten zueinander und koennen gleichzeitig implementiert werden.
@@ -58,11 +66,91 @@
 
 > **Teilfortschritt (22. Feb 2026, Codex):**
 > - Phase 1d (baseline, teilweise): Go Gateway hat Request-ID + Request-Logging Middleware (`X-Request-ID` Header gesetzt/weitergereicht, JSON `slog` startup in `cmd/gateway`).
+> - Phase 1b (baseline, teilweise): Go Gateway hat Security-Header- und CORS-Allowlist-Middleware (transitional Hardening, inkl. `OPTIONS` Preflight-Handling) und Next.js setzt Baseline-Security-Header fuer API-Routes jetzt ueber **`src/proxy.ts`** (konsolidiert; `src/middleware.ts` entfernt wegen Next.js-16 Konflikt `middleware.ts` + `proxy.ts`).
+> - Phase 1b (baseline erweitert, teilweise): API-CSP-Baseline (`default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`) wird jetzt sowohl im Go Gateway (`withSecurityHeaders`) als auch in Next.js **`src/proxy.ts`** fuer API-Routes gesetzt.
+> - Phase 1b (scaffold, teilweise): Go Gateway besitzt jetzt ein path-basiertes RBAC-Middleware-Scaffold (`viewer`/`analyst`/`trader`, Public-Exceptions wie `/health` und `/api/v1/stream/*`), flag-gated via `AUTH_RBAC_ENFORCE` (default `false`). Rollenquelle ist vorerst transitional `X-User-Role` Header; JWT-Validation + echte next-auth Integration bleiben offen.
+> - Phase 1b (scaffold, teilweise): Go Gateway besitzt jetzt zusaetzlich ein path-basiertes In-Memory-Rate-Limit-Middleware-Scaffold (u. a. `portfolio/order` 2/min, `portfolio/balances` 10/s, Default `/api/v1/*` 100/s), flag-gated via `AUTH_RATE_LIMIT_ENFORCE` (default `false`).
+> - Phase 1a/1b (scaffold, teilweise): Bestehender `next-auth` Credentials-Flow wurde um einen Role-Claim (`viewer`/`analyst`/`trader`/`admin`) im JWT/Session-Callback erweitert; `src/proxy.ts` nutzt bei aktivierter Auth (`NEXT_PUBLIC_ENABLE_AUTH=true`) jetzt path-basierte Public-/Protected-Regeln und einfache Rollenpruefung (401/403) statt nur globalem `/api/*`-Block.
+> - Phase 1b (scaffold erweitert, teilweise): `src/proxy.ts` Rollenregeln wurden auf reale Next.js-API-Pfade (methodensensitiv) korrigiert, damit `trader`/`analyst`-Checks bereits im Next-Layer fuer betroffene `/api/fusion/*` und `/api/geopolitical/candidates/*` POST/Write-Pfade greifen.
+> - Phase 1b/1d (scaffold, teilweise): `src/proxy.ts` injiziert bei aktivierter Auth den Role-Claim als `X-User-Role` in API-Requests; mehrere Next.js->Go Pfade (Market `quote`/`ohlcv`/`news`/`search`/`providers`, Strategy-Proxies, Geopolitical Bridges) reichen den Header an das Go Gateway weiter. Go-RBAC-Enforcement bleibt weiterhin flag-gated.
+> - Phase 1b/1d (scaffold erweitert): `src/proxy.ts` reicht bei aktivierter Session zusaetzlich `X-Auth-User` (`token.sub`), optional `X-Auth-JTI` (`token.jti`) sowie `X-Auth-Verified=next-proxy-session` an Downstreams weiter; das verbessert Audit-/Trace-Qualitaet bevor Go-JWT-Validation final auf das Endformat umgestellt ist.
+> - Phase 1b (scaffold, teilweise): Go Gateway besitzt jetzt ein flag-gated Bearer-JWT-Validation-Middleware (`AUTH_JWT_ENFORCE`, HS256-Scaffold via `AUTH_JWT_SECRET`/`NEXTAUTH_SECRET` Fallback), das bei Erfolg `X-User-Role`/`X-Auth-User`/`X-Auth-JTI` fuer nachgelagerte Middleware setzt. Finale Kompatibilitaet zum endgueltigen next-auth Token-Format bleibt offen.
+> - Phase 1b (scaffold erweitert, teilweise): Go Gateway JWT-Validation prueft jetzt zusaetzlich eine In-Memory Revocation-Blocklist (`jti`-basiert, expiry-aware Cleanup on read). Transitional Preload via `AUTH_JWT_REVOKED_JTIS` (+ Default-TTL) vorhanden; persistente Admin-/DB-Revocation-Flows bleiben offen.
+> - Phase 1b (scaffold erweitert, teilweise): Transitional Runtime-Revocation-Endpoint `POST /api/v1/auth/revocations/jti` im Go Gateway implementiert (schreibt `jti` in die In-Memory-Blocklist). Go-RBAC stuft den Pfad jetzt als `admin`-only ein.
+> - Phase 1b/1c (scaffold erweitert): Revocation-Audit wird jetzt zusaetzlich persistent als append-only JSONL mit SHA-256-Hash-Chain geschrieben (`AUTH_JWT_REVOCATION_AUDIT_JSONL_*`), waehrend der Admin-Read-Endpoint weiterhin den In-Memory-Ringbuffer fuer schnelle Runtime-Inspektion nutzt.
+> - Phase 4c (teilweise): GeoMap Hybrid-Rendering hat jetzt Canvas-Basemap-Stage plus Canvas-Country/Heatmap-Stage; SVG-Laenderpfade bleiben als Hit-/Accessibility-Layer fuer Country-Interaktion aktiv.
+> - Phase 4c/4d/4h (teilweise): Generischer Canvas-Stage fuer `bodyPointLayers` hinzugefuegt; `rendererHint` routet den Moon Seed-Layer jetzt ueber Canvas (statt SVG), wodurch die Body-/Layer-Registry praktisch im Hybrid-Renderpfad genutzt wird.
+> - Phase 4c (scaffold, teilweise): Marker-Zoom-Out-Clustering via `supercluster` als Screen-Space-Adapter verdrahtet (Cluster-Badges im Marker-Stage, Einzelmarker bleiben bei Zoom-In / fuer selektierte Marker sichtbar). Praeziser Globe-/Geo-Clusterpfad kann spaeter verfeinert werden.
+> - Phase 4b/4c (teilweise): `d3-inertia` fuer Globe-Drag in `MapCanvas` integriert (natuerlichere Rotation/Flick-Inertia, Zoom separat). `d3-geo-voronoi` (`geoDelaunay.find`) als nearest-marker hit-testing scaffold verdrahtet (konservativer Pixel-Threshold bei Background-Klicks).
+> - Phase 4c (UX-Polish, teilweise): Cluster-Badges sind jetzt klick-/keyboard-fokussierbar und triggern ein kurzes Globe-Focus/Zoom-Tweening auf die Cluster-Position (hilft beim Drilldown aus Zoom-Out-Ansichten).
+> - Phase 4f (teilweise): Candidate-Dedup nutzt jetzt `SHA-256`-Fingerprints (statt `SHA-1`) plus Titel-Similarity-Fallback (Jaccard auf normalisierten Tokens) fuer Near-Duplicates. Soft-Signal-Kandidaten erhalten zusaetzlich einen nachvollziehbaren Auto-Reason in `reviewNote` (Confidence-Ladder, Source-/Provider-/Tier-Summary).
+> - Phase 4e (teilweise): Dritter Hard-Signal-Adapter `acled_threshold` hinzugefuegt (ueber bestehende Go→ACLED Bridge). Erzeugt Auto-Candidates bei konfigurierbaren Eskalations-Schwellen (Anzahl schwerer Events / Fatalities innerhalb Lookback-Fenster) und nutzt die bestehende Budget-/Dedup-Pipeline.
+> - Phase 4e/4f (teilweise): Hard-Ingest-Route reicht jetzt `X-Request-ID`/`X-User-Role` bis zum ACLED-Threshold-Adapter durch und liefert pro Adapter observability-Stats (`produced/promoted/created/deduped`). Soft-Ingest-Route ebenfalls um `deduped`-Stats pro Adapter erweitert. Hard-Signal-Candidates erhalten nun ebenfalls auto-generierte `reviewNote`-Reasons.
+> - Phase 4e/4f (migration-ready, teilweise): Shared Ingestion-Contract eingefuehrt (`src/lib/geopolitical/ingestion-contracts.ts`) fuer Adapter-Stats und standardisiertes auto-`reviewNote`-Format. Hard-/Soft-Pipelines nutzen jetzt dieselben DTO-/Serializer-Pfade, was die spaetere Verlagerung in den Go-Layer vereinfacht.
+> - Phase 4e (teilweise): Offizielle Rates-/Sanctions-Deltas erhalten zusaetzlich leichte Semantik-Heuristiken (DocType, Zentralbank `hike/cut/hold` + bp soweit erkennbar, Sanktions-Aktion wie `designations/general_license/delistings` + grobe Target-Tags). Headlines/Severity/`reviewNote` werden dadurch aussagekraeftiger, ohne schon vollstaendiges Decision-Parsing zu sein.
+> - Phase 4h (teilweise): Contradictions besitzen jetzt dedizierten Local-Store + API (`/api/geopolitical/contradictions`, `PATCH /api/geopolitical/contradictions/[id]`) inkl. Timeline-Audit (`contradiction_created/resolved/reopened`). Sidebar-Panel unterstuetzt Basis-Workflow (Open/Resolved/All Filter + Resolve/Reopen); tieferer Review-/Merge-Workflow bleibt offen.
+> - Phase 4g (abgeschlossen, Implementierung): `TimelineStrip` nutzt jetzt auch `d3-svg-annotation` (Peak-Annotation im Activity-Density-Chart) und `d3-svg-legend` (formale Treemap-Legende fuer Action-Gruppen). Browser-Visual-Verify bleibt im finalen Phase-4-Abnahmelauf offen.
+> - Phase 4h (abgeschlossen, Implementierung): Contradictions-Workflow erweitert um Resolution-Details (Outcome/Note/Merge-Links), Evidence-Items (add/remove) und zusaetzliche Timeline-Audits (`contradiction_resolution_updated`, `contradiction_evidence_updated`) via Sidebar-Panel + PATCH-API.
+> - Phase 4e (abgeschlossen, Implementierung): Hard-Signal-Parsing fuer offizielle Rates-/Sanctions-Deltas ist fuer Phase-4-Scope vervollstaendigt (Delta + Keyword + Semantik-Heuristiken/Decision-Signale fuer Headlines/Severity/Reasons). Tieferes provider-spezifisches Parsing und Verlagerung in den Go-Layer bleiben Architektur-/Folgearbeit ausserhalb des Phase-4-Abschlusskerns.
+> - Phase 1b/1c (scaffold erweitert, teilweise): Go Gateway fuehrt zusaetzlich eine In-Memory-Revocation-Audit-Historie (Ringbuffer) und exponiert `GET /api/v1/auth/revocations/audit` (admin-only via bestehendes RBAC-Scaffold) fuer Debug/Review des transitional Revocation-Flows.
+> - Phase 4a (teilweise): `GeopoliticalMapShell` stark gesplittet (Shell-Komposition + Panels/Hooks), Zustand-Workspace-Store aktiv genutzt; Shell reduziert auf ~500 Zeilen.
+> - Phase 4d (teilweise): Body-/Layer-Modularisierung gestartet (`bodies/earth|moon`, body point layer registry, Moon Seed-Layer getrennt von `MapCanvas`).
+> - Phase 4c (gestartet): `MapCanvas` Projektion-/Layer-Berechnung in `rendering/useGeoMapProjectionModel` extrahiert, SVG Render-Stages (`basemap`, `drawings`, `soft-signals`, `body-point-layers`, `markers`) abgegrenzt, Layer-Routing-Metadaten (`rendererHint`) vorbereitet und erster Canvas-Basemap-Stage-Scaffold (Sphere/Atmosphaere/Graticule/Cloud unter SVG) integriert als Vorstufe fuer Canvas/SVG-Hybrid.
+> - Phase 1b (scaffold erweitert, teilweise): Rate-Limit-Scaffold deckt jetzt auch `POST /api/v1/auth/revocations/jti` ab (5/min, path-basiert, flag-gated via `AUTH_RATE_LIMIT_ENFORCE`).
 > - Phase 1d (vertical slice erweitert): `src/app/api/geopolitical/game-theory/impact` erzeugt/propagiert `X-Request-ID`; Go `gametheory` Connector reicht Header an Python Soft-Signals Service weiter (TS -> Go -> Python Header-Chain fuer diesen Pfad).
 > - Phase 1d (route rollout, teilweise): `src/app/api/geopolitical/events` + ACLED/GDELT-Bridge sowie `src/app/api/geopolitical/context` + Context-Bridge propagieren/echoen `X-Request-ID` fuer externe Geo-Fetches via Go.
-> - Phase 0c (slice, teilweise): `src/app/api/market/quote` Single- und Batch-Quote Pfad proxied fuer gemappte `stock`/`fx`/`crypto` Symbole zum Go Gateway (Fanout im Batch-Pfad), mit Fallback auf den bestehenden Frontend-Provider-Manager fuer nicht gemappte Symboltypen.
-> - Phase 0c (slice erweitert): `src/app/api/market/news` nutzt fuer Standard-Symbol-News den Go Gateway Endpoint (`/api/v1/news/headlines`) und mappt auf das bestehende Frontend-Response-Shape; erweiterte Query/Language-Pfade bleiben vorerst lokaler Fallback.
-> - Verify Gate fuer Phase 0/1 weiterhin offen.
+> - Phase 1d (platform rollout, teilweise): Next.js **`src/proxy.ts`** setzt/propagiert `X-Request-ID` fuer alle API-Routes (inkl. konsolidierter Security-/CORS-Response-Header); `python-backend/services/_shared/app_factory.py` fuegt allen Python FastAPI-Services eine gemeinsame Request-ID- und Request-Logging-Middleware hinzu (Header-Echo + JSON-Log-Baseline).
+> - Phase 0c (slice erweitert): `src/app/api/market/quote` ist jetzt **strict Go-only** (Single + Batch). Gemappte `stock`/`fx`/`crypto` gehen auf `GET /api/v1/quote`; ein transitional Go-Proxy `GET /api/v1/quote/fallback` (Go -> Python Finance-Bridge `/quote`) deckt weitere Symboltypen/unknown-Mappings ab. Kein Frontend-Provider-Fallback mehr in der Route.
+> - Phase 0c (slice erweitert): `src/app/api/market/news` ist jetzt **Go-only** auf `GET /api/v1/news/headlines` (Symbol-/`q`-/`lang`-Queries; Go-Lang-Filter best-effort, GDELT-zentriert) und mappt weiter auf das bestehende Frontend-Response-Shape; der lokale TS-News-Aggregator-Fallback wurde aus der Route entfernt (Gateway-Fehler -> `502`).
+> - Phase 0c (slice erweitert): Go Gateway `GET /api/v1/ohlcv` implementiert (transitional Proxy auf Python Finance-Bridge/yfinance); `src/app/api/market/ohlcv` ist jetzt **strict Go-only** (bei Gateway-Fehler `502`, kein Frontend-Provider-Fallback mehr).
+> - Phase 0c (slice erweitert): Go Gateway proxied `POST /api/v1/signals/composite` und `POST /api/v1/evaluate/strategy` an Python `indicator-service`; Next.js `fusion/strategy/*` Routes/Helper (`src/lib/strategy/indicator-service.ts`) sind jetzt TS-seitig **strict Go-only** (kein direkter Python-Fallback mehr, Default auf Gateway `:9060`).
+> - Phase 0c (slice erweitert): Go Gateway proxied die Soft-Signals-Pfade `POST /api/v1/cluster-headlines`, `/api/v1/social-surge`, `/api/v1/narrative-shift`; `src/lib/geopolitical/adapters/soft-signals.ts` ist jetzt TS-seitig **strict Go-only** (kein direkter Python-Fallback mehr, Default auf Gateway `:9060`) und bezieht auch die Artikelbasis (`q`-News) ueber Go (`/api/v1/news/headlines`) statt lokalen Aggregator-Calls.
+> - Phase 0c (slice erweitert): `src/app/api/geopolitical/news` nutzt jetzt ebenfalls den Go-News-Endpoint (`/api/v1/news/headlines`) fuer region-spezifische Query-Bildung; die Route verwendet keinen lokalen TS-News-Aggregator mehr (Go-Fehler -> `502`).
+> - Phase 3 (resilience hardening, teilweise): Legacy-Polling-Fallbacks in `src/app/api/market/stream` und `src/app/api/market/stream/quotes` sind jetzt explizit runtime-flag-gated (`MARKET_STREAM_*_LEGACY_FALLBACK_ENABLED`) und in Production standardmaessig fail-closed ohne `ALLOW_PROD_MARKET_STREAM_LEGACY_FALLBACK=true`. SSE-Antworten markieren Fallback-Nutzung/Grund via Header (`X-Stream-Fallback`, `X-Stream-Fallback-Reason`) und Event-Metadaten.
+> - Phase 0c (slice erweitert): Go Gateway `GET /api/v1/search` (transitional Proxy auf Python Finance-Bridge `/search`) implementiert; `src/app/api/market/search` ist jetzt strict Go-only (kein Frontend-Provider-Fallback mehr).
+> - Phase 0c (slice erweitert): `src/app/api/market/stream` (Candles) und `src/app/api/market/stream/quotes` holen Daten nicht mehr direkt aus `lib/providers`, sondern ueber die internen Next-Market-Routes (`/api/market/ohlcv`, `/api/market/quote`) und profitieren damit indirekt vom Go-first Routing.
+> - Phase 0c (slice erweitert): `src/lib/orders/snapshot-service` (Fusion Portfolio Snapshot/History) nutzt fuer Preis-Snapshots jetzt ausschliesslich Go-first Quote-Fetches (kein lokaler Frontend-Provider-Fallback mehr; fehlende Preise werden toleriert).
+> - Phase 0c (slice erweitert): `src/app/api/market/providers` nutzt kein `getProviderManager()` mehr; Provider-Liste kommt aus `PROVIDER_REGISTRY`, Availability ist transitional per Go-`/health`-basierter Heuristik markiert.
+> - Phase 0c (slice erweitert): In `src/app/api/market/*` gibt es keine direkten `getProviderManager()`-Aufrufe mehr; Next.js Market-Routes sind damit routing-seitig auf Go ausgerichtet (transitional Fallbacks liegen nur noch im Go-Layer bzw. in dessen Upstream-Proxies).
+> - **Frontend `src/lib/providers` (Architektur-Vermerk):** OHLCV/Quote/Stream-Daten kommen ausschliesslich ueber Go (Gateway). Im Frontend wird `src/lib/providers` nur noch genutzt fuer: **(1) Typen** (`types.ts`: `OHLCVData`, `QuoteData`, `TimeframeValue`, Provider-Interfaces) als Vertrag Frontend–Go; **(2) `PROVIDER_REGISTRY`** fuer Metadaten in `GET /api/market/providers` (Namen, displayName, supportedAssets). Die **Provider-Implementierungen** (Finnhub, Polygon, CCXT, etc. mit `fetchOHLCV`/`getQuote`) und **`ProviderManager`/`getProviderManager()`** werden von keiner Route mehr fuer Datenabfragen aufgerufen und sind damit Legacy; optional spaeter entfernen oder auf reine Types + Registry reduzieren.
+> - Phase 0a (scaffold gestartet, teilweise): Go Adaptive Router Config + Health-Score/Circuit-Scaffold implementiert (`go-backend/config/provider-router.yaml`, `internal/router/adaptive`). `GET /api/v1/quote` akzeptiert jetzt `exchange=auto`; Quote-Client nutzt Provider-Kandidatenwahl + Failover und aktualisiert Provider-Health-State.
+> - Phase 0a (scaffold erweitert, teilweise): Optionaler Debug-/Verify-Endpoint `GET /api/v1/router/providers` exponiert Provider-Health-/Circuit-/Score-Snapshots (wenn Router-Config geladen ist).
+> - Phase 0c (resilience erweitert, teilweise): OHLCV-Proxy (`/api/v1/ohlcv`) unterstuetzt jetzt Go-seitiges Upstream-Failover ueber `FINANCE_BRIDGE_URLS` (sequenzieller Retry bei Netzwerk-/5xx-Fehlern), damit Chart-Fetches nicht auf einen einzelnen Finance-Bridge-Upstream fest verdrahtet sind.
+> - Phase 0b (gestartet, teilweise): Neues `internal/connectors/base` Package (`http_client.go`, `ratelimit.go`, `retry.go`, `types.go`) eingefuehrt; ACLED- und Finnhub-HTTP-Connectoren nutzen jetzt den gemeinsamen BaseHTTPClient (Retry/Timeout-Basis statt dupliziertem Setup).
+> - Phase 0b (bestehende Quellen-Migration erweitert, teilweise): Die bestehenden **FRED**- (Macro JSON) und **ECB**-Connectoren (FX XML) nutzen jetzt ebenfalls den gemeinsamen `base.Client` fuer Request-Building/Timeout/Retry/Ratelimit-Basis; providerspezifische Parserlogik (JSON/XML) bleibt lokal im jeweiligen Connector. Damit wird das BaseConnector-Modell bereits auf produktiv genutzte Macro/FX-Bestandsquellen angewendet, bevor neue Reference-Quellen eingebaut werden.
+> - Phase 0a/0b (foundation erweitert, vorbereitet fuer Phase 7/14): `provider-router.yaml` unterstuetzt jetzt optionale Provider-Metadaten (`group`, `kind`, `capabilities`) und `GET /api/v1/router/providers` exponiert diese im Snapshot. Im `internal/connectors/base` wurden zusaetzliche Gruppen-Scaffolds (`sdmx_client`, `timeseries`, `bulk_fetcher`, `rss_client`, `diff_watcher`, `translation`, `oracle_client`) angelegt, damit neue Quellen aus `REFERENCE_PROJECTS.md` ueber Quellen-Gruppen statt 1:1-Boilerplate integriert werden koennen.
+> - Phase 0a/0b (foundation erweitert, GCT-Pattern-Reuse vorbereitet): Im Base-Layer existieren jetzt eine **Provider-Capability-Matrix** (`internal/connectors/base/capabilities.go`) und eine **Fehlerklassifizierung** (`error_classification.go` mit Klassen wie `auth`, `quota`, `timeout`, `schema_drift`, `upstream_5xx`) als Grundlage fuer spaetere gruppenspezifische Router-/Fallback-Entscheidungen. Ziel: GCT-Methoden (Robustheit/WS-Lifecycle/Fehlerbehandlung) uebernehmen, ohne Nicht-Crypto-Provider hart an GCT-Internals zu koppeln.
+> - Phase 0a/0b (bestehende Quellen auf neue Struktur nachgezogen, Teil-Slice): Der Go `QuoteClient` meldet Failover-Fehler jetzt **klassifiziert** (`base.ClassifyError`) an den Adaptive Router. `GET /api/v1/router/providers` exponiert zusaetzlich `lastErrorClass` und aggregierte `failureClasses` pro Provider (z. B. `timeout`, `quota`) als Vorbereitung fuer intelligentere Routing-/Backoff-Policies bei bestehenden Quellen, bevor neue Reference-Quellen hinzugefuegt werden.
+> - Phase 0b (Migration-Queue konkretisiert): Bestands-Connectoren mit bereits gemeinsamem `base.Client`: `acled`, `finnhub`, `fred`, `ecb`, `indicatorservice`, `financebridge`, `softsignals`, `geopoliticalnext`, `gdelt`, `news/*`, `gametheory`, `crisiswatch`. Fuer die migrierten Proxy-Connectoren (`indicatorservice`, `softsignals`, `geopoliticalnext`) existieren gezielte Request-ID/Header/Path-Tests; `financebridge` behaelt den OHLCV-BaseURL-Failover ueber mehrere `base.Client`-Instanzen. `gdelt`/`news/*`/`gametheory`/`crisiswatch` nutzen nun ebenfalls die gemeinsame HTTP-Basis bei unveraenderter parser-/retry-naher Logik. Damit ist die priorisierte Bestands-HTTP-Connector-Queue fuer den `base.Client`-Rollout weitgehend erledigt und die naechste Stufe ist die gruppenweise `REFERENCE_PROJECTS.md`-Expansion (G4 -> G3).
+> - Phase 0b / Vorbereitung Phase 14b (Reference-G4 Start): **BCB SGS** (`internal/connectors/bcb`) als erster `REFERENCE_PROJECTS.md`-Provider integriert (auf `base.Client`), inklusive vertikaler Verdrahtung in `GET /api/v1/quote` (`exchange=bcb`, `assetType=macro`) und `GET /api/v1/macro/history`. Macro-Routing erfolgt jetzt ueber `market.NewRoutedMacroClient(...)` per Prefix (`BCB_SGS_*`) statt weiterer source-spezifischer Branches direkt in `wiring.go`.
+> - Phase 0b / Vorbereitung Phase 14b (Reference-G4 Slice II): **Banxico SIE** (`internal/connectors/banxico`) als zweiter `G4`-Provider integriert (ebenfalls `base.Client`), inklusive vertikaler Verdrahtung in `GET /api/v1/quote` (`exchange=banxico`, `assetType=macro`) und `GET /api/v1/macro/history`. `RoutedMacroClient` wurde auf Prefix-Registry erweitert (`RegisterPrefixClient`) und routet jetzt `BCB_SGS_*` sowie `BANXICO_*` ohne weitere `wiring.go`-Sonderfalllogik.
+> - Phase 0b / Vorbereitung Phase 14b (Reference-G4 Slice III): **Bank of Korea ECOS** (`internal/connectors/bok`) als dritter `G4`-Provider integriert (`base.Client`, API-Key). Vertikal verdrahtet in `GET /api/v1/quote` (`exchange=bok`, `assetType=macro`) und `GET /api/v1/macro/history`; `RoutedMacroClient` nutzt das bestehende Prefix-Registry-Muster jetzt auch fuer `BOK_ECOS_*`. `POLICY_RATE` mappt fuer `exchange=bok` auf `BOK_ECOS_722Y001_M_0101000`.
+> - Phase 0b / Vorbereitung Phase 14b (Reference-G4 Slice IV): **BCRA Principales Variables v4** (`internal/connectors/bcra`) als vierter `G4`-Provider integriert (`base.Client`, public JSON/OpenAPI). Vertikal verdrahtet in `GET /api/v1/quote` (`exchange=bcra`, `assetType=macro`) und `GET /api/v1/macro/history`; `RoutedMacroClient` routet `BCRA_*` ueber das bestehende Prefix-Registry-Muster. `POLICY_RATE` mappt fuer `exchange=bcra` auf `BCRA_160` (temporäre Projekt-Standardserie).
+> - Phase 0b / Vorbereitung Phase 14b (Reference-G4 Slice V): **TCMB EVDS3** (`internal/connectors/tcmb`) als fuenfter `G4`-Provider integriert (`base.Client`, public EVDS3 `POST /igmevdsms-dis/fe`). Vertikal verdrahtet in `GET /api/v1/quote` (`exchange=tcmb`, `assetType=macro`) und `GET /api/v1/macro/history`; `RoutedMacroClient` routet `TCMB_EVDS_*` ueber das bestehende Prefix-Registry-Muster. EVDS3 Endpoint/Response-Shape wurde vor Implementierung live ueber Browser-Network-Capture + direkten CLI-POST verifiziert.
+> - Phase 0b / Vorbereitung Phase 14b (Reference-G4 Slice VI): **RBI DBIE (FX Reserves Slice)** (`internal/connectors/rbi`) als weiterer `G4`-Provider integriert (`base.Client`) mit DBIE-Gateway-Handshake (`security_generateSessionToken`) + Datenendpoint `dbie_foreignExchangeReserves`. Vertikal verdrahtet in `GET /api/v1/quote` (`exchange=rbi`, `assetType=macro`) und `GET /api/v1/macro/history`; `RoutedMacroClient` routet `RBI_DBIE_FXRES_*` ueber das Prefix-Registry-Muster. Live-Verifikation erfolgte per Browser-Network-Inspektion (Request/Response-Shape + Header).
+> - Phase 0b / Vorbereitung Phase 14c (Reference-G3 SDMX Foundation Slice): `internal/connectors/base/sdmx_client.go` wurde vom Scaffold auf eine nutzbare Basis angehoben (geordneter Dimension-Key-Builder, Dataflow-/Datastructure-Pfade, Query-Optionen inkl. `dimensionAtObservation`, generischer SDMX-JSON Single-Series Parser fuer `dataSets[].series[].observations`). Gezielt mit Unit-Tests abgesichert (`sdmx_client_test.go`) als Grundlage fuer den naechsten Batch (`ECB`/`OECD`/`IMF` SDMX-Connectoren).
+> - Phase 1d (vertical slice erweitert): `X-Request-ID` wird fuer die Strategy-Proxy-Pfade von Next.js -> Go -> Python `indicator-service` weitergereicht.
+> - Phase 1d (vertical slice erweitert): `X-Request-ID` wird auch fuer die Soft-Signals-Proxy-Pfade Next.js -> Go -> Python (`8091`) mitgegeben.
+> - Phase 1b/1d (scaffold, teilweise): `src/app/api/geopolitical/candidates/ingest/soft` uebergibt jetzt `requestId`/`userRole` an die Soft-Signal-Adapter; der Adapter leitet `X-Request-ID` und optional `X-User-Role` an den Go Soft-Signal-Proxy weiter.
+> - Phase 1d (vertical slice erweitert): `market/stream` und `market/stream/quotes` echoen `X-Request-ID` auf der SSE-Response und reichen die ID an die internen `/api/market/ohlcv` bzw. `/api/market/quote` Fetches weiter.
+> - Phase 1b/1d (vertical slice erweitert): `market/stream` und `market/stream/quotes` reichen jetzt zusaetzlich optional `X-User-Role` an die internen `/api/market/ohlcv` bzw. `/api/market/quote` Fetches weiter (Role-Propagation auch im SSE-Pfad).
+> - Phase 1d (vertical slice erweitert): `fusion/portfolio` und `fusion/portfolio/history` echoen `X-Request-ID`; dieselbe ID wird bis in `src/lib/orders/snapshot-service` fuer Go-Quote-Fetches verwendet (Trace-Chain im Portfolio-Snapshot-Pfad).
+> - Phase 1a (scaffold, teilweise): Prisma Auth-/Security-Tabellen als Vorbereitung angelegt (`User`, `Account`, `Session`, `VerificationToken`, `Authenticator`, `RefreshToken`, `TotpDevice`, `RecoveryCode`, `UserConsent`); `bun run db:generate` erfolgreich. WebAuthn/Passkey-Flows + Adapter-Verdrahtung noch offen.
+> - Phase 1a (scaffold erweitert, teilweise): Feature-flagged Passkey/WebAuthn API-Scaffolds unter `/api/auth/passkeys/*` implementiert (`register/options`, `register/verify`, `authenticate/options`, `authenticate/verify`) mit `@simplewebauthn/server`, httpOnly Challenge-Cookies (TTL), Prisma-`Authenticator` Persistenz/Counter-Update und discoverable Authentication-Optionen. `authenticate/verify` kann bei aktivierter Auth nun optional ein kurzlebiges `sessionBootstrap`-Proof fuer einen transitional NextAuth-Credentials-Exchange liefern. Noch offen: finaler Auth.js-v5 Passkey-Flow + produktive UI-Integration.
+> - Phase 1a (scaffold erweitert, teilweise): Client-seitiger Passkey-Helper `src/lib/auth/passkey-client.ts` vorhanden (`@simplewebauthn/browser`), der die neuen Scaffold-Endpunkte orchestriert (Options → Browser WebAuthn → Verify, inkl. `credentials: include` für Challenge-Cookies) und optional den transitional Session-Exchange via `next-auth` (`passkey-scaffold`) ausfuehren kann.
+> - Phase 1a (scaffold erweitert, teilweise): Minimale manuelle Testoberflaeche `/auth/passkeys-lab` implementiert (`src/features/auth/PasskeyScaffoldLab.tsx`), um Capabilities/Registration/Authentication sowie den optionalen Scaffold-Session-Exchange gegen die Endpunkte zu testen. Finale Login-/Settings-UI bleibt offen.
+> - Phase 1a (scaffold erweitert, teilweise): Transitional Sign-In-Page `/auth/sign-in` implementiert (Credentials + Passkey-Scaffold-Login, optionaler `?next=` Redirect); `next-auth` Sign-In-Redirect zeigt nicht mehr auf `/`, sondern auf diese dedizierte Auth-Seite. Produktive Device-Management-/Settings-UIs bleiben offen.
+> - Phase 1a (scaffold erweitert, teilweise): Session-gebundenes Passkey-Device-Management als minimaler Scaffold vorhanden (`GET/DELETE /api/auth/passkeys/devices` + `/auth/passkeys` UI, inkl. Liste/Registrieren/Entfernen und Schutz gegen Entfernen des letzten Passkeys). Vollwertige Security-/Settings-UX bleibt offen.
+> - Phase 1c (scaffold gestartet, teilweise): GCT-Hardening-Policy-Validation beim Gateway-Start vorhanden (`GCT_ENFORCE_HARDENING`, weak-credential / insecure-TLS opt-in Flags).
+> - Phase 1c (scaffold gestartet, teilweise): Geschuetzter GCT-Prefix `/api/v1/gct/*` eingefuehrt (aktuell `/api/v1/gct/health`), im Go-RBAC als `trader`-only klassifiziert und im Rate-Limit-Scaffold auf 2/min begrenzt (Verify-Basis fuer `403` ohne Trader-Rolle).
+> - Phase 1c (scaffold gestartet, teilweise): Append-only GCT-Audit-JSONL Middleware (`GCT_AUDIT_ENABLED`, `GCT_AUDIT_JSONL_PATH`) loggt `/api/v1/gct/*` Requests mit `requestId`/User-Metadaten/Status als persistenten Transitional Audit-Trail.
+> - Phase 1c (scaffold erweitert): GCT-Audit-JSONL ist jetzt tamper-evident via SHA-256-Hash-Chain (`prevHash`/`entryHash`, per Datei-Chain; Chain-Head wird beim Restart aus letzter JSONL-Zeile fortgesetzt).
+> - Phase 1c (scaffold gestartet, teilweise): AES-GCM Helper (`internal/security/aesgcm`) fuer spaetere Exchange-Key-/Config-Hardening-Flows eingefuehrt.
+> - **Freeze/Verify (23. Feb 2026, Codex):** Phase 0 ist als Foundation-Baseline abgeschlossen; Phase 1 ist als transitional/productive Auth-Security-Baseline abgeschlossen (Auth.js/next-auth v5 beta + Prisma Adapter + Credentials Register/Login + echter Passkey-Provider, Scaffold/Lab optional als Fallback/Testpfad). Offene Punkte sind primär **Live-Verify (Browser/E2E)** sowie GCT-nahe DB-/Key-Storage-Verfeinerungen und finale UI-Polish.
+> - Phase 2a/2d/2e (slice gestartet, erweitert): `python-backend/rust_core/` PyO3-Crate (`tradeviewfusion_rust_core`) mit `composite_sma50_slope_norm()`, `calculate_heartbeat(...)` und `calculate_indicators_batch(...)` aktiv; Python `rust_bridge.py` + `indicator-service /health` exponieren `rustCore`-Status. `build_composite_signal()` nutzt Rust bevorzugt fuer SMA50-Slope, Heartbeat und `rvol_20` (mit Engine-Markern/Fallbacks). Trading-Frontend (`SignalInsightsBar`) zeigt Backend-Composite-Badges (Composite/Confidence, SMA50-Slope inkl. Engine, **Heartbeat**, Smart-Money-Score) via `/api/fusion/strategy/composite` (Go -> Python -> Rust Durchstich im UI sichtbar). Verifiziert via `cargo test`, `maturin develop`, Python-Smoke und `unittest` (`python-backend/tests/test_phase2_rust_composite.py`).
+> - Phase 2b (slice erweitert): `indicator-service` **und** `finance-bridge` nutzen jetzt aktiv Polars-Preprocessing fuer OHLCV (CPU-kompatibel via `polars[rtcompat]`), mit Health-/Response-Metadaten fuer `dataframe`/`dataframeEngine` und Python-Fallback fuer Graceful Degradation.
+> - Phase 2c (slice erweitert): Rust-Core enthaelt einen **redb OHLCV Cache** (`src/ohlcv_cache.rs`) mit TTL-Records plus PyO3-Funktionen `redb_cache_set` / `redb_cache_get`; der Python `finance-bridge` nutzt ihn als read-through Cache fuer `/ohlcv` (inkl. `cache.hit/lookupMs/storeMs`). Nach DB-Handle-Reuse im Rust-Cache (global per Pfad) liegt ein lokaler Warm-Get-Benchmark bei ~`0.0027ms` P50 (PyO3 roundtrip), mit Unittest-Guard `<1ms` P50.
+> - **Phase-2 Freeze (Code-Complete, 23. Feb 2026, Codex):** Sub-Phasen **2a-2e** sind als Implementierungs-Baseline vorhanden (Rust-Core, Polars, redb, Composite-Verdrahtung, Frontend-Badges). Offene Punkte vor formaler Phase-Abnahme sind bewusst auf das Verify Gate begrenzt (Live-UI + voller Browser->Next->Go->Python/Rust Durchstich), das auf User-Wunsch nachgezogen wird.
 
 ---
 
@@ -93,7 +181,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **1** | **Auth + Security** | **6** | **WebAuthn, RBAC, KG Encryption, WebMCP Security, Consent** | **0** | **AUTH** |
 | 2 | Rust Core + Composite Signal | 5 | PyO3, Polars, redb Cache, erster Durchstich | 0 | RUST, IND |
 | 3 | Streaming Migration | 3 | Candle Builder, Alert Engine, Snapshot Store | 0 | ADR |
-| 4 | GeoMap v2.0 | 8 | Shell Refactor, D3 Stack, Canvas Hybrid, Choropleth, Auto-Candidates | 0,1 | GEO, OPTS |
+| 4 | GeoMap v2.0 | 8 | Shell Refactor, D3 Stack (v1.1/v1.5), Canvas Hybrid, Layer-System, Multi-Body Foundation, Auto-Candidates | 0,1 | GEO, OPTS |
 | 5 | Portfolio Bridge + Analytics | 4 | GCT Bridge, Python Analytics, Frontend Tabs | 0,1 | PF |
 | **6** | **Memory Architecture** | **5** | **Redis, KG (KuzuDB), Episodic Store, Vector Store** | **1** | **MEM** |
 | 7 | Indicator Catalog — Core | 5 | Phases A+B: swing_detect, MAs, Bollinger, RSI, Fibonacci, Composite | 2 | IND |
@@ -129,10 +217,13 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **0c** | Frontend Provider Migration | GO-R Sek. 6 | Alle direkten Provider-Calls im Frontend eliminieren. API-Routes auf `GO_GATEWAY_BASE_URL` umbiegen. ENV Keys nach `go-backend/.env` |
 
 ### Verify Gate
-- [ ] Chart laedt OHLCV ausschliesslich via Go Gateway (Port 9060)
-- [ ] Kein direkter Provider-Call im Network Tab
-- [ ] Provider-Ausfall → Failover auf naechsten Provider
-- [ ] BaseConnector: Mindestens 2 bestehende Connectors (ACLED, Finnhub) auf neue Basis migriert
+- [x] Chart laedt OHLCV ausschliesslich via Go Gateway (Port 9060)
+- [x] Kein direkter Provider-Call im Network Tab (Code-Basis: keine `getProviderManager()`-Aufrufe mehr in `src/app/api/market/*`)
+- [x] Provider-Ausfall → Failover auf naechsten Provider (Quote `exchange=auto`; OHLCV Upstream-Failover via `FINANCE_BRIDGE_URLS`)
+- [x] BaseConnector: Mindestens 2 bestehende Connectors (ACLED, Finnhub) auf neue Basis migriert
+
+### Offenes Todo (Phase 0c / Frontend)
+- [ ] **Frontend `src/lib/providers` auf Types + Registry reduzieren:** Provider-Implementierungen (Finnhub, Polygon, CCXT, etc.) und `ProviderManager`/`getProviderManager()` werden von keiner Route mehr fuer OHLCV/Quote genutzt (Daten kommen ausschliesslich ueber Go). Optional: Legacy-Code entfernen und nur `types.ts` (OHLCVData, QuoteData, TimeframeValue, Interfaces) sowie `PROVIDER_REGISTRY` (Metadaten fuer `GET /api/market/providers`) behalten. Siehe Architektur-Vermerk im Teilfortschritt oben.
 
 ---
 
@@ -152,11 +243,48 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **1f** | Privacy & Consent | AUTH Sek. 9 | `UserConsent` DB-Tabelle (server-side), Consent-UI, GDPR Art. 17, Privacy-Overlay |
 
 ### Verify Gate
-- [ ] Passwortloses Login via Passkey funktioniert
-- [ ] User ohne `trader`-Rolle → HTTP 403 auf GCT-Endpoints
-- [ ] Correlation ID durchgehend in Logs nachvollziehbar
-- [ ] KG-Daten in IndexedDB verschluesselt
-- [ ] Consent-Toggle funktioniert, LLM respektiert fehlenden Consent
+- [x] Passwortloses Login via Passkey funktioniert (transitional Passkey-Scaffold + Session-Exchange `passkey-scaffold`)
+- [x] User ohne `trader`-Rolle → HTTP 403 auf GCT-Endpoints (RBAC-Scaffold auf `/api/v1/gct/*`, getestet)
+- [x] Correlation ID durchgehend in Logs nachvollziehbar (Next.js/Go/Python Middleware + Header-Propagation in Kernpfaden)
+- [x] KG-Daten in IndexedDB verschluesselt (Phase-1e KG Encryption Lab, AES-GCM)
+- [x] Consent-Toggle funktioniert, LLM respektiert fehlenden Consent (serverseitiger Consent-Lookup + 403 auf ausgewaehlten LLM-Pfaden)
+
+### Open Backlog (Nicht-E2E / Nicht-Browser)
+- [x] **1a Auth.js-v5 Produktivpfad (Baseline):** `next-auth@5` (beta) + echter Passkey-Provider (`passkey`) sind verdrahtet; Prisma-Adapter läuft über offiziellen `@auth/prisma-adapter`. Credentials-Register/Login bleibt parallel aktiv.
+- [x] **1a Finale Passkey-Session-Ausstellung (Baseline):** `/auth/sign-in` nutzt primär den echten Auth.js Passkey-Provider (`next-auth/webauthn`), und `/auth/passkeys` kann zusätzliche Passkeys via Provider-Action `register` hinzufügen (Scaffold/Lab bleibt als Fallback/Testpfad optional).
+- [x] **1b JWT-Endformat-Baseline (Go/Bearer):** Go-JWT-Validation (`AUTH_JWT_ENFORCE`) auf den finalen Bearer-Contract gehärtet (Role-Claim-Aliasse `role|userRole|app_role`, `jti`-Propagation, optionale `issuer`/`audience`, konfigurierbare HMAC-Algs `AUTH_JWT_ALLOWED_ALGS`, Clock-Skew-Leeway `AUTH_JWT_LEEWAY_SEC`). **Hinweis:** NextAuth-Session-Cookies werden weiterhin im Next.js-Proxy validiert (Architekturentscheidung), nicht direkt im Go-Gateway.
+- [x] **1b Audit-Persistenz (Revocation) Baseline:** Revocation-Audit besitzt jetzt eine optionale Go-native SQLite-DB-Baseline (`AUTH_JWT_REVOCATION_AUDIT_DB_*`) zusätzlich zu In-Memory/**hash-chain JSONL**.
+- [ ] **1c Audit-Persistenz final (GCT):** GCT-Audit-DB-Persistenz bleibt offen (JSONL/hash-chain Scaffold vorhanden).
+- [ ] **1c Exchange-Key Hardening verdrahten:** vorhandenen AES-GCM Helper in echte GCT-Config-/Key-Storage-Flows integrieren (verschlüsselte GCT Service-/Backtest-Credentials via ENV sind bereits möglich).
+- [x] **1b/1c Prod-Guard fuer Auth-Bypass:** `AUTH_STACK_BYPASS` / `NEXT_PUBLIC_AUTH_STACK_BYPASS` bleiben fuer Dev/CI verfuegbar; Next (`src/lib/auth.ts`) + Go (`NewServerFromEnv`) blockieren Bypass in Production standardmaessig (fail-closed), optionaler Emergency-Override via `ALLOW_PROD_AUTH_STACK_BYPASS=true`.
+- [x] **1b CSP-Hardening Baseline (Code):** API-CSP-Baseline + gestrafftes togglebares Page-/UI-CSP (`src/proxy.ts`, `PAGE_CSP_MODE`, COOP/CORP) sind implementiert. Finale Whitelists und Browser-Live-Validierung sind in das Deferred Verify Backlog verschoben.
+- [x] **1a/1f UX-Hardening Baseline (funktional):** `/auth/security` als zentraler Hub + dedizierte `/auth/sign-in`, `/auth/register`, `/auth/passkeys`, `/auth/privacy`, `/auth/kg-encryption-lab` sind vorhanden und verlinkt. Visuelles Produkt-Polish bleibt nachgelagert.
+
+
+
+- [ ] **Config: CRISISWATCH_CACHE_PERSIST_PATH genauer prüfen:** Optionaler persistenter Cache für CrisisWatch-RSS (`go-backend`); Einsatz, Default-Verhalten und Prod-Empfehlung (Pfad, TTL, Failover) klären.
+
+### Deferred Live Verify Backlog (E2E / Browser — bewusst spaeter)
+- [ ] **Test-Mode Smoke (ohne Auth-Blocker):** `AUTH_STACK_BYPASS=true` + `NEXT_PUBLIC_AUTH_STACK_BYPASS=true` setzen und prüfen, dass Frontend→Go API-Flows trotz aktivem Security-Code ohne Session/JWT durchlaufen (für CI/dev smoke runs).
+- [ ] **Next.js Proxy Consolidation prüfen (`src/proxy.ts` only):** Frontend-Start ohne Next.js-16 Konflikt (`middleware.ts` + `proxy.ts`) und API-Routing laeuft sauber.
+- [ ] **Passkey Login/Device Flow (Browser):** `/auth/sign-in`, `/auth/passkeys`, `/auth/passkeys-lab` (Register/Auth/Delete letzter Passkey blockiert, `?next=` Redirect).
+- [ ] **Passkey Provider vs Scaffold Matrix (Browser):**
+  - `AUTH_PASSKEY_PROVIDER_ENABLED=true` + `NEXT_PUBLIC_AUTH_PASSKEY_PROVIDER_ENABLED=true`: `/auth/sign-in` und `/auth/passkeys` nutzen echten Auth.js-WebAuthn-Flow
+  - Provider disabled + `AUTH_PASSKEY_SCAFFOLD_ENABLED=true`: UI-Fallback + `/auth/passkeys-lab` funktionieren weiter
+- [ ] **Auth.js v5 + Prisma Adapter Persistence (E2E/API):** Passkey-Registrierung erzeugt `Authenticator`-Datensatz in Prisma; Device-Delete entfernt den Datensatz, Device-Liste (`/api/auth/passkeys/devices`) spiegelt Prisma-Stand korrekt.
+- [ ] **Passkey Session Issuance (Browser/E2E):** Nach Provider-Login ist eine echte Auth.js-Session aktiv (`/api/auth/session`), Reload behält Session, und `src/proxy.ts` kann den Session-Cookie via `getToken` mit `AUTH_SECRET` auswerten.
+- [ ] **Credentials Register/Login (Browser):** `/auth/register` -> Auto-Sign-In (best effort), anschließend Session auf `/auth/security` sichtbar; Fehlerfälle (duplicate email, weak password) prüfen.
+- [ ] **Credentials Session Persistence (Browser):** Nach Credentials-Login bleibt Session nach Hard-Reload aktiv; Logout invalidiert Session und geschützte Routen liefern wieder `401/redirect`.
+- [ ] **Session/Role Headers (E2E):** Nach Credentials- und Passkey-Login prüfen, dass `src/proxy.ts` `X-Auth-User`, optional `X-Auth-JTI`, `X-User-Role`, `X-Auth-Verified` korrekt an API-Requests setzt.
+- [ ] **Auth Security Hub (Browser):** `/auth/security` Statuskarten + Navigationspfade (`sign-in`, `register`, `passkeys`, `privacy`, `kg-encryption-lab`) mit und ohne Bypass/Auth aktiv prüfen.
+- [ ] **Revocation Audit Runtime (API/E2E):** `POST /api/v1/auth/revocations/jti` + `GET /api/v1/auth/revocations/audit` mit DB-Store (`AUTH_JWT_REVOCATION_AUDIT_DB_ENABLED=true`) und Fallback-Verhalten bei DB-Fehlern prüfen.
+- [ ] **Prod-Guard Negative Tests (Startup/API):** `AUTH_STACK_BYPASS=true` in `NODE_ENV=production` muss Next + Go fail-closed blockieren; nur mit `ALLOW_PROD_AUTH_STACK_BYPASS=true` darf Startup weiterlaufen.
+- [ ] **Bypass Matrix (E2E/API):** Nur Frontend-Bypass (`NEXT_PUBLIC_AUTH_STACK_BYPASS=true`) vs nur Go-Bypass (`AUTH_STACK_BYPASS=true`) vs beide Flags prüfen; erwartetes Verhalten/Logs/Headers (`X-Auth-Bypass`) dokumentieren.
+- [ ] **Page/UI-CSP Smoke (Browser):** `src/proxy.ts` Page-Security-Header/CSP-Modi pruefen (`off`/`report-only`/`enforce`) ohne Next.js-HMR bzw. produktive UI-Flows zu brechen.
+- [ ] **Page/UI-CSP Header Correctness (Browser/DevTools):** In jedem Modus genau ein passender Header (`Content-Security-Policy` oder `Content-Security-Policy-Report-Only`) plus COOP/CORP gesetzt; keine Doppelheader/Override-Konflikte.
+- [ ] **Consent/KG Security Flow (Browser):** `/auth/privacy`, `/auth/kg-encryption-lab`, plus `403` auf consent-geschuetzten LLM-Pfaden ohne Consent.
+- [ ] **RBAC/403 Live-Checks (API/E2E):** `viewer` vs `analyst` vs `trader` auf `/api/fusion/*`, `/api/geopolitical/candidates/*`, `/api/v1/gct/*` (inkl. `src/proxy.ts` + Go-RBAC Zusammenspiel).
+- [ ] **Request-ID/Header Trace (E2E):** `X-Request-ID` + Security/CORS Header aus `src/proxy.ts` bis Go/Python Logs nachvollziehen.
 
 ---
 
@@ -177,8 +305,18 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 ### Verify Gate
 - [ ] SignalInsightsBar zeigt live berechnete Werte
 - [ ] Voller Durchstich: Browser → Next.js → Go → Python/Rust → zurueck
-- [ ] Polars DataFrame in `indicator-service` aktiv (kein `import pandas`)
-- [ ] redb Cache: Second Hit <1ms
+- [x] Polars DataFrame in `indicator-service` aktiv (kein `import pandas`)
+- [x] redb Cache: Second Hit <1ms (PyO3 warm-get P50 Unittest-Guard)
+
+> **Hinweis (23. Feb 2026):** E2E-/Browser-Tests fuer die beiden offenen Verify-Punkte werden absichtlich **nach** Abschluss der Phase-2-Implementierung ausgefuehrt (User-Vorgabe). Phase 2 gilt damit als **Implementierungsphase abgeschlossen**, mit offenem Live-Verify-Backlog.
+>
+> **Deferred Live Verify Backlog (Phase 2, erweitert):**
+> - Browser-Flow `/` laden → `SignalInsightsBar` zeigt Composite/Confidence + SMA50 Slope + Heartbeat + Smart-Money ohne Placeholder-Fallback
+> - Network-Trace: `GET/POST /api/fusion/strategy/composite` → Next.js → Go (`/api/v1/signals/composite`) → Python `indicator-service`
+> - `indicator-service /health` zeigt `rustCore` + `dataframe` (Polars) aktiv während UI-Flow
+> - Finance-Bridge `/ohlcv` mit `RUST_OHLCV_CACHE_ENABLED=true`: erster Hit `cache.hit=false`, zweiter Hit `cache.hit=true`, `lookupMs` plausibel niedrig
+> - Failure/Fallback-Smoke: Rust-Core temporär deaktivieren/fehlen lassen → Python-Fallback (`engine=python`) ohne UI-Absturz
+> - Multi-symbol / timeframe smoke für Composite-Routen (stabiler Response-Shape, keine Contract-Regression)
 
 ---
 
@@ -188,42 +326,83 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 
 **Ziel:** Stream-First mit REST Fallback. Server-Side Alert Engine.
 
+> **Implementierungsprinzip (Phase-0 Reuse, ohne Phase 0 zu oeffnen):** Wiederverwendbare Go-Bausteine unter `internal/services/market/streaming/*` nutzen (Candle Builder, Snapshot Store, Alert Engine, spaeter Reconnect-Policy/Event-Encoder). Keine duplizierte Stream-/Polling-Logik in Handlern oder Next.js-Proxies.
+
 | Sub | Name | Ref | Beschreibung |
 |:----|:-----|:----|:-------------|
 | **3a** | Candle Builder | ADR Sek. 3 | Tick → OHLCV Aggregation, Ring Buffer, Out-of-Order Handling |
 | **3b** | Server-Side Alert Engine | ADR Sek. 4 | Price Threshold, Line-Cross, State Store, Checkpointing |
 | **3c** | Snapshot Store + Reconnect | ADR Sek. 5 | Latest State persistiert, Recovery bei Reconnect, Exponential Backoff |
 
+> **Teilfortschritt (23. Feb 2026, Codex):**
+> - `3a` Core-Bausteine gestartet: `internal/services/market/streaming/*` mit `Timeframe`, `CandleBuilder`, `SnapshotStore`, `AlertEngine` (+ Unit-Tests)
+> - Go-SSE `GET /api/v1/stream/market` erweitert um `timeframe` Query, `ready`/`snapshot`/`candle` Event-Baseline (serverseitige Tick→Candle Aggregation im Go-Layer)
+> - Go-SSE erweitert um optionale `alertRules` (transitional JSON-Query), serverseitige Alert-Evaluierung (`alert` Event) und `ruleId` fuer Persistenz-Bridge
+> - Next.js `src/app/api/market/stream` ist jetzt Go-SSE-Passthrough (mit Legacy-Polling-Fallback fuer nicht-streamfaehige Symbole/Fehler) und markiert Trigger im serverseitigen Alert-Store
+> - Frontend `src/app/page.tsx` nutzt `snapshot`/`quote`/`candle`/`alert`; 30s Quote+`checkAlerts(...)` Polling wurde entfernt (Chart-Stream-Primärpfad)
+> - Gezielt verifiziert: `go test ./internal/services/market/streaming ./internal/handlers/sse` + `golangci-lint` auf diesen Pfaden; TS `biome` auf `src/app/api/market/stream/route.ts` + `src/app/page.tsx` (nur bestehende `TradingHeaderProps`-Warn/Fehler ausserhalb Phase-3-Scope)
+
 ### Verify Gate
 - [ ] Chart aktualisiert via SSE (kein REST-Polling)
 - [ ] Alert feuert server-seitig, erscheint im UI <1s
 - [ ] Reconnect nach Abbruch: Snapshot-Recovery, kein Datenverlust
 
+> **Status (23. Feb 2026):** Phase 3 gilt als **Code-Baseline implementiert**. Live-Browser/E2E-Verifikation bleibt bewusst ausstehend.
+>
+> **Deferred Live Verify Backlog (Phase 3):**
+> - Browser-Flow `/` mit streamfaehigem Symbol (z. B. `BTC/USD`, `AAPL`) pruefen: `X-Stream-Backend=go-sse`, Events `ready/snapshot/quote/candle`
+> - Netzwerktrace bestaetigt: kein primaeres 30s Quote-Polling fuer Alert-Trigger mehr; Alert-Trigger kommen als `event: alert`
+> - Reconnect-Test (Provider-Stream kurz unterbrechen): `stream_status` -> `reconnecting`/`live`, `snapshot` nach Reconnect, keine doppelte Candle-Serie
+> - Alert-Live-Test: Preis-Alert anlegen (`above`/`crosses_up`), Trigger im UI sichtbar <1s, Alert im Store auf `triggered=true`
+> - Legacy-Fallback-Smoke fuer nicht-streamfaehiges Symbol (z. B. FX/Index): `X-Stream-Backend=next-legacy-polling`, Chart bleibt funktionsfaehig
+> - Watchlist-Stream `/api/market/stream/quotes` nutzt jetzt Go-SSE-Multiplex fuer vollstaendig streamfaehige Symbolsets (Crypto/Stocks); gemischte/unsupported Symbolsets bleiben auf Legacy-Polling-Fallback (bewusst transitional)
+> - Legacy-Polling-Fallbacks fuer `market/stream*` sind technisch bewusst beibehalten, aber nun runtime-flag-gated + Prod-Guarded (fail-closed ohne expliziten Override)
+
 ---
 
-## Phase 4: GeoMap v2.0 — Shell + Rendering + D3 Stack
+## Phase 4: GeoMap v2.0 — Shell + Rendering + D3 Stack + Multi-Body Foundation
 
 > **Ref:** GEO Sek. 25-36, OPTS Sek. 1-11
 
-**Ziel:** Shell-Refactor, D3 Visualization Stack, Canvas Hybrid, Choropleth-Layer, Auto-Candidates.
+**Ziel:** Shell-Refactor, D3 Visualization Stack (v1.1 + v1.5 aus `GEOPOLITICAL_OPTIONS.md`), Canvas Hybrid, Layer-System, Auto-Candidates und eine body-agnostische GeoMap-Grundlage (Earth zuerst, Moon-MVP per Toggle/Seed-Layer).
+
+> **Scope-Klarheit:** Phase 4 ist ein Frontend-/GeoMap-Rendering- und UX-Upgrade (d3-geo → Hybrid, Inertia, Voronoi, Clustering, Layer-System, Multi-Body-Foundation). **Rust ist hier nicht fuer Rendering vorgesehen**; Rust fuer GeoMap kommt spaeter ab v3 fuer Backend-Spatial-Queries (`h3o`, `geo-rs`, `petgraph`) gem. `RUST_LANGUAGE_IMPLEMENTATION.md` Sek. 13.
+> **Transition-Notiz (wichtig):** Teile der GeoMap-Domainlogik laufen nach Phase-4-Abschluss weiterhin ueber Next.js API-Routes + lokale Stores (Events/Candidates/Drawings/Contradictions/Seed). Das ist ein **transitional runtime path** fuer v2.0-Frontend-Fortschritt. Die **Backend-Konsolidierung `Frontend -> Go -> Python/Rust`** wird in **Phase 9 (UIL Workflow/Review-Pipeline)** und **Phase 14 (Provider/DiffWatcher/Official Sources im Go-Layer)** nachgezogen.
 
 | Sub | Name | Ref | Beschreibung |
 |:----|:-----|:----|:-------------|
-| **4a** | Shell Refactoring | GEO Sek. 25a, 36 Sprint 1 #1 | ~40 useState → Zustand Store (events, candidates, drawings, timeline) |
+| **4a** | Shell Refactoring | GEO Sek. 25a, 36 Sprint 1 #1 | ~40 useState → Zustand Store (events, candidates, drawings, timeline) + View-State (`mapBody`, Layer-Toggles, spaeter Compare-Mode) |
 | **4b** | D3 v1.1 Modules | OPTS Sek. 11 (v1.1) | `d3-scale`, `d3-scale-chromatic`, `d3-interpolate`, `d3-transition`, `d3-timer`, `d3-ease`, `d3-inertia`, `d3-geo-voronoi` |
-| **4c** | Canvas/SVG Hybrid | GEO Sek. 35.4 | Canvas fuer statische Elemente, SVG fuer interaktive. Viewport-Culling. Supercluster |
-| **4d** | Choropleth Layer System | GEO Sek. 35.3a, OPTS | Layer-Abstraktion `{ name, dataFn, scaleFn, legendFn }`. Severity Heatmap + Regime-State |
+| **4c** | Canvas/SVG Hybrid | GEO Sek. 35.4 | Canvas fuer statische Elemente (Basemap/Graticule/Heatmap), SVG fuer interaktive Marker/Drawings. Viewport-Culling. Supercluster. Body-agnostische Renderer-Hooks |
+| **4d** | Choropleth + Layer System | GEO Sek. 35.3a, OPTS | Layer-Abstraktion `{ body, name, dataFn, scaleFn, legendFn }`. Earth: Severity/Regime-State. Moon-MVP: Missions/Sites/Zones als Seed-Layer |
 | **4e** | Hard-Signal Auto-Candidates | GEO Sek. 25 Milestone F | ACLED Threshold, Sanctions (OFAC/UN), Central Bank Rate Decisions |
 | **4f** | Soft-Signal Pipeline haerten | GEO Sek. 18.1 (Baseline) | Dedup SHA256 + Similarity, Confidence Scoring, `reason` String |
-| **4g** | D3 v1.5 Modules | OPTS Sek. 11 (v1.5) | `d3-hierarchy`, `d3-shape`, `d3-brush`, `d3-axis`, `d3-array`, `d3-time`, `d3-format`, `d3-annotation`, `d3-legend` |
-| **4h** | Seed Dataset + Keyboard Shortcuts | GEO Sek. 36 Sprint 1 #2-3 | 30-50 Events, 200 Candidates, 10 Contradictions. Keyboard M/L/P/T/Del/Ctrl+Z/R |
+| **4g** | D3 v1.5 Modules | OPTS Sek. 11 (v1.5) | `d3-hierarchy`, `d3-shape`, `d3-brush`, `d3-axis`, `d3-array`, `d3-time`, `d3-format`, `d3-annotation`, `d3-legend` (Timeline/Simulation-Vorbereitung) |
+| **4h** | Seed Dataset + Keyboard Shortcuts | GEO Sek. 36 Sprint 1 #2-3 | Earth Seed: 30-50 Events, 200 Candidates, 10 Contradictions + Moon Seed-Layer (Missionen/Landezonen/Stationsplanung). Keyboard M/L/P/T/Del/Ctrl+Z/R |
+
+**Status (22. Feb 2026, laufend):**
+- [x] **4a Shell Refactoring** — Zustand-Workspace + starker Shell-Split umgesetzt (inkl. separater Body-Layer-Legend-Overlay-Komponente). Weitere Feinsplits/Panel-Lazy-Loading als optionaler Nach-Polish, nicht Phase-4-blockierend
+- [x] **4b D3 v1.1 Modules** — `d3-scale`, `d3-timer`, `d3-ease`, `d3-inertia` (Globe-Drag) und `d3-geo-voronoi` (nearest hit-testing scaffold) im Phase-4-Scope integriert
+- [x] **4c Canvas/SVG Hybrid** — Projection-Model-Hook, Renderer-Entkopplung, SVG Render-Stages, Layer-Routing-Metadaten, Canvas-Basemap-Stage, Canvas-Country/Heatmap-Stage, Canvas-BodyPoint-Layers und `supercluster`-Zoom-Out-Cluster umgesetzt; SVG-Laenderpfade bleiben als Hit-/Accessibility-Layer
+- [x] **4d Choropleth + Layer System** — Body-Configs + Layer-Registry, `rendererHint`, Viewport-Legend, Store-basierte Body-Layer-Toggles (inkl. Reset auf Defaults), Earth-Choropleth (`severity`/`regime`) und Layer-Catalog-Helfer umgesetzt. Erweiterte Presets/weitere UX-Polishs sind Folgearbeit
+- [x] **4e Hard-Signal Auto-Candidates** — Rates + Sanctions + `acled_threshold` aktiv; Delta-State (`ETag`/`Last-Modified`/Hash), Observability, Keyword-/Semantik-Heuristiken und aussagekraeftigere Hard-Candidate-Reasons fuer Phase-4-Scope umgesetzt. Go-Layer-Migration bleibt Folgearbeit
+- [x] **4f Soft-Signal Pipeline haerten** — Dedup (`SHA-256` + Similarity-Fallback), auto-Reason und Ingest-Observability (`deduped`) fuer Phase-4-Scope umgesetzt
+- [x] **4g D3 v1.5 Modules** — `d3-array`, `d3-time`, `d3-format`, `d3-shape`, `d3-axis`, `d3-brush`, `d3-hierarchy` sowie `d3-svg-annotation` und `d3-svg-legend` in `TimelineStrip`/Map-UI fuer Phase-4-Scope integriert
+- [x] **4h Seed Dataset + Keyboard Shortcuts** — Keyboard-Shortcuts + Moon Seed-Layer vorhanden; Earth Seed Bootstrap (`POST /api/geopolitical/seed`) fuellt Zielgroessen auf und schreibt Timeline-Audit. Contradictions-Workflow (Store + API + Sidebar) umfasst jetzt Basis-Review, Resolution-Details, Merge-Links und Evidence add/remove
 
 ### Verify Gate
 - [ ] 200+ Events bei 60 FPS Rotation
-- [ ] Globe-Inertia funktioniert
-- [ ] 2 Choropleth-Layer schaltbar (Severity + Regime-State)
-- [ ] Clustering bei Zoom-Out aktiv
-- [ ] Shell: Kein `useState` mehr in GeopoliticalMapShell.tsx
+- [x] Globe-Inertia funktioniert
+- [x] 2 Choropleth-Layer schaltbar (Severity + Regime-State)
+- [x] Clustering bei Zoom-Out aktiv
+- [x] `Earth | Moon` Toggle funktioniert auf derselben Interaktionsbasis (Rotation/Zoom/Layer-Toggles)
+- [x] Moon Seed-Layer (Missionen/Sites/Zonen) sichtbar und ueber Layer-System konfigurierbar
+- [x] Contradictions Basis-Workflow ohne Browser-E2E vorhanden (Store + API + Sidebar Resolve/Reopen + Timeline-Audit)
+- [x] Contradictions Resolution-Details + Evidence-Workflow ohne Browser-E2E vorhanden (Outcome/Merge-Links/Evidence add-remove + Audit)
+- [x] Timeline D3-Annotation + D3-Legend integriert (Browser-Visual-Check offen)
+- [x] Shell: Kein `useState` mehr in GeopoliticalMapShell.tsx
+- [ ] Finaler manueller Draw-Workflow-Test (Marker/Line/Polygon/Text, Undo/Redo) auf laufender Next-Instanz abgeschlossen
+- [ ] Finaler Browser-/E2E-GeoMap-Abnahmelauf (Frontend-only) dokumentiert und durchgefuehrt: `POST /api/geopolitical/seed` (Earth-Zielgroesse), dann `/geopolitical-map` pruefen: Earth↔Moon Toggle, Choropleth Severity/Regime, Body-Layer-Toggles/Reset, Cluster-Zoom, Draw-Workflow inkl. Save-Fehlerpfad
 
 ---
 
@@ -239,11 +418,25 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **5b** | Python Analytics | PF P-9 bis P-18 | `/correlations`, `/rolling-metrics`, `/drawdown-analysis` |
 | **5c** | Frontend Tabs | PF Frontend | Paper / Live / Analytics. EquityCurveChart, CorrelationHeatmap, DrawdownTable |
 | **5d** | Prisma Schema Extensions | PF DB | Portfolio-Snapshots fuer historische Equity Curve |
+| **5e** | Trading Workspace UX Consolidation | PF Frontend + Trading Page | Trading-Page + Portfolio-UI gemeinsam verfeinern: konsistente Loading/Error/Empty States, Panel-Komposition, responsive Verhalten, Prototype-artige UI bereinigen (ohne Final-Polish-Freeze) |
+
+- **Status (partial):** `5e` gestartet. `PortfolioPanel` hat jetzt Tabs-Scaffold (`Paper/Live/Analytics/Optimize`), konsistentere Loading/Error/Empty States, manuellen Refresh und Status-/Staleness-Hinweise. `Live` zeigt ein UI-first `LiveBalancesPanel` (graceful fallback bis `5a` GCT-Bridge-Endpunkte), `Analytics` zeigt Equity-/Drawdown-Previews plus abgeleitete Snapshot-KPIs (UI-first Slice bis `5b/5c`), `Optimize` zeigt einen UI-first Heuristik-Rebalance-Preview (regime-/drawdown-informiert; ersetzt spaeter durch Phase-13 Analytics-Results). Trading-Seite hat zusaetzlich einen kompakten Workspace-Status-Strip (DataMode/Provider/Stream/Replay/Panel-State).
+- **Status (25. Feb 2026, Implementierung):**
+  - `5d` abgeschlossen — `PortfolioSnapshotRecord` bereits im Prisma-Schema vorhanden.
+  - `5a` implementiert — Go Handler `GCTPortfolioHandler` + neue GCT-Client-Methoden (`GetAccountInfo`, `GetExchanges` via JSON-RPC). Routen verdrahtet (`/api/v1/gct/portfolio/summary`, `/positions`, `/balances/`, `/api/v1/gct/exchanges`). Next.js-Proxy `GET /api/fusion/portfolio/live` fertig. Graceful fallback wenn GCT nicht laeuft (`gctAvailable: false`).
+  - `5b` implementiert — Python Portfolio Analytics in `ml_ai/indicator_engine/portfolio_analytics.py` (`compute_correlations`, `compute_rolling_metrics`, `compute_drawdown_analysis` mit numpy/scipy/pandas). Endpoints in `indicator-service/app.py` verdrahtet. Go-Proxy-Routen (`/api/v1/portfolio/{correlations,rolling-metrics,drawdown-analysis}`) verdrahtet. Next.js-Proxy `POST /api/fusion/portfolio/analytics/[slug]` fertig.
+  - `5c` Next.js-Proxy-Routen fertig (live + analytics/[slug]).
+
+### Open Backlog Phase 5a
+- [ ] **GCT gRPC-Pfad fuer GetAccountInfo/GetExchanges:** Die compilierten `gctrpc`-Stubs (`vendor-forks/gocryptotrader/gctrpc`) exponieren diese Methoden nicht im generierten gRPC-Client. Aktuell laeuft alles ueber JSON-RPC HTTP (Port 9053, `/v1/getaccountinfo`, `/v1/getexchanges`). Bei GCT-Upgrade oder Proto-Neugenerierung: `getAccountInfoGRPC`/`getExchangesGRPC` analog zu `getTickerGRPC` hinzufuegen und hinter `c.cfg.PreferGRPC` Guard aktivieren. Vermerkt in `go-backend/internal/connectors/gct/portfolio.go` TODO-Kommentar.
+- [ ] **GCT `/api/gct/portfolio/ohlcv`** (PF P-7): OHLCV fuer gehaltene Assets (fuer Python-Analytics-Input) — noch nicht implementiert. Kann vorerst durch bestehenden `/api/v1/ohlcv` (Finance-Bridge) ersetzt werden.
 
 ### Verify Gate
 - [ ] Alle 3 Tabs funktional
 - [ ] Live Tab zeigt GCT-Daten (wenn `-WithGCT`)
 - [ ] Correlation Heatmap mathematisch korrekt
+- [ ] Trading Workspace + PortfolioPanel haben konsistente Loading/Error/Empty States (kein Prototype-only Verhalten in Primary Flow)
+- [ ] Trading Workspace responsive Panel-Komposition stabil (Sidebar/Bottom/Portfolio Interaktion ohne Layout-Brueche)
 
 ---
 
@@ -324,11 +517,27 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **9b** | Python LLM Classification | UIL Sek. 4 | Language Detection → Summary → Entity Extraction → Category → Confidence → Dedup |
 | **9c** | Review UI + Routing | UIL Sek. 5 | Double-Threshold (0.85/0.40), Signal/Noise/Uncertain/Reclassify. Routing: geo/macro/trading/research |
 | **9d** | Copy/Paste Import | UIL Sek. 6, GEO Sek. 35.15 | Ctrl+V / Drag-Drop → LLM klassifiziert → Routing |
+| **9e** | GeoMap Candidate/Review Backend Konsolidierung | UIL Sek. 8 (Addendum) | GeoMap Candidate Truth Path aus Next-TS in Go/Python-UIL ueberfuehren: ingest orchestration, dedup/scoring contracts, review actions (`accept/reject/snooze`), contradictions/evidence workflow contracts. Next.js bleibt Review-UI + thin proxy |
+
+**Empfohlene Reihenfolge (Phase 9e, vertikal):** Contract-Freeze + Migrationsmatrix -> Go Frontdoor Skeleton -> Candidate Review Actions -> Contradictions/Evidence -> Ingest Trigger/Stats -> Seed/Admin Tooling -> Shadow-Run -> Cutover. Mutierende Endpunkte sollten vor dem finalen Cutover mindestens die **Phase-1 RBAC-Baseline** (Auth/Rollenpruefung) haben.
+
+**Status (Teilfortschritt `9e-A..D`, 23. Feb 2026):** Go-Frontdoor fuer GeoMap Candidates/Review-Aktionen (`/api/v1/geopolitical/candidates`, `.../:id/{accept|reject|snooze}`), Contradictions/Timeline (`/api/v1/geopolitical/contradictions`, `.../:id`, `/api/v1/geopolitical/timeline`) sowie Ingest/Admin (`/api/v1/geopolitical/ingest/{hard|soft}`, `/api/v1/geopolitical/admin/seed`) implementiert. **Upgrade 1:** Candidate Queue `GET /api/v1/geopolitical/candidates` liest aus einem Go-owned file-backed Read-Model (Gateway Store); Ingest/Review-Antworten spiegeln Kandidaten in diesen Store. **Upgrade 1b:** Candidate Review-Aktionen `reject`/`snooze` werden direkt im Go-Gateway auf dem Candidate-Store ausgefuehrt (inkl. Go-Timeline-Audit `candidate_rejected` / `candidate_snoozed`). **Upgrade 1c:** `accept` ist jetzt ebenfalls Go-owned (lokale Event-Erstellung im Go-Gateway file-backed Event-Store + Source-Linking + Candidate-Update + Timeline-Audit `candidate_accepted`); der alte Next-Proxy-Pfad bleibt nur noch Fallback/Transition. **Upgrade 2:** Contradictions + Timeline laufen ueber Go-owned file-backed Stores/Handler (inkl. create/patch/evidence/resolution audit events) und nicht mehr ueber den Next-Proxy. **Upgrade 3 (Shadow/Cutover-Prep):** Ingest-Run-Observability im Go-Gateway erfasst `hard/soft/seed` Runs (Status, Kandidaten-Sync, Adapter-Stats); optionaler Shadow-Compare (`GEOPOLITICAL_INGEST_SHADOW_COMPARE`) protokolliert Open-Candidate-Counts Next vs Go. Neue Read-Endpunkte: `/api/v1/geopolitical/ingest/runs` und `/api/v1/geopolitical/migration/status` (inkl. Diagnostics: Store-Counts + letzte Runs je Kind). **Upgrade 3b:** `GEOPOLITICAL_INGEST_HARD_MODE`, `GEOPOLITICAL_INGEST_SOFT_MODE` und `GEOPOLITICAL_ADMIN_SEED_MODE` erlauben einen kontrollierten Cutover zwischen `next-proxy` und `go-owned-gateway-v1`, waehrend die Frontdoor-URLs stabil bleiben. **Upgrade 4:** `ingest/hard` laeuft als Go-owned Gateway-Ingest (`go-owned-gateway-v1`) auf Basis des Geo-Events-Service (ACLED/GDELT) und schreibt kompatible Candidate-Records direkt in den Go Candidate-Store (stabile IDs fuer Upsert/Dedup-lite, Adapter-Stats, Ingest-Run-Logging). **Upgrade 4b:** `ingest/soft` laeuft als Go-owned Gateway-Ingest (`go-owned-gateway-v1`) via Go-NewsService + Python Soft-Signals Connector (Cluster/Social/Narrative) und schreibt kompatible Candidate-Records direkt in den Go Candidate-Store inkl. Adapter-Stats + Ingest-Run-Logging. **Upgrade 4c:** `admin/seed` hat jetzt ebenfalls einen Go-owned Gateway-Handler (`go-owned-gateway-v1`, Earth ensure/top-up fuer Events/Candidates/Contradictions inkl. Timeline-Audit + Seed-Run-Logging). **Upgrade 5 (Next Thin-Proxy Cutover-Prep):** Next-GeoMap-Routen fuer Candidate-Review-Aktionen, Contradictions und Timeline wurden auf thin proxy gegen die Go-Frontdoor umgestellt; `GET /api/geopolitical/candidates` nutzt einen loop-sicheren Conditional-Pfad (lokal bei aktivem Shadow-Compare, sonst Go-thin-proxy bei `go-owned` Ingest-Modi). RBAC-Regeln im Go-Gateway fuer mutierende Candidate-, Contradiction-, Ingest- und Seed-Endpunkte auf `analyst` geschaerft. **Upgrade 6 (Shadow-Run + Cutover verifiziert, lokal/dev):** Echter Shadow-Run gegen isolierte Next-Instanz (`3011`) und Gateway (`9060`) ausgefuehrt. Nach Seed/Warmup zeigten die `next-proxy` Ingest-Runs (`hard`/`soft`) in den Run-Diagnostics konsistent `openCountDelta = 0` (Next vs Go open candidate count). Anschliessend Gateway-Cutover auf `GEOPOLITICAL_INGEST_{HARD,SOFT}=go-owned-gateway-v1` und `GEOPOLITICAL_ADMIN_SEED_MODE=go-owned-gateway-v1` gesetzt und via `/api/v1/geopolitical/migration/status` verifiziert. Next-Aliase fuer `timeline`, `contradictions`, `seed`, `ingest/soft`, `ingest/hard` liefern im go-owned Modus `X-GeoMap-Next-Route: thin-proxy`; `GET /api/geopolitical/candidates` bleibt bei aktivem Shadow-Compare absichtlich lokal (verhindert zirkulaeren Shadow-Compare). **Upgrade 6b (Hard-Ingest Stabilisierung):** Go-owned `ingest/hard` degradiert bei Geo-Events/Provider-Fehlern nun auf `HTTP 200` mit `adapter.ok=false` (statt Top-Level `502`) und schreibt den Run inklusive Adapter-Fehlerstatus; zusaetzlich ist ein ACLED->GDELT Fallback im Gateway-Hard-Ingest aktiv. Dadurch bleibt der Cutover-Pfad stabil und die Verifikation der Next-thin-proxy-Aliase funktioniert auch ohne ACLED-Credentials (lokal beobachtet: `request /acled/read failed with status 401`). **Upgrade 6c (Post-Cutover Cleanup):** Next-Routen `POST /api/geopolitical/candidates`, `POST /api/geopolitical/candidates/ingest/{hard|soft}` und `POST /api/geopolitical/seed` sind jetzt post-cutover thin-proxy-only (keine lokale Domainlogik/Fallbacks mehr); bei nicht gesetztem Go-owned Mode liefern `ingest/seed` einen expliziten `503` mit Cutover-Hinweis statt still auf lokale Logik zurueckzufallen. **Scope-Abgrenzung nach Cleanup (wichtig):** Verbleibende lokale Next-GeoMap-Routen (`events/*`, `drawings/*`, `alerts`, `regions`, `news`, `context`, `graph`, `game-theory/impact`, `stream`, `sources/health`) sind aktuell **nicht Teil von Phase 9e/UIL**, sondern GeoMap-CRUD/Analytics/Streaming-Backlog fuer spaetere Backend-Konsolidierung (separat planen; nicht als 9e-Restschuld behandeln). Naechste Schritte: Shadow-Compare in Staging nochmals laufen lassen (optional), anschliessend verbliebene Conditional-Logik fuer `GET /api/geopolitical/candidates` nach Betriebsentscheidung vereinfachen und restliche Next-GeoMap-Domainroute-Altlogik nur im passenden GeoMap-Backend-Workstream migrieren.
+
+**Cutover-Runbook (Phase 9e, systematisch):**
+> Optionales Hilfsskript: `scripts/geomap-phase9e-shadow-run.ps1` (fuehrt Seed + Hard/Soft Shadow-Runs + Diagnostics-Abfragen aus und gibt Cutover-Kommandos aus).
+1. **Shadow-Run aktivieren (dev/staging):** `GEOPOLITICAL_INGEST_SHADOW_COMPARE=1`, Ingest-Modi zunaechst auf `next-proxy` lassen (`hard`, `soft`) und `admin seed` optional auf `next-proxy+go-sync`.
+2. **Referenzdaten aufbauen:** `POST /api/v1/geopolitical/admin/seed` (oder bestehender Next Alias) ausfuehren; anschliessend `GET /api/v1/geopolitical/migration/status` pruefen (Store-Counts + Modi).
+3. **Mehrfach triggern:** mindestens 5x `POST /api/v1/geopolitical/ingest/hard` und 5x `POST /api/v1/geopolitical/ingest/soft` (zeitlich verteilt) ausfuehren.
+4. **Runs auswerten:** `GET /api/v1/geopolitical/ingest/runs?limit=50` pruefen auf Erfolgsquote, `adapterStats`, `candidateSyncCount`, `openCountDelta` (Shadow-Compare).
+5. **Cutover setzen:** `GEOPOLITICAL_INGEST_{HARD,SOFT}_MODE=go-owned-gateway-v1`; optional `GEOPOLITICAL_ADMIN_SEED_MODE=go-owned-gateway-v1`.
+6. **Frontend/Next Verifikation (ohne E2E-Automation):** GeoMap-Review-Queue, Contradictions/Timeline, Ingest-Trigger und Seed ueber bestehende `/api/geopolitical/*` Aliase testen; pruefen, dass Responses `X-GeoMap-Next-Route: thin-proxy` enthalten (wo thin proxy aktiv).
+7. **Rueckbau:** Nach stabiler Verifikation lokale Next-Domainlogik fuer bereits Go-owned Pfade entfernen oder dauerhaft als minimale Thin-Proxy-Routen belassen.
 
 ### Verify Gate
 - [ ] YouTube Transcript eingespielt, klassifiziert, korrekt geroutet
 - [ ] Auto-Route bei Confidence >=0.85 funktioniert
 - [ ] Copy/Paste → LLM → Candidate
+- [ ] GeoMap Candidate-Review-Flow laeuft ueber Go/UIL-Contracts (Next nicht mehr Source-of-Truth fuer Candidate-Domainlogik)
 
 ---
 
@@ -395,6 +604,8 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **12f** | Evaluation Harness | GEO Sek. 35.6 | Accept Rate, Override Rate, Kappa, Top Override Reasons, Time-to-Review Dashboard |
 | **12g** | Zentralbank + CBDC Layer | GEO Sek. 35.13, ENT Sek. 12.4 | Rate Decisions Filter, Balance Sheet Trend, CBDC Status Choropleth, Financial Openness (Chinn-Ito), De-Dollarization |
 
+**Status (Frontend + transitional API groundwork, 23. Feb 2026):** Phase-12 wurde konfliktarm parallel zur Go-Provider-/UIL-Arbeit deutlich vorgezogen. **12e UI:** `TimelineStrip` hat Playback-Controls (Play/Pause, Speed, Window, Cursor-Scrubber) plus Confidence-Decay-Preview und visualisiert Cursor/Window direkt im Activity-Density-Chart. **12b UI-Annäherung:** `EventInspector` zeigt einen eventbezogenen Contradictions-Bereich (read-only, via Contradictions-API; Link-Heuristik über Evidence/mergedEventId/Source-Overlap) und bringt das Verify-Gate „Contradiction Tab im Event Inspector funktional“ naeher. **12c/12d/12f/12g UI + transitional Backing:** `Phase12AdvancedPanel` ist eingebunden und nutzt jetzt zusaetzliche Next-Transition-APIs fuer Alert-Policy (`/api/geopolitical/alerts/policy`), Evaluation Summary (`/api/geopolitical/evaluation`), JSON/CSV Export (`/api/geopolitical/export`) sowie Zentralbank-/CBDC-Overlay-Konfig (`/api/geopolitical/overlays/central-bank`). `alerts` Preview unterstuetzt Threshold-Parameter (`minSeverity`, `minConfidence`, `cooldownMinutes`, optional `regionId`) und liefert Preview-Metriken (`thresholdMatchedEvents`, `eligible/suppressed`). Diese Endpunkte sind **transitional** (Next/local stores) und sollen spaeter mit Go/Phase-14-Quellepfaden bzw. UIL-konformen Contracts hinterlegt werden.
+
 ### Verify Gate
 - [ ] NLP: Embedding-basiertes Clustering besser als TF-IDF (A/B Test)
 - [ ] Contradiction Tab im Event Inspector funktional
@@ -439,11 +650,13 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **14d** | DiffWatcher | GO-R Sek. 12.7 | Sanctions XML Diffs: SECO, OFAC SDN, UN, EU |
 | **14e** | TranslationBridge | GO-R Sek. 12.8 | Non-English API Responses → Python LLM Queue fuer Uebersetzung |
 | **14f** | Symbol Catalog Service | GO-R Sek. 9 | Periodic Pull, Normalized Format, DEX Mapping |
+| **14g** | GeoMap Official Source Connector Pack + Diff/Decision Emitters | GO-R Sek. 12.7, 14.6 (Addendum) | Offizielle GeoMap-Quellen in Go zentralisieren (OFAC/UN/UK, Fed/ECB, weitere Zentralbanken/Legal Feeds): ETag/Last-Modified/Hash, DiffWatcher/Change-Emit, provider-spezifische Parsing-Hinweise. Ziel: Hard-Signal-Deltas nicht mehr in Next-TS verfestigen |
 
 ### Verify Gate
 - [ ] SDMXClient: IMF GDP-Daten korrekt abrufbar
 - [ ] DiffWatcher: OFAC SDN Update → Auto-Candidate in GeoMap
 - [ ] Symbol Catalog: 500+ Symbole normalisiert
+- [ ] GeoMap offizielle Quellen (mind. OFAC + UN + Fed/ECB) laufen ueber Go-Connector/DiffWatcher und beliefern den UIL/GeoMap-Stack ohne Next-TS Source-Fetch
 
 ---
 

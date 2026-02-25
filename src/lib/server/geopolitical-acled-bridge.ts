@@ -54,6 +54,7 @@ export interface ExternalProxyFilters {
 	page?: number;
 	pageSize?: number;
 	requestId?: string;
+	userRole?: string;
 }
 
 export interface ExternalProxyMeta {
@@ -198,6 +199,7 @@ export async function fetchExternalEventsViaGateway(
 	const from = normalizeDate(filters.from);
 	const to = normalizeDate(filters.to);
 	const requestId = filters.requestId?.trim() || "";
+	const userRole = filters.userRole?.trim() || "";
 
 	const cacheTTL = clamp(
 		Number(process.env.GEOPOLITICAL_ACLED_CACHE_MS || DEFAULT_CACHE_MS),
@@ -236,11 +238,12 @@ export async function fetchExternalEventsViaGateway(
 	if (from) endpoint.searchParams.set("from", from);
 	if (to) endpoint.searchParams.set("to", to);
 
+	const headers: Record<string, string> = { Accept: "application/json" };
+	if (requestId) headers["X-Request-ID"] = requestId;
+	if (userRole) headers["X-User-Role"] = userRole;
 	const response = await fetch(endpoint.toString(), {
 		method: "GET",
-		headers: requestId
-			? { Accept: "application/json", "X-Request-ID": requestId }
-			: { Accept: "application/json" },
+		headers,
 		cache: "no-store",
 	});
 	if (!response.ok) {

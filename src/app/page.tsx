@@ -2,17 +2,18 @@
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type { ChartType } from "@/chart/types";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BottomStats } from "@/features/trading/BottomStats";
+import { RightDetailsSidebar } from "@/features/trading/RightDetailsSidebar";
 import { TradingHeader } from "@/features/trading/TradingHeader";
 import { TradingPageSkeleton } from "@/features/trading/TradingPageSkeleton";
-import { WatchlistSidebar } from "@/features/trading/WatchlistSidebar";
-import { RightDetailsSidebar } from "@/features/trading/RightDetailsSidebar";
 import { TradingWorkspace } from "@/features/trading/TradingWorkspace";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type {
+	CompositeSignalInsights,
 	DataMode,
 	LayoutMode,
 	SidebarPanel,
@@ -20,7 +21,8 @@ import type {
 	WatchlistTab,
 } from "@/features/trading/types";
 import { useIndicatorActions } from "@/features/trading/useIndicatorActions";
-import { checkAlerts } from "@/lib/alerts";
+import { WatchlistSidebar } from "@/features/trading/WatchlistSidebar";
+import { createNotification } from "@/lib/alerts";
 import { generateDemoCandles } from "@/lib/demoData";
 import {
 	ALL_FUSION_SYMBOLS,
@@ -77,6 +79,32 @@ const DEFAULT_INDICATORS: IndicatorSettings = {
 	supportResistance: { enabled: false, lookback: 20, threshold: 0.02, topN: 6 },
 };
 
+interface CompositeSignalRouteComponent {
+	score?: number;
+	details?: Record<string, unknown>;
+}
+
+interface CompositeSignalRouteData {
+	signal?: "buy" | "sell" | "neutral";
+	confidence?: number;
+	components?: Record<string, CompositeSignalRouteComponent>;
+	timestamp?: number;
+}
+
+interface CompositeSignalRouteResponse {
+	success?: boolean;
+	data?: CompositeSignalRouteData;
+	error?: string;
+}
+
+function componentScore(
+	components: Record<string, CompositeSignalRouteComponent> | undefined,
+	key: string,
+): number | null {
+	const score = components?.[key]?.score;
+	return typeof score === "number" && Number.isFinite(score) ? score : null;
+}
+
 export default function Home() {
 	// State
 	const [isDarkMode, setIsDarkMode] = useState(true);
@@ -118,6 +146,8 @@ export default function Home() {
 	const [streamReconnects, setStreamReconnects] = useState(0);
 	const [streamLastTickAt, setStreamLastTickAt] = useState<number | null>(null);
 	const [streamClockMs, setStreamClockMs] = useState<number>(Date.now());
+	const [compositeSignalInsights, setCompositeSignalInsights] =
+		useState<CompositeSignalInsights | null>(null);
 
 	// Client-side only check
 	const mounted = useSyncExternalStore(
@@ -263,6 +293,7 @@ export default function Home() {
 		const params = new URLSearchParams({
 			symbol: currentSymbol.symbol,
 			timeframe: currentTimeframe,
+			profileKey: getClientProfileKey(),
 		});
 		setStreamState("connecting");
 		setStreamLastTickAt(null);
@@ -340,6 +371,82 @@ export default function Home() {
 			}
 		};
 
+		const onSnapshot = (event: MessageEvent<string>) => {
+			try {
+				const payload = JSON.parse(event.data) as {
+					quote?: { last?: number; timestamp?: number };
+					candles?: OHLCVData[];
+					candle?: OHLCVData;
+				};
+				if (Array.isArray(payload.candles) && payload.candles.length > 0) {
+					const sorted = [...payload.candles]
+						.filter(
+							(row) =>
+								Number.isFinite(row.time) &&
+								Number.isFinite(row.open) &&
+								Number.isFinite(row.high) &&
+								Number.isFinite(row.low) &&
+								Number.isFinite(row.close),
+						)
+						.sort((a, b) => a.time - b.time);
+					if (sorted.length > 0) {
+						setCandleData((prev) =>
+							prev.length > 0 ? prev : sorted.slice(-historyWindow.requestLimit),
+						);
+					}
+				} else if (payload.candle) {
+					const candle = payload.candle;
+					setCandleData((prev) => {
+						if (prev.length > 0) return prev;
+						return [candle];
+					});
+				}
+				if (typeof payload.quote?.last === "number") {
+					lastQuoteBySymbolRef.current[currentSymbol.symbol] = payload.quote.last;
+					setStreamLastTickAt(Date.now());
+				}
+			} catch {
+				// ignore malformed snapshot payloads
+			}
+		};
+
+		const onQuote = (event: MessageEvent<string>) => {
+			try {
+				const payload = JSON.parse(event.data) as { last?: number; timestamp?: number };
+				if (typeof payload.last === "number") {
+					lastQuoteBySymbolRef.current[currentSymbol.symbol] = payload.last;
+					setStreamLastTickAt(Date.now());
+				}
+			} catch {
+				// ignore malformed quote payloads
+			}
+		};
+
+		const onAlert = (event: MessageEvent<string>) => {
+			try {
+				const payload = JSON.parse(event.data) as {
+					ruleId?: string;
+					symbol?: string;
+					message?: string;
+					condition?: string;
+					target?: number;
+					price?: number;
+				};
+				const alertSymbol =
+					typeof payload.symbol === "string" ? payload.symbol : currentSymbol.symbol;
+				const message =
+					typeof payload.message === "string" && payload.message.trim().length > 0
+						? payload.message
+						: `${alertSymbol} alert triggered`;
+				if (typeof payload.ruleId === "string" && payload.ruleId.trim().length > 0) {
+					createNotification(payload.ruleId, alertSymbol, message);
+				}
+				setDataStatusMessage(message);
+			} catch {
+				// ignore malformed alert payloads
+			}
+		};
+
 		const onError = () => {
 			if (!streamDegradedRef.current) {
 				streamDegradedRef.current = true;
@@ -353,7 +460,23 @@ export default function Home() {
 
 		const onStreamStatus = (event: MessageEvent<string>) => {
 			try {
-				const payload = JSON.parse(event.data) as { state?: string };
+				const payload = JSON.parse(event.data) as {
+					state?: string;
+					reconnectAttempts?: number;
+					lastQuoteAt?: string;
+				};
+				if (
+					typeof payload.reconnectAttempts === "number" &&
+					Number.isFinite(payload.reconnectAttempts)
+				) {
+					setStreamReconnects(payload.reconnectAttempts);
+				}
+				if (typeof payload.lastQuoteAt === "string" && payload.lastQuoteAt.trim().length > 0) {
+					const parsed = Date.parse(payload.lastQuoteAt);
+					if (Number.isFinite(parsed)) {
+						setStreamLastTickAt(parsed);
+					}
+				}
 				switch (payload.state) {
 					case "live":
 						setStreamState("live");
@@ -373,14 +496,20 @@ export default function Home() {
 		};
 
 		source.addEventListener("ready", onReady as EventListener);
+		source.addEventListener("snapshot", onSnapshot as EventListener);
+		source.addEventListener("quote", onQuote as EventListener);
 		source.addEventListener("candle", onCandle as EventListener);
+		source.addEventListener("alert", onAlert as EventListener);
 		source.addEventListener("stream_status", onStreamStatus as EventListener);
 		source.addEventListener("error", onError as EventListener);
 		source.onerror = onError;
 
 		return () => {
 			source.removeEventListener("ready", onReady as EventListener);
+			source.removeEventListener("snapshot", onSnapshot as EventListener);
+			source.removeEventListener("quote", onQuote as EventListener);
 			source.removeEventListener("candle", onCandle as EventListener);
+			source.removeEventListener("alert", onAlert as EventListener);
 			source.removeEventListener("stream_status", onStreamStatus as EventListener);
 			source.removeEventListener("error", onError as EventListener);
 			source.close();
@@ -498,84 +627,10 @@ export default function Home() {
 		void loadChartData();
 	}, [loadChartData]);
 
-	// Poll current symbol quote and run alert checks.
-	useEffect(() => {
-		if (!mounted) {
-			return;
-		}
-
-		let alive = true;
-
-		const pollQuoteAndAlerts = async () => {
-			try {
-				const response = await fetch(
-					`/api/market/quote?symbol=${encodeURIComponent(currentSymbol.symbol)}`,
-					{ cache: "no-store" },
-				);
-				if (!response.ok) {
-					return;
-				}
-
-				const payload = (await response.json()) as {
-					quote?: { price?: number };
-					executionsCount?: number;
-				};
-
-				const currentPrice = payload.quote?.price;
-				if (typeof currentPrice !== "number") {
-					return;
-				}
-
-				const previousPrice = lastQuoteBySymbolRef.current[currentSymbol.symbol] ?? currentPrice;
-				lastQuoteBySymbolRef.current[currentSymbol.symbol] = currentPrice;
-
-				const notifications = checkAlerts(currentSymbol.symbol, currentPrice, previousPrice);
-
-				const executionsCount =
-					typeof payload.executionsCount === "number" ? payload.executionsCount : 0;
-
-				if (alive && executionsCount > 0) {
-					setDataStatusMessage(
-						`${executionsCount} paper order${executionsCount > 1 ? "s" : ""} auto-filled for ${currentSymbol.symbol}.`,
-					);
-				}
-
-				if (alive && notifications.length > 0) {
-					// Keep message short; full notifications are shown in AlertPanel.
-					setDataStatusMessage(
-						`${notifications.length} alert${notifications.length > 1 ? "s" : ""} triggered for ${currentSymbol.symbol}`,
-					);
-				}
-			} catch {
-				// ignore quote polling errors to avoid disrupting chart flow
-			}
-		};
-
-		void pollQuoteAndAlerts();
-		const timer = setInterval(() => {
-			void pollQuoteAndAlerts();
-		}, 30000);
-
-		return () => {
-			alive = false;
-			clearInterval(timer);
-		};
-	}, [currentSymbol.symbol, mounted]);
-
 	// Theme toggle
 	const handleThemeToggle = useCallback(() => {
 		setIsDarkMode((prev) => !prev);
 	}, []);
-
-	const openSidebarPanel = useCallback(
-		(panel: SidebarPanel) => {
-			setActiveSidebarPanel(panel);
-			if (!rightSidebarOpen) {
-				setRightSidebarOpen(true);
-			}
-		},
-		[rightSidebarOpen],
-	);
 
 	const {
 		setCoreIndicatorEnabled,
@@ -791,6 +846,76 @@ export default function Home() {
 		};
 	}, [dailySignalData, indicators.atr, viewCandleData]);
 
+	const compositeSignalOhlcv = useMemo(
+		() =>
+			viewCandleData.slice(-Math.min(240, viewCandleData.length)).map((point) => ({
+				time: point.time,
+				open: point.open,
+				high: point.high,
+				low: point.low,
+				close: point.close,
+				volume: point.volume,
+			})),
+		[viewCandleData],
+	);
+
+	useEffect(() => {
+		if (compositeSignalOhlcv.length < 20) {
+			setCompositeSignalInsights(null);
+			return;
+		}
+
+		const controller = new AbortController();
+		const timer = window.setTimeout(async () => {
+			try {
+				const response = await fetch("/api/fusion/strategy/composite", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ ohlcv: compositeSignalOhlcv }),
+					signal: controller.signal,
+				});
+				const body = (await response.json()) as CompositeSignalRouteResponse;
+				if (!response.ok || body.success !== true || !body.data) {
+					throw new Error(body.error || `Composite request failed (${response.status})`);
+				}
+
+				const data = body.data;
+				if (
+					(data.signal !== "buy" && data.signal !== "sell" && data.signal !== "neutral") ||
+					typeof data.confidence !== "number" ||
+					typeof data.timestamp !== "number"
+				) {
+					throw new Error("Composite response shape invalid");
+				}
+
+				const components = data.components;
+				const smaDetails = components?.sma50_slope?.details;
+				const smaEngine =
+					smaDetails && typeof smaDetails.engine === "string" ? smaDetails.engine : null;
+
+				setCompositeSignalInsights({
+					signal: data.signal,
+					confidence: Math.max(0, Math.min(1, data.confidence)),
+					heartbeatScore: componentScore(components, "heartbeat"),
+					sma50SlopeScore: componentScore(components, "sma50_slope"),
+					sma50SlopeEngine: smaEngine,
+					volumePowerScore: componentScore(components, "volume_power"),
+					timestamp: data.timestamp,
+				});
+			} catch (error: unknown) {
+				if (!controller.signal.aborted) {
+					setCompositeSignalInsights(null);
+				}
+				void error;
+			}
+		}, 250);
+
+		return () => {
+			controller.abort();
+			window.clearTimeout(timer);
+		};
+	}, [compositeSignalOhlcv]);
+
 	// Format helpers
 	const formatPrice = (price: number) => {
 		if (price < 0.01) return price.toFixed(6);
@@ -840,6 +965,9 @@ export default function Home() {
 		return <TradingPageSkeleton />;
 	}
 
+	const streamAgeLabel =
+		streamLastTickAgeSec === null ? "No tick yet" : `${streamLastTickAgeSec}s since tick`;
+
 	return (
 		<div className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
 			<TradingHeader
@@ -851,16 +979,12 @@ export default function Home() {
 				filteredSymbols={filteredSymbols}
 				popularSymbols={popularSymbols}
 				currentTimeframe={currentTimeframe}
-				historyRangePreset={historyRangePreset}
-				customStartYear={customStartYear}
-				minimumStartYear={symbolMinimumStartYear}
-				effectiveStartYear={historyWindow.effectiveStartYear}
 				chartType={chartType}
 				compareSymbol={compareSymbol}
 				indicators={indicators}
 				loading={loading}
 				isDarkMode={isDarkMode}
-				dataMode={dataMode}
+				supportedLayouts={["single"]}
 				onQueryChange={setSearchQuery}
 				onOpenSearchChange={setShowSearch}
 				onSelectSymbol={handleSymbolChange}
@@ -883,6 +1007,39 @@ export default function Home() {
 				onResetReplay={resetReplay}
 				onSeekReplay={seekReplay}
 			/>
+
+			<div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/20 px-3 py-2 text-xs">
+				<div className="flex flex-wrap items-center gap-2">
+					<Badge variant="outline">{loading ? "Loading market data" : "Market ready"}</Badge>
+					<Badge variant="outline">Mode: {dataMode}</Badge>
+					<Badge variant="outline">Provider: {dataProvider}</Badge>
+					<Badge
+						variant="outline"
+						className={
+							streamState === "live"
+								? "text-emerald-600"
+								: streamState === "degraded"
+									? "text-amber-600"
+									: "text-muted-foreground"
+						}
+					>
+						Stream: {streamState}
+					</Badge>
+					<Badge variant="outline">{streamAgeLabel}</Badge>
+					<Badge variant="outline">Reconnects: {streamReconnects}</Badge>
+					{replayMode ? (
+						<Badge variant="outline" className="text-indigo-600">
+							Replay {replayPlaying ? "playing" : "paused"}
+						</Badge>
+					) : null}
+				</div>
+				<div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+					<span>L: {sidebarOpen ? "open" : "closed"}</span>
+					<span>R: {rightSidebarOpen ? "open" : "closed"}</span>
+					<span>Layout: {layout}</span>
+					<span>Panel: {activeSidebarPanel}</span>
+				</div>
+			</div>
 
 			{/* Main Content */}
 			<div className="flex-1 flex overflow-hidden relative">
@@ -912,20 +1069,13 @@ export default function Home() {
 								showDrawingToolbar={showDrawingToolbar}
 								dataStatusMessage={dataStatusMessage}
 								signalSnapshot={signalSnapshot}
+								compositeSignalInsights={compositeSignalInsights}
 								loading={loading}
 								candleData={viewCandleData}
 								indicators={indicators}
 								isDarkMode={isDarkMode}
 								chartType={chartType}
 								layout={layout}
-								replayMode={replayMode}
-								replayPlaying={replayPlaying}
-								replayIndex={replayIndex}
-								replayMax={candleData.length}
-								onToggleReplayMode={toggleReplayMode}
-								onToggleReplayPlaying={toggleReplayPlaying}
-								onResetReplay={resetReplay}
-								onSeekReplay={seekReplay}
 								historyRangePreset={historyRangePreset}
 								customStartYear={customStartYear}
 								minimumStartYear={symbolMinimumStartYear}
@@ -934,16 +1084,7 @@ export default function Home() {
 								onCustomStartYearChange={handleCustomStartYearChange}
 							/>
 
-							<BottomStats
-								stats={stats}
-								dataMode={dataMode}
-								dataProvider={dataProvider}
-								streamState={streamState}
-								streamReconnects={streamReconnects}
-								streamLastTickAgeSec={streamLastTickAgeSec}
-								formatPrice={formatPrice}
-								formatVolume={formatVolume}
-							/>
+							<BottomStats stats={stats} formatPrice={formatPrice} formatVolume={formatVolume} />
 						</div>
 					</Panel>
 
@@ -956,6 +1097,7 @@ export default function Home() {
 									activePanel={activeSidebarPanel}
 									currentSymbol={currentSymbol.symbol}
 									currentPrice={stats.lastPrice}
+									candleData={viewCandleData}
 									indicators={indicators}
 									onSetActivePanel={setActiveSidebarPanel}
 									onClose={() => setRightSidebarOpen(false)}

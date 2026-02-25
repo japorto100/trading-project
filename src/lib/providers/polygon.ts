@@ -1,4 +1,4 @@
-﻿import type {
+import type {
 	MarketDataProvider,
 	OHLCVData,
 	ProviderInfo,
@@ -31,6 +31,8 @@ function timeframeToAgg(timeframe: TimeframeValue): { multiplier: number; timesp
 	switch (timeframe) {
 		case "1m":
 			return { multiplier: 1, timespan: "minute" };
+		case "3m":
+			return { multiplier: 3, timespan: "minute" };
 		case "5m":
 			return { multiplier: 5, timespan: "minute" };
 		case "15m":
@@ -39,6 +41,8 @@ function timeframeToAgg(timeframe: TimeframeValue): { multiplier: number; timesp
 			return { multiplier: 30, timespan: "minute" };
 		case "1H":
 			return { multiplier: 1, timespan: "hour" };
+		case "2H":
+			return { multiplier: 2, timespan: "hour" };
 		case "4H":
 			return { multiplier: 4, timespan: "hour" };
 		case "1D":
@@ -47,6 +51,8 @@ function timeframeToAgg(timeframe: TimeframeValue): { multiplier: number; timesp
 			return { multiplier: 1, timespan: "week" };
 		case "1M":
 			return { multiplier: 1, timespan: "month" };
+		default:
+			throw new Error(`Unsupported timeframe: ${timeframe}`);
 	}
 }
 
@@ -61,10 +67,12 @@ function rangeFor(timeframe: TimeframeValue, limit: number): { from: string; to:
 	const now = new Date();
 	const secondsByTf: Record<TimeframeValue, number> = {
 		"1m": 60,
+		"3m": 3 * 60,
 		"5m": 5 * 60,
 		"15m": 15 * 60,
 		"30m": 30 * 60,
 		"1H": 60 * 60,
+		"2H": 2 * 60 * 60,
 		"4H": 4 * 60 * 60,
 		"1D": 24 * 60 * 60,
 		"1W": 7 * 24 * 60 * 60,

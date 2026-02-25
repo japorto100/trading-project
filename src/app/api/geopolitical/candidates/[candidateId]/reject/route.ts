@@ -1,9 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server";
-import {
-	getGeoCandidate,
-	updateGeoCandidateState,
-} from "@/lib/server/geopolitical-candidates-store";
-import { appendGeoTimelineEntry } from "@/lib/server/geopolitical-timeline-store";
+import type { NextRequest } from "next/server";
+import { proxyGeopoliticalGatewayRequest } from "@/lib/server/geopolitical-gateway-proxy";
+
+export const runtime = "nodejs";
 
 interface ParamsShape {
 	params: Promise<{ candidateId: string }>;
@@ -11,46 +9,9 @@ interface ParamsShape {
 
 export async function POST(request: NextRequest, context: ParamsShape) {
 	const { candidateId } = await context.params;
-	if (!candidateId) {
-		return NextResponse.json({ error: "candidateId is required" }, { status: 400 });
-	}
-
-	const candidate = await getGeoCandidate(candidateId);
-	if (!candidate) {
-		return NextResponse.json({ error: "candidate not found" }, { status: 404 });
-	}
-	if (candidate.state !== "open") {
-		return NextResponse.json(
-			{ error: `candidate is ${candidate.state} and cannot be rejected` },
-			{ status: 409 },
-		);
-	}
-
-	let reviewNote: string | undefined;
-	try {
-		const body = (await request.json()) as { reviewNote?: string };
-		if (typeof body.reviewNote === "string") {
-			reviewNote = body.reviewNote.trim().slice(0, 500);
-		}
-	} catch {
-		// optional body
-	}
-
-	const actorHeader = request.headers.get("x-geo-actor");
-	const actor =
-		actorHeader && actorHeader.trim().length > 0
-			? actorHeader.trim().slice(0, 64)
-			: "local-analyst";
-	const updated = await updateGeoCandidateState(candidateId, "rejected", {
-		reviewNote,
-	});
-
-	await appendGeoTimelineEntry({
-		eventId: candidateId,
-		action: "candidate_rejected",
-		actor,
-		diffSummary: `Candidate ${candidateId} rejected`,
-	});
-
-	return NextResponse.json({ success: true, candidate: updated });
+	return proxyGeopoliticalGatewayRequest(
+		request,
+		`/api/v1/geopolitical/candidates/${candidateId}/reject`,
+		{ method: "POST", copyQuery: false },
+	);
 }

@@ -1,35 +1,27 @@
-import { NextResponse } from "next/server";
-import { runHardSignalAdapters } from "@/lib/geopolitical/adapters/hard-signals";
-import { shouldPromoteCandidate } from "@/lib/geopolitical/anti-noise";
-import {
-	GeopoliticalIngestionBudget,
-	getGeopoliticalIngestionBudgetConfig,
-} from "@/lib/geopolitical/ingestion-budget";
-import type { GeoCandidate } from "@/lib/geopolitical/types";
-import { createGeoCandidate } from "@/lib/server/geopolitical-candidates-store";
+import { type NextRequest, NextResponse } from "next/server";
+import { proxyGeopoliticalGatewayRequest } from "@/lib/server/geopolitical-gateway-proxy";
 
-export async function POST() {
-	const budget = new GeopoliticalIngestionBudget(getGeopoliticalIngestionBudgetConfig());
-	const adapterResults = await runHardSignalAdapters(budget);
-	const created: GeoCandidate[] = [];
-	for (const result of adapterResults) {
-		for (const candidate of result.candidates) {
-			if (!shouldPromoteCandidate(candidate)) continue;
-			const upserted = await createGeoCandidate(candidate);
-			created.push(upserted.candidate);
-		}
+export const runtime = "nodejs";
+
+function useGoOwnedHardIngest(): boolean {
+	return (
+		(process.env.GEOPOLITICAL_INGEST_HARD_MODE ?? "next-proxy").trim() === "go-owned-gateway-v1"
+	);
+}
+
+export async function POST(request: NextRequest) {
+	if (!useGoOwnedHardIngest()) {
+		return NextResponse.json(
+			{
+				success: false,
+				error:
+					"GeoMap hard-ingest Next alias is post-cutover thin-proxy only. Set GEOPOLITICAL_INGEST_HARD_MODE=go-owned-gateway-v1 in the Go gateway.",
+			},
+			{ status: 503 },
+		);
 	}
-
-	return NextResponse.json({
-		success: true,
-		adapters: adapterResults.map((result) => ({
-			provider: result.provider,
-			ok: result.ok,
-			message: result.message,
-			produced: result.candidates.length,
-		})),
-		createdCount: created.length,
-		candidates: created,
-		budget: budget.snapshot(),
+	return proxyGeopoliticalGatewayRequest(request, "/api/v1/geopolitical/ingest/hard", {
+		method: "POST",
+		copyQuery: false,
 	});
 }

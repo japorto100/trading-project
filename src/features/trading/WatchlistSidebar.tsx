@@ -26,10 +26,25 @@ export function WatchlistSidebar({
 	onToggleFavorite,
 }: WatchlistSidebarProps) {
 	return (
-		<aside className="w-full border-r border-border bg-card/30 flex flex-col h-full overflow-hidden">
-			<div className="flex items-center h-10 px-3 border-b border-border bg-accent/20">
-				<List className="h-4 w-4 mr-2 text-muted-foreground" />
-				<span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Watchlist</span>
+		<aside
+			data-testid="watchlist-sidebar"
+			className="w-full border-r border-border bg-card/30 flex flex-col h-full overflow-hidden"
+		>
+			<div className="flex items-center justify-between gap-2 border-b border-border bg-accent/20 px-3 py-2">
+				<div className="flex min-w-0 items-center gap-2">
+					<List className="h-4 w-4 text-muted-foreground" />
+					<div className="min-w-0">
+						<div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+							Watchlist
+						</div>
+						<div className="text-[11px] text-muted-foreground/80">
+							{watchlistSymbols.length} symbols
+						</div>
+					</div>
+				</div>
+				<span className="rounded-full border border-border bg-card/40 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+					{activeTab}
+				</span>
 			</div>
 
 			<div className="flex flex-col flex-1 min-h-0">
@@ -40,24 +55,24 @@ export function WatchlistSidebar({
 						className="w-full"
 					>
 						<div className="relative w-full">
-							<TabsList className="w-full h-auto justify-start overflow-x-auto whitespace-nowrap px-2 py-1.5 scrollbar-hide bg-transparent border-none">
+							<TabsList className="w-full h-auto justify-start overflow-x-auto whitespace-nowrap px-2 py-1.5 scrollbar-hide bg-transparent border-none gap-1">
 								<TabsTrigger value="all" className="text-xs px-2.5 shrink-0">
 									All
 								</TabsTrigger>
 								<TabsTrigger value="favorites" className="text-xs px-2.5 shrink-0">
-									Fav
+									Favs
 								</TabsTrigger>
 								<TabsTrigger value="crypto" className="text-xs px-2.5 shrink-0">
-									Cry
+									Crypto
 								</TabsTrigger>
 								<TabsTrigger value="stocks" className="text-xs px-2.5 shrink-0">
-									Stk
+									Stocks
 								</TabsTrigger>
 								<TabsTrigger value="forex" className="text-xs px-2.5 shrink-0">
 									FX
 								</TabsTrigger>
 								<TabsTrigger value="commodities" className="text-xs px-2.5 shrink-0">
-									Com
+									Cmdty
 								</TabsTrigger>
 								<TabsTrigger value="indices" className="text-xs px-2.5 shrink-0">
 									Idx

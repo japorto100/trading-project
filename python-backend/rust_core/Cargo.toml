@@ -1,0 +1,16 @@
+[package]
+name = "tradeviewfusion_rust_core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "tradeviewfusion_rust_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.28.2", features = ["extension-module"] }
+redb = "2.6.3"
+
+[dev-dependencies]
+approx = "0.5"
+tempfile = "3.23.0"

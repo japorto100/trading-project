@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * @deprecated Legacy combined sidebar prototype.
+ * Current trading page uses split watchlist + right details sidebars.
+ * Keep temporarily for reference until the remaining migration/cleanup is complete.
+ */
+
 import { ClipboardList, List, Newspaper, SlidersHorizontal, Wallet } from "lucide-react";
 import { WatchlistPanel } from "@/components/fusion/WatchlistPanel";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
