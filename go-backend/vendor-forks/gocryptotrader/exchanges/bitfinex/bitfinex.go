@@ -492,7 +492,7 @@ func (e *Exchange) GetSiteListConfigData(ctx context.Context, set string) ([]str
 // GetSiteInfoConfigData returns site configuration data by pub:info:{AssetType} as a map
 // path should be bitfinexInfoPairs or bitfinexInfoPairsFuture???
 // NOTE: See https://docs.bitfinex.com/reference/rest-public-conf
-func (e *Exchange) GetSiteInfoConfigData(ctx context.Context, assetType asset.Item) ([]limits.MinMaxLevel, error) {
+func (e *Exchange) GetSiteInfoConfigData(ctx context.Context, assetType string) ([]limits.MinMaxLevel, error) {
 	var path string
 	switch assetType {
 	case asset.Spot:

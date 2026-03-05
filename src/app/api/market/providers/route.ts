@@ -39,6 +39,7 @@ function isProviderAvailableViaGateway(name: string, gatewayReachable: boolean):
 		case "fred":
 		case "yfinance":
 		case "demo":
+		case "imf":
 			return true;
 		default:
 			return false;

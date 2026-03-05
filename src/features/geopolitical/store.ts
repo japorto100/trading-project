@@ -26,7 +26,7 @@ export type EventsSource = "local" | "acled" | "gdelt";
 export type ContextSource = "all" | "cfr" | "crisiswatch";
 export type GeoMapBody = "earth" | "moon";
 export type GeoMapViewMode = "single" | "compare";
-export type GeoEarthChoroplethMode = "severity" | "regime";
+export type GeoEarthChoroplethMode = "severity" | "regime" | "macro";
 export interface GeoLatLngPoint {
 	lat: number;
 	lng: number;
@@ -57,6 +57,7 @@ interface GeoMapWorkspaceState {
 	error: string | null;
 	drawingMode: DrawingMode;
 	drawingTextLabel: string;
+	drawingColor: string;
 	pendingLineStart: GeoLatLngPoint | null;
 	pendingPolygonPoints: GeoLatLngPoint[];
 	pendingPoint: GeoLatLngPoint | null;
@@ -115,6 +116,7 @@ interface GeoMapWorkspaceActions {
 	setError: (next: Updater<string | null>) => void;
 	setDrawingMode: (next: Updater<DrawingMode>) => void;
 	setDrawingTextLabel: (next: Updater<string>) => void;
+	setDrawingColor: (next: Updater<string>) => void;
 	setPendingLineStart: (next: Updater<GeoLatLngPoint | null>) => void;
 	setPendingPolygonPoints: (next: Updater<GeoLatLngPoint[]>) => void;
 	setPendingPoint: (next: Updater<GeoLatLngPoint | null>) => void;
@@ -182,6 +184,7 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 	error: null,
 	drawingMode: "marker",
 	drawingTextLabel: "Note",
+	drawingColor: "#22d3ee",
 	pendingLineStart: null,
 	pendingPolygonPoints: [],
 	pendingPoint: null,
@@ -246,6 +249,8 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 		set((state) => ({ drawingMode: resolveUpdater(state.drawingMode, next) })),
 	setDrawingTextLabel: (next) =>
 		set((state) => ({ drawingTextLabel: resolveUpdater(state.drawingTextLabel, next) })),
+	setDrawingColor: (next) =>
+		set((state) => ({ drawingColor: resolveUpdater(state.drawingColor, next) })),
 	setPendingLineStart: (next) =>
 		set((state) => ({ pendingLineStart: resolveUpdater(state.pendingLineStart, next) })),
 	setPendingPolygonPoints: (next) =>

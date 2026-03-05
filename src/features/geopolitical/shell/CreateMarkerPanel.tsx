@@ -12,7 +12,6 @@ interface CreateMarkerPanelProps {
 	draftNote: string;
 	draftSeverity: GeoSeverity;
 	draftConfidence: GeoConfidence;
-	drawingMode: "marker" | "line" | "polygon" | "text";
 	busy: boolean;
 	onDraftTitleChange: (value: string) => void;
 	onDraftSummaryChange: (value: string) => void;
@@ -31,7 +30,6 @@ export function CreateMarkerPanel({
 	draftNote,
 	draftSeverity,
 	draftConfidence,
-	drawingMode,
 	busy,
 	onDraftTitleChange,
 	onDraftSummaryChange,
@@ -63,24 +61,36 @@ export function CreateMarkerPanel({
 		<section className="mb-4 rounded-md border border-border bg-card p-3">
 			<h2 className="text-sm font-semibold">Create Marker</h2>
 			<p className="mt-1 text-xs text-muted-foreground">
-				Mode must be marker. Select symbol, click map, or enter coordinates manually.
+				Select symbol, click map, or enter coordinates manually.
 			</p>
 
 			<div className="mt-3 space-y-2">
-				<label className="block text-xs font-medium text-muted-foreground">Coordinates</label>
-				<div className="rounded-md border border-border bg-background px-2 py-1 text-xs">
+				<label
+					className="block text-xs font-medium text-muted-foreground"
+					htmlFor="marker-coordinates-display"
+				>
+					Coordinates
+				</label>
+				<div
+					id="marker-coordinates-display"
+					className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+				>
 					{pendingPoint
 						? `${pendingPoint.lat.toFixed(4)}, ${pendingPoint.lng.toFixed(4)}`
 						: "No point selected yet"}
 				</div>
 				<div className="grid grid-cols-2 gap-2">
 					<Input
+						id="marker-manual-latitude"
+						name="markerManualLatitude"
 						value={manualLat}
 						onChange={(event) => setManualLat(event.target.value)}
 						placeholder="Latitude (-90..90)"
 						aria-label="Manual latitude for marker point"
 					/>
 					<Input
+						id="marker-manual-longitude"
+						name="markerManualLongitude"
 						value={manualLng}
 						onChange={(event) => setManualLng(event.target.value)}
 						placeholder="Longitude (-180..180)"
@@ -91,8 +101,12 @@ export function CreateMarkerPanel({
 					Set coordinates manually
 				</Button>
 
-				<label className="block text-xs font-medium text-muted-foreground">Title</label>
+				<label className="block text-xs font-medium text-muted-foreground" htmlFor="marker-title">
+					Title
+				</label>
 				<Input
+					id="marker-title"
+					name="markerTitle"
 					value={draftTitle}
 					onChange={(event) => onDraftTitleChange(event.target.value)}
 					placeholder="Marker title"
@@ -101,8 +115,15 @@ export function CreateMarkerPanel({
 
 				<div className="grid grid-cols-2 gap-2">
 					<div>
-						<label className="mb-1 block text-xs font-medium text-muted-foreground">Severity</label>
+						<label
+							className="mb-1 block text-xs font-medium text-muted-foreground"
+							htmlFor="marker-severity"
+						>
+							Severity
+						</label>
 						<select
+							id="marker-severity"
+							name="markerSeverity"
 							className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
 							value={draftSeverity}
 							onChange={(event) => onDraftSeverityChange(Number(event.target.value) as GeoSeverity)}
@@ -116,10 +137,15 @@ export function CreateMarkerPanel({
 						</select>
 					</div>
 					<div>
-						<label className="mb-1 block text-xs font-medium text-muted-foreground">
+						<label
+							className="mb-1 block text-xs font-medium text-muted-foreground"
+							htmlFor="marker-confidence"
+						>
 							Confidence
 						</label>
 						<select
+							id="marker-confidence"
+							name="markerConfidence"
 							className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
 							value={draftConfidence}
 							onChange={(event) =>
@@ -136,8 +162,12 @@ export function CreateMarkerPanel({
 					</div>
 				</div>
 
-				<label className="block text-xs font-medium text-muted-foreground">Summary</label>
+				<label className="block text-xs font-medium text-muted-foreground" htmlFor="marker-summary">
+					Summary
+				</label>
 				<Textarea
+					id="marker-summary"
+					name="markerSummary"
 					value={draftSummary}
 					onChange={(event) => onDraftSummaryChange(event.target.value)}
 					rows={3}
@@ -145,8 +175,15 @@ export function CreateMarkerPanel({
 					aria-label="Marker summary"
 				/>
 
-				<label className="block text-xs font-medium text-muted-foreground">Analyst note</label>
+				<label
+					className="block text-xs font-medium text-muted-foreground"
+					htmlFor="marker-analyst-note"
+				>
+					Analyst note
+				</label>
 				<Textarea
+					id="marker-analyst-note"
+					name="markerAnalystNote"
 					value={draftNote}
 					onChange={(event) => onDraftNoteChange(event.target.value)}
 					rows={3}
@@ -158,7 +195,7 @@ export function CreateMarkerPanel({
 					<Button
 						size="sm"
 						onClick={onCreate}
-						disabled={busy || !pendingPoint || drawingMode !== "marker"}
+						disabled={busy || !pendingPoint}
 						aria-label="Create marker"
 					>
 						<Plus className="mr-2 h-4 w-4" />

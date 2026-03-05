@@ -164,7 +164,7 @@ func assetTypeFromInstrumentType(instrumentType string) (asset.Item, error) {
 }
 
 // assetTypeString returns a string representation of asset type
-func assetTypeString(assetType asset.Item) (string, error) {
+func assetTypeString(assetType string) (string, error) {
 	switch assetType {
 	case asset.Spot:
 		return instTypeSpot, nil

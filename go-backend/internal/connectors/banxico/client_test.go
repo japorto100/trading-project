@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 func TestGetSeries_ParsesBanxicoPayloadAndLimitsLatestFirst(t *testing.T) {
@@ -20,7 +22,7 @@ func TestGetSeries_ParsesBanxicoPayloadAndLimitsLatestFirst(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL, APIToken: "secret-token"})
-	points, err := client.GetSeries(context.Background(), gct.Pair{Base: "BANXICO_SF43718", Quote: "USD"}, "macro", 2)
+	points, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("BANXICO_SF43718"), currency.NewCode("USD")), asset.Empty, 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -45,7 +47,7 @@ func TestGetTicker_UsesBanxicoSeriesPrefix(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL, APIToken: "token"})
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "SF43718", Quote: "USD"}, "macro")
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("SF43718"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -78,7 +80,7 @@ func TestNormalizeSeriesID(t *testing.T) {
 
 func TestGetSeries_RequiresToken(t *testing.T) {
 	client := NewClient(Config{BaseURL: "http://example.test"})
-	_, err := client.GetSeries(context.Background(), gct.Pair{Base: "SF43718", Quote: "USD"}, "macro", 1)
+	_, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("SF43718"), currency.NewCode("USD")), asset.Empty, 1)
 	if err == nil {
 		t.Fatal("expected error without token")
 	}

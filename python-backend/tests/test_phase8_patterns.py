@@ -143,8 +143,7 @@ class TestHarmonicPatterns8b(unittest.TestCase):
         bars: list[OHLCVPoint] = []
         # Build 5 pivot bars + 10 filler bars between each for detect_swings
         for seg, (p_start, p_end) in enumerate(zip(prices[:-1], prices[1:])):
-            bars.append(_bar(len(bars), p_start, max(p_start, p_end) + 0.1,
-                             min(p_start, p_end) - 0.1, p_start))
+            bars.append(_bar(len(bars), p_start, p_start + 0.1, p_start - 0.1, p_start))
             for fill in range(8):
                 mid = p_start + (p_end - p_start) * (fill + 1) / 9
                 bars.append(_bar(len(bars), mid, mid + 0.05, mid - 0.05, mid))
@@ -196,6 +195,9 @@ class TestHarmonicPatterns8b(unittest.TestCase):
         bars.append(_bar(14, 113, 115, 112, 113))  # pivot3 = higher high 115
         # Last bar close BELOW prior high (112)
         bars.append(_bar(15, 111, 113, 108, 109))
+        # Trailing bars so pivot3@14 falls within detect_swings range(2, n-window)
+        bars.append(_bar(16, 110, 112, 107, 108))
+        bars.append(_bar(17, 108, 110, 106, 107))
         resp = build_harmonic_patterns(_req(bars))
         types = [p.type for p in resp.patterns]
         self.assertIn("feiw_failed_breakout", types, f"Patterns: {types}")
@@ -544,7 +546,9 @@ class TestHeadAndShoulders8e(unittest.TestCase):
         # Two peaks at ~100.5
         bars += [_bar(20, 100.0, 100.5, 99.8, 100.4)]
         bars += [_bar(21, 99.5, 100.0, 99.0, 99.3)]
-        bars += [_bar(22, 99.5, 100.52, 99.3, 100.41)]
+        bars += [_bar(22, 99.5, 100.48, 99.3, 100.41)]
+        bars += [_bar(23, 99.0, 99.5, 98.8, 99.2)]
+        bars += [_bar(24, 99.2, 100.2, 99.0, 99.8)]
         resp = build_price_patterns(_req(bars, threshold=0.05))
         types = [p.type for p in resp.patterns]
         self.assertIn("double_top", types, f"Got: {types}")

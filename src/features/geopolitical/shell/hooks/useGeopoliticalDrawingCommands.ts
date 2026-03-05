@@ -8,10 +8,12 @@ import { useGeoMapWorkspaceStore } from "@/features/geopolitical/store";
 import type { GeoDrawing } from "@/lib/geopolitical/types";
 
 interface UseGeopoliticalDrawingCommandsParams {
-	fetchAll: () => Promise<void>;
+	fetchDrawings: () => Promise<void>;
 }
 
-export function useGeopoliticalDrawingCommands({ fetchAll }: UseGeopoliticalDrawingCommandsParams) {
+export function useGeopoliticalDrawingCommands({
+	fetchDrawings,
+}: UseGeopoliticalDrawingCommandsParams) {
 	const { setBusy, setError, setCanUndoDrawings, setCanRedoDrawings } = useGeoMapWorkspaceStore(
 		useShallow((state) => ({
 			setBusy: state.setBusy,
@@ -71,7 +73,7 @@ export function useGeopoliticalDrawingCommands({ fetchAll }: UseGeopoliticalDraw
 				undoStackRef.current.push(command);
 				redoStackRef.current = [];
 				syncDrawingHistoryState();
-				await fetchAll();
+				await fetchDrawings();
 				return true;
 			} catch (commandError) {
 				setError(commandError instanceof Error ? commandError.message : "Drawing command failed");
@@ -80,7 +82,7 @@ export function useGeopoliticalDrawingCommands({ fetchAll }: UseGeopoliticalDraw
 				setBusy(false);
 			}
 		},
-		[fetchAll, setBusy, setError, syncDrawingHistoryState],
+		[fetchDrawings, setBusy, setError, syncDrawingHistoryState],
 	);
 
 	const undoDrawingCommand = useCallback(async () => {
@@ -92,7 +94,7 @@ export function useGeopoliticalDrawingCommands({ fetchAll }: UseGeopoliticalDraw
 			await command.undo();
 			redoStackRef.current.push(command);
 			syncDrawingHistoryState();
-			await fetchAll();
+			await fetchDrawings();
 		} catch (commandError) {
 			undoStackRef.current.push(command);
 			setError(commandError instanceof Error ? commandError.message : "Undo failed");
@@ -100,7 +102,7 @@ export function useGeopoliticalDrawingCommands({ fetchAll }: UseGeopoliticalDraw
 		} finally {
 			setBusy(false);
 		}
-	}, [fetchAll, setBusy, setError, syncDrawingHistoryState]);
+	}, [fetchDrawings, setBusy, setError, syncDrawingHistoryState]);
 
 	const redoDrawingCommand = useCallback(async () => {
 		const command = redoStackRef.current.pop();
@@ -111,7 +113,7 @@ export function useGeopoliticalDrawingCommands({ fetchAll }: UseGeopoliticalDraw
 			await command.redo();
 			undoStackRef.current.push(command);
 			syncDrawingHistoryState();
-			await fetchAll();
+			await fetchDrawings();
 		} catch (commandError) {
 			redoStackRef.current.push(command);
 			setError(commandError instanceof Error ? commandError.message : "Redo failed");
@@ -119,7 +121,7 @@ export function useGeopoliticalDrawingCommands({ fetchAll }: UseGeopoliticalDraw
 		} finally {
 			setBusy(false);
 		}
-	}, [fetchAll, setBusy, setError, syncDrawingHistoryState]);
+	}, [fetchDrawings, setBusy, setError, syncDrawingHistoryState]);
 
 	return {
 		createDrawingRecord,

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type LivePosition = {
@@ -232,65 +233,96 @@ export function LiveBalancesPanel() {
 					{liveData.summaryMetrics.length > 0 ? (
 						<div className="grid grid-cols-2 gap-2">
 							{liveData.summaryMetrics.map((metric) => (
-								<div key={metric.label} className="rounded-md border border-border p-2">
-									<p className="text-muted-foreground text-xs">{metric.label}</p>
-									<p className="text-sm font-medium">{metric.value}</p>
+								<div
+									key={metric.label}
+									className="rounded-md border border-border/50 bg-card/30 backdrop-blur-sm p-2 shadow-sm"
+								>
+									<p className="text-muted-foreground text-xs uppercase tracking-wider font-semibold">
+										{metric.label}
+									</p>
+									<p className="text-sm font-medium font-mono">{metric.value}</p>
 								</div>
 							))}
 						</div>
 					) : null}
 
-					<div className="min-h-0 flex-1 overflow-y-auto space-y-2">
-						<p className="text-muted-foreground text-xs font-semibold uppercase">Live Positions</p>
-						{liveData.positions.length === 0 ? (
-							<div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-								{liveData.notes[0] ?? "No live positions available."}
-							</div>
-						) : (
-							liveData.positions.map((position) => (
-								<div
-									key={`${position.exchange ?? "na"}-${position.symbol}`}
-									className="rounded-md border border-border p-3"
-								>
-									<div className="mb-2 flex items-center justify-between gap-2">
-										<div>
-											<p className="text-sm font-medium">{position.symbol}</p>
-											<p className="text-muted-foreground text-[11px]">
-												{position.exchange ?? "Unknown venue"}
-												{position.assetClass ? ` · ${position.assetClass}` : ""}
-											</p>
-										</div>
-										<Badge variant="outline">Live</Badge>
-									</div>
-									<div className="grid grid-cols-3 gap-2 text-xs">
-										<div>
-											<p className="text-muted-foreground">Qty</p>
-											<p>
-												{position.quantity === undefined ? "-" : formatNum(position.quantity, 4)}
-											</p>
-										</div>
-										<div>
-											<p className="text-muted-foreground">Value</p>
-											<p>
-												{position.marketValue === undefined ? "-" : formatNum(position.marketValue)}
-											</p>
-										</div>
-										<div>
-											<p className="text-muted-foreground">Unrealized</p>
-											<p>
-												{position.unrealizedPnl === undefined
-													? "-"
-													: formatNum(position.unrealizedPnl)}
-											</p>
-										</div>
-									</div>
+					<ScrollArea className="flex-1">
+						<div className="space-y-2 pr-3">
+							<p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
+								Live Positions
+							</p>
+							{liveData.positions.length === 0 ? (
+								<div className="rounded-md border border-dashed border-border/50 bg-card/20 p-4 text-xs text-muted-foreground text-center">
+									{liveData.notes[0] ?? "No live positions available."}
 								</div>
-							))
-						)}
-					</div>
+							) : (
+								liveData.positions.map((position) => (
+									<div
+										key={`${position.exchange ?? "na"}-${position.symbol}`}
+										className="rounded-md border border-border/50 bg-card/30 backdrop-blur-sm p-3 transition-colors hover:bg-accent/20"
+									>
+										<div className="mb-2 flex items-center justify-between gap-2 border-b border-border/30 pb-2">
+											<div>
+												<p className="text-sm font-bold">{position.symbol}</p>
+												<p className="text-muted-foreground/70 text-[10px] uppercase font-bold tracking-wider">
+													{position.exchange ?? "Unknown venue"}
+													{position.assetClass ? ` · ${position.assetClass}` : ""}
+												</p>
+											</div>
+											<Badge variant="secondary" className="bg-sky-500/10 text-sky-400 border-none">
+												<div className="h-1.5 w-1.5 rounded-full bg-sky-400 mr-1.5 animate-pulse" />
+												Live
+											</Badge>
+										</div>
+										<div className="grid grid-cols-3 gap-2 text-xs font-mono">
+											<div>
+												<p className="text-muted-foreground/70 text-[10px] uppercase font-sans font-bold">
+													Qty
+												</p>
+												<p>
+													{position.quantity === undefined ? "-" : formatNum(position.quantity, 4)}
+												</p>
+											</div>
+											<div>
+												<p className="text-muted-foreground/70 text-[10px] uppercase font-sans font-bold">
+													Value
+												</p>
+												<p>
+													{position.marketValue === undefined
+														? "-"
+														: formatNum(position.marketValue)}
+												</p>
+											</div>
+											<div>
+												<p className="text-muted-foreground/70 text-[10px] uppercase font-sans font-bold">
+													Unrealized
+												</p>
+												<p
+													className={
+														position.unrealizedPnl === undefined
+															? ""
+															: position.unrealizedPnl > 0
+																? "text-success drop-shadow-[0_0_8px_oklch(0.696_0.17_162.48/0.4)]"
+																: position.unrealizedPnl < 0
+																	? "text-error"
+																	: ""
+													}
+												>
+													{position.unrealizedPnl === undefined
+														? "-"
+														: (position.unrealizedPnl > 0 ? "+" : "") +
+															formatNum(position.unrealizedPnl)}
+												</p>
+											</div>
+										</div>
+									</div>
+								))
+							)}
+						</div>
+					</ScrollArea>
 
 					{liveData.notes.length > 1 ? (
-						<div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+						<div className="rounded-md border border-dashed border-border p-3 text-[10px] text-muted-foreground">
 							{liveData.notes.slice(1).map((note) => (
 								<p key={note}>{note}</p>
 							))}

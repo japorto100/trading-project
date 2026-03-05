@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/contracts"
 )
 
@@ -202,10 +204,19 @@ var allowedExchanges = map[string]exchangeConfig{
 		defaultQuote: "USD",
 		symbolFormat: "instrument",
 	},
+	"imf": {
+		upstream: "IMF",
+		source:   "imf",
+		allowedAssetTypes: map[string]struct{}{
+			"macro": {},
+		},
+		defaultQuote: "USD",
+		symbolFormat: "instrument",
+	},
 }
 
 type quoteClient interface {
-	GetTicker(ctx context.Context, exchange string, pair gct.Pair, assetType string) (gct.Ticker, error)
+	GetTicker(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error)
 }
 
 func QuoteHandler(client quoteClient) http.HandlerFunc {
@@ -238,7 +249,8 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 			return
 		}
 
-		ticker, err := client.GetTicker(r.Context(), exchangeCfg.upstream, pair, assetType)
+		assetItem, _ := asset.New(assetType)
+		ticker, err := client.GetTicker(r.Context(), exchangeCfg.upstream, pair, assetItem)
 		if err != nil {
 			status := mapQuoteErrorToHTTP(err)
 			writeJSON(w, status, contracts.APIResponse[*contracts.Quote]{
@@ -281,23 +293,20 @@ func valueOrDefault(value, fallback string) string {
 	return value
 }
 
-func parseSymbol(symbol string) (gct.Pair, bool) {
+func parseSymbol(symbol string) (currency.Pair, bool) {
 	normalized := strings.TrimSpace(strings.ToUpper(symbol))
 	normalized = strings.ReplaceAll(normalized, "-", "/")
 	normalized = strings.ReplaceAll(normalized, "_", "/")
 
 	parts := strings.Split(normalized, "/")
 	if len(parts) != 2 {
-		return gct.Pair{}, false
+		return currency.EMPTYPAIR, false
 	}
 	if !symbolPartPattern.MatchString(parts[0]) || !symbolPartPattern.MatchString(parts[1]) {
-		return gct.Pair{}, false
+		return currency.EMPTYPAIR, false
 	}
 
-	return gct.Pair{
-		Base:  parts[0],
-		Quote: parts[1],
-	}, true
+	return currency.NewPair(currency.NewCode(parts[0]), currency.NewCode(parts[1],)), true
 }
 
 func parseInstrumentSymbol(symbol string) (string, bool) {
@@ -321,37 +330,37 @@ func parseMacroInstrumentSymbol(symbol string) (string, bool) {
 	return normalized, true
 }
 
-func resolveSymbol(symbol string, cfg exchangeConfig) (gct.Pair, string, bool) {
+func resolveSymbol(symbol string, cfg exchangeConfig) (currency.Pair, string, bool) {
 	switch cfg.symbolFormat {
 	case "instrument":
 		instrument, ok := parseMacroInstrumentSymbol(symbol)
 		if !ok {
-			return gct.Pair{}, "", false
+			return currency.EMPTYPAIR, "", false
 		}
 		quote := cfg.defaultQuote
 		if quote == "" {
 			quote = "USD"
 		}
-		return gct.Pair{Base: instrument, Quote: strings.ToUpper(quote)}, instrument, true
+		return currency.NewPair(currency.NewCode(instrument), currency.NewCode(strings.ToUpper(quote))), instrument, true
 	case "instrument_or_pair":
 		if pair, ok := parseSymbol(symbol); ok {
-			return pair, strings.ToUpper(pair.Base + "/" + pair.Quote), true
+			return pair, strings.ToUpper(pair.Base.String() + "/" + pair.Quote.String()), true
 		}
 		instrument, ok := parseInstrumentSymbol(symbol)
 		if !ok {
-			return gct.Pair{}, "", false
+			return currency.EMPTYPAIR, "", false
 		}
 		quote := cfg.defaultQuote
 		if quote == "" {
 			quote = "USD"
 		}
-		return gct.Pair{Base: instrument, Quote: strings.ToUpper(quote)}, instrument, true
+		return currency.NewPair(currency.NewCode(instrument), currency.NewCode(strings.ToUpper(quote))), instrument, true
 	default:
 		pair, ok := parseSymbol(symbol)
 		if !ok {
-			return gct.Pair{}, "", false
+			return currency.EMPTYPAIR, "", false
 		}
-		return pair, strings.ToUpper(pair.Base + "/" + pair.Quote), true
+		return pair, strings.ToUpper(pair.Base.String() + "/" + pair.Quote.String()), true
 	}
 }
 

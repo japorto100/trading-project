@@ -16,11 +16,11 @@ interface UseGeoMapCanvasCountryStageParams {
 	enabled: boolean;
 	countries: GeoMapProjectionModel["countries"];
 	showHeatmap: boolean;
-	choroplethMode: "severity" | "regime";
+	choroplethMode: "severity" | "regime" | "macro";
 	resolveCountryStyle: (
 		country: GeoMapProjectionModel["countries"][number],
 		showHeatmap: boolean,
-		mode: "severity" | "regime",
+		mode: "severity" | "regime" | "macro",
 	) => CountryCanvasStyle;
 }
 

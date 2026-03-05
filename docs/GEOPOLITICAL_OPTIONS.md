@@ -1,6 +1,6 @@
 # Geopolitical Visualization Options -- D3 Module Roadmap & Geo-Extensions
 
-> **Stand:** 22. Februar 2026
+> **Stand:** 26. Februar 2026
 > **Zweck:** Vollstaendiger Katalog aller D3-Module, d3-geo-Erweiterungen, und Drittanbieter-Visualization-Libraries die fuer das Projekt relevant sind. Jedes Modul ist gegen konkrete geplante Features aus den Docs gemappt. Single Source of Truth fuer Frontend-Visualization-Entscheidungen.
 > **Abgrenzung:** [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.4 definiert die Rendering-Architektur (SVG → Canvas → deck.gl). Dieses Dokument definiert die **Module** die in jeder Stufe gebraucht werden.
 > **Abgrenzung:** [`AGENT_TOOLS.md`](./AGENT_TOOLS.md) Sek. 10 definiert den Game Theory Simulation Mode auf der GeoMap. Dieses Dokument definiert welche d3-Module diese Visualisierungen brauchen.
@@ -38,7 +38,7 @@
 
 > Quelle: `package.json`, `MapCanvas.tsx`
 
-### D3 Packages (4)
+### D3 Packages (4 Core + Phase-4 Additions)
 
 | Package | Version | Importierte Funktionen | Genutzt in |
 |---|---|---|---|
@@ -55,15 +55,22 @@
 | `world-atlas` | ^2.0.2 | `countries-110m.json` -- Laendergrenzen (110m Aufloesung, ~177 Features) |
 | `geojson` (Types) | -- | TypeScript-Typen: `FeatureCollection`, `Geometry`, `GeoJsonProperties` |
 
-### Was aktuell FEHLT
+### Was aktuell FEHLT (nach Phase-4-Update)
 
 | Bereich | Problem | Auswirkung |
 |---|---|---|
 | **Farblogik** | Severity-Heatmap ist 4 hardcoded `if`-Statements | Skaliert nicht fuer 6+ geplante Choropleth-Layer |
 | **Animation** | Auto-Rotation via `setInterval(50ms)` statt Frame-synchron | Jank bei Last, nicht synchron mit Browser-Repaint |
-| **Globe-UX** | Kein Inertia-Effekt beim Drehen | Globus stoppt abrupt -- fuehlt sich nicht physikalisch an |
-| **Spatial Query** | Kein Nearest-Event-Lookup | Map-Click muss alle Marker durchiterieren |
+| **Globe-UX** | Feintuning offen (Inertia vorhanden) | Physikgefuehl ist da, aber Parameter/Feel sind noch UX-Polish |
+| **Spatial Query** | Voronoi-Scaffold vorhanden, weitere Verfeinerung offen | Nearest-Lookup da, aber Threshold-/Fallback-Logik weiter optimierbar |
 | **Charts** | Keine Achsen, Scales, Shape-Generators | Kein Spielbaum, keine Histogramme, keine Timelines moeglich |
+
+### Phase-4 Realitaet (bereits integriert)
+
+- `d3-inertia` (Globe-Drag-Inertia aktiv)
+- `d3-geo-voronoi` (nearest hit-testing scaffold aktiv)
+- `supercluster` (Zoom-Out Cluster aktiv)
+- Canvas/SVG-Hybrid aktiv (Basemap/Country/Heatmap + interaktive SVG-Hit-Layer)
 
 ---
 
@@ -571,6 +578,9 @@ geoInertiaDrag(svg, (rotation) => {
 | **Use Case** | Zoom-abhaengiges Marker-Clustering (50 Events in Europa → 1 Cluster-Circle bei niedrigem Zoom) |
 | **Integration** | Cluster-Berechnung bei jedem Zoom-Aenderung, Cluster-Marker rendern statt Einzel-Marker |
 
+**Status (26.02.2026):** Bereits installiert und im Phase-4-Hybridpfad integriert.  
+**Plan-Regel:** **Nicht** erneut in v2 installieren; v2 fokussiert auf zusaetzliche Module/Overlays (z. B. `deck.gl`) und Gate-Entscheidungen.
+
 ### 7.4 Nicht-d3 Chart Libraries (Abgrenzung)
 
 | Library | Status | Begruendung |
@@ -589,11 +599,11 @@ geoInertiaDrag(svg, (rotation) => {
 
 | Library | Empfehlung | Begruendung |
 |---|---|---|
-| **deck.gl v9.2** | JA (v2) | WebGL2, React-Integration, production-ready |
-| **MapLibre GL JS** | NEIN (vorerst) | Architektur-Wechsel weg von d3-geo Globe |
+| **deck.gl v9.2** | JA (spaeter, gate-basiert) | WebGL2, React-Integration, production-ready. Start erst bei realem High-Density-Bedarf |
+| **MapLibre GL JS** | OPTIONAL (2nd view) | Kein Core-Replacement. Eher als spaeterer Flat/Regional-Analystenmodus |
 | **maplibre-rs** | NEIN | Zu unreif (Stand 02/2026), fehlende Features |
 | **Hypersphere** | NEIN | Nischen-Projekt |
-| **h3o (Rust)** | JA (v3, Backend) | Spatial Indexing, 26x schneller als JS |
+| **h3o (Rust)** | JA (v3, Backend, gate-basiert) | Spatial Indexing, hoher Mehrwert bei Radius-/Cluster-Queries |
 | **Leaflet** | NEIN | Wir nutzen d3-geo, nicht Leaflet |
 | **react-simple-maps** | NEIN | Basiert auf d3-geo aber wir haben eigene MapCanvas |
 | **datamaps** | NEIN | Eigene Map-Library, kollidiert mit unserer Architektur |
@@ -688,7 +698,8 @@ npm install d3-inertia                                    # Globe UX
 npm install d3-geo-voronoi                                # Spatial Lookup
 ```
 
-**8 neue Packages.** Sofortiger Impact:
+**Install-Status:** Inertia/Voronoi/Hybrid wurden in Phase 4 bereits umgesetzt.
+Sofortiger Impact (bei Erstinstallation/vergleichbaren Workspaces):
 - Severity Heatmap refactored auf `scaleSequential` + `interpolateYlOrRd`
 - Auto-Rotation auf `d3.timer()` (Frame-synchron)
 - Globe-Inertia (physikalisches Drehen)
@@ -726,7 +737,6 @@ npm install d3-delaunay                                    # 2D Voronoi (flat Ch
 npm install d3-dispatch                                    # Cross-Component Events
 npm install d3-random                                      # Monte Carlo Frontend
 npm install @deck.gl/core @deck.gl/react @deck.gl/layers   # WebGL Overlays
-npm install supercluster                                   # Marker Clustering
 ```
 
 **12+ weitere Packages.** Ermoeglicht:
@@ -734,7 +744,12 @@ npm install supercluster                                   # Marker Clustering
 - Trade Corridor PathLayer
 - Liquidation Density Contours
 - deck.gl High-Density Overlays
-- Marker Clustering
+
+### Gate vor `deck.gl`/MapLibre-Start (verbindlich)
+
+- **Performance-Gate:** reproduzierbare Lasttests zeigen reale Engpaesse im Hybrid-Stack.
+- **Use-Case-Gate:** es gibt priorisierte High-Density-Layer (z. B. Trade-Corridors/PathLayer), die GPU klar rechtfertigen.
+- **View-Gate:** Globe bleibt Primary; Flat/Regional-View ist explizit als zusaetzlicher Modus akzeptiert.
 
 ### v3 -- Spezialisierungen
 
@@ -808,7 +823,7 @@ npm install d3-interpolate-path                            # Path Morphing (opti
 | **react-simple-maps** | Basiert auf d3-geo, aber wir haben eigene MapCanvas. Wuerde kollidieren. |
 | **datamaps** | Eigene Map-Library, nicht kompatibel mit unserem Globe. |
 | **simple-map-d3** | Zu simpel, keine Globus-Unterstuetzung. |
-| **MapLibre GL JS** | Erfordert Architektur-Wechsel weg von d3-geo Globe (MASTERPLAN Sek. 35.4). |
+| **MapLibre GL JS (als Core-Replacement)** | Wird nicht als Core-Replacement eingeplant. Nur optionaler Zweitmodus mit eigenem Gate. |
 | **maplibre-rs** | Zu unreif (Stand 02/2026). Fehlende Features. WebGPU nicht ueberall. |
 | **Hypersphere** | Nischen-Projekt, zu spezialisiert (LEO Satellites). |
 | **plotly.js** | 3MB+ Bundle, wir haben d3 direkt. |

@@ -1,13 +1,13 @@
 "use client";
 
+import { drag } from "d3-drag";
 import { easeCubicOut } from "d3-ease";
 import { geoPath } from "d3-geo";
-import { geoInertiaDrag } from "d3-inertia";
 import { select } from "d3-selection";
 import { timer } from "d3-timer";
 import { zoom, zoomIdentity } from "d3-zoom";
 import { Minus, Plus, RotateCcw } from "lucide-react";
-import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type MouseEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getGeoMapBodyVisualConfig } from "@/features/geopolitical/bodies";
 import { buildGeoMapStatsSummary } from "@/features/geopolitical/d3/geoMapStats";
@@ -16,6 +16,8 @@ import {
 	getMarkerSeverityColor,
 	getSoftSignalVisualStyle,
 } from "@/features/geopolitical/d3/scales";
+import { useMacroOverlayData } from "@/features/geopolitical/hooks/useMacroOverlayData";
+import { getMarkerSymbolPath, MARKER_SYMBOL_LEGEND } from "@/features/geopolitical/markerSymbols";
 import { useGeoMapCanvasBasemapStage } from "@/features/geopolitical/rendering/useGeoMapCanvasBasemapStage";
 import { useGeoMapCanvasBodyPointLayersStage } from "@/features/geopolitical/rendering/useGeoMapCanvasBodyPointLayersStage";
 import { useGeoMapCanvasCountryStage } from "@/features/geopolitical/rendering/useGeoMapCanvasCountryStage";
@@ -47,9 +49,13 @@ interface MapCanvasProps {
 	onSelectDrawing: (drawingId: string) => void;
 	onMapClick: (coords: { lat: number; lng: number }) => void;
 	onCountryClick?: (countryId: string) => void;
+	drawingMode?: string | null;
+	pendingLineStart?: { lat: number; lng: number } | null;
+	pendingPolygonPoints?: Array<{ lat: number; lng: number }>;
+	drawingColor?: string;
 }
 
-export function MapCanvas({
+export const MapCanvas = memo(function MapCanvas({
 	mapBody = "earth",
 	events,
 	candidates,
@@ -66,6 +72,10 @@ export function MapCanvas({
 	onSelectDrawing,
 	onMapClick,
 	onCountryClick,
+	drawingMode = null,
+	pendingLineStart = null,
+	pendingPolygonPoints = [],
+	drawingColor = "#22d3ee",
 }: MapCanvasProps) {
 	const basemapCanvasRef = useRef<HTMLCanvasElement>(null);
 	const countryCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -75,16 +85,13 @@ export function MapCanvas({
 	const projectionRef = useRef<ReturnType<typeof useGeoMapProjectionModel>["projection"] | null>(
 		null,
 	);
-	const inertiaProjectionAdapterRef = useRef<{
-		rotate: (rotation?: [number, number, number] | [number, number]) => number[];
-		invert: (point: [number, number]) => [number, number] | null;
-	} | null>(null);
 	const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);
 	const [scale, setScale] = useState(INITIAL_SCALE);
 	const [, setK] = useState(1);
 	const [popupEventId, setPopupEventId] = useState<string | null>(null);
 	const [hoverEventId, setHoverEventId] = useState<string | null>(null);
 	const [isAutoRotating, setIsAutoRotating] = useState(true);
+	const [previewPoint, setPreviewPoint] = useState<{ lat: number; lng: number } | null>(null);
 	const bodyVisualConfig = useMemo(() => getGeoMapBodyVisualConfig(mapBody), [mapBody]);
 	const maxCountryIntensity = useMemo(() => {
 		const intensityMap = new Map<string, number>();
@@ -95,9 +102,15 @@ export function MapCanvas({
 		}
 		return Math.max(0, ...intensityMap.values());
 	}, [events]);
+	const { data: macroOverlayData } = useMacroOverlayData(earthChoroplethMode === "macro");
+	const maxMacroValue = useMemo(() => {
+		if (!macroOverlayData) return 25;
+		const values = Object.values(macroOverlayData).map((e) => e.value);
+		return Math.max(25, ...values);
+	}, [macroOverlayData]);
 	const resolveCountryStyle = useMemo(
-		() => createCountryStyleResolver(maxCountryIntensity),
-		[maxCountryIntensity],
+		() => createCountryStyleResolver(maxCountryIntensity, maxMacroValue),
+		[maxCountryIntensity, maxMacroValue],
 	);
 
 	const mapModel = useGeoMapProjectionModel({
@@ -106,6 +119,7 @@ export function MapCanvas({
 		candidates,
 		drawings,
 		bodyPointLayerVisibility,
+		macroOverlayData: macroOverlayData ?? undefined,
 		rotation,
 		scale,
 	});
@@ -128,24 +142,12 @@ export function MapCanvas({
 		markers: mapModel.markers,
 		projection: mapModel.projection,
 	});
+	const isDrawingInteractionActive =
+		drawingMode === "line" || drawingMode === "polygon" || drawingMode === "text";
+	const drawingModeRef = useRef<string | null>(drawingMode);
+	drawingModeRef.current = drawingMode;
+
 	projectionRef.current = mapModel.projection;
-	if (!inertiaProjectionAdapterRef.current) {
-		inertiaProjectionAdapterRef.current = {
-			rotate: (nextRotation) => {
-				const projection = projectionRef.current;
-				if (!projection) return [0, 0, 0];
-				if (nextRotation) {
-					projection.rotate?.(nextRotation);
-				}
-				return projection.rotate?.() ?? [0, 0, 0];
-			},
-			invert: (point) => {
-				const projection = projectionRef.current;
-				if (!projection) return null;
-				return (projection.invert?.(point) as [number, number] | null) ?? null;
-			},
-		};
-	}
 
 	// Auto-rotation effect
 	useEffect(() => {
@@ -169,34 +171,45 @@ export function MapCanvas({
 		};
 	}, []);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: drawingMode is the re-attach trigger; internals read drawingModeRef to avoid stale closures
 	useEffect(() => {
 		if (!svgRef.current) return;
 
 		const svg = select(svgRef.current);
-		svg.on(".drag", null);
-		const inertiaController = geoInertiaDrag(
-			svgRef.current,
-			() => {
-				if (!projectionRef.current) return;
-				const nextRotation = projectionRef.current.rotate();
-				setRotation([nextRotation[0], nextRotation[1], nextRotation[2] ?? 0]);
-			},
-			inertiaProjectionAdapterRef.current,
-			{
-				start: () => setIsAutoRotating(false),
-				move: () => setIsAutoRotating(false),
-				end: () => setIsAutoRotating(false),
-				stop: () => setIsAutoRotating(false),
-				finish: () => setIsAutoRotating(false),
-				time: 1800,
-				hold: 120,
-			},
-		) as { timer?: { stop: () => void } } | undefined;
+		svg.on(".drag", null).on(".zoom", null);
+
+		// Keep globe drag active in marker mode; only disable free drag for
+		// precision drawing workflows that rely on click-to-place anchors.
+		const shouldDisableInertiaDrag =
+			drawingModeRef.current === "line" ||
+			drawingModeRef.current === "polygon" ||
+			drawingModeRef.current === "text";
+
+		if (!shouldDisableInertiaDrag) {
+			const dragBehavior = drag<SVGSVGElement, unknown>().on("drag", (event) => {
+				setIsAutoRotating(false);
+				setRotation((previous) => {
+					const nextLng = previous[0] + event.dx * 0.35;
+					const nextLat = Math.max(-85, Math.min(85, previous[1] - event.dy * 0.35));
+					return [nextLng, nextLat, previous[2] ?? 0];
+				});
+			});
+			svg.call(dragBehavior);
+		}
 
 		const zoomBehavior = zoom<SVGSVGElement, unknown>()
 			.scaleExtent([0.5, 10])
-			.on("start", () => setIsAutoRotating(false))
+			.filter((event) => event.type === "wheel")
+			.on("start", (event) => {
+				// Keep auto-rotation alive for programmatic zoom bindings/identity transforms.
+				if (event.sourceEvent) {
+					setIsAutoRotating(false);
+				}
+			})
 			.on("zoom", (event) => {
+				if (event.sourceEvent) {
+					setIsAutoRotating(false);
+				}
 				setScale(INITIAL_SCALE * event.transform.k);
 				setK(event.transform.k);
 			});
@@ -204,10 +217,9 @@ export function MapCanvas({
 		svg.call(zoomBehavior);
 
 		return () => {
-			svg.on(".drag", null);
-			inertiaController?.timer?.stop();
+			svg.on(".drag", null).on(".zoom", null);
 		};
-	}, []);
+	}, [drawingMode]);
 
 	const handleZoomIn = () => {
 		setIsAutoRotating(false);
@@ -269,40 +281,52 @@ export function MapCanvas({
 		animateViewportTo(nextRotation, nextScale);
 	};
 
-	const handleBackgroundClick = (event: MouseEvent<SVGSVGElement>) => {
-		if (!svgRef.current) return;
-		setIsAutoRotating(false);
+	const handleBackgroundClick = useCallback(
+		(event: MouseEvent<SVGSVGElement>) => {
+			if (!svgRef.current) return;
+			setIsAutoRotating(false);
 
-		const rect = event.currentTarget.getBoundingClientRect();
-		const mouseX = event.clientX - rect.left;
-		const mouseY = event.clientY - rect.top;
+			const rect = event.currentTarget.getBoundingClientRect();
+			const mouseX = event.clientX - rect.left;
+			const mouseY = event.clientY - rect.top;
 
-		const x = mouseX * (MAP_WIDTH / rect.width);
-		const y = mouseY * (MAP_HEIGHT / rect.height);
+			const x = mouseX * (MAP_WIDTH / rect.width);
+			const y = mouseY * (MAP_HEIGHT / rect.height);
 
-		const invert = mapModel.projection.invert;
-		if (!invert) return;
+			const invert = mapModel.projection.invert;
+			if (!invert) return;
 
-		const nearestMarkerId = markerVoronoi.findNearestMarkerIdAtScreenPoint(x, y, 14);
-		if (nearestMarkerId) {
-			setPopupEventId(nearestMarkerId);
-			onSelectEvent(nearestMarkerId);
-			return;
-		}
+			const inverted = invert([x, y]);
+			if (!inverted) return;
 
-		setPopupEventId(null);
+			const [lng, lat] = inverted;
+			if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-		const inverted = invert([x, y]);
-		if (!inverted) return;
+			if (isDrawingInteractionActive) {
+				setPopupEventId(null);
+				onMapClick({
+					lat: Number(lat.toFixed(6)),
+					lng: Number(lng.toFixed(6)),
+				});
+				return;
+			}
 
-		const [lng, lat] = inverted;
-		if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+			const nearestMarkerId = markerVoronoi.findNearestMarkerIdAtScreenPoint(x, y, 14);
+			if (nearestMarkerId) {
+				setPopupEventId(nearestMarkerId);
+				onSelectEvent(nearestMarkerId);
+				return;
+			}
 
-		onMapClick({
-			lat: Number(lat.toFixed(6)),
-			lng: Number(lng.toFixed(6)),
-		});
-	};
+			setPopupEventId(null);
+
+			onMapClick({
+				lat: Number(lat.toFixed(6)),
+				lng: Number(lng.toFixed(6)),
+			});
+		},
+		[isDrawingInteractionActive, mapModel.projection, markerVoronoi, onMapClick, onSelectEvent],
+	);
 
 	const handleSvgMouseMove = (event: MouseEvent<SVGSVGElement>) => {
 		const rect = event.currentTarget.getBoundingClientRect();
@@ -310,18 +334,48 @@ export function MapCanvas({
 		const mouseY = event.clientY - rect.top;
 		const x = mouseX * (MAP_WIDTH / rect.width);
 		const y = mouseY * (MAP_HEIGHT / rect.height);
-		const nearestMarkerId = markerVoronoi.findNearestMarkerIdAtScreenPoint(x, y, 10);
-		setHoverEventId((previous) => (previous === nearestMarkerId ? previous : nearestMarkerId));
+		if (isDrawingInteractionActive) {
+			setHoverEventId((previous) => (previous === null ? previous : null));
+		} else {
+			const nearestMarkerId = markerVoronoi.findNearestMarkerIdAtScreenPoint(x, y, 10);
+			setHoverEventId((previous) => (previous === nearestMarkerId ? previous : nearestMarkerId));
+		}
+
+		// Track mouse position as geo coords for drawing preview.
+		if (
+			(drawingMode === "line" || drawingMode === "polygon") &&
+			(drawingMode !== "line" || pendingLineStart) &&
+			mapModel.projection.invert
+		) {
+			const inverted = mapModel.projection.invert([x, y]);
+			if (inverted) {
+				const [lng, lat] = inverted;
+				if (Number.isFinite(lat) && Number.isFinite(lng)) {
+					setPreviewPoint({ lat, lng });
+				}
+			}
+		} else if (previewPoint !== null) {
+			setPreviewPoint(null);
+		}
 	};
 
 	const handleSvgMouseLeave = () => {
 		setHoverEventId(null);
+		setPreviewPoint(null);
 	};
 
 	const activePopupMarker = useMemo(() => {
 		if (!popupEventId) return null;
 		return mapModel.markers.find((m) => m.id === popupEventId && m.visible);
 	}, [popupEventId, mapModel.markers]);
+	const severityLevels = [1, 2, 3, 4, 5] as const;
+	const markerSymbolPathByEventId = useMemo(() => {
+		const pathById = new Map<string, string>();
+		for (const marker of mapModel.markers) {
+			pathById.set(marker.id, getMarkerSymbolPath(marker.symbol, 95));
+		}
+		return pathById;
+	}, [mapModel.markers]);
 	const showCountryPolygons = showRegionLayer && bodyVisualConfig.countryLayerEnabled;
 	const enableCanvasBasemapStage = true;
 	const enableCanvasCountryStage = true;
@@ -351,15 +405,55 @@ export function MapCanvas({
 
 	return (
 		<div
-			className="h-full w-full rounded-lg border border-border bg-slate-950/50 p-2 overflow-hidden relative group text-slate-100"
+			className="relative h-full w-full overflow-hidden bg-background text-foreground group"
 			data-testid="geopolitical-map-container"
 		>
+			<div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[21rem] rounded-lg border border-border/50 bg-card/80 p-2 text-[10px] text-foreground shadow-lg backdrop-blur">
+				<div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
+					Marker Legend
+				</div>
+				<div className="mb-2 flex flex-wrap gap-1">
+					{severityLevels.map((severity) => (
+						<span
+							key={`map-severity-${severity}`}
+							className="inline-flex items-center gap-1 rounded border border-border/80 px-1.5 py-0.5"
+						>
+							<span
+								className="h-2 w-2 rounded-full"
+								style={{ backgroundColor: getMarkerSeverityColor(severity) }}
+							/>
+							S{severity}
+						</span>
+					))}
+				</div>
+				<div className="grid grid-cols-2 gap-1.5">
+					{MARKER_SYMBOL_LEGEND.slice(0, 8).map((entry) => (
+						<div
+							key={`map-legend-${entry.symbol}`}
+							className="inline-flex items-center gap-1 rounded border border-border/60 bg-background/60 px-1 py-0.5"
+							title={entry.label}
+						>
+							<svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
+								<path
+									d={getMarkerSymbolPath(entry.symbol, 80)}
+									transform="translate(12, 12)"
+									fill="#e2e8f0"
+									stroke="#0f172a"
+									strokeWidth={0.8}
+								/>
+							</svg>
+							<span className="truncate text-[9px] text-muted-foreground">{entry.label}</span>
+						</div>
+					))}
+				</div>
+			</div>
+
 			{/* Globe Controls Overlay */}
 			<div className="absolute right-4 top-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
 				<Button
 					size="icon"
 					variant="secondary"
-					className="h-8 w-8 rounded-full shadow-lg"
+					className="h-8 w-8 rounded-full shadow-lg bg-card/80 backdrop-blur border border-border/50"
 					onClick={handleZoomIn}
 					title="Zoom In"
 				>
@@ -368,7 +462,7 @@ export function MapCanvas({
 				<Button
 					size="icon"
 					variant="secondary"
-					className="h-8 w-8 rounded-full shadow-lg"
+					className="h-8 w-8 rounded-full shadow-lg bg-card/80 backdrop-blur border border-border/50"
 					onClick={handleZoomOut}
 					title="Zoom Out"
 				>
@@ -377,15 +471,15 @@ export function MapCanvas({
 				<Button
 					size="icon"
 					variant="secondary"
-					className="h-8 w-8 rounded-full shadow-lg"
+					className="h-8 w-8 rounded-full shadow-lg bg-card/80 backdrop-blur border border-border/50"
 					onClick={handleReset}
 					title="Reset View"
 				>
 					<RotateCcw className="h-4 w-4" />
 				</Button>
 				{mapBody === "earth" ? (
-					<div className="mt-1 rounded-lg border border-white/15 bg-slate-900/85 p-1 shadow-lg backdrop-blur">
-						<div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300/80">
+					<div className="mt-1 rounded-lg border border-border/50 bg-card/80 p-1 shadow-lg backdrop-blur">
+						<div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
 							Layer
 						</div>
 						<div className="flex flex-col gap-1">
@@ -394,8 +488,8 @@ export function MapCanvas({
 								onClick={() => onChangeEarthChoroplethMode?.("severity")}
 								className={
 									earthChoroplethMode === "severity"
-										? "rounded bg-emerald-500/20 px-2 py-1 text-left text-[10px] font-medium text-emerald-200"
-										: "rounded bg-white/5 px-2 py-1 text-left text-[10px] font-medium text-slate-300 hover:bg-white/10"
+										? "rounded bg-success/20 px-2 py-1 text-left text-[10px] font-medium text-success"
+										: "rounded bg-foreground/5 px-2 py-1 text-left text-[10px] font-medium text-muted-foreground hover:bg-foreground/10"
 								}
 								aria-pressed={earthChoroplethMode === "severity"}
 								title="Country choropleth by event severity intensity"
@@ -407,33 +501,53 @@ export function MapCanvas({
 								onClick={() => onChangeEarthChoroplethMode?.("regime")}
 								className={
 									earthChoroplethMode === "regime"
-										? "rounded bg-emerald-500/20 px-2 py-1 text-left text-[10px] font-medium text-emerald-200"
-										: "rounded bg-white/5 px-2 py-1 text-left text-[10px] font-medium text-slate-300 hover:bg-white/10"
+										? "rounded bg-success/20 px-2 py-1 text-left text-[10px] font-medium text-success"
+										: "rounded bg-foreground/5 px-2 py-1 text-left text-[10px] font-medium text-muted-foreground hover:bg-foreground/10"
 								}
 								aria-pressed={earthChoroplethMode === "regime"}
 								title="Country choropleth by derived regime-state classification"
 							>
 								Regime
 							</button>
+							<button
+								type="button"
+								onClick={() => onChangeEarthChoroplethMode?.("macro")}
+								className={
+									earthChoroplethMode === "macro"
+										? "rounded bg-success/20 px-2 py-1 text-left text-[10px] font-medium text-success"
+										: "rounded bg-foreground/5 px-2 py-1 text-left text-[10px] font-medium text-muted-foreground hover:bg-foreground/10"
+								}
+								aria-pressed={earthChoroplethMode === "macro"}
+								title="Country choropleth by policy rate (macro overlay)"
+							>
+								Macro
+							</button>
+						</div>
+						<div className="mt-1 rounded border border-border/60 bg-background/60 px-2 py-1 text-[9px] text-muted-foreground">
+							{earthChoroplethMode === "severity"
+								? "Country fill = event severity intensity (bright = higher)."
+								: earthChoroplethMode === "regime"
+									? "Country fill = regime state (calm/watch/escalating/critical)."
+									: "Country fill = macro overlay (policy-rate proxy, bright = higher)."}
 						</div>
 					</div>
 				) : null}
 			</div>
 
-			<div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded-lg border border-white/10 bg-slate-900/70 p-2 text-[10px] text-slate-200/90 shadow-lg backdrop-blur">
-				<div className="mb-1 font-semibold uppercase tracking-wide text-slate-300/80">
+			<div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2 rounded-lg border border-border/50 bg-card/75 p-2 text-[10px] text-foreground shadow-lg backdrop-blur">
+				<div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
 					Geo Stats
 				</div>
 				<div className="grid grid-cols-2 gap-x-3 gap-y-1">
-					<span className="text-slate-400">Visible markers</span>
+					<span className="text-muted-foreground">Visible markers</span>
 					<span className="text-right tabular-nums">{geoMapStats.visibleMarkersLabel}</span>
-					<span className="text-slate-400">Clusters</span>
+					<span className="text-muted-foreground">Clusters</span>
 					<span className="text-right tabular-nums">{geoMapStats.clusterLabel}</span>
-					<span className="text-slate-400">Avg severity</span>
+					<span className="text-muted-foreground">Avg severity</span>
 					<span className="text-right tabular-nums">{geoMapStats.avgSeverityLabel}</span>
-					<span className="text-slate-400">Max intensity</span>
+					<span className="text-muted-foreground">Max intensity</span>
 					<span className="text-right tabular-nums">{geoMapStats.maxCountryIntensityLabel}</span>
-					<span className="text-slate-400">Latest hour</span>
+					<span className="text-muted-foreground">Latest hour</span>
 					<span className="text-right tabular-nums">{geoMapStats.latestHourBucketLabel}</span>
 				</div>
 			</div>
@@ -448,14 +562,14 @@ export function MapCanvas({
 						transform: "translate(-50%, -110%)",
 					}}
 				>
-					<div className="bg-slate-900/95 border border-emerald-500/50 rounded-lg shadow-2xl p-4 w-72 pointer-events-auto backdrop-blur-md animate-in fade-in zoom-in duration-200">
+					<div className="bg-card/95 border border-success/50 rounded-lg shadow-chromatic p-4 w-72 pointer-events-auto backdrop-blur-md animate-in fade-in zoom-in duration-200">
 						<div className="flex items-start justify-between mb-2">
-							<h3 className="font-bold text-sm text-slate-100 line-clamp-2 pr-4">
+							<h3 className="font-bold text-sm text-foreground line-clamp-2 pr-4">
 								{activePopupMarker.title}
 							</h3>
 							<button
 								type="button"
-								className="text-slate-400 hover:text-white transition-colors"
+								className="text-muted-foreground hover:text-foreground transition-colors"
 								onClick={(e) => {
 									e.stopPropagation();
 									setPopupEventId(null);
@@ -470,20 +584,22 @@ export function MapCanvas({
 								className="h-2 w-2 rounded-full"
 								style={{ backgroundColor: getMarkerSeverityColor(activePopupMarker.severity) }}
 							/>
-							<span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+							<span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
 								Severity {activePopupMarker.severity} •{" "}
 								{activePopupMarker.raw.category.replace(/_/g, " ")}
 							</span>
 						</div>
 
-						<div className="max-h-40 overflow-y-auto pr-1 custom-scrollbar text-xs text-slate-300 leading-relaxed space-y-3 mb-3">
+						<div className="max-h-40 overflow-y-auto pr-1 scrollbar-hide text-xs text-muted-foreground leading-relaxed space-y-3 mb-3">
 							<p>
 								{activePopupMarker.raw.summary || "No detailed summary available for this event."}
 							</p>
 
 							{activePopupMarker.raw.sources.length > 0 && (
-								<div className="pt-2 border-t border-slate-800">
-									<p className="font-bold text-slate-400 mb-1 uppercase text-[9px]">Sources:</p>
+								<div className="pt-2 border-t border-border">
+									<p className="font-bold text-muted-foreground mb-1 uppercase text-[9px]">
+										Sources:
+									</p>
 									<ul className="space-y-1">
 										{activePopupMarker.raw.sources.map((src) => (
 											<li key={src.id}>
@@ -491,7 +607,7 @@ export function MapCanvas({
 													href={src.url}
 													target="_blank"
 													rel="noopener noreferrer"
-													className="text-emerald-400 hover:underline flex items-center gap-1 truncate"
+													className="text-success hover:underline flex items-center gap-1 truncate"
 												>
 													<Plus className="h-2 w-2" />
 													{src.title || src.provider}
@@ -503,14 +619,14 @@ export function MapCanvas({
 							)}
 						</div>
 
-						<div className="flex justify-between items-center pt-2 border-t border-slate-800">
-							<span className="text-[10px] text-slate-500 font-mono">
+						<div className="flex justify-between items-center pt-2 border-t border-border">
+							<span className="text-[10px] text-muted-foreground/60 font-mono">
 								{new Date(activePopupMarker.raw.updatedAt).toLocaleDateString()}
 							</span>
 							<Button
 								variant="ghost"
 								size="sm"
-								className="h-6 text-[10px] text-emerald-400 hover:text-emerald-300 p-0"
+								className="h-6 text-[10px] text-success hover:text-success/80 p-0"
 								onClick={() => {
 									onSelectEvent(activePopupMarker.id);
 								}}
@@ -519,7 +635,7 @@ export function MapCanvas({
 							</Button>
 						</div>
 					</div>
-					<div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-slate-900/95 mx-auto -mt-[1px]" />
+					<div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-card/95 mx-auto -mt-[1px]" />
 				</div>
 			)}
 
@@ -527,7 +643,7 @@ export function MapCanvas({
 				ref={basemapCanvasRef}
 				width={MAP_WIDTH}
 				height={MAP_HEIGHT}
-				className="pointer-events-none absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md"
+				className="pointer-events-none absolute inset-0 h-full w-full"
 				aria-hidden="true"
 				data-renderer="canvas"
 				data-render-stage="basemap"
@@ -536,7 +652,7 @@ export function MapCanvas({
 				ref={countryCanvasRef}
 				width={MAP_WIDTH}
 				height={MAP_HEIGHT}
-				className="pointer-events-none absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md"
+				className="pointer-events-none absolute inset-0 h-full w-full"
 				aria-hidden="true"
 				data-renderer="canvas"
 				data-render-stage="countries"
@@ -545,7 +661,7 @@ export function MapCanvas({
 				ref={bodyPointLayersCanvasRef}
 				width={MAP_WIDTH}
 				height={MAP_HEIGHT}
-				className="pointer-events-none absolute inset-2 h-[calc(100%-1rem)] w-[calc(100%-1rem)] rounded-md"
+				className="pointer-events-none absolute inset-0 h-full w-full"
 				aria-hidden="true"
 				data-renderer="canvas"
 				data-render-stage="body-point-layers"
@@ -554,10 +670,11 @@ export function MapCanvas({
 			<svg
 				ref={svgRef}
 				viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
-				className="relative z-[1] h-full w-full rounded-md cursor-grab active:cursor-grabbing outline-none"
+				className="relative z-[1] h-full w-full cursor-grab active:cursor-grabbing outline-none"
 				role="img"
 				aria-label="Geopolitical map canvas"
 				onClick={handleBackgroundClick}
+				onMouseDown={() => setIsAutoRotating(false)}
 				onMouseMove={handleSvgMouseMove}
 				onMouseLeave={handleSvgMouseLeave}
 			>
@@ -616,6 +733,12 @@ export function MapCanvas({
 						mapModel.countries.map((country) => {
 							const countryStyle = resolveCountryStyle(country, showHeatmap, earthChoroplethMode);
 							const renderAsHitLayer = useCanvasCountryHitLayer;
+							const countryTooltip =
+								earthChoroplethMode === "macro"
+									? `${country.id.toUpperCase()} • macro=${country.macroValue ?? 0}`
+									: earthChoroplethMode === "regime"
+										? `${country.id.toUpperCase()} • regime=${country.regimeState} • events=${country.eventCount}`
+										: `${country.id.toUpperCase()} • severity intensity=${country.intensity.toFixed(1)} • events=${country.eventCount}`;
 
 							return (
 								<path
@@ -640,7 +763,9 @@ export function MapCanvas({
 										event.stopPropagation();
 										onCountryClick(country.id);
 									}}
-								/>
+								>
+									<title>{countryTooltip}</title>
+								</path>
 							);
 						})}
 
@@ -738,6 +863,70 @@ export function MapCanvas({
 						return null;
 					})}
 				</g>
+
+				{/* Line drawing preview: dashed line from pendingLineStart to current mouse position */}
+				{drawingMode === "line" &&
+					pendingLineStart &&
+					previewPoint &&
+					(() => {
+						const startProjected = mapModel.projection([
+							pendingLineStart.lng,
+							pendingLineStart.lat,
+						]);
+						const endProjected = mapModel.projection([previewPoint.lng, previewPoint.lat]);
+						if (!startProjected || !endProjected) return null;
+						return (
+							<line
+								x1={startProjected[0]}
+								y1={startProjected[1]}
+								x2={endProjected[0]}
+								y2={endProjected[1]}
+								stroke={drawingColor}
+								strokeWidth={1.5}
+								strokeDasharray="5,4"
+								opacity={0.75}
+								pointerEvents="none"
+							/>
+						);
+					})()}
+				{/* Polygon drawing preview: collected points + live cursor segment */}
+				{drawingMode === "polygon" &&
+					pendingPolygonPoints.length > 0 &&
+					(() => {
+						const previewPoints = [...pendingPolygonPoints];
+						if (previewPoint) {
+							previewPoints.push(previewPoint);
+						}
+						const projected = previewPoints
+							.map((point) => mapModel.projection([point.lng, point.lat]))
+							.filter((point): point is [number, number] => Array.isArray(point));
+						if (projected.length === 0) return null;
+						const polylinePoints = projected.map(([x, y]) => `${x},${y}`).join(" ");
+						return (
+							<g pointerEvents="none">
+								<polyline
+									points={polylinePoints}
+									fill={pendingPolygonPoints.length >= 3 ? drawingColor : "none"}
+									fillOpacity={pendingPolygonPoints.length >= 3 ? 0.14 : 0}
+									stroke={drawingColor}
+									strokeWidth={1.6}
+									strokeDasharray="5,4"
+									opacity={0.85}
+								/>
+								{projected.map(([x, y], index) => (
+									<circle
+										key={`pending-polygon-point-${previewPoints[index]?.lat ?? y}-${previewPoints[index]?.lng ?? x}`}
+										cx={x}
+										cy={y}
+										r={3}
+										fill={drawingColor}
+										stroke="#020617"
+										strokeWidth={0.8}
+									/>
+								))}
+							</g>
+						);
+					})()}
 
 				<g data-render-stage="soft-signals">
 					{showSoftSignals &&
@@ -861,7 +1050,8 @@ export function MapCanvas({
 									setPopupEventId(marker.id);
 									onSelectEvent(marker.id);
 								}}
-								className="cursor-pointer"
+								pointerEvents={isDrawingInteractionActive ? "none" : "all"}
+								className="cursor-pointer outline-none focus-visible:outline-none"
 							>
 								{(selected || hovered) && (
 									<g>
@@ -901,16 +1091,17 @@ export function MapCanvas({
 									strokeWidth={2}
 									className="drop-shadow-lg"
 								/>
-								<text
-									y={4}
-									textAnchor="middle"
+								<path
+									d={
+										markerSymbolPathByEventId.get(marker.id) ??
+										getMarkerSymbolPath(marker.symbol, 95)
+									}
+									transform="translate(0, 1)"
 									fill="#f8fafc"
-									fontSize={10}
-									fontWeight={800}
-									style={{ pointerEvents: "none", userSelect: "none" }}
-								>
-									{marker.shortLabel}
-								</text>
+									stroke="#0f172a"
+									strokeWidth={0.8}
+									style={{ pointerEvents: "none" }}
+								/>
 								<title>{marker.title}</title>
 							</g>
 						);
@@ -919,4 +1110,4 @@ export function MapCanvas({
 			</svg>
 		</div>
 	);
-}
+});

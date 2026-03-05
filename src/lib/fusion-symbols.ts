@@ -1,4 +1,4 @@
-export type FusionSymbolType = "crypto" | "stock" | "fx" | "commodity" | "index";
+export type FusionSymbolType = "crypto" | "stock" | "fx" | "commodity" | "index" | "macro";
 
 export interface FusionSymbol {
 	symbol: string;
@@ -186,6 +186,29 @@ const FUSION_SYMBOLS: FusionSymbol[] = [
 	{ symbol: "N225", name: "Nikkei 225", basePrice: 38600, type: "index", startYear: 1950 },
 	{ symbol: "HSI", name: "Hang Seng Index", basePrice: 16200, type: "index", startYear: 1969 },
 	{ symbol: "IXIC", name: "NASDAQ Composite", basePrice: 16500, type: "index", startYear: 1971 },
+
+	// Macro
+	{
+		symbol: "POLICY_RATE",
+		name: "Fed Policy Rate",
+		basePrice: 5.25,
+		type: "macro",
+		startYear: 2008,
+	},
+	{
+		symbol: "IMF_IFS_M_111_FITB",
+		name: "USA Policy Rate (IMF)",
+		basePrice: 5.25,
+		type: "macro",
+		startYear: 2000,
+	},
+	{
+		symbol: "CPIAUCSL",
+		name: "CPI All Urban (FRED)",
+		basePrice: 310,
+		type: "macro",
+		startYear: 1947,
+	},
 ];
 
 export const ALL_FUSION_SYMBOLS: FusionSymbol[] = FUSION_SYMBOLS;
@@ -196,6 +219,7 @@ export const WATCHLIST_CATEGORIES = {
 	forex: FUSION_SYMBOLS.filter((s) => s.type === "fx"),
 	commodities: FUSION_SYMBOLS.filter((s) => s.type === "commodity"),
 	indices: FUSION_SYMBOLS.filter((s) => s.type === "index"),
+	macro: FUSION_SYMBOLS.filter((s) => s.type === "macro"),
 };
 
 function normalizeForMatch(value: string): string {

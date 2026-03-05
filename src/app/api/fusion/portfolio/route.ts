@@ -9,13 +9,42 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 	return response;
 }
 
+function buildErrorResponse(requestId: string, error: unknown): NextResponse {
+	const message = getErrorMessage(error);
+	const persistenceError =
+		message.includes("fallback is disabled") ||
+		message.toLowerCase().includes("db client unavailable");
+	return withRequestIdHeader(
+		NextResponse.json(
+			{
+				success: false,
+				error: message,
+				requestId,
+				degraded: true,
+				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
+			},
+			{ status: persistenceError ? 503 : 500 },
+		),
+		requestId,
+	);
+}
+
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	try {
 		const profileKey = request.nextUrl.searchParams.get("profileKey");
 		if (!profileKey) {
 			return withRequestIdHeader(
-				NextResponse.json({ error: "profileKey is required" }, { status: 400 }),
+				NextResponse.json(
+					{
+						success: false,
+						error: "profileKey is required",
+						requestId,
+						degraded: false,
+						degraded_reasons: [],
+					},
+					{ status: 400 },
+				),
 				requestId,
 			);
 		}
@@ -25,18 +54,33 @@ export async function GET(request: NextRequest) {
 		const shouldPersist = persistFlag === "1" || persistFlag === "true";
 
 		if (!shouldPersist) {
-			return withRequestIdHeader(NextResponse.json({ success: true, snapshot, prices }), requestId);
+			return withRequestIdHeader(
+				NextResponse.json({
+					success: true,
+					snapshot,
+					prices,
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				}),
+				requestId,
+			);
 		}
 
 		const stored = await savePortfolioSnapshot(profileKey, snapshot);
 		return withRequestIdHeader(
-			NextResponse.json({ success: true, snapshot, prices, stored }),
+			NextResponse.json({
+				success: true,
+				snapshot,
+				prices,
+				stored,
+				requestId,
+				degraded: false,
+				degraded_reasons: [],
+			}),
 			requestId,
 		);
 	} catch (error) {
-		return withRequestIdHeader(
-			NextResponse.json({ error: getErrorMessage(error) }, { status: 500 }),
-			requestId,
-		);
+		return buildErrorResponse(requestId, error);
 	}
 }

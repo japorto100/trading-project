@@ -1,4 +1,5 @@
-﻿import { MapPin } from "lucide-react";
+﻿import { getMarkerSeverityColor } from "@/features/geopolitical/d3/scales";
+import { getMarkerSymbolLabel, getMarkerSymbolPath } from "@/features/geopolitical/markerSymbols";
 import { formatPoint } from "@/features/geopolitical/shell/types";
 import type { GeoEvent } from "@/lib/geopolitical/types";
 
@@ -9,19 +10,31 @@ interface MarkerListPanelProps {
 }
 
 export function MarkerListPanel({ events, selectedEventId, onSelectEvent }: MarkerListPanelProps) {
+	const MAX_VISIBLE_MARKERS = 120;
+	const visibleEvents = events.slice(0, MAX_VISIBLE_MARKERS);
+	const hiddenCount = Math.max(0, events.length - visibleEvents.length);
+
 	return (
 		<section className="rounded-md border border-border bg-card p-3">
 			<h2 className="text-sm font-semibold">Marker List</h2>
+			{hiddenCount > 0 ? (
+				<p className="mt-1 text-[11px] text-muted-foreground">
+					Showing latest {visibleEvents.length} markers. {hiddenCount} more available via filters.
+				</p>
+			) : null}
 			<div
 				className="mt-2 max-h-[260px] space-y-2 overflow-y-auto pr-1"
 				tabIndex={0}
 				aria-label="Marker list"
 			>
-				{events.length === 0 ? (
+				{visibleEvents.length === 0 ? (
 					<p className="text-xs text-muted-foreground">No markers saved yet.</p>
 				) : (
-					events.map((event) => {
+					visibleEvents.map((event) => {
 						const active = selectedEventId === event.id;
+						const severityColor = getMarkerSeverityColor(event.severity);
+						const symbolPath = getMarkerSymbolPath(event.symbol, 90);
+						const symbolLabel = getMarkerSymbolLabel(event.symbol);
 						return (
 							<button
 								key={event.id}
@@ -35,15 +48,40 @@ export function MarkerListPanel({ events, selectedEventId, onSelectEvent }: Mark
 										: "border-border bg-background hover:bg-accent"
 								}`}
 							>
-								<div className="flex items-center justify-between">
-									<span className="font-medium">{event.title}</span>
+								<div className="flex items-center justify-between gap-2">
+									<div className="flex items-center gap-2">
+										<span
+											className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-900/30"
+											style={{ backgroundColor: severityColor }}
+										>
+											<svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
+												<path
+													d={symbolPath}
+													transform="translate(12, 12)"
+													fill="#f8fafc"
+													stroke="#0f172a"
+													strokeWidth={0.8}
+												/>
+											</svg>
+										</span>
+										<div>
+											<div className="font-medium leading-tight">{event.title}</div>
+											<div className="mt-0.5 text-[10px] text-muted-foreground">{symbolLabel}</div>
+										</div>
+									</div>
 									<span className="text-[10px] text-muted-foreground">
 										S{event.severity}/C{event.confidence}
 									</span>
 								</div>
-								<div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-									<MapPin className="h-3 w-3" />
-									{formatPoint(event)}
+								<div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+									<span>{formatPoint(event)}</span>
+									<span className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px]">
+										<span
+											className="h-1.5 w-1.5 rounded-full"
+											style={{ backgroundColor: severityColor }}
+										/>
+										Severity {event.severity}
+									</span>
 								</div>
 							</button>
 						);

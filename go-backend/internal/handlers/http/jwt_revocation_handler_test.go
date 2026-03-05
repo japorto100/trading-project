@@ -47,6 +47,46 @@ func TestJWTJTIRevocationHandler_RevokesJTI(t *testing.T) {
 	}
 }
 
+func TestJWTUserRevocationHandler_RevokesUser(t *testing.T) {
+	var (
+		revokedUser string
+		revokedTime time.Time
+	)
+	handler := JWTUserRevocationHandlerWithAudit(func(userId string, revokedBefore time.Time) {
+		revokedUser = userId
+		revokedTime = revokedBefore
+	}, nil)
+
+	fixedTime := int64(1772649000)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/revocations/user", strings.NewReader(`{"userId":"user-999","revokedBefore":1772649000}`))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusAccepted {
+		t.Fatalf("expected status 202, got %d", res.Code)
+	}
+	if revokedUser != "user-999" {
+		t.Fatalf("expected user-999 to be revoked, got %q", revokedUser)
+	}
+	if revokedTime.Unix() != fixedTime {
+		t.Fatalf("expected revokedTime unix %d, got %d", fixedTime, revokedTime.Unix())
+	}
+
+	var body struct {
+		Accepted      bool   `json:"accepted"`
+		UserID        string `json:"userId"`
+		RevokedBefore string `json:"revokedBefore"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode body: %v", err)
+	}
+	if !body.Accepted || body.UserID != "user-999" {
+		t.Fatalf("unexpected response body: %+v", body)
+	}
+}
+
 func TestJWTJTIRevocationHandler_Validation(t *testing.T) {
 	t.Run("method not allowed", func(t *testing.T) {
 		handler := JWTJTIRevocationHandler(func(string, time.Time) {})

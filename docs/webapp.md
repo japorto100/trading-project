@@ -1,6 +1,6 @@
 # Webapp Status -- TradeView Pro
 
-> Stand: 2026-02-16 | Stack: Next.js 16.1.6 (Turbopack), Go Gateway, Python Services, GCT (Kraken)  
+> Stand: 2026-02-25 | Stack: Next.js 16.1.6 (Turbopack), Go Gateway, Python Services, GCT (Kraken)  
 > **Zweck: Arbeitsdokument.** Hier werden Frontend-Bugs, Fixes, Visual Audits und Test-Ergebnisse dokumentiert. Kein Architektur-Dokument -- dafÃ¼r siehe [`FRONTEND_ARCHITECTURE.md`](./FRONTEND_ARCHITECTURE.md).  
 > **Nutzung:** WÃ¤hrend der Entwicklung: Bug entdeckt â†’ hier notieren â†’ Fix beschreiben â†’ Status setzen. Nach jeder Phase: Visual Audit Ergebnis hier festhalten.
 
@@ -105,3 +105,77 @@ Siehe vorherige Versionen fuer Details zu Scroll-Fixes, Timeouts und Layout-Bugs
 2. **Entwicklung:**
    - Frontend: `src/app/page.tsx` (Main Layout), `src/features/trading/` (Komponenten).
    - `TradingSidebar.tsx` ignorieren (Legacy).
+
+---
+
+## 10. SOTA UI/UX & Tailwind v4 Strategy
+
+Um die Plattform auf Professional-Niveau zu heben, werden folgende Konzepte implementiert:
+
+### 10.1 High-Performance Workstation Layout
+- **Dynamic Bento Grid:** Weiterentwicklung der Resizable Panels hin zu einem frei konfigurierbaren Dashboard (User-defined Layouts).
+- **Focus Mode (Zen):** Shortcut zum Ausblenden aller UI-Elemente außer dem Haupt-Chart (maximale Immersion).
+- **Command Palette (Cmd+K):** Integration einer zentralen Steuerung fuer Asset-Suche, Indikator-Wechsel und Order-Execution.
+
+### 10.2 Tailwind v4 & Chromatic Design
+- **OKLCH Colors:** Umstellung der Kern-Farbpalette (Profit/Loss, Signals) auf OKLCH fuer lebendigere, konsistente Farben auf modernen Displays.
+- **Glassmorphism 2.0:** Subtile Nutzung von Transparenz und Blur (backdrop-blur) fuer Overlays, ohne die Lesbarkeit zu beeintraechtigen.
+- **Subtle Glows:** Aktive Signale oder gefuellte Patterns (XABCD) erhalten dezente Outer-Glows zur visuellen Priorisierung.
+
+### 10.3 Real-time Feedback Loop
+- **Micro-Interactions:** Background-Flashes oder Border-Highlights bei Preis-Ticks (Price Pulse).
+- **Skeleton Flow:** Optimierte Loading-States, die exakt die Geometrie der finalen Widgets widerspiegeln.
+- **Canvas-Backed Widgets:** Fuer extrem schnelle Daten (Orderbooks) wird von React-DOM auf Canvas-Rendering innerhalb der Widgets umgestellt, um die 120Hz-Fluiditaet zu garantieren.
+
+### 10.4 Intelligence Integration
+- **Context-Aware Overlays:** Smart Tooltips, die beim Hover ueber Harmonic Patterns direkt die statistische Wahrscheinlichkeit des Breakouts anzeigen.
+- **Global State Sync:** Nahtlose Synchronisation zwischen der Geopolitical Map und dem Trading-Asset (z.B. Highlighten von Öl-Events, wenn WTI/Brent getradet wird).
+
+---
+
+## 11. Implementation Progress (SOTA Upgrades) -- 2026-02-25
+
+### 11.1 Core UI
+- [x] **Command Palette:** `Cmd+K` global verfuegbar (Dashboard & Map).
+- [x] **AI Shortcuts:** `Cmd+J` (Chat) und `Cmd+Shift+A` (Audio) als Platzhalter registriert.
+- [x] **OKLCH Migration:** Kern-Variablen in `globals.css` auf OKLCH umgestellt (inkl. subtilem Blue-Tint im Dark Mode).
+- [x] **Semantic Colors:** `--success` und `--error` für Trading-Signale definiert.
+
+### 11.2 Interactive Elements
+- [x] **Price Pulse:** Visuelles Feedback in `BottomStats` bei Preisänderungen (OKLCH Green/Red Flash).
+- [x] **Glassmorphism:** `backdrop-blur` auf alle Sidebars und die Geopolitical Map Overlays angewendet.
+- [x] **Chart Styling:** TradingView Charts nutzen jetzt die systemweiten OKLCH-Farben für Background, Grid und Candles.
+
+### 11.3 Map Enhancements
+- [x] **HUD-Style Overlays:** Map-Controls und Info-Popups nutzen jetzt Glassmorphismus und Chromatic Glows.
+
+### 11.4 Future SOTA Opportunities (Identified via Visual Audit)
+- **Context HUD (SignalInsightsBar):** Umwandlung der flachen Badge-Liste in ein dreigeteiltes Dashboard (Regime, Volume, AI Score) mit Icons und Mini-Gauges für bessere visuelle Hierarchie.
+- **Dynamic OHLC Header:** Implementierung von "Number Flip"-Animationen für die Open/High/Low/Close Werte bei Chart-Hover sowie konsequente Nutzung der semantischen OKLCH-Farben.
+- **Connectivity Dot:** Reduzierung der Status-Badges ("Market ready", "Provider: demo") auf einen pulsierenden Status-Indikator im Haupt-Header für ein aufgeräumteres UI.
+- **Watchlist Hover Effects:** Dezenter `shadow-chromatic` Glow bei Hover in den Watchlist-Zeilen.
+- **Custom Floating Legend:** Ersetzen der statischen Lightweight-Charts-Legende durch ein über dem Chart schwebendes, per Glassmorphismus gestyltes Overlay.
+
+### 11.5 Implementation Progress Update -- 2026-02-25
+- [x] **SOTA Order Ticket:** Visuelle R:R Gauge und dynamische Side-Tints (Green/Red) implementiert.
+- [x] **Scroll Consistency:** Alle Sidebars (Dashboard & Map) nutzen nun `ScrollArea`.
+- [x] **Header Refinement:** Einheitliche SOTA-Header (10px Bold Caps) fuer alle Panels.
+- [x] **Bottom Panel Fix:** Detail-Grid in `BottomStats` ist nun scrollbar und nicht mehr abgeschnitten.
+
+---
+
+## 12. Next Level SOTA Recommendations (Phase 5+)
+
+Um die Marktführerschaft im Bereich UI/UX zu zementieren, werden folgende "Next Level" Features empfohlen:
+
+### 12.1 Dynamic Liquid Depth
+- **Depth HUD:** Ein vertikaler Canvas-Indikator direkt neben der Chart-Preisskala, der das Orderbuch-Volumen (Liquidität) in Echtzeit visualisiert.
+- **Sentiment Glow:** Das News-Panel erhaelt einen pulsierenden Border-Glow, dessen Farbe sich nach dem aggregierten Sentiment der neuesten Schlagzeilen richtet (Bullish = Emerald, Bearish = Rose).
+
+### 12.2 AI-Driven Immersion
+- **Cmd+J Focus Mode:** Beim Starten des AI-Chats wird der Rest des UIs dezent abgedunkelt, um den Fokus voll auf die Analyse-Konversation zu legen.
+- **Audio Pulse Visualizer:** Wenn `Cmd+Shift+A` (Audio) aktiv ist, zeigt das "Connectivity HUD" eine minimalistische Waveform-Animation anstelle des Dots.
+
+### 12.3 Professional HUD Elements
+- **Floating Legend:** Die statische Chart-Legende (oben links im Chart) wird durch eine schwebende Glassmorphism-Card ersetzt, die per Drag&Drop verschiebbar ist.
+- **Fill Flash:** Bei Ausfuehrung einer Order erfaehrt der gesamte Bildschirmrand einen Millisekunden-kurzen "Chromatic Flash" in der Farbe der Order-Seite (Execution Feedback).

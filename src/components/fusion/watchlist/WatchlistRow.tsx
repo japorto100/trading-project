@@ -61,8 +61,10 @@ export function WatchlistRow({
 					onSelectSymbol(symbol);
 				}
 			}}
-			className={`w-full rounded-md p-2.5 flex items-center justify-between transition-colors cursor-pointer ${
-				isSelected ? "bg-accent/70" : "hover:bg-accent/50"
+			className={`group w-full rounded-md p-2.5 flex items-center justify-between transition-all duration-300 cursor-pointer ${
+				isSelected
+					? "bg-accent/70 shadow-sm border border-border"
+					: "hover:bg-accent/50 hover:shadow-chromatic border border-transparent"
 			}`}
 		>
 			<div className="flex items-center gap-2.5 text-left">
@@ -72,7 +74,7 @@ export function WatchlistRow({
 				<div>
 					<div className="flex items-center gap-1.5">
 						<span className="text-sm font-medium">{symbol.symbol}</span>
-						<Badge variant="outline" className="text-[10px] px-1.5 py-0">
+						<Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border/50">
 							{symbol.type.toUpperCase()}
 						</Badge>
 					</div>
@@ -83,7 +85,7 @@ export function WatchlistRow({
 			<div className="flex items-center gap-2">
 				<div className="text-right">
 					<div className="text-sm font-mono">{formatPrice(price)}</div>
-					<div className={`text-xs font-mono ${isPositive ? "text-emerald-500" : "text-red-500"}`}>
+					<div className={`text-xs font-mono ${isPositive ? "text-success" : "text-error"}`}>
 						{isPositive ? (
 							<TrendingUp className="inline h-3 w-3 mr-0.5" />
 						) : (
@@ -95,7 +97,7 @@ export function WatchlistRow({
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-6 w-6"
+					className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
 					onClick={(event) => {
 						event.stopPropagation();
 						onToggleFavorite(symbol.symbol);

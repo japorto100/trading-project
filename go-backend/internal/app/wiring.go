@@ -3,14 +3,21 @@ package app
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	otelhttp "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"tradeviewfusion/go-backend/internal/auditjsonl"
+	"tradeviewfusion/go-backend/internal/cache"
+	"tradeviewfusion/go-backend/internal/capability"
 	"tradeviewfusion/go-backend/internal/connectors/acled"
+	"tradeviewfusion/go-backend/internal/connectors/adb"
+	"tradeviewfusion/go-backend/internal/connectors/agentservice"
 	"tradeviewfusion/go-backend/internal/connectors/banxico"
 	"tradeviewfusion/go-backend/internal/connectors/bcb"
 	"tradeviewfusion/go-backend/internal/connectors/bcra"
@@ -24,12 +31,20 @@ import (
 	"tradeviewfusion/go-backend/internal/connectors/gametheory"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"tradeviewfusion/go-backend/internal/connectors/gdelt"
+	geomapsources "tradeviewfusion/go-backend/internal/connectors/geomapsources"
 	geopoliticalnext "tradeviewfusion/go-backend/internal/connectors/geopoliticalnext"
+	"tradeviewfusion/go-backend/internal/connectors/imf"
 	indicatorservice "tradeviewfusion/go-backend/internal/connectors/indicatorservice"
+	"tradeviewfusion/go-backend/internal/connectors/memory"
 	newsConnectors "tradeviewfusion/go-backend/internal/connectors/news"
+	"tradeviewfusion/go-backend/internal/connectors/nyfed"
+	"tradeviewfusion/go-backend/internal/connectors/oecd"
+	"tradeviewfusion/go-backend/internal/connectors/ofr"
 	"tradeviewfusion/go-backend/internal/connectors/rbi"
 	softsignals "tradeviewfusion/go-backend/internal/connectors/softsignals"
 	"tradeviewfusion/go-backend/internal/connectors/tcmb"
+	"tradeviewfusion/go-backend/internal/connectors/un"
+	"tradeviewfusion/go-backend/internal/connectors/worldbank"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
 	"tradeviewfusion/go-backend/internal/router/adaptive"
@@ -117,12 +132,47 @@ func NewServerFromEnv() (*Server, error) {
 		BaseURL:        envOr("RBI_DBIE_BASE_URL", rbi.DefaultBaseURL),
 		RequestTimeout: durationMsOr("RBI_DBIE_HTTP_TIMEOUT_MS", 5000),
 	})
+	imfClient := imf.NewClient(imf.Config{
+		BaseURL:        envOr("IMF_BASE_URL", imf.DefaultBaseURL),
+		RequestTimeout: durationMsOr("IMF_HTTP_TIMEOUT_MS", 6000),
+	})
 	macroClient := marketServices.NewRoutedMacroClient(fredClient, bcbClient)
 	macroClient.RegisterPrefixClient("BANXICO_", banxicoClient)
 	macroClient.RegisterPrefixClient("BOK_ECOS_", bokClient)
 	macroClient.RegisterPrefixClient("BCRA_", bcraClient)
 	macroClient.RegisterPrefixClient("TCMB_EVDS_", tcmbClient)
 	macroClient.RegisterPrefixClient("RBI_DBIE_FXRES_", rbiClient)
+	macroClient.RegisterPrefixClient("IMF_IFS_", imfClient)
+	oecdClient := oecd.NewClient(oecd.Config{
+		BaseURL:        envOr("OECD_BASE_URL", oecd.DefaultBaseURL),
+		RequestTimeout: durationMsOr("OECD_HTTP_TIMEOUT_MS", 6000),
+	})
+	macroClient.RegisterPrefixClient("OECD_", oecdClient)
+	worldbankClient := worldbank.NewClient(worldbank.Config{
+		BaseURL:        envOr("WORLDBANK_BASE_URL", worldbank.DefaultBaseURL),
+		RequestTimeout: durationMsOr("WORLDBANK_HTTP_TIMEOUT_MS", 6000),
+	})
+	macroClient.RegisterPrefixClient("WB_WDI_", worldbankClient)
+	unClient := un.NewClient(un.Config{
+		BaseURL:        envOr("UN_BASE_URL", un.DefaultBaseURL),
+		RequestTimeout: durationMsOr("UN_HTTP_TIMEOUT_MS", 6000),
+	})
+	macroClient.RegisterPrefixClient("UN_", unClient)
+	adbClient := adb.NewClient(adb.Config{
+		BaseURL:        envOr("ADB_BASE_URL", adb.DefaultBaseURL),
+		RequestTimeout: durationMsOr("ADB_HTTP_TIMEOUT_MS", 6000),
+	})
+	macroClient.RegisterPrefixClient("ADB_", adbClient)
+	ofrClient := ofr.NewClient(ofr.Config{
+		BaseURL:        envOr("OFR_BASE_URL", ofr.DefaultBaseURL),
+		RequestTimeout: durationMsOr("OFR_HTTP_TIMEOUT_MS", 6000),
+	})
+	macroClient.RegisterPrefixClient("OFR_", ofrClient)
+	nyfedClient := nyfed.NewClient(nyfed.Config{
+		BaseURL:        envOr("NYFED_BASE_URL", nyfed.DefaultBaseURL),
+		RequestTimeout: durationMsOr("NYFED_HTTP_TIMEOUT_MS", 6000),
+	})
+	macroClient.RegisterPrefixClient("NYFED_", nyfedClient)
 	financeBridgeClient := financebridge.NewClient(financebridge.Config{
 		BaseURL:        envOr("FINANCE_BRIDGE_URL", envOr("YFINANCE_BRIDGE_URL", financebridge.DefaultBaseURL)),
 		BaseURLs:       csvOr("FINANCE_BRIDGE_URLS", nil),
@@ -146,7 +196,12 @@ func NewServerFromEnv() (*Server, error) {
 		Email:          envOr("ACLED_EMAIL", ""),
 		AccessKey:      envOr("ACLED_ACCESS_KEY", ""),
 		RequestTimeout: durationMsOr("ACLED_HTTP_TIMEOUT_MS", 5000),
+		MockEnabled:    boolOr("ACLED_MOCK_ENABLED", false),
+		MockDataPath:   envOr("ACLED_MOCK_DATA_PATH", "data/mock/acled-events.json"),
 	})
+	if err := validateACLEDMockRuntime(boolOr("ACLED_MOCK_ENABLED", false)); err != nil {
+		return nil, err
+	}
 	gdeltGeoClient := gdelt.NewClient(gdelt.Config{
 		BaseURL:        envOr("GDELT_BASE_URL", gdelt.DefaultBaseURL),
 		RequestTimeout: durationMsOr("GDELT_HTTP_TIMEOUT_MS", 5000),
@@ -175,6 +230,21 @@ func NewServerFromEnv() (*Server, error) {
 		BaseURL:        envOr("GEOPOLITICAL_GAMETHEORY_URL", gametheory.DefaultBaseURL),
 		RequestTimeout: durationMsOr("GEOPOLITICAL_GAMETHEORY_TIMEOUT_MS", 5000),
 	})
+	memCache := cache.NewAdapter(boolOr("MEMORY_REDIS_ENABLED", false), nil)
+	memoryClient := memory.NewClient(memory.Config{
+		BaseURL:        envOr("MEMORY_SERVICE_URL", memory.DefaultBaseURL),
+		RequestTimeout: durationMsOr("MEMORY_SERVICE_TIMEOUT_MS", 5000),
+	})
+	agentServiceClient := agentservice.NewClient(agentservice.Config{
+		BaseURL:        envOr("AGENT_SERVICE_URL", agentservice.DefaultBaseURL),
+		RequestTimeout: durationMsOr("AGENT_SERVICE_TIMEOUT_MS", 5000),
+	})
+	capRegistry := capability.NewRegistry()
+	if capPath := envOr("CAPABILITY_REGISTRY_PATH", "config/capabilities.yaml"); capPath != "" {
+		if err := capRegistry.LoadFromFile(capPath); err != nil {
+			log.Printf("[wiring] capability registry load %s: %v (continuing without)", capPath, err)
+		}
+	}
 	geopoliticalGameTheoryService := geopoliticalServices.NewGameTheoryService(acledClient, gameTheoryClient)
 	geopoliticalCandidateReviewStore := geopoliticalServices.NewCandidateReviewStore(
 		envOr("GEOPOLITICAL_CANDIDATE_QUEUE_STORE_PATH", "data/geopolitical/gateway-candidates.json"),
@@ -192,9 +262,12 @@ func NewServerFromEnv() (*Server, error) {
 		envOr("GEOPOLITICAL_INGEST_RUNS_STORE_PATH", "data/geopolitical/gateway-ingest-runs.json"),
 	)
 	geopoliticalIngestShadowCompareEnabled := boolOr("GEOPOLITICAL_INGEST_SHADOW_COMPARE", true)
+	geopoliticalGeoMapSourcePack := geomapsources.NewGeoMapSourcePack(geomapsources.PackConfig{
+		DataDir: envOr("GEOPOLITICAL_DATA_DIR", "data"),
+	})
 	geopoliticalIngestHardMode := geopoliticalIngestModeOr("GEOPOLITICAL_INGEST_HARD_MODE", "go-owned-gateway-v1")
 	geopoliticalIngestSoftMode := geopoliticalIngestModeOr("GEOPOLITICAL_INGEST_SOFT_MODE", "go-owned-gateway-v1")
-	geopoliticalAdminSeedMode := geopoliticalAdminSeedModeOr("GEOPOLITICAL_ADMIN_SEED_MODE", "next-proxy+go-sync")
+	geopoliticalAdminSeedMode := geopoliticalAdminSeedModeOr("GEOPOLITICAL_ADMIN_SEED_MODE", "go-owned-gateway-v1")
 	rssClient := newsConnectors.NewRSSClient(newsConnectors.RSSClientConfig{
 		FeedURLs:       csvOr("NEWS_RSS_FEEDS", []string{"https://feeds.marketwatch.com/marketwatch/topstories/"}),
 		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
@@ -252,13 +325,16 @@ func NewServerFromEnv() (*Server, error) {
 		jwtRevocations.Revoke(revokedJTI, time.Now().Add(durationMsOr("AUTH_JWT_BLOCKLIST_DEFAULT_TTL_MS", 15*60*1000)))
 	}
 
+	// GCT Audit: SQLite primary (default true when GCT_AUDIT_ENABLED), JSONL as fallback/degraded
 	var gctAuditDB *httpHandlers.GCTAuditSQLiteStore
-	if boolOr("GCT_AUDIT_DB_ENABLED", false) {
+	if boolOr("GCT_AUDIT_DB_ENABLED", true) {
 		store, err := httpHandlers.NewGCTAuditSQLiteStore(gctAuditSQLitePathFromEnv())
 		if err != nil {
-			return nil, err
+			// Degraded: log and continue with JSONL only (no fail-fast for audit DB)
+			log.Printf("[gct-audit] SQLite init failed, using JSONL only: %v", err)
+		} else {
+			gctAuditDB = store
 		}
-		gctAuditDB = store
 	}
 
 	mux := http.NewServeMux()
@@ -295,6 +371,30 @@ func NewServerFromEnv() (*Server, error) {
 			_ = jwtRevocationAuditJSONL.Append(payload)
 		}),
 	)
+	mux.HandleFunc(
+		"/api/v1/auth/revocations/user",
+		httpHandlers.JWTUserRevocationHandlerWithAudit(jwtRevocations.RevokeUser, func(record httpHandlers.JWTRevocationAuditRecord) {
+			jwtRevocationAudit.Append(record)
+			if jwtRevocationAuditDB != nil {
+				_ = jwtRevocationAuditDB.Append(record)
+			}
+			if !jwtRevocationAuditEnabled || jwtRevocationAuditJSONL == nil {
+				return
+			}
+			payload := map[string]any{
+				"ts":            record.RecordedAt.UTC().Format(time.RFC3339Nano),
+				"userId":        strings.TrimPrefix(record.JTI, "GLOBAL_USER_REVOCATION:"),
+				"revokedBefore": record.ExpiresAt.UTC().Format(time.RFC3339),
+				"requestId":     record.RequestID,
+				"actorUser":     record.ActorUser,
+				"actorRole":     record.ActorRole,
+				"sourceIp":      record.SourceIP,
+				"kind":          "user_revocation",
+				"auditScope":    "auth",
+			}
+			_ = jwtRevocationAuditJSONL.Append(payload)
+		}),
+	)
 	jwtRevocationAuditLister := jwtRevocationAudit.List
 	if jwtRevocationAuditDB != nil {
 		jwtRevocationAuditLister = func(limit int) []httpHandlers.JWTRevocationAuditRecord {
@@ -316,6 +416,7 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/cluster-headlines", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/cluster-headlines"))
 	mux.HandleFunc("/api/v1/social-surge", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/social-surge"))
 	mux.HandleFunc("/api/v1/narrative-shift", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/narrative-shift"))
+	mux.HandleFunc("/api/v1/ingest/classify", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/ingest/classify"))
 	mux.HandleFunc("/api/v1/geopolitical/events", httpHandlers.GeopoliticalEventsHandler(geopoliticalEventsService))
 	mux.HandleFunc("/api/v1/geopolitical/context", httpHandlers.GeopoliticalContextHandler(geopoliticalContextService))
 	mux.HandleFunc("/api/v1/geopolitical/candidates", httpHandlers.GeopoliticalCandidatesProxyHandler(geopoliticalNextClient, geopoliticalCandidateReviewStore, geopoliticalTimelineStore, geopoliticalEventsStore))
@@ -370,12 +471,41 @@ func NewServerFromEnv() (*Server, error) {
 		geopoliticalAdminSeedHandler,
 	)
 	mux.HandleFunc(
+		"/api/v1/geopolitical/admin/sanctions-fetch",
+		httpHandlers.GeopoliticalSanctionsFetchHandler(geopoliticalGeoMapSourcePack, geopoliticalCandidateReviewStore),
+	)
+	mux.HandleFunc(
 		"/api/v1/geopolitical/game-theory/impact",
 		httpHandlers.GeopoliticalGameTheoryImpactHandler(geopoliticalGameTheoryService),
 	)
+	mux.HandleFunc("/api/v1/game-theory/nash-solve", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/game-theory/nash-solve"))
+	mux.HandleFunc("/api/v1/game-theory/transmission-paths", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/game-theory/transmission-paths"))
+	mux.HandleFunc("/api/v1/game-theory/monte-carlo", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/game-theory/monte-carlo"))
+	mux.HandleFunc("/api/v1/game-theory/strategeme-match", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/game-theory/strategeme-match"))
+	mux.HandleFunc("/api/v1/game-theory/timeline-regimes", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/game-theory/timeline-regimes"))
 	mux.HandleFunc("/api/v1/backtest/capabilities", httpHandlers.BacktestCapabilitiesHandler(strategyExamplesDir))
 	mux.HandleFunc("/api/v1/backtest/runs", httpHandlers.BacktestRunsHandler(backtestManager))
 	mux.HandleFunc("/api/v1/backtest/runs/", httpHandlers.BacktestRunByIDHandler(backtestManager))
+
+	// Phase 6: Memory Architecture
+	mux.HandleFunc("/api/v1/memory/kg/seed", httpHandlers.MemoryKGSeedHandler(memoryClient, memCache))
+	mux.HandleFunc("/api/v1/memory/kg/query", httpHandlers.MemoryKGQueryHandler(memoryClient))
+	mux.HandleFunc("/api/v1/memory/kg/nodes", httpHandlers.MemoryKGNodesHandler(memoryClient, memCache))
+	mux.HandleFunc("/api/v1/memory/kg/sync", httpHandlers.MemoryKGSyncHandler(memoryClient, memCache))
+	mux.HandleFunc("/api/v1/memory/episode", httpHandlers.MemoryEpisodePostHandler(memoryClient))
+	mux.HandleFunc("/api/v1/memory/episodes", httpHandlers.MemoryEpisodesGetHandler(memoryClient))
+	mux.HandleFunc("/api/v1/memory/search", httpHandlers.MemorySearchHandler(memoryClient))
+	mux.HandleFunc("/api/v1/memory/health", httpHandlers.MemoryHealthHandler(memoryClient, memCache))
+	// Phase 10e + 23: Agent WebMCP Tools via Go Policy Gateway (with Capability Registry)
+	agentChartHandler := capability.CheckMiddleware(capRegistry, "tool.get_chart_state")(httpHandlers.AgentToolProxyHandler(agentServiceClient, "/api/v1/agent/tools/chart-state"))
+	agentPortfolioHandler := capability.CheckMiddleware(capRegistry, "tool.get_portfolio_summary")(httpHandlers.AgentToolProxyHandler(agentServiceClient, "/api/v1/agent/tools/portfolio-summary"))
+	agentGeomapHandler := capability.CheckMiddleware(capRegistry, "tool.get_geomap_focus")(httpHandlers.AgentToolProxyHandler(agentServiceClient, "/api/v1/agent/tools/geomap-focus"))
+	mux.Handle("/api/v1/agent/tools/chart-state", agentChartHandler)
+	mux.Handle("/api/v1/agent/tools/portfolio-summary", agentPortfolioHandler)
+	mux.Handle("/api/v1/agent/tools/geomap-focus", agentGeomapHandler)
+	// Phase 10.v3: Mutation tool — POST only, requires confirm in frontend
+	agentSetChartHandler := capability.CheckMiddleware(capRegistry, "tool.set_chart_state")(httpHandlers.AgentMutationProxyHandler(agentServiceClient, "/api/v1/agent/tools/set_chart_state"))
+	mux.Handle("/api/v1/agent/tools/set_chart_state", agentSetChartHandler)
 
 	// Phase 5a: GCT Portfolio Bridge
 	gctPortfolioHandler := httpHandlers.GCTPortfolioHandler(gctClient)
@@ -388,6 +518,13 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/portfolio/correlations", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/correlations"))
 	mux.HandleFunc("/api/v1/portfolio/rolling-metrics", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/rolling-metrics"))
 	mux.HandleFunc("/api/v1/portfolio/drawdown-analysis", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/drawdown-analysis"))
+	mux.HandleFunc("/api/v1/portfolio/optimize", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/optimize"))
+
+	// Phase 13: Advanced Portfolio Analytics
+	mux.HandleFunc("/api/v1/portfolio/kelly-allocation", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/kelly-allocation"))
+	mux.HandleFunc("/api/v1/portfolio/regime-sizing", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/regime-sizing"))
+	mux.HandleFunc("/api/v1/portfolio/monte-carlo-var", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/monte-carlo-var"))
+	mux.HandleFunc("/api/v1/portfolio/risk-warning", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/portfolio/risk-warning"))
 
 	// Phase 7b: Indicator Catalog — proxy all un-wired Python endpoints
 	mux.HandleFunc("/api/v1/indicators/swings", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/indicators/swings"))
@@ -406,6 +543,45 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/indicators/bollinger/squeeze", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/indicators/bollinger/squeeze"))
 	mux.HandleFunc("/api/v1/indicators/rsi/atr-adjusted", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/indicators/rsi/atr-adjusted"))
 	mux.HandleFunc("/api/v1/indicators/rsi/bollinger", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/indicators/rsi/bollinger"))
+
+	// Phase 15b: Volatility Suite
+	mux.HandleFunc("/api/v1/indicators/volatility-suite", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/indicators/volatility-suite"))
+
+	// Phase 15c: Regime Detection
+	mux.HandleFunc("/api/v1/regime/detect", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/regime/detect"))
+	mux.HandleFunc("/api/v1/regime/markov", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/regime/markov"))
+	mux.HandleFunc("/api/v1/regime/hmm", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/regime/hmm"))
+
+	// Phase 15d-15h: Advanced indicators + eval baseline
+	mux.HandleFunc("/api/v1/indicators/alternative-bars", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/indicators/alternative-bars"))
+	mux.HandleFunc("/api/v1/indicators/cusum", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/indicators/cusum"))
+	mux.HandleFunc("/api/v1/regime/meanrev-momentum", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/regime/meanrev-momentum"))
+	mux.HandleFunc("/api/v1/eval/performance-metrics", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/eval/performance-metrics"))
+	mux.HandleFunc("/api/v1/signals/quality-chain", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/signals/quality-chain"))
+	mux.HandleFunc("/api/v1/orderflow/state-machine", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/orderflow/state-machine"))
+	mux.HandleFunc("/api/v1/eval/baseline", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/eval/baseline"))
+
+	// Phase 16: Backtesting + eval hardening
+	mux.HandleFunc("/api/v1/backtest/run", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/backtest/run"))
+	mux.HandleFunc("/api/v1/backtest/walk-forward", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/backtest/walk-forward"))
+	mux.HandleFunc("/api/v1/backtest/triple-barrier", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/backtest/triple-barrier"))
+	mux.HandleFunc("/api/v1/backtest/parameter-sensitivity", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/backtest/parameter-sensitivity"))
+	mux.HandleFunc("/api/v1/eval/deflated-sharpe", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/eval/deflated-sharpe"))
+	mux.HandleFunc("/api/v1/eval/indicator", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/eval/indicator"))
+
+	// Phase 20: ML pipeline
+	mux.HandleFunc("/api/v1/ml/feature-engineering", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/ml/feature-engineering"))
+	mux.HandleFunc("/api/v1/ml/classify-signal", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/ml/classify-signal"))
+	mux.HandleFunc("/api/v1/ml/hybrid-fusion", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/ml/hybrid-fusion"))
+	mux.HandleFunc("/api/v1/ml/bias-monitoring", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/ml/bias-monitoring"))
+
+	// Phase 18: Options + Dark Pool + DeFi + Oracle Cross-Check
+	mux.HandleFunc("/api/v1/darkpool/signal", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/darkpool/signal"))
+	mux.HandleFunc("/api/v1/options/gex-profile", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/options/gex-profile"))
+	mux.HandleFunc("/api/v1/options/expected-move", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/options/expected-move"))
+	mux.HandleFunc("/api/v1/options/calculator", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/options/calculator"))
+	mux.HandleFunc("/api/v1/defi/stress", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/defi/stress"))
+	mux.HandleFunc("/api/v1/oracle/cross-check", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/oracle/cross-check"))
 
 	if boolOr("MACRO_INGEST_ENABLED", false) {
 		macroIngest := marketServices.NewMacroIngestService(
@@ -451,11 +627,11 @@ func NewServerFromEnv() (*Server, error) {
 							gctAuditConfig{
 								enabled: boolOr("GCT_AUDIT_ENABLED", true),
 								path:    gctAuditJSONLPathFromEnv(),
-							onRecord: func(record map[string]any) {
-								if gctAuditDB != nil {
-									_ = gctAuditDB.Append(record)
-								}
-							},
+								onRecord: func(record map[string]any) {
+									if gctAuditDB != nil {
+										_ = gctAuditDB.Append(record)
+									}
+								},
 							},
 						),
 						jwtAuthConfig{
@@ -478,6 +654,9 @@ func NewServerFromEnv() (*Server, error) {
 			allowedOrigins,
 		),
 	)
+	if boolOr("OTEL_ENABLED", false) {
+		handler = otelhttp.NewHandler(handler, "go-gateway")
+	}
 	return NewServer(host, port, handler), nil
 }
 
@@ -641,6 +820,19 @@ func validateAuthBypassRuntime(enabled bool) error {
 		return nil
 	}
 	return fmt.Errorf("auth stack bypass must remain disabled in production (set ALLOW_PROD_AUTH_STACK_BYPASS=true only for explicit emergency override)")
+}
+
+func validateACLEDMockRuntime(enabled bool) error {
+	if !enabled {
+		return nil
+	}
+	if !isProductionRuntime() {
+		return nil
+	}
+	if boolOr("ALLOW_PROD_ACLED_MOCK", false) {
+		return nil
+	}
+	return fmt.Errorf("ACLED mock must remain disabled in production (set ALLOW_PROD_ACLED_MOCK=true only for explicit emergency override)")
 }
 
 func isProductionRuntime() bool {

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+	BarChart3,
 	ClipboardList,
 	FlaskConical,
 	type LucideIcon,
@@ -12,7 +13,9 @@ import {
 import type { ReactNode } from "react";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { MacroPanel } from "@/features/trading/MacroPanel";
 import { NewsPanel } from "@/features/trading/NewsPanel";
 import { OrdersPanel } from "@/features/trading/OrdersPanel";
 import { PortfolioPanel } from "@/features/trading/PortfolioPanel";
@@ -167,6 +170,7 @@ export function RightDetailsSidebar({
 	const panels: Array<{ id: SidebarPanel; icon: LucideIcon; label: string }> = [
 		{ id: "indicators", icon: SlidersHorizontal, label: "Indic" },
 		{ id: "news", icon: Newspaper, label: "News" },
+		{ id: "macro", icon: BarChart3, label: "Macro" },
 		{ id: "orders", icon: ClipboardList, label: "Orders" },
 		{ id: "portfolio", icon: Wallet, label: "Port" },
 		{ id: "strategy", icon: FlaskConical, label: "Strat" },
@@ -274,7 +278,7 @@ export function RightDetailsSidebar({
 	return (
 		<aside
 			data-testid="sidebar-right"
-			className="w-full border-l border-border bg-card/30 flex flex-col h-full overflow-hidden"
+			className="w-full border-l border-border bg-card/30 backdrop-blur-sm flex flex-col h-full overflow-hidden"
 		>
 			<div className="flex items-center justify-between border-b border-border bg-accent/10 h-10 px-1">
 				<div className="flex items-center flex-1">
@@ -283,18 +287,28 @@ export function RightDetailsSidebar({
 							key={p.id}
 							variant={activePanel === p.id ? "secondary" : "ghost"}
 							data-testid={`tab-${p.id}`}
-							className="h-8 rounded-none px-2 flex-1"
+							className={`h-8 rounded-md mx-0.5 px-2 flex-1 transition-all duration-300 ${
+								activePanel === p.id
+									? "bg-accent/80 shadow-sm border border-border"
+									: "hover:bg-accent/40 hover:shadow-chromatic"
+							}`}
 							onClick={() => onSetActivePanel(p.id)}
 						>
-							<p.icon className="h-3.5 w-3.5 mr-1" />
-							<span className="text-[10px] uppercase font-bold tracking-tight">{p.label}</span>
+							<p.icon
+								className={`h-3.5 w-3.5 mr-1 ${activePanel === p.id ? "text-success" : "text-muted-foreground"}`}
+							/>
+							<span
+								className={`text-[10px] uppercase font-bold tracking-tight ${activePanel === p.id ? "text-foreground" : "text-muted-foreground"}`}
+							>
+								{p.label}
+							</span>
 						</Button>
 					))}
 				</div>
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-8 w-8 text-muted-foreground"
+					className="h-8 w-8 text-muted-foreground hover:text-error hover:bg-error/10 transition-colors"
 					onClick={onClose}
 				>
 					<X className="h-4 w-4" />
@@ -303,231 +317,236 @@ export function RightDetailsSidebar({
 
 			<div className="flex-1 overflow-hidden flex flex-col">
 				{activePanel === "indicators" && (
-					<div className="flex-1 overflow-y-auto p-3 space-y-4">
-						<IndicatorSectionCard
-							title="SMA"
-							description="Simple Moving Average"
-							checked={indicators.sma.enabled}
-							onCheckedChange={(checked) => onSetCoreIndicatorEnabled("sma", checked)}
-						>
-							{indicators.sma.enabled ? (
-								<PresetButtonRow
-									values={[5, 10, 20, 50, 100, 200]}
-									activeValue={indicators.sma.period}
-									getKey={(period) => `sma-${period}`}
-									onSelect={(period) => onSetCoreIndicatorPeriod("sma", period)}
-								/>
-							) : null}
-						</IndicatorSectionCard>
-
-						<IndicatorSectionCard
-							title="EMA"
-							description="Exponential Moving Average"
-							checked={indicators.ema.enabled}
-							onCheckedChange={(checked) => onSetCoreIndicatorEnabled("ema", checked)}
-						>
-							{indicators.ema.enabled ? (
-								<PresetButtonRow
-									values={[5, 10, 20, 50, 100, 200]}
-									activeValue={indicators.ema.period}
-									getKey={(period) => `ema-${period}`}
-									onSelect={(period) => onSetCoreIndicatorPeriod("ema", period)}
-								/>
-							) : null}
-						</IndicatorSectionCard>
-
-						<IndicatorSectionCard
-							title="RSI"
-							description="Relative Strength Index"
-							checked={indicators.rsi.enabled}
-							onCheckedChange={(checked) => onSetCoreIndicatorEnabled("rsi", checked)}
-						>
-							{indicators.rsi.enabled ? (
-								<PresetButtonRow
-									values={[7, 14, 21, 28]}
-									activeValue={indicators.rsi.period}
-									getKey={(period) => `rsi-${period}`}
-									onSelect={(period) => onSetCoreIndicatorPeriod("rsi", period)}
-								/>
-							) : null}
-						</IndicatorSectionCard>
-
-						{preBollingerSimpleSections.map((section) => (
+					<ScrollArea className="flex-1">
+						<div className="p-3 space-y-4">
 							<IndicatorSectionCard
-								key={section.id}
-								title={section.title}
-								description={section.description}
-								checked={section.checked}
-								onCheckedChange={section.onCheckedChange}
-							/>
-						))}
-
-						<div className="space-y-2 rounded-md border border-border p-3">
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-sm font-medium">Bollinger Bands</p>
-									<p className="text-xs text-muted-foreground">Volatility bands</p>
-								</div>
-								<Switch
-									checked={indicators.bollinger?.enabled ?? false}
-									onCheckedChange={onSetBollingerEnabled}
-								/>
-							</div>
-							{indicators.bollinger?.enabled && (
-								<>
-									<div className="flex flex-wrap gap-1">
-										{[10, 20, 30, 50].map((period) => (
-											<Button
-												key={`bb-period-${period}`}
-												variant={indicators.bollinger?.period === period ? "secondary" : "ghost"}
-												size="sm"
-												className="h-7 px-2 text-xs"
-												onClick={() => onSetBollingerPeriod(period)}
-											>
-												P{period}
-											</Button>
-										))}
-									</div>
-									<div className="flex flex-wrap gap-1">
-										{[1, 1.5, 2, 2.5, 3].map((std) => (
-											<Button
-												key={`bb-std-${std}`}
-												variant={indicators.bollinger?.stdDev === std ? "secondary" : "ghost"}
-												size="sm"
-												className="h-7 px-2 text-xs"
-												onClick={() => onSetBollingerStdDev(std)}
-											>
-												x{std}
-											</Button>
-										))}
-									</div>
-								</>
-							)}
-						</div>
-
-						{postBollingerSimpleSections.map((section) => (
-							<IndicatorSectionCard
-								key={section.id}
-								title={section.title}
-								description={section.description}
-								checked={section.checked}
-								onCheckedChange={section.onCheckedChange}
-							/>
-						))}
-
-						{postBollingerPresetSections.map((section) => (
-							<IndicatorSectionCard
-								key={section.id}
-								title={section.title}
-								description={section.description}
-								checked={section.checked}
-								onCheckedChange={section.onCheckedChange}
+								title="SMA"
+								description="Simple Moving Average"
+								checked={indicators.sma.enabled}
+								onCheckedChange={(checked) => onSetCoreIndicatorEnabled("sma", checked)}
 							>
-								{section.checked ? (
+								{indicators.sma.enabled ? (
 									<PresetButtonRow
-										values={section.values}
-										activeValue={section.activeValue}
-										getKey={(value) => `${section.id}-${value}`}
-										renderLabel={section.formatValue}
-										onSelect={section.onSelect}
+										values={[5, 10, 20, 50, 100, 200]}
+										activeValue={indicators.sma.period}
+										getKey={(period) => `sma-${period}`}
+										onSelect={(period) => onSetCoreIndicatorPeriod("sma", period)}
 									/>
 								) : null}
 							</IndicatorSectionCard>
-						))}
 
-						<div className="space-y-2 rounded-md border border-border p-3">
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-sm font-medium">SMA +/- ATR Channel</p>
-									<p className="text-xs text-muted-foreground">SMA center with ATR width</p>
-								</div>
-								<Switch
-									checked={indicators.atrChannel?.enabled ?? false}
-									onCheckedChange={onSetAtrChannelEnabled}
-								/>
-							</div>
-							{indicators.atrChannel?.enabled && (
-								<>
-									<div className="flex flex-wrap gap-1">
-										{[20, 50, 100, 200].map((period) => (
-											<Button
-												key={`atrch-sma-${period}`}
-												variant={
-													indicators.atrChannel?.smaPeriod === period ? "secondary" : "ghost"
-												}
-												size="sm"
-												className="h-7 px-2 text-xs"
-												onClick={() => onSetAtrChannelSmaPeriod(period)}
-											>
-												SMA{period}
-											</Button>
-										))}
-									</div>
-									<div className="flex flex-wrap gap-1">
-										{[7, 14, 21, 28, 50].map((period) => (
-											<Button
-												key={`atrch-atr-${period}`}
-												variant={
-													indicators.atrChannel?.atrPeriod === period ? "secondary" : "ghost"
-												}
-												size="sm"
-												className="h-7 px-2 text-xs"
-												onClick={() => onSetAtrChannelAtrPeriod(period)}
-											>
-												ATR{period}
-											</Button>
-										))}
-									</div>
-									<div className="flex flex-wrap gap-1">
-										{[1, 1.5, 2, 2.5, 3].map((mult) => (
-											<Button
-												key={`atrch-m-${mult}`}
-												variant={indicators.atrChannel?.multiplier === mult ? "secondary" : "ghost"}
-												size="sm"
-												className="h-7 px-2 text-xs"
-												onClick={() => onSetAtrChannelMultiplier(mult)}
-											>
-												x{mult}
-											</Button>
-										))}
-									</div>
-								</>
-							)}
-						</div>
-
-						{postAtrChannelPresetSections.map((section) => (
 							<IndicatorSectionCard
-								key={section.id}
-								title={section.title}
-								description={section.description}
-								checked={section.checked}
-								onCheckedChange={section.onCheckedChange}
+								title="EMA"
+								description="Exponential Moving Average"
+								checked={indicators.ema.enabled}
+								onCheckedChange={(checked) => onSetCoreIndicatorEnabled("ema", checked)}
 							>
-								{section.checked ? (
+								{indicators.ema.enabled ? (
 									<PresetButtonRow
-										values={section.values}
-										activeValue={section.activeValue}
-										getKey={(value) => `${section.id}-${value}`}
-										renderLabel={section.formatValue}
-										onSelect={section.onSelect}
+										values={[5, 10, 20, 50, 100, 200]}
+										activeValue={indicators.ema.period}
+										getKey={(period) => `ema-${period}`}
+										onSelect={(period) => onSetCoreIndicatorPeriod("ema", period)}
 									/>
 								) : null}
 							</IndicatorSectionCard>
-						))}
 
-						{trailingSimpleSections.map((section) => (
 							<IndicatorSectionCard
-								key={section.id}
-								title={section.title}
-								description={section.description}
-								checked={section.checked}
-								onCheckedChange={section.onCheckedChange}
-							/>
-						))}
-					</div>
+								title="RSI"
+								description="Relative Strength Index"
+								checked={indicators.rsi.enabled}
+								onCheckedChange={(checked) => onSetCoreIndicatorEnabled("rsi", checked)}
+							>
+								{indicators.rsi.enabled ? (
+									<PresetButtonRow
+										values={[7, 14, 21, 28]}
+										activeValue={indicators.rsi.period}
+										getKey={(period) => `rsi-${period}`}
+										onSelect={(period) => onSetCoreIndicatorPeriod("rsi", period)}
+									/>
+								) : null}
+							</IndicatorSectionCard>
+
+							{preBollingerSimpleSections.map((section) => (
+								<IndicatorSectionCard
+									key={section.id}
+									title={section.title}
+									description={section.description}
+									checked={section.checked}
+									onCheckedChange={section.onCheckedChange}
+								/>
+							))}
+
+							<div className="space-y-2 rounded-md border border-border p-3">
+								<div className="flex items-center justify-between">
+									<div>
+										<p className="text-sm font-medium">Bollinger Bands</p>
+										<p className="text-xs text-muted-foreground">Volatility bands</p>
+									</div>
+									<Switch
+										checked={indicators.bollinger?.enabled ?? false}
+										onCheckedChange={onSetBollingerEnabled}
+									/>
+								</div>
+								{indicators.bollinger?.enabled && (
+									<>
+										<div className="flex flex-wrap gap-1">
+											{[10, 20, 30, 50].map((period) => (
+												<Button
+													key={`bb-period-${period}`}
+													variant={indicators.bollinger?.period === period ? "secondary" : "ghost"}
+													size="sm"
+													className="h-7 px-2 text-xs"
+													onClick={() => onSetBollingerPeriod(period)}
+												>
+													P{period}
+												</Button>
+											))}
+										</div>
+										<div className="flex flex-wrap gap-1">
+											{[1, 1.5, 2, 2.5, 3].map((std) => (
+												<Button
+													key={`bb-std-${std}`}
+													variant={indicators.bollinger?.stdDev === std ? "secondary" : "ghost"}
+													size="sm"
+													className="h-7 px-2 text-xs"
+													onClick={() => onSetBollingerStdDev(std)}
+												>
+													x{std}
+												</Button>
+											))}
+										</div>
+									</>
+								)}
+							</div>
+
+							{postBollingerSimpleSections.map((section) => (
+								<IndicatorSectionCard
+									key={section.id}
+									title={section.title}
+									description={section.description}
+									checked={section.checked}
+									onCheckedChange={section.onCheckedChange}
+								/>
+							))}
+
+							{postBollingerPresetSections.map((section) => (
+								<IndicatorSectionCard
+									key={section.id}
+									title={section.title}
+									description={section.description}
+									checked={section.checked}
+									onCheckedChange={section.onCheckedChange}
+								>
+									{section.checked ? (
+										<PresetButtonRow
+											values={section.values}
+											activeValue={section.activeValue}
+											getKey={(value) => `${section.id}-${value}`}
+											renderLabel={section.formatValue}
+											onSelect={section.onSelect}
+										/>
+									) : null}
+								</IndicatorSectionCard>
+							))}
+
+							<div className="space-y-2 rounded-md border border-border p-3">
+								<div className="flex items-center justify-between">
+									<div>
+										<p className="text-sm font-medium">SMA +/- ATR Channel</p>
+										<p className="text-xs text-muted-foreground">SMA center with ATR width</p>
+									</div>
+									<Switch
+										checked={indicators.atrChannel?.enabled ?? false}
+										onCheckedChange={onSetAtrChannelEnabled}
+									/>
+								</div>
+								{indicators.atrChannel?.enabled && (
+									<>
+										<div className="flex flex-wrap gap-1">
+											{[20, 50, 100, 200].map((period) => (
+												<Button
+													key={`atrch-sma-${period}`}
+													variant={
+														indicators.atrChannel?.smaPeriod === period ? "secondary" : "ghost"
+													}
+													size="sm"
+													className="h-7 px-2 text-xs"
+													onClick={() => onSetAtrChannelSmaPeriod(period)}
+												>
+													SMA{period}
+												</Button>
+											))}
+										</div>
+										<div className="flex flex-wrap gap-1">
+											{[7, 14, 21, 28, 50].map((period) => (
+												<Button
+													key={`atrch-atr-${period}`}
+													variant={
+														indicators.atrChannel?.atrPeriod === period ? "secondary" : "ghost"
+													}
+													size="sm"
+													className="h-7 px-2 text-xs"
+													onClick={() => onSetAtrChannelAtrPeriod(period)}
+												>
+													ATR{period}
+												</Button>
+											))}
+										</div>
+										<div className="flex flex-wrap gap-1">
+											{[1, 1.5, 2, 2.5, 3].map((mult) => (
+												<Button
+													key={`atrch-m-${mult}`}
+													variant={
+														indicators.atrChannel?.multiplier === mult ? "secondary" : "ghost"
+													}
+													size="sm"
+													className="h-7 px-2 text-xs"
+													onClick={() => onSetAtrChannelMultiplier(mult)}
+												>
+													x{mult}
+												</Button>
+											))}
+										</div>
+									</>
+								)}
+							</div>
+
+							{postAtrChannelPresetSections.map((section) => (
+								<IndicatorSectionCard
+									key={section.id}
+									title={section.title}
+									description={section.description}
+									checked={section.checked}
+									onCheckedChange={section.onCheckedChange}
+								>
+									{section.checked ? (
+										<PresetButtonRow
+											values={section.values}
+											activeValue={section.activeValue}
+											getKey={(value) => `${section.id}-${value}`}
+											renderLabel={section.formatValue}
+											onSelect={section.onSelect}
+										/>
+									) : null}
+								</IndicatorSectionCard>
+							))}
+
+							{trailingSimpleSections.map((section) => (
+								<IndicatorSectionCard
+									key={section.id}
+									title={section.title}
+									description={section.description}
+									checked={section.checked}
+									onCheckedChange={section.onCheckedChange}
+								/>
+							))}
+						</div>
+					</ScrollArea>
 				)}
 
 				{activePanel === "news" && <NewsPanel symbol={currentSymbol} />}
+				{activePanel === "macro" && <MacroPanel symbol={currentSymbol} />}
 
 				{activePanel === "orders" && (
 					<OrdersPanel symbol={currentSymbol} markPrice={currentPrice} />
@@ -535,7 +554,11 @@ export function RightDetailsSidebar({
 
 				{activePanel === "portfolio" && <PortfolioPanel />}
 
-				{activePanel === "strategy" && <StrategyLabPanel candleData={candleData} />}
+				{activePanel === "strategy" && (
+					<ScrollArea className="flex-1">
+						<StrategyLabPanel candleData={candleData} />
+					</ScrollArea>
+				)}
 			</div>
 		</aside>
 	);

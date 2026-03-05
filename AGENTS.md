@@ -43,10 +43,17 @@ Multi-service trading platform: real-time charting, geopolitical risk map, portf
 | Datei | Inhalt | Lesen wenn... |
 |:---|:---|:---|
 | `EXECUTION_PLAN.md` | Phasen-Roadmap (22+1 Phasen), Sub-Phasen, Dependencies, Current Progress | Immer zuerst |
+| `execution_mini_plan.md` | Granulare Verify-Checkliste, P0–P3, Ablauf, Verify-Skripte | Live-Verify, Abnahme |
 | `SYSTEM_STATE.md` | IST/SOLL pro Architektur-Bereich (17 Sektionen) | Immer zuerst |
 | `API_CONTRACTS.md` | Alle Endpoint-Definitionen, Request/Response Schemas (13 Sektionen) | Endpoint-Arbeit |
 | `AUTH_SECURITY.md` | 3-Schichten Auth, RBAC, WebMCP Security, Exchange Key Security | Auth, Security |
 | `FRONTEND_ARCHITECTURE.md` | Komponentenstruktur, State Management, Dependencies, Phase-Mapping | Frontend-Arbeit |
+| `ARCHITECTURE.md` | System-Architektur, Schichten, Abhaengigkeiten | Architektur-Arbeit |
+| `CAPABILITY_REGISTRY.md` | API/Tool scopes, risk-tier, Policy Tiers | Phase 23, Agent Security |
+| `ROLLOUT_GATES.md` | Reversible Rollout Gates, Feature Flags | Phase 24 |
+| `PLUGIN_PILOT.md` | Internal Plugin Pilot, Partner Boundary | Phase 24 |
+| `PARTNER_BOUNDARY.md` | Partner/ISV Boundary Spec | Phase 24 |
+| `PAYMENT_ADAPTER.md` | Payment Orchestration Adapter | Phase 24 |
 
 ### Domain Docs (docs/)
 
@@ -69,7 +76,15 @@ Multi-service trading platform: real-time charting, geopolitical risk map, portf
 | `POLITICAL_ECONOMY_KNOWLEDGE.md` | Keen/Minsky, Heterodox Economics, Crisis Modeling | Referenz |
 | `FRONTEND_DESIGN_TOOLING.md` | Design Tokens, Component Library, Tooling Decisions | 21 |
 | `ADR-001-streaming-architecture.md` | SSE Streaming Architecture Decision | 3 |
+| `adr/ADR-002-GeoMap-Rendering-Foundation.md` | Globe-Core, Flat/Regional optional, deck.gl Gate | 4 |
 | `PROVIDER_LIMITS.md` | Provider Rate Limits, Quotas, Fallback Chain | 0, 7 |
+| `PROXY_CONVENTIONS.md` | Correlation-ID, Thin-Proxy, Provider-Bypass-Verbot | 0, 1 |
+| `GEOMAP_VERIFY.md` | Draw-Workflow, E2E-Abnahme, Save-Fehlerpfad | 4 |
+| `BASEMAP_POLICY.md` | OSM-Attribution, Geocoding-Provider, Lizenz-Checklist | 4 |
+| `GEOCODING_STRATEGY.md` | Geocoding-Provider-Strategie, Cache/Fallback | 4 |
+| `PERFORMANCE_BASELINE.md` | FPS, Frame-Time p50/p95, Lastprofile, deck.gl Entry-Gate | 4, 12 |
+| `PMTILES_CONTRACT.md` | PMTiles vs Live-Overlay Contract | 4 |
+| `REFERENCE_SOURCE_STATUS.md` | Provider-Status-Matrix (Phase 14) | 14 |
 
 ### Nicht-relevante Docs (nur bei expliziter Anfrage lesen)
 

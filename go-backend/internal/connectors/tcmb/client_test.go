@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 func TestGetSeries_ParsesEVDS3PayloadLatestFirst(t *testing.T) {
@@ -27,7 +29,7 @@ func TestGetSeries_ParsesEVDS3PayloadLatestFirst(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL})
-	points, err := client.GetSeries(context.Background(), gct.Pair{Base: "TCMB_EVDS_TP_AB_TOPLAM", Quote: "USD"}, "macro", 2)
+	points, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("TCMB_EVDS_TP_AB_TOPLAM"), currency.NewCode("USD")), asset.Empty, 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -52,7 +54,7 @@ func TestGetTicker_UsesCanonicalCurrency(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL})
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "TP_AB_TOPLAM", Quote: "USD"}, "macro")
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("TP_AB_TOPLAM"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -63,7 +65,7 @@ func TestGetTicker_UsesCanonicalCurrency(t *testing.T) {
 
 func TestGetSeries_RejectsInvalidSeriesCode(t *testing.T) {
 	client := NewClient(Config{BaseURL: "https://example.invalid"})
-	_, err := client.GetSeries(context.Background(), gct.Pair{Base: "TCMB_EVDS_BAD!CODE", Quote: "USD"}, "macro", 1)
+	_, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("TCMB_EVDS_BAD!CODE"), currency.NewCode("USD")), asset.Empty, 1)
 	if err == nil {
 		t.Fatal("expected error")
 	}

@@ -7,8 +7,6 @@ import {
 } from "@/lib/server/geopolitical-events-store";
 import { appendGeoTimelineEntry } from "@/lib/server/geopolitical-timeline-store";
 
-export const runtime = "nodejs";
-
 interface ParamsShape {
 	params: Promise<{
 		eventId: string;

@@ -454,7 +454,7 @@ func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, a asset.It
 }
 
 // UpdateTickers updates all currency pairs of a given asset type
-func (e *Exchange) UpdateTickers(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) UpdateTickers(ctx context.Context, assetType string) error {
 	switch assetType {
 	case asset.Spread:
 		format, err := e.GetPairFormat(asset.Spread, true)
@@ -546,7 +546,7 @@ func (e *Exchange) UpdateTickers(ctx context.Context, assetType asset.Item) erro
 }
 
 // UpdateOrderbook updates and returns the orderbook for a currency pair
-func (e *Exchange) UpdateOrderbook(ctx context.Context, pair currency.Pair, assetType asset.Item) (*orderbook.Book, error) {
+func (e *Exchange) UpdateOrderbook(ctx context.Context, pair currency.Pair, assetType string) (*orderbook.Book, error) {
 	if pair.IsEmpty() {
 		return nil, currency.ErrCurrencyPairEmpty
 	}
@@ -652,7 +652,7 @@ func (e *Exchange) UpdateOrderbook(ctx context.Context, pair currency.Pair, asse
 }
 
 // UpdateAccountBalances retrieves currency balances
-func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType asset.Item) (accounts.SubAccounts, error) {
+func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType string) (accounts.SubAccounts, error) {
 	if err := e.CurrencyPairs.IsAssetEnabled(assetType); err != nil {
 		return nil, err
 	}
@@ -740,7 +740,7 @@ func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, _
 }
 
 // GetRecentTrades returns the most recent trades for a currency and asset
-func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType asset.Item) ([]trade.Data, error) {
+func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType string) ([]trade.Data, error) {
 	format, err := e.GetPairFormat(assetType, true)
 	if err != nil {
 		return nil, err
@@ -809,7 +809,7 @@ func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetTy
 }
 
 // GetHistoricTrades retrieves historic trade data within the timeframe provided
-func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType asset.Item, timestampStart, timestampEnd time.Time) ([]trade.Data, error) {
+func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType string, timestampStart, timestampEnd time.Time) ([]trade.Data, error) {
 	if !e.SupportsAsset(assetType) || assetType == asset.Spread {
 		return nil, fmt.Errorf("%w: %v", asset.ErrNotSupported, assetType)
 	}
@@ -1488,7 +1488,7 @@ ordersLoop:
 }
 
 // GetOrderInfo returns order information based on order ID
-func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType asset.Item) (*order.Detail, error) {
+func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType string) (*order.Detail, error) {
 	if !e.SupportsAsset(assetType) {
 		return nil, fmt.Errorf("%w %v", asset.ErrNotSupported, assetType)
 	}
@@ -1975,7 +1975,7 @@ func (e *Exchange) GetFeeByType(ctx context.Context, feeBuilder *exchange.FeeBui
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }

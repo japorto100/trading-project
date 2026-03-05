@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 func TestGetSeries_ParsesBCRAPayloadLatestFirst(t *testing.T) {
@@ -16,7 +18,7 @@ func TestGetSeries_ParsesBCRAPayloadLatestFirst(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL})
-	points, err := client.GetSeries(context.Background(), gct.Pair{Base: "BCRA_160", Quote: "USD"}, "macro", 2)
+	points, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("BCRA_160"), currency.NewCode("USD")), asset.Empty, 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -33,7 +35,7 @@ func TestGetSeries_ParsesBCRAPayloadLatestFirst(t *testing.T) {
 
 func TestGetSeries_RejectsInvalidSeriesID(t *testing.T) {
 	client := NewClient(Config{BaseURL: "https://example.invalid"})
-	_, err := client.GetSeries(context.Background(), gct.Pair{Base: "BCRA_BAD", Quote: "USD"}, "macro", 1)
+	_, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("BCRA_BAD"), currency.NewCode("USD")), asset.Empty, 1)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -49,7 +51,7 @@ func TestGetTicker_UsesPrefixedCurrency(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL})
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "160", Quote: "USD"}, "macro")
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("160"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

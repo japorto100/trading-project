@@ -553,7 +553,7 @@ func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, a asset
 }
 
 // UpdateAccountBalances retrieves currency balances
-func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType asset.Item) (subAccts accounts.SubAccounts, err error) {
+func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType string) (subAccts accounts.SubAccounts, err error) {
 	switch assetType {
 	case asset.Spot:
 		creds, err := e.GetCredentials(ctx)
@@ -1070,7 +1070,7 @@ func (e *Exchange) CancelAllOrders(ctx context.Context, req *order.Cancel) (orde
 }
 
 // GetOrderInfo returns information on a current open order
-func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType asset.Item) (*order.Detail, error) {
+func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType string) (*order.Detail, error) {
 	if pair.IsEmpty() {
 		return nil, currency.ErrCurrencyPairEmpty
 	}
@@ -1556,7 +1556,7 @@ func (e *Exchange) GetOrderHistory(ctx context.Context, req *order.MultiOrderReq
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper functionality
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }

@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	gctrpc "github.com/thrasher-corp/gocryptotrader/gctrpc"
 	gctauth "github.com/thrasher-corp/gocryptotrader/gctrpc/auth"
 	"google.golang.org/grpc"
@@ -42,10 +44,7 @@ type HealthStatus struct {
 	Error     string `json:"error,omitempty"`
 }
 
-type Pair struct {
-	Base  string
-	Quote string
-}
+type Pair = currency.Pair
 
 type Ticker struct {
 	Pair        Pair
@@ -228,7 +227,7 @@ func (c *Client) Health(ctx context.Context) HealthStatus {
 	return status
 }
 
-func (c *Client) GetTicker(ctx context.Context, exchange string, pair Pair, assetType string) (Ticker, error) {
+func (c *Client) GetTicker(ctx context.Context, exchange string, pair Pair, assetType asset.Item) (Ticker, error) {
 	if c.cfg.PreferGRPC {
 		ticker, err := c.getTickerGRPC(ctx, exchange, pair, assetType)
 		if err == nil {
@@ -239,7 +238,7 @@ func (c *Client) GetTicker(ctx context.Context, exchange string, pair Pair, asse
 	return c.getTickerHTTP(ctx, exchange, pair, assetType)
 }
 
-func (c *Client) OpenTickerStream(ctx context.Context, exchange string, pair Pair, assetType string) (<-chan Ticker, <-chan error, error) {
+func (c *Client) OpenTickerStream(ctx context.Context, exchange string, pair Pair, assetType asset.Item) (<-chan Ticker, <-chan error, error) {
 	serviceClient, err := c.grpcServiceClient(ctx)
 	if err != nil {
 		return nil, nil, err
@@ -249,10 +248,10 @@ func (c *Client) OpenTickerStream(ctx context.Context, exchange string, pair Pai
 		Exchange: exchange,
 		Pair: &gctrpc.CurrencyPair{
 			Delimiter: "/",
-			Base:      strings.ToUpper(pair.Base),
-			Quote:     strings.ToUpper(pair.Quote),
+			Base:      strings.ToUpper(pair.Base.String()),
+			Quote:     strings.ToUpper(pair.Quote.String()),
 		},
-		AssetType: strings.ToLower(assetType),
+		AssetType: strings.ToLower(assetType.String()),
 	}
 
 	streamContext, cancel := c.withStreamContext(ctx)
@@ -308,7 +307,7 @@ func (c *Client) grpcPing(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) getTickerGRPC(ctx context.Context, exchange string, pair Pair, assetType string) (Ticker, error) {
+func (c *Client) getTickerGRPC(ctx context.Context, exchange string, pair Pair, assetType asset.Item) (Ticker, error) {
 	serviceClient, err := c.grpcServiceClient(ctx)
 	if err != nil {
 		return Ticker{}, err
@@ -321,10 +320,10 @@ func (c *Client) getTickerGRPC(ctx context.Context, exchange string, pair Pair, 
 		Exchange: exchange,
 		Pair: &gctrpc.CurrencyPair{
 			Delimiter: "/",
-			Base:      strings.ToUpper(pair.Base),
-			Quote:     strings.ToUpper(pair.Quote),
+			Base:      strings.ToUpper(pair.Base.String()),
+			Quote:     strings.ToUpper(pair.Quote.String()),
 		},
-		AssetType: strings.ToLower(assetType),
+		AssetType: strings.ToLower(assetType.String()),
 	})
 	if callErr != nil {
 		return Ticker{}, wrapRPCError("GetTicker", callErr)
@@ -336,7 +335,7 @@ func (c *Client) getTickerGRPC(ctx context.Context, exchange string, pair Pair, 
 func fromGRPCTicker(response *gctrpc.TickerResponse) Ticker {
 	pair := Pair{}
 	if response.GetPair() != nil {
-		pair = Pair{Base: response.GetPair().GetBase(), Quote: response.GetPair().GetQuote()}
+		pair = Pair{Base: currency.NewCode(response.GetPair().GetBase()), Quote: currency.NewCode(response.GetPair().GetQuote())}
 	}
 
 	return Ticker{
@@ -410,15 +409,15 @@ func (c *Client) withStreamContext(ctx context.Context) (context.Context, contex
 	return context.WithCancel(ctx)
 }
 
-func (c *Client) getTickerHTTP(ctx context.Context, exchange string, pair Pair, assetType string) (Ticker, error) {
+func (c *Client) getTickerHTTP(ctx context.Context, exchange string, pair Pair, assetType asset.Item) (Ticker, error) {
 	request := map[string]any{
 		"exchange": exchange,
 		"pair": map[string]string{
 			"delimiter": "/",
-			"base":      strings.ToUpper(pair.Base),
-			"quote":     strings.ToUpper(pair.Quote),
+			"base":      strings.ToUpper(pair.Base.String()),
+			"quote":     strings.ToUpper(pair.Quote.String()),
 		},
-		"assetType": strings.ToLower(assetType),
+		"assetType": strings.ToLower(assetType.String()),
 	}
 
 	var response struct {
@@ -445,7 +444,7 @@ func (c *Client) getTickerHTTP(ctx context.Context, exchange string, pair Pair, 
 	}
 
 	return Ticker{
-		Pair:        Pair{Base: response.Pair.Base, Quote: response.Pair.Quote},
+		Pair:        Pair{Base: currency.NewCode(response.Pair.Base), Quote: currency.NewCode(response.Pair.Quote)},
 		Currency:    response.CurrencyPair,
 		LastUpdated: lastUpdated,
 		Last:        response.Last,

@@ -3,6 +3,7 @@ package sse
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -20,7 +21,7 @@ func TestResolveStreamParams_Defaults(t *testing.T) {
 	if params.AssetType != "spot" {
 		t.Fatalf("expected spot asset type, got %s", params.AssetType)
 	}
-	if params.Pair.Base != "BTC" || params.Pair.Quote != "USDT" {
+	if params.Pair.Base.String() != "BTC" || params.Pair.Quote.String() != "USDT" {
 		t.Fatalf("expected BTC/USDT pair, got %s/%s", params.Pair.Base, params.Pair.Quote)
 	}
 }
@@ -60,8 +61,45 @@ func TestResolveStreamParams_AcceptsFinnhubInstrument(t *testing.T) {
 	if params.Symbol != "AAPL" {
 		t.Fatalf("expected normalized symbol AAPL, got %s", params.Symbol)
 	}
-	if params.Pair.Base != "AAPL" || params.Pair.Quote != "USD" {
+	if params.Pair.Base.String() != "AAPL" || params.Pair.Quote.String() != "USD" {
 		t.Fatalf("expected pair AAPL/USD, got %s/%s", params.Pair.Base, params.Pair.Quote)
+	}
+}
+
+func TestResolveStreamParams_AutoExchangeResolvesCryptoFromEnv(t *testing.T) {
+	t.Setenv("GCT_STREAM_AUTO_EXCHANGE", "kraken")
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/stream/market?symbol=BTC/USD&exchange=auto&assetType=spot",
+		nil,
+	)
+
+	params, err := resolveStreamParams(request)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if params.Exchange != "kraken" || params.UpstreamExchange != "Kraken" {
+		t.Fatalf("unexpected exchange mapping: %+v", params)
+	}
+	if params.Pair.Base.String() != "XBT" || params.Pair.Quote.String() != "USD" {
+		t.Fatalf("expected normalized pair XBT/USD for kraken, got %s/%s", params.Pair.Base, params.Pair.Quote)
+	}
+}
+
+func TestResolveStreamParams_AutoExchangeResolvesEquityToFinnhub(t *testing.T) {
+	_ = os.Unsetenv("GCT_STREAM_AUTO_EXCHANGE")
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/stream/market?symbol=AAPL&exchange=auto&assetType=equity",
+		nil,
+	)
+
+	params, err := resolveStreamParams(request)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if params.Exchange != "finnhub" || params.UpstreamExchange != "FINNHUB" {
+		t.Fatalf("unexpected exchange mapping: %+v", params)
 	}
 }
 

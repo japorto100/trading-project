@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { getGeopoliticalSourceHealth } from "@/lib/geopolitical/source-health";
 import {
@@ -14,6 +15,7 @@ function getActor(request: NextRequest): string {
 }
 
 export async function GET() {
+	const requestId = randomUUID();
 	const config = await getGeoCentralBankOverlayConfig();
 	const entries = getGeopoliticalSourceHealth();
 	const lower = (value: string) => value.toLowerCase();
@@ -41,10 +43,15 @@ export async function GET() {
 			centralBanks: centralBankSources.length,
 			sanctions: sanctionsSources.length,
 		},
+		requestId,
+		degraded: false,
+		degraded_reasons: [],
+		contract_version: "phase12-overlay-v1",
 	});
 }
 
 export async function PATCH(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	try {
 		const payload = (await request.json()) as {
 			rateDecisionsEnabled?: boolean;
@@ -56,12 +63,23 @@ export async function PATCH(request: NextRequest) {
 			...payload,
 			actor: getActor(request),
 		});
-		return NextResponse.json({ success: true, config });
+		return NextResponse.json({
+			success: true,
+			config,
+			requestId,
+			degraded: false,
+			degraded_reasons: [],
+			contract_version: "phase12-overlay-v1",
+		});
 	} catch (error: unknown) {
 		return NextResponse.json(
 			{
 				success: false,
 				error: error instanceof Error ? error.message : "overlay config update failed",
+				requestId,
+				degraded: true,
+				degraded_reasons: ["OVERLAY_UPDATE_FAILED"],
+				contract_version: "phase12-overlay-v1",
 			},
 			{ status: 400 },
 		);

@@ -10,6 +10,8 @@ import (
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 const DefaultBaseURL = "https://data-api.ecb.europa.eu/service"
@@ -63,7 +65,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error) {
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
 	series, err := c.GetSeries(ctx, pair, assetType, 1)
 	if err != nil {
 		return gct.Ticker{}, err
@@ -80,12 +82,12 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	if lastUpdated <= 0 {
 		lastUpdated = time.Now().Unix()
 	}
-	canonical := normalizeCanonical(pair.Base)
+	canonical := normalizeCanonical(pair.Base.String())
 	if canonical == "" {
 		canonical = seriesPrefix + defaultDataflowFM + "_" + defaultPolicyRateKey
 	}
 	return gct.Ticker{
-		Pair:        gct.Pair{Base: canonical, Quote: "USD"},
+		Pair:        currency.NewPair(currency.NewCode(canonical), currency.NewCode("USD")),
 		Currency:    canonical,
 		LastUpdated: lastUpdated,
 		Last:        value,
@@ -97,8 +99,8 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	}, nil
 }
 
-func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
-	if strings.ToLower(strings.TrimSpace(assetType)) != "macro" {
+func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+	if !gct.IsSemanticAssetType(assetType, "macro") {
 		return nil, &gct.RequestError{
 			Path:       c.defaultPath,
 			StatusCode: http.StatusBadRequest,
@@ -115,7 +117,7 @@ func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string,
 		limit = 1000
 	}
 
-	flow, dims, canonical, err := parseSeriesSymbol(pair.Base)
+	flow, dims, canonical, err := parseSeriesSymbol(pair.Base.String())
 	if err != nil {
 		return nil, &gct.RequestError{
 			Path:       c.defaultPath,

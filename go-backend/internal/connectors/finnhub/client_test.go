@@ -10,6 +10,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 func TestGetTicker_ReturnsQuoteForEquity(t *testing.T) {
@@ -29,7 +31,7 @@ func TestGetTicker_ReturnsQuoteForEquity(t *testing.T) {
 		APIKey:  "token",
 	})
 
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "AAPL", Quote: "USD"}, "equity")
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("AAPL"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -43,7 +45,7 @@ func TestGetTicker_ReturnsQuoteForEquity(t *testing.T) {
 
 func TestGetTicker_RejectsMissingKey(t *testing.T) {
 	client := NewClient(Config{})
-	_, err := client.GetTicker(context.Background(), gct.Pair{Base: "AAPL", Quote: "USD"}, "equity")
+	_, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("AAPL"), currency.NewCode("USD")), asset.Empty)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -60,7 +62,7 @@ func TestGetTicker_RejectsUnsupportedAssetType(t *testing.T) {
 	client := NewClient(Config{
 		APIKey: "token",
 	})
-	_, err := client.GetTicker(context.Background(), gct.Pair{Base: "AAPL", Quote: "USD"}, "spot")
+	_, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("AAPL"), currency.NewCode("USD")), asset.Spot)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -129,7 +131,7 @@ func TestOpenTradeStream_EmitsTradeTicker(t *testing.T) {
 	case streamErr := <-errorChannel:
 		t.Fatalf("unexpected stream error: %v", streamErr)
 	case ticker := <-tickerChannel:
-		if ticker.Pair.Base != "AAPL" || ticker.Pair.Quote != "USD" {
+		if ticker.Pair.Base.String() != "AAPL" || ticker.Pair.Quote.String() != "USD" {
 			t.Fatalf("unexpected pair: %s/%s", ticker.Pair.Base, ticker.Pair.Quote)
 		}
 		if ticker.Last != 205.12 {

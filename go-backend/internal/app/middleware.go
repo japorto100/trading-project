@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -35,6 +37,12 @@ func (w *loggingResponseWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
+func (w *loggingResponseWriter) Flush() {
+	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 func withRequestIDAndLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := strings.TrimSpace(r.Header.Get(requestIDHeader))
@@ -45,6 +53,9 @@ func withRequestIDAndLogging(next http.Handler) http.Handler {
 		w.Header().Set(requestIDHeader, requestID)
 		r.Header.Set(requestIDHeader, requestID)
 		ctx := requestctx.WithRequestID(r.Context(), requestID)
+		if span := trace.SpanFromContext(ctx); span.IsRecording() {
+			span.SetAttributes(attribute.String("http.request_id", requestID))
+		}
 		r = r.WithContext(ctx)
 
 		start := time.Now()

@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 import "tradeviewfusion/go-backend/internal/connectors/base"
@@ -49,8 +51,8 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error) {
-	apiCode, canonical, ok := normalizeSeriesCode(pair.Base)
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
+	apiCode, canonical, ok := normalizeSeriesCode(pair.Base.String())
 	if !ok {
 		return gct.Ticker{}, &gct.RequestError{Path: defaultSeriesPath, StatusCode: http.StatusBadRequest, Cause: fmt.Errorf("invalid TCMB series code")}
 	}
@@ -67,7 +69,7 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 		lastUpdated = time.Now().Unix()
 	}
 	return gct.Ticker{
-		Pair:        gct.Pair{Base: canonical, Quote: "USD"},
+		Pair:        currency.NewPair(currency.NewCode(canonical), currency.NewCode("USD")),
 		Currency:    canonical,
 		LastUpdated: lastUpdated,
 		Last:        value,
@@ -79,16 +81,16 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	}, nil
 }
 
-func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
-	apiCode, _, ok := normalizeSeriesCode(pair.Base)
+func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+	apiCode, _, ok := normalizeSeriesCode(pair.Base.String())
 	if !ok {
 		return nil, &gct.RequestError{Path: defaultSeriesPath, StatusCode: http.StatusBadRequest, Cause: fmt.Errorf("invalid TCMB series code")}
 	}
 	return c.getSeries(ctx, apiCode, assetType, limit)
 }
 
-func (c *Client) getSeries(ctx context.Context, apiCode, assetType string, limit int) ([]gct.SeriesPoint, error) {
-	if strings.ToLower(strings.TrimSpace(assetType)) != "macro" {
+	func (c *Client) getSeries(ctx context.Context, apiCode string, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+	if !gct.IsSemanticAssetType(assetType, "macro") {
 		return nil, &gct.RequestError{Path: defaultSeriesPath, StatusCode: http.StatusBadRequest, Cause: fmt.Errorf("unsupported tcmb assetType")}
 	}
 	if c == nil || c.baseClient == nil {

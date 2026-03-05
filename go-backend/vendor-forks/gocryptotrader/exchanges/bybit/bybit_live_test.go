@@ -62,7 +62,7 @@ func instantiateTradablePairs() {
 	err := e.UpdateTradablePairs(context.Background())
 	handleError("unable to UpdateTradablePairs", err)
 
-	setTradablePair := func(assetType asset.Item, p *currency.Pair) {
+	setTradablePair := func(assetType string, p *currency.Pair) {
 		tradables, err := e.GetEnabledPairs(assetType)
 		handleError("unable to GetEnabledPairs", err)
 

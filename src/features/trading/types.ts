@@ -4,6 +4,7 @@ export type SidebarPanel =
 	| "news"
 	| "orders"
 	| "portfolio"
+	| "macro"
 	| "strategy";
 export type WatchlistTab =
 	| "all"
@@ -12,7 +13,8 @@ export type WatchlistTab =
 	| "stocks"
 	| "forex"
 	| "commodities"
-	| "indices";
+	| "indices"
+	| "macro";
 export type DataMode = "api" | "fallback";
 export type LayoutMode = "single" | "2h" | "2v" | "4";
 

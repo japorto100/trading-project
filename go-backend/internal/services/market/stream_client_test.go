@@ -5,17 +5,19 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 type fakeQuoteRouter struct {
 	ticker       gct.Ticker
 	err          error
 	lastExchange string
-	lastAsset    string
+	lastAsset    asset.Item
 	lastPair     gct.Pair
 }
 
-func (f *fakeQuoteRouter) GetTicker(_ context.Context, exchange string, pair gct.Pair, assetType string) (gct.Ticker, error) {
+func (f *fakeQuoteRouter) GetTicker(_ context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
 	f.lastExchange = exchange
 	f.lastPair = pair
 	f.lastAsset = assetType
@@ -30,11 +32,11 @@ type fakeCryptoStreamClient struct {
 	errorChannel  <-chan error
 	err           error
 	lastExchange  string
-	lastAsset     string
+	lastAsset     asset.Item
 	lastPair      gct.Pair
 }
 
-func (f *fakeCryptoStreamClient) OpenTickerStream(_ context.Context, exchange string, pair gct.Pair, assetType string) (<-chan gct.Ticker, <-chan error, error) {
+func (f *fakeCryptoStreamClient) OpenTickerStream(_ context.Context, exchange string, pair currency.Pair, assetType asset.Item) (<-chan gct.Ticker, <-chan error, error) {
 	f.lastExchange = exchange
 	f.lastPair = pair
 	f.lastAsset = assetType
@@ -59,7 +61,7 @@ func TestStreamClient_UsesQuoteRouterForTicker(t *testing.T) {
 	}
 	client := NewStreamClient(quoteRouter, &fakeCryptoStreamClient{}, &fakeStockStreamClient{})
 
-	ticker, err := client.GetTicker(context.Background(), "FINNHUB", gct.Pair{Base: "AAPL", Quote: "USD"}, "equity")
+	ticker, err := client.GetTicker(context.Background(), "FINNHUB", currency.NewPair(currency.NewCode("AAPL"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -80,7 +82,7 @@ func TestStreamClient_RoutesFinnhubStreamToStockClient(t *testing.T) {
 	}
 	client := NewStreamClient(&fakeQuoteRouter{}, &fakeCryptoStreamClient{}, stockStream)
 
-	tickerChannel, errorChannel, err := client.OpenTickerStream(context.Background(), "FINNHUB", gct.Pair{Base: "AAPL", Quote: "USD"}, "equity")
+	tickerChannel, errorChannel, err := client.OpenTickerStream(context.Background(), "FINNHUB", currency.NewPair(currency.NewCode("AAPL"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -101,7 +103,7 @@ func TestStreamClient_RoutesCryptoStreamToGCTClient(t *testing.T) {
 	}
 	client := NewStreamClient(&fakeQuoteRouter{}, cryptoStream, &fakeStockStreamClient{})
 
-	tickerChannel, errorChannel, err := client.OpenTickerStream(context.Background(), "Binance", gct.Pair{Base: "BTC", Quote: "USDT"}, "spot")
+	tickerChannel, errorChannel, err := client.OpenTickerStream(context.Background(), "Binance", currency.NewPair(currency.NewCode("BTC"), currency.NewCode("USDT")), asset.Spot)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

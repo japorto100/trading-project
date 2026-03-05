@@ -22,6 +22,8 @@ if (Test-Path $cargoBin) {
     }
 }
 $env:CARGO_TARGET_DIR = $rustTargetDir
+# Keep uv installs deterministic on Windows when cache/venv are on different volumes.
+$env:UV_LINK_MODE = "copy"
 
 if (Get-Command uv -ErrorAction SilentlyContinue) {
     $uvCmd = "uv"

@@ -1,0 +1,51 @@
+# Phase 23 Capability Registry
+# Ref: docs/specs/CAPABILITY_REGISTRY.md
+
+capabilities:
+  - id: api.v1.memory.kg.seed
+    scope: [kg:write]
+    owner: memory-service
+    risk_tier: bounded-write
+    deprecated: false
+
+  - id: api.v1.memory.kg.nodes
+    scope: [kg:read]
+    owner: memory-service
+    risk_tier: read-only
+    deprecated: false
+
+  - id: api.v1.memory.search
+    scope: [memory:read]
+    owner: memory-service
+    risk_tier: read-only
+    deprecated: false
+
+  - id: api.v1.gct.portfolio.order
+    scope: [portfolio:write, order:create]
+    owner: gct-gateway
+    risk_tier: approval-write
+    deprecated: false
+
+  - id: tool.get_chart_state
+    scope: [chart:read]
+    owner: agent-tools
+    risk_tier: read-only
+    deprecated: false
+
+  - id: tool.get_portfolio_summary
+    scope: [portfolio:read]
+    owner: agent-tools
+    risk_tier: read-only
+    deprecated: false
+
+  - id: tool.get_geomap_focus
+    scope: [geomap:read]
+    owner: agent-tools
+    risk_tier: read-only
+    deprecated: false
+
+  - id: tool.set_chart_state
+    scope: [chart:write]
+    owner: agent-tools
+    risk_tier: mutation-confirm-required
+    deprecated: false

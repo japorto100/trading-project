@@ -22,6 +22,7 @@ export interface CountryStyleMetrics {
 	eventCount: number;
 	maxSeverity: number;
 	regimeState: CountryRegimeState;
+	macroValue?: number;
 }
 
 export interface SoftSignalVisualStyle {
@@ -35,9 +36,14 @@ function normalizeCandidateConfidence(confidence: number): number {
 	return Math.max(0, Math.min(1, confidence / 5));
 }
 
-export function createCountryStyleResolver(maxCountryIntensity: number) {
+export function createCountryStyleResolver(
+	maxCountryIntensity: number,
+	maxMacroValue: number = 25,
+) {
 	const safeMax = Math.max(1, maxCountryIntensity);
+	const safeMacroMax = Math.max(0.1, maxMacroValue);
 	const heatColor = scaleSequential(interpolateYlOrRd).domain([0, safeMax]).clamp(true);
+	const macroColor = scaleSequential(interpolateYlOrRd).domain([0, safeMacroMax]).clamp(true);
 	const heatOpacity = scaleLinear<number, number>()
 		.domain([0, safeMax])
 		.range([0.82, 1])
@@ -59,8 +65,25 @@ export function createCountryStyleResolver(maxCountryIntensity: number) {
 	return (
 		metrics: CountryStyleMetrics,
 		enabled: boolean,
-		mode: "severity" | "regime",
+		mode: "severity" | "regime" | "macro",
 	): CountryVisualStyle => {
+		if (mode === "macro") {
+			const value = metrics.macroValue ?? 0;
+			if (!Number.isFinite(value) || value <= 0) {
+				return {
+					fill: BASE_LAND_FILL,
+					stroke: BASE_LAND_STROKE,
+					opacity: 0.8,
+				};
+			}
+			const heatHex = macroColor(value);
+			const blend = Math.min(1, value / safeMacroMax);
+			return {
+				fill: interpolateRgb(mixIntoDarkBase(0.15 + blend * 0.85), heatHex)(0.6),
+				stroke: BASE_LAND_STROKE,
+				opacity: 0.82 + blend * 0.18,
+			};
+		}
 		if (mode === "regime") {
 			if (!enabled) {
 				return {

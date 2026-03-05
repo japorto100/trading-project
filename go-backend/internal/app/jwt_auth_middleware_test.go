@@ -307,6 +307,59 @@ func TestWithJWTAuth_RejectsRevokedJTI(t *testing.T) {
 	}
 }
 
+func TestWithJWTAuth_RejectsRevokedUser(t *testing.T) {
+	revocations := newJWTRevocationBlocklist()
+	userId := "user-456"
+	revokedBefore := time.Now()
+	revocations.RevokeUser(userId, revokedBefore)
+
+	handler := withJWTAuth(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}), jwtAuthConfig{
+		enabled:     true,
+		secret:      "secret",
+		revocations: revocations,
+	})
+
+	t.Run("rejects token issued BEFORE revocation event", func(t *testing.T) {
+		token := signedTestJWT(t, "secret", gatewayJWTClaims{
+			Role: "viewer",
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   userId,
+				ID:        "jti-old",
+				IssuedAt:  jwt.NewNumericDate(revokedBefore.Add(-time.Minute)),
+				ExpiresAt: jwt.NewNumericDate(revokedBefore.Add(time.Hour)),
+			},
+		})
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/quote", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, req)
+		if res.Code != http.StatusUnauthorized {
+			t.Fatalf("expected status 401 for old token, got %d", res.Code)
+		}
+	})
+
+	t.Run("accepts token issued AFTER revocation event", func(t *testing.T) {
+		token := signedTestJWT(t, "secret", gatewayJWTClaims{
+			Role: "viewer",
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   userId,
+				ID:        "jti-new",
+				IssuedAt:  jwt.NewNumericDate(revokedBefore.Add(time.Minute)),
+				ExpiresAt: jwt.NewNumericDate(revokedBefore.Add(time.Hour)),
+			},
+		})
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/quote", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		res := httptest.NewRecorder()
+		handler.ServeHTTP(res, req)
+		if res.Code != http.StatusOK {
+			t.Fatalf("expected status 200 for new token, got %d", res.Code)
+		}
+	})
+}
+
 func TestWithJWTAuth_MisconfiguredSecretReturns503(t *testing.T) {
 	handler := withJWTAuth(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

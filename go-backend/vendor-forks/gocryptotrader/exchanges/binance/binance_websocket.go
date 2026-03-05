@@ -217,7 +217,7 @@ func (e *Exchange) wsHandleData(ctx context.Context, respRaw []byte) error {
 			}
 			remainingAmount := data.Quantity - data.CumulativeFilledQuantity
 			var pair currency.Pair
-			var assetType asset.Item
+			var assetType string
 			pair, assetType, err = e.GetRequestFormattedPairAndAssetType(data.Symbol)
 			if err != nil {
 				return err

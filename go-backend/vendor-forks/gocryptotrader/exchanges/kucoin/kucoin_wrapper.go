@@ -219,7 +219,7 @@ func (e *Exchange) Setup(exch *config.Exchange) error {
 }
 
 // FetchTradablePairs returns a list of the exchanges tradable pairs
-func (e *Exchange) FetchTradablePairs(ctx context.Context, assetType asset.Item) (currency.Pairs, error) {
+func (e *Exchange) FetchTradablePairs(ctx context.Context, assetType string) (currency.Pairs, error) {
 	switch assetType {
 	case asset.Futures:
 		myPairs, err := e.GetFuturesOpenContracts(ctx)
@@ -276,7 +276,7 @@ func (e *Exchange) UpdateTradablePairs(ctx context.Context) error {
 }
 
 // UpdateTicker updates and returns the ticker for a currency pair
-func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType asset.Item) (*ticker.Price, error) {
+func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType string) (*ticker.Price, error) {
 	p, err := e.FormatExchangeCurrency(p, assetType)
 	if err != nil {
 		return nil, err
@@ -288,7 +288,7 @@ func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType 
 }
 
 // UpdateTickers updates all currency pairs of a given asset type
-func (e *Exchange) UpdateTickers(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) UpdateTickers(ctx context.Context, assetType string) error {
 	var errs error
 	switch assetType {
 	case asset.Futures:
@@ -396,7 +396,7 @@ func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, a asset
 }
 
 // UpdateAccountBalances retrieves currency balances
-func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType asset.Item) (accounts.SubAccounts, error) {
+func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType string) (accounts.SubAccounts, error) {
 	if err := e.CurrencyPairs.IsAssetEnabled(assetType); err != nil {
 		return nil, fmt.Errorf("%w: %q", asset.ErrNotSupported, assetType)
 	}
@@ -479,7 +479,7 @@ func (e *Exchange) GetAccountFundingHistory(ctx context.Context) ([]exchange.Fun
 }
 
 // GetWithdrawalsHistory returns previous withdrawals data
-func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, assetType asset.Item) ([]exchange.WithdrawalHistory, error) {
+func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, assetType string) ([]exchange.WithdrawalHistory, error) {
 	if !e.SupportsAsset(assetType) {
 		return nil, asset.ErrNotSupported
 	}
@@ -503,7 +503,7 @@ func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, a
 }
 
 // GetRecentTrades returns the most recent trades for a currency and asset
-func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType asset.Item) ([]trade.Data, error) {
+func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType string) ([]trade.Data, error) {
 	p, err := e.FormatExchangeCurrency(p, assetType)
 	if err != nil {
 		return nil, err
@@ -941,7 +941,7 @@ func (e *Exchange) CancelAllOrders(ctx context.Context, orderCancellation *order
 }
 
 // GetOrderInfo returns order information based on order ID
-func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType asset.Item) (*order.Detail, error) {
+func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType string) (*order.Detail, error) {
 	err := e.CurrencyPairs.IsAssetEnabled(assetType)
 	if err != nil {
 		return nil, err
@@ -1657,7 +1657,7 @@ func (e *Exchange) GetFeeByType(ctx context.Context, feeBuilder *exchange.FeeBui
 }
 
 // ValidateCredentials validates current credentials used for wrapper
-func (e *Exchange) ValidateCredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateCredentials(ctx context.Context, assetType string) error {
 	err := e.CurrencyPairs.IsAssetEnabled(assetType)
 	if err != nil {
 		return err
@@ -1806,7 +1806,7 @@ func (e *Exchange) GetAvailableTransferChains(ctx context.Context, cryptocurrenc
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper functionality
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }

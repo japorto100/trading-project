@@ -1,7 +1,8 @@
 # MASTER EXECUTION PLAN
 
-> **Stand:** 25. Februar 2026 (Rev. 3.6 — Phase 1 GCT Audit SQLite implementiert; Playwright E2E Specs repariert; dev-stack.ps1 parallelisiert)
+> **Stand:** 04. März 2026 (Rev. 3.26 — Phase 9 Env-Cutover + Phase 12a NLP Upgrade CODE-COMPLETE)
 > **Zweck:** Hoechst-Level Roadmap und **vollstaendiger Index** ueber alle `docs/*.md` Planungsdokumente. Jede Phase ist ein End-to-End Deliverable. Jede Sub-Phase referenziert die Detail-Sektion im jeweiligen Fach-Dokument. Keine Phase wird begonnen bevor die vorherige ihr Verify Gate bestanden hat.
+> **Granulare Todo-Checkliste:** [`execution_mini_plan.md`](./execution_mini_plan.md) | **Archiv Rev. 5:** [`docs/archive/execution_mini_plan_rev5_2026-03-03.md`](../archive/execution_mini_plan_rev5_2026-03-03.md)
 >
 > **Quellen (alle docs/*.md ohne Subdirectories, exkl. CHERI/Future-Quant/ENV_VARS/REMOTE_DEV):**
 >
@@ -28,8 +29,22 @@
 > | **REF** | [`REFERENCE_PROJECTS.md`](../../docs/REFERENCE_PROJECTS.md) | (Referenz-Index) |
 > | | **Gesamt** | **~661** |
 >
-> **Specs:** [`SYSTEM_STATE.md`](./SYSTEM_STATE.md), [`API_CONTRACTS.md`](./API_CONTRACTS.md), [`FRONTEND_ARCHITECTURE.md`](./FRONTEND_ARCHITECTURE.md)
+> **Specs:** [`SYSTEM_STATE.md`](./SYSTEM_STATE.md), [`API_CONTRACTS.md`](./API_CONTRACTS.md), [`FRONTEND_ARCHITECTURE.md`](./FRONTEND_ARCHITECTURE.md), [`ERRORS.md`](./ERRORS.md)
 > **Frontend Bugs:** [`webapp.md`](../../docs/webapp.md)
+>
+> **Neue Docs (28. Feb 2026, execution_mini_plan) — Phase-Zuordnung:**
+> | Kuerzel | Dokument | Phase(n) | Zweck |
+> |:--------|:---------|:---------|:------|
+> | **PROXY** | [`PROXY_CONVENTIONS.md`](../../docs/PROXY_CONVENTIONS.md) | 0, 1 | Correlation-ID, Thin-Proxy, Provider-Bypass-Verbot |
+> | **ERRORS** | [`ERRORS.md`](./ERRORS.md) | 0 | Error Handling, Observability (OpenObserve), Error Boundaries |
+> | **GEOMAP-V** | [`GEOMAP_VERIFY.md`](../../docs/GEOMAP_VERIFY.md) | 4 | Draw-Workflow, E2E-Abnahme, Save-Fehlerpfad |
+> | **REF-SRC** | [`REFERENCE_SOURCE_STATUS.md`](../../docs/REFERENCE_SOURCE_STATUS.md) | 14 | Provider-Status-Matrix |
+> | **CAP-REG** | [`CAPABILITY_REGISTRY.md`](./CAPABILITY_REGISTRY.md) | 23 | API/Tool scopes, risk-tier |
+> | **BASEMAP** | [`BASEMAP_POLICY.md`](../../docs/BASEMAP_POLICY.md) | 4 | OSM-Attribution, Geocoding-Provider, Lizenz-Checklist |
+> | **ADR-002** | [`adr/ADR-002-GeoMap-Rendering-Foundation.md`](../../docs/adr/ADR-002-GeoMap-Rendering-Foundation.md) | 4 | Globe-Core, Flat/Regional optional, deck.gl/MapLibre Gate |
+> | **GEOCODING** | [`GEOCODING_STRATEGY.md`](../../docs/GEOCODING_STRATEGY.md) | 4 | Geocoding-Provider-Strategie, Cache/Fallback |
+> | **PERF** | [`PERFORMANCE_BASELINE.md`](../../docs/PERFORMANCE_BASELINE.md) | 4, 12 | FPS, Frame-Time p50/p95, Lastprofile, deck.gl Entry-Gate |
+> | **PMTILES** | [`PMTILES_CONTRACT.md`](../../docs/PMTILES_CONTRACT.md) | 4 | PMTiles vs Live-Overlay Contract |
 >
 > **Aenderungshistorie:**
 > - Rev. 1 (20. Feb 2026) — Erstfassung (10 Phasen, ~154 Tasks erfasst)
@@ -41,6 +56,56 @@
 > - Rev. 3.4 (25. Feb 2026) — Phase 8 Pattern Detection Code-Baseline: Elliott Wave Fibonacci Rules (R1–R6), XABCD Harmonics (Gartley/Bat/Butterfly/Crab), FEIW, Candlestick-Erweiterungen (11 neue Typen), TD Countdown 13 + TDST, Head & Shoulders. `test_phase8_patterns.py` mit ~50 Tests. Verify Gate ausstehend.
 > - Rev. 3.5 (25. Feb 2026) — Phase 4 formal abgeschlossen (Code vollstaendig, Live-Verify/E2E deferred). Phase 8 Code-Review bestanden: Elliott Wave (R1-R6), XABCD, Candlestick (11 Typen), TD Countdown/TDST, H&S alle korrekt implementiert und manuell verifiziert. Pytest-Verify Gate fuer Phase 8 bleibt User-Action (`uv run pytest tests/test_phase8_patterns.py -v`).
 > - Rev. 3.6 (25. Feb 2026) — **Phase 1 Code-Gap geschlossen:** GCT Audit SQLite (`gct_audit_sqlite.go`, `GCTAuditSQLiteStore`) implementiert; `gctAuditConfig.onRecord` Callback in Middleware; Wiring via `GCT_AUDIT_DB_ENABLED`/`GCT_AUDIT_DB_PATH`. **Playwright E2E repariert:** 4 Specs komplett ueberarbeitet (testid-basiert, kein `force:true`, Service-Skip-Guards fuer Backend-Tests). **data-testid Attribute** hinzugefuegt: `watchlist-sidebar`, `sidebar-right`, `tab-{id}` (5 Tabs), `timeline-strip`, `link-geomap`. **dev-stack.ps1 parallelisiert:** `Wait-ForPort` Health-Check-Funktion ersetzt feste Sleeps; Go-Gateway + Python starten parallel nach GCT-Ready; GCT-Credentials aus `GCT_ADMIN_USER`/`GCT_ADMIN_PASS` ENV.
+> - Rev. 3.7 (26. Feb 2026) — GeoMap-Planung konsolidiert: Phase-4-Closeout als eigener Arbeitspaket-Block (`4i`-`4l`) eingefuegt, plus klare Folge-Gates in Phase 12/14/19 (Policy, Provider, deck.gl/MapLibre/h3o nur gate-basiert).
+> - Rev. 3.8 (26. Feb 2026) — Phase 6 Memory Architecture code-complete: Prisma (6b), Cache Adapter Py+Go (6a), Python Memory Service/KG/Vector/Episodic (6c-6d), Next.js API Layer (6e), Phase 4 Closeout ADR+Docs.
+> - Rev. 3.9 (26. Feb 2026) — **Cache-Adapter effektiv verdrahtet (Phase 6 + 8):** Python `memory-service`: kg/nodes (TTL 900s) + kg/sync (TTL 3600s) mit JSONResponse-Cache-Path; seed invalidiert `tradeview:memory:kg:sync`. Python `indicator-service`: 5 Pattern-Endpoints (candlestick/harmonic/price/elliott-wave/fib-confluence) als async mit MD5-Body-Key, TTL 900s. Go `memory_handler.go`: `MemoryKGNodesHandler`+`MemoryKGSyncHandler`+`MemoryKGSeedHandler` Signaturen um `cache.Adapter` erweitert; Get/Set/Delete-Logik; `clampInt`-Redeclaration-Konflikt mit `geopolitical_candidates_proxy_handler.go` behoben (4-Arg-Variante). `wiring.go`: 3 Routen auf `memCache` aktualisiert. `bun run build` + `go build ./...` + `bun run lint` clean. Pytest-Gate: Disk-Space-Fehler auf uv-Cache (OS-Problem, kein Code-Bug). Phase 5 Status in Tabelle nachgezogen (war faelschlich NICHT GESTARTET).
+> - Rev. 3.11 (26. Feb 2026) — **SOTA 2026 Assessment** hinzugefuegt (Sek. nach Aenderungshistorie + SYSTEM_STATE.md Sek. 3/9). TradingChart Drawing Bug Fixes: overlaySize-Init nach `chartRef.current = chart` (Bug 1) + `chartViewVersion` Pan/Zoom Freeze (Bug 2). GeoMap Drawing Bug Fixes: `drawingMode`/`pendingLineStart` Prop-Threading (MapViewportPanel + MapCanvas) + Inertia-Guard bei aktivem Drawing-Mode.
+> - Rev. 3.10 (26. Feb 2026) — **Phase 8f Chart Overlays + Phase 15 Advanced Indicators code-complete.** 8f: `src/app/api/fusion/patterns/[type]/route.ts` (POST-Proxy zu Go, Allowlist candlestick/harmonic/price/elliott-wave/timing); `DrawingToolbar.tsx` PatternOverlayState + 3 Toggle-Buttons (Waves/Hexagon/Triangle); `TradingChart.tsx` patternOverlay-Prop + fetchPatterns-Effect + 3 SVG-Overlay-Pfade (Elliott-Labels blau/rot, Harmonic-Zone halbtransparent, PricePattern-Dreieck); `TradingWorkspace.tsx` State-Bridge. 15a: `/api/v1/indicators/ks-collection` Go-Wiring war bereits vorhanden (wiring.go Z.412). 15b: `calculate_volatility_suite()` (spike_weighted_vol/volatility_index/exp_weighted_stddev/volatility_regime) mit absolutem Regime-Klassifikator (>40% ann.HV=elevated, <5%=compressed, sonst relativ). 15c: `calculate_regime()` (SMA-Slope+ADX, bullish/bearish/ranging), `calculate_markov_regime()` (Transition-Matrix, Power-Iteration Stationary), `calculate_hmm_regime()` (optional hmmlearn, BIC-optimal n, graceful ImportError). 4 neue Go-Proxy-Routen. `pyproject.toml`: numpy>=2.0.0 + hmmlearn>=0.3.0. `test_phase15.py`: 17/17 passed, 1 skipped (HMM ohne hmmlearn). `bun run lint` + `bun run build` + `go build ./...` clean.
+> - Rev. 3.12 (27. Feb 2026) — **gRPC IPC (Go↔Python) implementiert.** Proto `ipc.proto` mit `ForwardRequest` RPC; Go `internal/connectors/ipc` (gRPC-first, HTTP-Fallback); Python `ipc_servicer` + `grpc_server` (optional via `GRPC_ENABLED=1`); Connectors indicatorservice, financebridge, softsignals auf IPC-Client umgestellt. **Offener Punkt:** Live-Verify bei laufendem Betrieb (alle 3 Python-Services mit `GRPC_ENABLED=1`, Go-Gateway, End-to-End-Test).
+> - Rev. 3.13 (27. Feb 2026) — **Macro GeoMap Overlay + Frontend-Routing.** `GET /api/geopolitical/macro-overlay?indicator=policy_rate` (Policy Rate pro Land); GeoMap Choropleth-Mode `macro`; `MacroPanel` als eigenes Tab im Right Panel; `isMacroSymbol()` + Macro-Routing zu MacroPanel bei Symbol-Wechsel; `GET /api/geopolitical/macro-quote` Proxy fuer MacroPanel.
+> - Rev. 3.14 (27. Feb 2026) — **Status-Abgleich Plan vs. Code.** Fortschrittstabelle korrigiert: Phase 9 (UIL, v. a. 9e) und Phase 14 (Provider Expansion, inkl. IMF + G4/G3-Slices) sind als gestartet markiert; veraltete "Phase 9-22 nicht gestartet"-Sammelzeile entfernt. Startpunkt-Hinweis auf aktuellen Fokus (Verify-Gates + Phase-9-Completion) aktualisiert.
+> - Rev. 3.15 (27. Feb 2026) — **Phase-9 Completion Slice (9e+9a-9d Baseline).** 9e-Cutover gehaertet: Next `GET /api/geopolitical/candidates` ist Go-thin-proxy-only; Go Candidate-Review local-first fuer `accept/reject/snooze/reclassify`; Admin-Seed-Default auf `go-owned-gateway-v1`. 9a/9b: neuer UIL-Classifier-Pfad `POST /api/v1/ingest/classify` (Go->Python `geopolitical-soft-signals`), inkl. Next Alias `/api/geopolitical/ingest/classify`; Soft-Ingest erweitert um `youtube_transcript`-Adapter. 9c/9d: Candidate-Queue erweitert um Review-Policy-Metadaten (`routeTarget`, `reviewAction`) und Quick-Import (Paste -> Classify -> Candidate Create).
+> - Rev. 3.16 (27. Feb 2026) — **Phase 9 formal abgeschlossen (DoD + Regression).** Next-Route `POST /api/geopolitical/candidates/[candidateId]/reclassify` als Thin-Proxy hinzugefuegt; Go-UIL Local-Create/Reclassify haertet Policy-Metadaten (`routeTarget`, `reviewAction`, `dedupHash`) inkl. Validierung; Soft-Ingest propagiert `dedupHash` aus `ingest/classify`; Candidate-Proxy reicht `X-Request-ID` an Upstream weiter. Verify-Gates: `go test ./...` gruen, `uv run pytest -q` (127 passed), Frontend `bun run lint` + `bunx tsc --noEmit` gruen.
+> - Rev. 3.17 (28. Feb 2026) — **execution_mini_plan Abarbeitung.** Neue Docs: `PROXY_CONVENTIONS.md`, `GEOMAP_VERIFY.md`, `REFERENCE_SOURCE_STATUS.md`, `CAPABILITY_REGISTRY.md`. Phase 0: 0.1–0.4 erledigt (Proxy-Konvention, Provider-Cleanup). Phase 1: 1.18 GCT Audit DB (SQLite primary), 1.19 Exchange-Key Hardening erledigt. Phase 4: 4.3–4.6 Docs erledigt. Phase 6: 6.10 Cache-Adapter-Vertrag; `verify-memory-phase6.ps1` erstellt. Phase 10a: Agent-Service-Scaffold (FastAPI WS), Rollen, BTE/DRS Guards. Phase 14: REFERENCE_SOURCE_STATUS.md. UIL: U.1–U.3 erledigt. **Offen:** Phase 1 Live-Verify (1.1–1.17), Phase 6 Live-Verify (6.1–6.9, Stack noetig), Phase 4 manuell (4.1, 4.2, 4.7), Phase 10a.4 + 10b–10e.
+> - Rev. 3.18 (28. Feb 2026) — **Execution Finito Plan implementiert.** Phase 10: 10a.4 Memory/Context-Verdrahtung (memory_client, context_assembler, agent-service `/api/v1/agent/context`); 10b Context Engineering (relevance, token_budget, merge); 10c Working Memory M5 (Redis/LRU, TTL 30min); 10d Agentic Search (memory_search, codebase/news stubs); 10e WebMCP Tools (get_chart_state, get_portfolio_summary, get_geomap_focus) + Go Policy Gateway. Phase 14: OECD SDMX scaffold. Phase 23: Capability Registry (registry.go, middleware, capabilities.yaml), Agent Policy Tiers. Agent-Service in dev-stack.ps1 (Port 8094). **Offen:** Live-Verify Phase 1/4/6 (Browser/E2E, Stack).
+- Rev. 3.19 (01. Mär 2026) — **execution_mini_plan Abgleich.** Phase 1: 1.16 Prod-Guard (AUTH_STACK_BYPASS in prod blockiert) ergaenzt. Phase 10: 10a–10e vollstaendig. Phase 14: 14a–14h + 14.v4 (REFERENCE_SOURCE_STATUS); 14c.3 LBMA/FXCM, 14d.2 UN/SECO/EU Sanctions, 14g.1 GeoMap Official Source Pack. Phase 23: 23.1–23.5 (Capability Registry, Policy Tiers, Trust-Fabric, Governance Events, Trajectory Observability). Phase 24: 24.1–24.4 (Plugin Pilot, Partner Spec, Payment Adapter, Rollout Gates). Infra: I.6–I.8. **Offen:** Live-Verify Phase 1/4/6, Phase 10.v1–10.v3, Phase 14.v1–14.v3.
+> - Rev. 3.20 (01. Mär 2026) — **Neue Docs Phase-Zuordnung.** Neue Docs Tabelle um Phase-Spalte erweitert; BASEMAP_POLICY, ADR-002-GeoMap-Rendering-Foundation, GEOCODING_STRATEGY, PERFORMANCE_BASELINE, PMTILES_CONTRACT hinzugefuegt (Phase 4).
+> - Rev. 3.21 (02. Mär 2026) — **Phase 15d–15h + 16/20 Baseline umgesetzt.** `indicator-service` erweitert um Alternative Bars, CUSUM, MeanRev/Momentum, Performance Metrics, Signal Quality Chain, Order-Flow State Machine, Eval Baseline; Backtest/Walk-Forward/Deflated Sharpe/`/api/v1/eval/indicator`; ML-Pipeline (`/api/v1/ml/*`). Go-Gateway-Proxies in `wiring.go` ergänzt. Neuer Testblock `python-backend/tests/test_phase15_16_20.py` grün (9 passed). **Offen:** Full-stack Verify Gates + vollständige Go-/Frontend-E2E Abnahme.
+> - Rev. 3.22 (02. Mär 2026) — **Phase 18 Baseline umgesetzt.** `indicator-service` ergänzt um `/api/v1/darkpool/signal`, `/api/v1/options/gex-profile`, `/api/v1/options/expected-move`, `/api/v1/options/calculator`, `/api/v1/defi/stress`, `/api/v1/oracle/cross-check`; Go-Proxies in `wiring.go` ergänzt. Testblock `python-backend/tests/test_phase18.py` grün (6 passed).
+> - Rev. 3.23 (02. Mär 2026) — **Phase 17 Baseline gestartet (17b/17c/17f/17g Kernpfade).** `geopolitical-soft-signals` erweitert um `/api/v1/game-theory/nash-solve`, `/api/v1/game-theory/transmission-paths`, `/api/v1/game-theory/monte-carlo`, `/api/v1/game-theory/strategeme-match`, `/api/v1/game-theory/timeline-regimes`; Go-Gateway-Proxies in `wiring.go` ergänzt. Neuer Testblock `python-backend/tests/test_phase17_game_theory.py`.
+> - Rev. 3.26 (04. Mär 2026) — **Phase 9 Env-Cutover + Phase 12a NLP Upgrade CODE-COMPLETE.** Phase 9: `go-backend/.env.development` — `GEOPOLITICAL_INGEST_HARD_MODE/SOFT_MODE/ADMIN_SEED_MODE` von `next-proxy` auf `go-owned-gateway-v1` umgestellt. Phase 12a: `cluster_narratives_embedding()` (sentence-transformers + HDBSCAN) als primären ML-Clustering-Pfad in `build_news_cluster_ml()` eingebaut (graceful Fallback auf TF-IDF/KMeans); `_build_candidates_from_buckets()` extrahiert; `NLPClusterRequest/Response` + `POST /api/v1/nlp/cluster` Endpoint hinzugefügt; `hdbscan>=0.8.33` in `pyproject.toml`.
+> - Rev. 3.25 (03. Mär 2026) — **Phase 13 Portfolio Advanced abgeschlossen + Phase 0e OTel implementiert.** Phase 13: `MonteCarloVarPanel.tsx` (VaR 95/99, CVaR 95/99, Progress-Bar, Median Return, Sim-Count), VPIN-Sektion in `PortfolioOptimizePanel` (Progress-Bar 0–1, Alert-Box bei >0.7), neuer Portfolio-Tab "VaR" in `PortfolioPanel`. Phase 0e: `go-backend/internal/telemetry/tracer.go` (OTLP gRPC TracerProvider), `main.go` (InitTracerProvider bei OTEL_ENABLED=true + graceful Shutdown), `wiring.go` (otelhttp.NewHandler-Wrap), OTel Packages via `go mod tidy` (v1.35.0). Python: `opentelemetry-sdk>=1.25.0` + `opentelemetry-instrumentation-fastapi` + `opentelemetry-exporter-otlp-proto-grpc` in `pyproject.toml`; `app_factory.py` FastAPIInstrumentor-Block (ImportError-safe). Next.js: `instrumentation.ts` registerOTel-Block (OTEL_ENABLED guard), `@vercel/otel@^1.3.0` in `package.json`. `OTEL_ENABLED=false` + `OTEL_EXPORTER_OTLP_ENDPOINT` in allen drei `.env.development` + `.env.example` Dateien. `go build ./...` grün. `uv sync` (6 OTel-Packages installiert). `bun install` (@vercel/otel@1.14.0).
+> - Rev. 3.24 (03. Mär 2026) — **Verify Gates abgeschlossen + Observability Foundation + SOTA S-Punkte final.** Phase-6 Live-Verify 6.2–6.9 bestätigt (Cache-Key-Fix Go↔Python auf `tradeview:memory:kg:*`-Prefix; `get_nodes`-Bug in `vector_search` behoben; Cache-Hit, 59 Knoten/36 Stratagems, Vector-Search, Episodic alle live). Phase-15 Verify Gate 15.v1–15.v5 live (volatility-suite, regime/detect, markov, hmm, Go-Gateway-Proxy alle grün). Phase-2 Deferred 2.3–2.5 abgehakt (rustCore+Polars health live, redb cache.hit false→true verifiziert, Rust-Fallback code-level via try/except bestätigt). Phase-0e Observability Foundation geplant (OpenTelemetry SDK + OpenObserve als präferierter No-Docker-Stack, T1–T5 in `execution_mini_plan.md`). Phase-1 SOTA S-Punkte: S2 Device-Revocation bereits implementiert (DELETE `/api/auth/passkeys/devices` vorhanden); S3 RBAC-Negativtests Go (`middleware_test.go`); S4 X-Request-ID Python-Middleware confirmed (Windows/uvicorn-Reload-Quirk dokumentiert); S5 CI (`.github/workflows/ci.yml`); S6/S8 Prod-Guards bestätigt. Phase-14 14.v1 pack.go Partial-Success-Fix (UN TLS-Issue `scsanctions.un.org` → `*.azurewebsites.net` dokumentiert).
+
+---
+
+## SOTA 2026 Assessment
+
+> **Stand:** 26. Feb 2026 (Research-Agent Scoring vs. TradingView Pro 2026)
+
+| Kategorie | Score | Kritische Lücken |
+|:----------|:-----:|:-----------------|
+| Charting (LightweightCharts) | 6.5/10 | Kein Multi-Pane; nur 4 Drawing Tools unterstützt; LWC v5.1 vorhanden aber Drawing-Bugs (overlaySize Init, Pan/Zoom Freeze) gerade gefixt |
+| Auth | 4/10 | next-auth v5 bleibt "beta" im npm-Tag (API-Breaks bis v5-stable möglich); Phase 1 code-complete aber kein Live-Verify |
+| Portfolio | 5/10 | Phase 5 Scaffold; keine echten Analytics jenseits Basis-Tab |
+| Mobile | 2/10 | Kein responsive Design; kein Mobile-Layout geplant bis Phase 20 |
+| Go Backend | 7/10 | gorilla/mux **archiviert** Sept. 2023 (kein CVE, aber kein Maintenance); Empfehlung: langfristig auf `net/http` stdlib oder `go-chi/chi` migrieren |
+| Python AI | 7.5/10 | Stark (Rust-Core, HMM, Regime Detection); kein Online-Learning |
+| Streaming | 7/10 | Go SSE funktioniert; kein WebSocket; kein WebRTC |
+| Backtesting | 3/10 | Phase 9 nicht gestartet |
+
+### Library Risk Flags
+- **next-auth v5 beta:** Bleibt "beta" im npm-Tag. Auth.js Core ist produktionstauglich aber API-Breaks möglich bis v5-stable. Empfehlung: Upgrade auf latest patch + Lock-Version in `package.json`. Risikostufe: MEDIUM (kein CVE, aber Breaking-Changes bei Minor-Updates nicht ausgeschlossen).
+- **gorilla/mux v1.8.1:** Repository archiviert September 2023. Kein CVE, kein sofortiger Action-Bedarf. Langfristig auf `net/http` stdlib oder `go-chi/chi` migrieren — am besten als Teil eines Phase-6/14 Go-Refactor-Windows. Risikostufe: LOW (archiviert ≠ unsicher, nur kein Patch-Support mehr).
+- **lightweight-charts v5.1.0:** Aktuell genutzte Version ist aktuell (v5.1). Drawing-Overlay-Bugs (overlaySize Init + Pan/Zoom Freeze) wurden in Rev. 3.11 gefixt. Multi-Pane und erweiterte Drawing-Tools bleiben SOLL-Zustand (Phase 16).
+
+---
+
+## Offene Punkte
+
+| Prioritaet | Status | Beschreibung |
+|:----------|:-------|:-------------|
+| P0 | Erledigt (27. Feb 2026) | **Live-Verify gRPC IPC** abgeschlossen: dev-stack laedt `python-backend/.env.development`, Ports konsistent, E2E-Calls (Composite Signal, OHLCV, Soft-Signals) erfolgreich, Tests `test_ipc_grpc.py` und `ipc/client_test.go` hinzugefuegt. |
 
 ---
 
@@ -50,19 +115,36 @@
 
 | Phase | Status | Bemerkung |
 |:------|:-------|:----------|
-| Phase 0 (Foundation) | **ABGESCHLOSSEN (Baseline, 23. Feb 2026)** | Frontend-Market-Routen Go-first/strict Go-only, Adaptive Router + BaseConnector-Scaffolds aktiv, ACLED/Finnhub auf BaseConnector migriert, Failover-Scaffolds vorhanden. |
-| Phase 1 (Auth) | **ABGESCHLOSSEN (Code vollstaendig inkl. GCT Audit SQLite, 25. Feb 2026)** | Auth.js/next-auth v5 (beta) + Prisma Adapter + Credentials Register/Login + echter Passkey Provider (`passkey`) als Baseline implementiert; RBAC/JWT/Request-ID/GCT-Hardening-Scaffolds vorhanden. **GCT Audit SQLite** (`GCTAuditSQLiteStore`) implementiert (Rev. 3.6): opt-in via `GCT_AUDIT_DB_ENABLED=true`, Pfad via `GCT_AUDIT_DB_PATH`. Live-Verifikation (Browser/E2E) deferred. |
+| Phase 0 (Foundation) | **ABGESCHLOSSEN (Baseline + gRPC IPC 0d + Mini 0.1–0.4, 28. Feb 2026)** | Frontend-Market-Routen Go-first/strict Go-only, Adaptive Router + BaseConnector-Scaffolds aktiv. **Mini erledigt:** 0.1 Go-only Boundary, 0.2 Correlation-ID, 0.3 Proxy-Konvention ([`PROXY_CONVENTIONS.md`](../../docs/PROXY_CONVENTIONS.md)), 0.4 Provider-Cleanup (nur types + PROVIDER_REGISTRY). |
+| Phase 1 (Auth) | **ABGESCHLOSSEN (Code inkl. 1.16/1.18/1.19, 01. Mär 2026)** | Auth.js/next-auth v5 + Prisma + Passkey. **Mini erledigt:** 1.10 Header (proxy.ts), 1.16 Prod-Guard (AUTH_STACK_BYPASS in prod blockiert), 1.18 GCT Audit DB (SQLite primary, JSONL Fallback), 1.19 Exchange-Key Hardening (AES-GCM in GCT-Config). **Offen:** 1.1–1.15, 1.17 Live-Verify (Browser/E2E). |
 | Phase 2 (Rust Core) | **ABGESCHLOSSEN (Implementierungs-Baseline, Live-Verify deferred, 23. Feb 2026)** | PyO3-Rust-Core (SMA50/Heartbeat/Batch) aktiv, Polars-Preprocessing in `indicator-service` + `finance-bridge` aktiv, redb-OHLCV-Cache (PyO3) als Finance-Bridge read-through aktiv, Trading-UI zeigt Backend-Composite-Badges (inkl. Heartbeat). Zwei offene Verify-Punkte (Browser/E2E) sind explizit deferred. |
 | Phase 3 (Streaming) | **ABGESCHLOSSEN (Code-Baseline, Live-Verify deferred, 23. Feb 2026)** | Go Candle Builder + Alert Engine + Snapshot/Reconnect-Basis aktiv; `market/stream` stream-first via Go-SSE, `market/stream/quotes` nutzt Go-SSE-Multiplex fuer streamfaehige Symbolsets. Browser/E2E-Live-Verify bleibt deferred. |
-| Phase 4 (GeoMap v2.0) | **ABGESCHLOSSEN (Code-Baseline + Implementierung vollstaendig, Live-Verify/E2E deferred, 25. Feb 2026)** | Shell-Split + Zustand-Workspace-Basis aktiv. Multi-Body (`Earth/Moon`) Toggle + Moon Seed-Layer vorhanden. D3 v1.1 + v1.5 Phase-4-Scope integriert (inkl. Inertia/Voronoi/Axis/Brush/Hierarchy/Annotation/Legend). Hybrid-Rendering aktiv (Canvas-Basemap + Canvas-Country/Heatmap + Canvas-BodyPointLayer-Stage, SVG-Hit-Layer) + `supercluster` Zoom-Out-Cluster. Hard-/Soft-Candidate-Pipelines gehaertet, Seed-Bootstrap + Contradictions Basis-Workflow inkl. API/Sidebar/Audit vorhanden. Browser/E2E-Live-Verify bleibt deferred (kein Blocker). |
-| Phase 5-6 | NICHT GESTARTET | — |
+| Phase 4 (GeoMap v2.0) | **ABGESCHLOSSEN (Code + Docs 4.3–4.6, 28. Feb 2026)** | Shell-Split, Multi-Body, D3 v1.1/v1.5, Hybrid-Rendering, supercluster. **Mini erledigt:** 4.3–4.6 Draw-Workflow, Performance-Baseline, Basemap-Policy, ADR ([`GEOMAP_VERIFY.md`](../../docs/GEOMAP_VERIFY.md)). **Offen:** 4.1, 4.2, 4.7 manuelle E2E. |
+| Phase 5 (Portfolio Bridge + Analytics) | **ABGESCHLOSSEN (Code-Baseline, Verify deferred)** | 5a: GCT Portfolio Bridge (`/api/v1/gct/portfolio/*`, `/api/v1/gct/exchanges`). 5b: Portfolio Analytics Proxy Go→Python (correlations/rolling-metrics/drawdown-analysis/optimize). Frontend-Tabs vorhanden. Live-Verify deferred. |
+| Phase 6 (Memory Architecture) | **ABGESCHLOSSEN (Live-Verify 6.2–6.9 bestätigt, 03. Mär 2026)** | 6a-6e vollstaendig. Cache-Key-Fix Go↔Python (`tradeview:memory:kg:*`-Prefix), `get_nodes`-Bug in vector_search behoben. 6.2: health ok. 6.3: Go-Proxy ok. 6.4: KG Seed 59 Knoten. 6.5/6.6: Cache-Miss→Hit. 6.7: Seed invalidiert kg/sync. 6.8: Vector-Search. 6.9: Episodic. Alle Gates grün. |
 | Phase 7 (Indicator Catalog Core) | **ABGESCHLOSSEN (Code-Baseline + Rust + Tests, 25. Feb 2026)** | Phase 7a–7e implementiert: `detect_swings` als public API (`/api/v1/indicators/swings`), Bollinger Bandwidth/Percent-B/Squeeze (TTM-Kern), ATR-adjusted RSI, Bollinger-on-RSI, Fibonacci Confluence (multi-swing cluster) in Python. Rust-first-with-Python-fallback fuer EMA, RSI, ATR, BB-BW, BB-%B. 16 neue Go-Gateway Proxy-Routen registriert. Fibonacci-Ratios auf 2.618 erweitert. TypeScript-Duplikate (SMA/EMA/RSI/OBV/CMF) als `@deprecated` markiert. **59/59 Tests pass** (Phase 2: 12, Phase 7: 47). `go build ./...` + `bun run lint` clean. Live-Verify deferred. |
 | Phase 8 (Pattern Detection) | **ABGESCHLOSSEN (Code-Baseline + manuell verifiziert, pytest-Abnahme User-Action, 25. Feb 2026)** | 8a: Elliott Wave Fibonacci Validation (R1–R6, 0.42+0.07×rules confidence, wave_lengths/fib_ratios/rules_passed in details). 8b: Full XABCD Harmonics (Gartley/Bat/Butterfly/Crab) + FEIW failed-breakout/breakdown mit invalidation_level. 8c: Candlestick-Erweiterungen (Dragonfly/Gravestone Doji, Spinning Top, Piercing Line, Dark Cloud Cover, Morning/Evening Star, Three White Soldiers/Three Black Crows, Bottle, Double Trouble, Extreme Euphoria). 8d: TD Countdown 13-bar bearish/bullish + TDST Resistance/Support Level. 8e: Head & Shoulders + Inverse H&S (neckline_level, target_price in details). `test_phase8_patterns.py` ~50 Tests manuell geprueft und korrekt. **Verify Gate:** `uv run pytest tests/test_phase8_patterns.py -v && uv run pytest -v` (User-Action). `go build ./...` + `bun run lint` unveraendert clean (keine neuen Go/TS-Aenderungen). |
-| Phase 9-22 | NICHT GESTARTET | — |
+| Phase 8f (Chart Overlays) | **ABGESCHLOSSEN (26. Feb 2026)** | `src/app/api/fusion/patterns/[type]/route.ts`: POST-Proxy zu Go Gateway (Allowlist: candlestick/harmonic/price/elliott-wave/timing, 400 fuer unbekannte Typen, 502 bei Go-Fehler). `DrawingToolbar.tsx`: `PatternOverlayState` Typ + 3 Toggle-Buttons (Waves blau, Hexagon lila, Triangle amber). `TradingChart.tsx`: `patternOverlay`-Prop + `fetchPatterns`-Effect (AbortController, ≥20 Kerzen) + 3 SVG-Overlay-Pfade: Elliott-Wave-Labels (pill-shape, blau/rot), Harmonic-Zone (halbtransparent, confidence-basierter strokeWidth), Price-Pattern-Dreieck + Label. `TradingWorkspace.tsx`: State-Bridge. `bun run lint:fix` + `bun run build` clean. |
+| Phase 13 (Portfolio Advanced Analytics) | **CODE-COMPLETE + LIVE-VERIFIED (03. Mär 2026)** | Python `portfolio_analytics.py` (832 Zeilen): HRP, Kelly, Regime-Sizing, Monte Carlo VaR, VPIN vollständig. 5 POST-Endpoints in `indicator-service/app.py`. 5 Go-Proxy-Routen in `wiring.go`. Next.js Proxy `analytics/[slug]/route.ts`. Frontend: `KellyAllocationPanel`, `RegimeSizingPanel`, `PortfolioOptimizePanel`, `PortfolioAnalyticsPanel`. Neu (03. Mär 2026): `MonteCarloVarPanel.tsx` (VaR 95/99, CVaR 95/99, Median Return, Sim-Count), VPIN-Sektion mit Progress-Bar + Alert-Box, neuer Portfolio-Tab "VaR". `test_phase13.py`: 17/17 passed. |
+| Phase 15a (K's Collection Wiring) | **ABGESCHLOSSEN (bereits vorhanden)** | Go-Route `/api/v1/indicators/ks-collection` war bereits in `wiring.go` Z.412 vorhanden. Python-Endpoint in `indicator-service/app.py` ebenfalls bereits vorhanden. Kein Code-Aenderungsbedarf. |
+| Phase 15b (Volatility Suite) | **ABGESCHLOSSEN + LIVE-VERIFIED (03. Mär 2026)** | `pipeline.py`: `VolatilitySuiteRequest/Response` + `calculate_volatility_suite()`. Metriken: spike_weighted_vol (Spike-doppelt-gewichtet), volatility_index (ann. HV), exp_weighted_stddev (EWMA). Regime: absolut-primaer (>40% ann.HV=elevated, <5%=compressed), relativ-sekundaer (±30% vs. hist_median rolling HV). `indicator-service/app.py`: Endpoint `/api/v1/indicators/volatility-suite`. `wiring.go`: Go-Proxy-Route. **15.v1 live bestätigt (03. Mär 2026):** `volatility_regime: "normal"` + alle Felder korrekt. |
+| Phase 15c (Regime Detection) | **ABGESCHLOSSEN + LIVE-VERIFIED (03. Mär 2026)** | `pipeline.py`: 3 Tier-Implementierungen. Tier1 `calculate_regime()`: SMA-50-Slope (5-Perioden-Delta), ADX-Proxy aus reinen Closes, Regime bullish/bearish/ranging + Konfidenz. Tier2 `calculate_markov_regime()`: rollierende Regime-Labels → Zaehlmatrix → normalisierte Transition-Matrix, Power-Iteration Stationaerverteilung, expected_duration + shift_probability. Tier3 `calculate_hmm_regime()`: optional `from hmmlearn import hmm` (graceful ImportError), BIC-optimal n_components (2–5), GaussianHMM full-covariance. `indicator-service/app.py`: 3 Endpoints (/regime/detect, /regime/markov, /regime/hmm). `wiring.go`: 3 Go-Proxy-Routen. `pyproject.toml`: numpy>=2.0.0 + hmmlearn>=0.3.0. `test_phase15.py`: 17 passed, 1 skipped (HMM ohne hmmlearn-Install). `bun run lint` + `bun run build` + `go build ./...` clean. **15.v2/15.v3/15.v4 live bestätigt (03. Mär 2026):** regime/detect, markov, hmm alle korrekte Responses. |
+| Phase 15d–15h (Advanced + Eval Baseline) | **CODE-COMPLETE BASELINE (02. Mär 2026)** | Python ergänzt: Alternative Bars, CUSUM, MeanRev/Momentum (Hurst/ADF-Proxy/Half-Life), Performance Metrics, Signal Quality Chain, Order-Flow State Machine, Eval Baseline. Endpoints in `indicator-service/app.py` + Go-Proxies in `wiring.go`. Testblock `tests/test_phase15_16_20.py`: **9 passed**. |
+| Phase 9 (Unified Ingestion Layer) | **ABGESCHLOSSEN (Env-Cutover 04. Mär 2026)** | 9e Cutover, 9a–9d aktiv. **Mini erledigt:** U.1 UIL-Contracts (Candidate/Timeline/Contradictions) eingefroren; U.2 Degradation/Observability-Contract; U.3 Mutierende Pfade Go-Enforcement (RBAC/Audit/Rate-Limit). **Env-Cutover (04. Mär 2026):** `go-backend/.env.development` — `GEOPOLITICAL_INGEST_HARD_MODE`, `GEOPOLITICAL_INGEST_SOFT_MODE`, `GEOPOLITICAL_ADMIN_SEED_MODE` auf `go-owned-gateway-v1` gesetzt. **Verify Gate:** Go-Gateway neu starten → `POST /api/geopolitical/candidates/ingest/soft` muss `"mode":"go-owned-gateway-v1"` zurückgeben. |
+| Phase 12a (NLP Upgrade) | **CODE-COMPLETE (04. Mär 2026)** | `cluster_narratives_embedding()` in `ml_ai/geopolitical_soft_signals/pipeline.py`: sentence-transformers `all-MiniLM-L6-v2` Embeddings + HDBSCAN Clustering. `build_news_cluster_ml()` versucht Embedding-Clustering zuerst (graceful ImportError-Fallback auf TF-IDF/KMeans). `_build_candidates_from_buckets()` extrahiert gemeinsame Cluster→Candidate-Logik. `NLPClusterRequest/NLPClusterResponse` Pydantic-Models. Endpoint `POST /api/v1/nlp/cluster` in `geopolitical-soft-signals/app.py`. `hdbscan>=0.8.33` in `pyproject.toml`. **Verify Gate:** `curl -X POST http://localhost:8091/api/v1/nlp/cluster -d '{"texts":["conflict in region","military strike","ceasefire talks","market rally"]}'` muss Cluster-Dict zurückgeben. |
+| Phase 10 (Agent Architecture) | **CODE-COMPLETE (10a–10e, 01. Mär 2026)** | **Mini erledigt:** 10a.1–10a.4 Agent Runtime, Rollen, BTE/DRS Guards, Memory/Context; 10b Context Engineering; 10c Working Memory M5; 10d Agentic Search; 10e WebMCP Tools + Go Policy Gateway. **Offen:** 10.v1–10.v3 Verify Gates. |
+| Phase 14 (Global Provider Expansion) | **CODE-COMPLETE (14a–14h + 14.v4, 01. Mär 2026)** | **Mini erledigt:** 14a.1–14a.2 SDMX (IMF, OECD, ECB, WB, UN, ADB); 14b TimeSeries (BCB, Banxico, RBI, BoK, TCMB, BCRA, FRED, OFR, NYFed); 14c BulkFetcher (CFTC COT, FINRA ATS, LBMA, FXCM); 14d DiffWatcher (OFAC, UN, SECO, EU); 14e–14h TranslationBridge, Symbol Catalog, GeoMap Official Source Pack, G10 Oracle Scaffolds; 14.v4 [`REFERENCE_SOURCE_STATUS.md`](../../docs/REFERENCE_SOURCE_STATUS.md). **Offen:** 14.v1–14.v3 Verify Gates. |
+| Phase 23 (Platform Readiness) | **CODE-COMPLETE (23.1–23.5, 01. Mär 2026)** | **Mini erledigt:** 23.1 Capability Registry ([`CAPABILITY_REGISTRY.md`](./CAPABILITY_REGISTRY.md)); 23.2 Agent Policy Tiers; 23.3 Trust-Fabric Mapping; 23.4 Governance Events; 23.5 Trajectory Observability. |
+| Phase 24 (Ecosystem Optionality) | **CODE-COMPLETE (24.1–24.4, 01. Mär 2026)** | **Mini erledigt:** 24.1 Internal Plugin Pilot; 24.2 Partner/ISV Boundary Spec; 24.3 Payment Orchestration Adapter; 24.4 Reversible Rollout Gates ([`ROLLOUT_GATES.md`](./ROLLOUT_GATES.md), [`PLUGIN_PILOT.md`](./PLUGIN_PILOT.md)). |
+| Phase 16 (Backtesting + Eval Hardening) | **CODE-COMPLETE BASELINE (02. Mär 2026)** | Backtest-Run, Walk-Forward, Deflated Sharpe, aggregiertes Eval-Gate (`/api/v1/eval/indicator`) in Python + Go-Proxy-Routen umgesetzt. Full Verify Gates (Latenz/OOS-Hardening Release-Gates) offen. |
+| Phase 18 (Options + Dark Pool + DeFi) | **CODE-COMPLETE BASELINE (02. Mär 2026)** | Dark-Pool-Signal, GEX-Profile, Expected-Move, Options-Calculator, DeFi-Stress und Oracle-Cross-Check in Python umgesetzt; Go-Proxy-Routen verdrahtet. Produktive Provider-Integrationen/Live-Datenabnahme offen. |
+| Phase 20 (ML Pipeline) | **CODE-COMPLETE BASELINE (02. Mär 2026)** | Feature Engineering, Signal-Klassifikation, Hybrid-Fusion und Bias-Monitoring (`/api/v1/ml/*`) in Python + Go-Proxy-Routen umgesetzt. Modellkalibrierung/Datensatz-Backed Evaluation offen. |
+| Phase 17 (Game Theory Mode) | IN ARBEIT (Baseline) | Core-Simulationpfade gestartet: Nash Solver, Transmission Paths, Monte-Carlo, Strategeme Matching, Timeline-Regime-Baender (Python + Go-Proxy). |
+| Phase 19, 21-22 | NICHT GESTARTET | Erweiterte Roadmap definiert, Umsetzung offen. |
+| Infra | **I.6–I.8 erledigt (01. Mär 2026)** | **Mini erledigt:** I.6 `bun run lint && bun run build`; I.7 `go build ./...`; I.7a Go Quality Gates (test, vet, golangci-lint); I.8 `uv run pytest -v`. |
 
-> **Empfohlener Startpunkt:** Phase 0 + Phase 1 parallel.
-> Phase 0a-0c (Foundation) und Phase 1a-1c (Auth) haben keine Abhaengigkeiten zueinander und koennen gleichzeitig implementiert werden.
-> Nach Abschluss beider: Phase 2 (Rust Core) und Phase 3 (Streaming) parallel.
+> **Empfohlener naechster Fokus:** Verify-/Live-Abnahme fuer verbleibende offenen Gates in Phase 1/4/6 schliessen; danach Phase 10.v1–10.v3 und Phase 14.v1–14.v3 Verify Gates.
+> Phase 0–3, 9, 10 (Code), 14 (Code), 23, 24 sind formal abgeschlossen; Phase 14 Verify Gates und Phase 10 Agent-E2E offen.
 
 > **Teilfortschritt (22. Feb 2026, Codex):**
 > - Phase 1d (baseline, teilweise): Go Gateway hat Request-ID + Request-Logging Middleware (`X-Request-ID` Header gesetzt/weitergereicht, JSON `slog` startup in `cmd/gateway`).
@@ -109,6 +191,7 @@
 > - Phase 3 (resilience hardening, teilweise): Legacy-Polling-Fallbacks in `src/app/api/market/stream` und `src/app/api/market/stream/quotes` sind jetzt explizit runtime-flag-gated (`MARKET_STREAM_*_LEGACY_FALLBACK_ENABLED`) und in Production standardmaessig fail-closed ohne `ALLOW_PROD_MARKET_STREAM_LEGACY_FALLBACK=true`. SSE-Antworten markieren Fallback-Nutzung/Grund via Header (`X-Stream-Fallback`, `X-Stream-Fallback-Reason`) und Event-Metadaten.
 > - Phase 0c (slice erweitert): Go Gateway `GET /api/v1/search` (transitional Proxy auf Python Finance-Bridge `/search`) implementiert; `src/app/api/market/search` ist jetzt strict Go-only (kein Frontend-Provider-Fallback mehr).
 > - Phase 0c (slice erweitert): `src/app/api/market/stream` (Candles) und `src/app/api/market/stream/quotes` holen Daten nicht mehr direkt aus `lib/providers`, sondern ueber die internen Next-Market-Routes (`/api/market/ohlcv`, `/api/market/quote`) und profitieren damit indirekt vom Go-first Routing.
+> - Phase 0d (gRPC IPC, 27. Feb 2026): Go↔Python Transport auf gRPC-first umgestellt. Proto `go-backend/internal/proto/ipc/ipc.proto` mit `ForwardRequest`; Go `internal/connectors/ipc` (gRPC primär, HTTP-Fallback); Python `services/_shared/ipc_servicer.py` + `grpc_server.py`; Connectors indicatorservice, financebridge, softsignals nutzen IPC-Client. gRPC-Ports = HTTP-Port + 1000 (z.B. 8092→9092). Python startet gRPC bei `GRPC_ENABLED=1`. **Verify Gate (27. Feb 2026):** Live-Verify abgeschlossen — dev-stack laedt `python-backend/.env.development` (GRPC_ENABLED=1), Ports konsistent (indicator 8092, finance-bridge 8081, soft-signals 8091), E2E-Calls (Composite Signal, OHLCV, Soft-Signals) erfolgreich, Tests `test_ipc_grpc.py` und `ipc/client_test.go` hinzugefuegt.
 > - Phase 0c (slice erweitert): `src/lib/orders/snapshot-service` (Fusion Portfolio Snapshot/History) nutzt fuer Preis-Snapshots jetzt ausschliesslich Go-first Quote-Fetches (kein lokaler Frontend-Provider-Fallback mehr; fehlende Preise werden toleriert).
 > - Phase 0c (slice erweitert): `src/app/api/market/providers` nutzt kein `getProviderManager()` mehr; Provider-Liste kommt aus `PROVIDER_REGISTRY`, Availability ist transitional per Go-`/health`-basierter Heuristik markiert.
 > - Phase 0c (slice erweitert): In `src/app/api/market/*` gibt es keine direkten `getProviderManager()`-Aufrufe mehr; Next.js Market-Routes sind damit routing-seitig auf Go ausgerichtet (transitional Fallbacks liegen nur noch im Go-Layer bzw. in dessen Upstream-Proxies).
@@ -116,8 +199,10 @@
 > - Phase 0a (scaffold gestartet, teilweise): Go Adaptive Router Config + Health-Score/Circuit-Scaffold implementiert (`go-backend/config/provider-router.yaml`, `internal/router/adaptive`). `GET /api/v1/quote` akzeptiert jetzt `exchange=auto`; Quote-Client nutzt Provider-Kandidatenwahl + Failover und aktualisiert Provider-Health-State.
 > - Phase 0a (scaffold erweitert, teilweise): Optionaler Debug-/Verify-Endpoint `GET /api/v1/router/providers` exponiert Provider-Health-/Circuit-/Score-Snapshots (wenn Router-Config geladen ist).
 > - Phase 0c (resilience erweitert, teilweise): OHLCV-Proxy (`/api/v1/ohlcv`) unterstuetzt jetzt Go-seitiges Upstream-Failover ueber `FINANCE_BRIDGE_URLS` (sequenzieller Retry bei Netzwerk-/5xx-Fehlern), damit Chart-Fetches nicht auf einen einzelnen Finance-Bridge-Upstream fest verdrahtet sind.
-> - Phase 0b (gestartet, teilweise): Neues `internal/connectors/base` Package (`http_client.go`, `ratelimit.go`, `retry.go`, `types.go`) eingefuehrt; ACLED- und Finnhub-HTTP-Connectoren nutzen jetzt den gemeinsamen BaseHTTPClient (Retry/Timeout-Basis statt dupliziertem Setup).
-> - Phase 0b (bestehende Quellen-Migration erweitert, teilweise): Die bestehenden **FRED**- (Macro JSON) und **ECB**-Connectoren (FX XML) nutzen jetzt ebenfalls den gemeinsamen `base.Client` fuer Request-Building/Timeout/Retry/Ratelimit-Basis; providerspezifische Parserlogik (JSON/XML) bleibt lokal im jeweiligen Connector. Damit wird das BaseConnector-Modell bereits auf produktiv genutzte Macro/FX-Bestandsquellen angewendet, bevor neue Reference-Quellen eingebaut werden.
+> - Phase 0b (gestartet, teilweise): Neues `internal/connectors/base` Package (`http_client.go`, `ratelimit.go`, `retry.go`, `types.go`, `ws_client.go`) eingefuehrt; ACLED- und Finnhub-HTTP-Connectoren nutzen jetzt den gemeinsamen BaseHTTPClient. **Neu:** `failsafe-go` integriert für robustes Circuit Breaking und Retry-Handling. `go-playground/validator/v10` sichert den Start der `provider-router.yaml` durch Fail-Fast-Validierung ab.
+> - Phase 0b (bestehende Quellen-Migration erweitert, teilweise): Die bestehenden **FRED**- und **ECB**-Connectoren nutzen jetzt ebenfalls den gemeinsamen `base.Client`. **Neu:** Strikte Durchsetzung von GCT-Datentypen (`currency.Pair` und `asset.Item`) über alle Connector-Schnittstellen hinweg, um String-Parsing-Fehler zur Laufzeit zu eliminieren.
+> - Phase 0b (Architektur / IPC): Ein dediziertes gRPC-Protokoll (`internal/proto/ipc/ipc.proto`) wurde definiert, um Go <-> Python Kommunikation (z.B. Soft-Signals, ML-Inference, Realtime-Tick-Streams) zukünftig via Hochleistungs-Streaming abzuwickeln anstelle von HTTP/REST.
+> - Phase 3 (Streaming): `base.WebsocketClient` als leichtgewichtige, generische Alternative zum tief verwurzelten GCT-Websocket-Manager eingeführt (inkl. Auto-Reconnect, Ping/Pong, Thread-Safety). Finnhub-Stream wurde erfolgreich darauf migriert.
 > - Phase 0a/0b (foundation erweitert, vorbereitet fuer Phase 7/14): `provider-router.yaml` unterstuetzt jetzt optionale Provider-Metadaten (`group`, `kind`, `capabilities`) und `GET /api/v1/router/providers` exponiert diese im Snapshot. Im `internal/connectors/base` wurden zusaetzliche Gruppen-Scaffolds (`sdmx_client`, `timeseries`, `bulk_fetcher`, `rss_client`, `diff_watcher`, `translation`, `oracle_client`) angelegt, damit neue Quellen aus `REFERENCE_PROJECTS.md` ueber Quellen-Gruppen statt 1:1-Boilerplate integriert werden koennen.
 > - Phase 0a/0b (foundation erweitert, GCT-Pattern-Reuse vorbereitet): Im Base-Layer existieren jetzt eine **Provider-Capability-Matrix** (`internal/connectors/base/capabilities.go`) und eine **Fehlerklassifizierung** (`error_classification.go` mit Klassen wie `auth`, `quota`, `timeout`, `schema_drift`, `upstream_5xx`) als Grundlage fuer spaetere gruppenspezifische Router-/Fallback-Entscheidungen. Ziel: GCT-Methoden (Robustheit/WS-Lifecycle/Fehlerbehandlung) uebernehmen, ohne Nicht-Crypto-Provider hart an GCT-Internals zu koppeln.
 > - Phase 0a/0b (bestehende Quellen auf neue Struktur nachgezogen, Teil-Slice): Der Go `QuoteClient` meldet Failover-Fehler jetzt **klassifiziert** (`base.ClassifyError`) an den Adaptive Router. `GET /api/v1/router/providers` exponiert zusaetzlich `lastErrorClass` und aggregierte `failureClasses` pro Provider (z. B. `timeout`, `quota`) als Vorbereitung fuer intelligentere Routing-/Backoff-Policies bei bestehenden Quellen, bevor neue Reference-Quellen hinzugefuegt werden.
@@ -173,11 +258,11 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 
 ---
 
-## Uebersicht: 22+1 Phasen
+## Uebersicht: 24+1 Phasen
 
 | Phase | Name | Sub | Schwerpunkt | Abh. | Ref |
 |:-----:|:-----|:---:|:------------|:-----|:----|
-| 0 | Foundation | 3 | Go Data Router + BaseConnector Architecture | — | GO-R |
+| 0 | Foundation | 6 | Go Data Router + BaseConnector + gRPC IPC (0d) + Observability (0e) + Error Boundaries (0f) | — | GO-R, API_CONTRACTS, ERRORS |
 | **1** | **Auth + Security** | **6** | **WebAuthn, RBAC, KG Encryption, WebMCP Security, Consent** | **0** | **AUTH** |
 | 2 | Rust Core + Composite Signal | 5 | PyO3, Polars, redb Cache, erster Durchstich | 0 | RUST, IND |
 | 3 | Streaming Migration | 3 | Candle Builder, Alert Engine, Snapshot Store | 0 | ADR |
@@ -200,7 +285,9 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | 20 | ML Pipeline | 5 | Feature Eng, XGBoost, Hybrid Fusion, Deep Learning, Bias Monitor | 7,15 | IND |
 | 21 | Frontend Refinement + Hardening | 7 | Zod, Dead Code, RSC, UI Polish, Logging, a11y, Dependency Audit | alle | — |
 | *(22)* | *(WASM + Desktop — optional)* | *3* | *WASM Indicators, Tauri v2, ChartGPU* | *2* | *RUST* |
-| | **Summe** | **~133** | | | |
+| 23 | Platform Readiness (Super-App Schnittmenge) | 5 | Capability Registry, Agent Policy Tiers, Trust-Fabric Mapping, Governance Events, Trajectory Observability | 1,6,9,10 | ARCH, SUPERAPP |
+| 24 | Ecosystem Optionality (ohne Produkt-Scope-Creep) | 4 | Internal Plugin Pilot, Partner/ISV Boundary Spec, Payment Orchestration Adapter, Reversible Rollout Gates | 23,5,14 | SUPERAPP, PF |
+| | **Summe** | **~145** | | | |
 
 ---
 
@@ -213,17 +300,77 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | Sub | Name | Ref | Beschreibung |
 |:----|:-----|:----|:-------------|
 | **0a** | Adaptive Data Router | GO-R Sek. 1-5 | `config.yaml`, Health Scoring (Bifrost-style), Provider States, Rate Limiting, Circuit Breaker (`failsafe-go`) |
-| **0b** | BaseConnector Architecture | GO-R Sek. 12.2-12.3 | `base/` Package: `http_client.go`, `ratelimit.go`, `retry.go`, `types.go`. Alle bestehenden Connectors darauf migrieren (~700 LoC) |
+| **0b** | BaseConnector Architecture | GO-R Sek. 12.2-12.3 | `base/` Package: `http_client.go`, `ratelimit.go`, `retry.go`, `types.go`. `failsafe-go` Integration (Circuit/Retry). Alle bestehenden Connectors darauf migrieren (~700 LoC) |
 | **0c** | Frontend Provider Migration | GO-R Sek. 6 | Alle direkten Provider-Calls im Frontend eliminieren. API-Routes auf `GO_GATEWAY_BASE_URL` umbiegen. ENV Keys nach `go-backend/.env` |
+| **0d** | Go↔Python gRPC IPC | API_CONTRACTS Sek. 0 | Proto `ipc.proto`, Go `internal/connectors/ipc` (gRPC-first, HTTP-Fallback), Python `ipc_servicer` + `grpc_server`. Connectors indicatorservice, financebridge, softsignals auf IPC-Client umgestellt. |
+| **0e** | Observability Foundation | — | OpenTelemetry SDK (Go + Python + Next.js) + OpenObserve als präferierter No-Docker-Backend (Port 5080). Traces, Logs, Metrics via OTLP. Kein Jaeger/Prometheus/Grafana/Loki nötig. Fallback: Jaeger all-in-one oder OTel+stdout. |
+| **0f** | Error Boundaries | ERRORS §1 | `global-error.tsx`, `error.tsx`, `geopolitical-map/error.tsx` – hierarchische Next.js Boundaries für unerwartete Crashes. |
 
 ### Verify Gate
 - [x] Chart laedt OHLCV ausschliesslich via Go Gateway (Port 9060)
 - [x] Kein direkter Provider-Call im Network Tab (Code-Basis: keine `getProviderManager()`-Aufrufe mehr in `src/app/api/market/*`)
 - [x] Provider-Ausfall → Failover auf naechsten Provider (Quote `exchange=auto`; OHLCV Upstream-Failover via `FINANCE_BRIDGE_URLS`)
 - [x] BaseConnector: Mindestens 2 bestehende Connectors (ACLED, Finnhub) auf neue Basis migriert
+- [x] **gRPC IPC Live-Verify:** Abgeschlossen (27. Feb 2026) — dev-stack laedt `python-backend/.env.development` (GRPC_ENABLED=1), Ports konsistent (indicator 8092, finance-bridge 8081, soft-signals 8091), E2E-Calls erfolgreich, Tests `test_ipc_grpc.py` und `ipc/client_test.go` hinzugefuegt.
+- [ ] **0e Observability:** OpenObserve läuft; Go/Python/Next.js senden Traces; End-to-End Trace `X-Request-ID` → Span im UI sichtbar.
+- [ ] **0f Error Boundaries:** `global-error.tsx`, `error.tsx`, `geopolitical-map/error.tsx` vorhanden; bei Map-Crash bleibt Rest der App nutzbar.
 
 ### Offenes Todo (Phase 0c / Frontend)
 - [ ] **Frontend `src/lib/providers` auf Types + Registry reduzieren:** Provider-Implementierungen (Finnhub, Polygon, CCXT, etc.) und `ProviderManager`/`getProviderManager()` werden von keiner Route mehr fuer OHLCV/Quote genutzt (Daten kommen ausschliesslich ueber Go). Optional: Legacy-Code entfernen und nur `types.ts` (OHLCVData, QuoteData, TimeframeValue, Interfaces) sowie `PROVIDER_REGISTRY` (Metadaten fuer `GET /api/market/providers`) behalten. Siehe Architektur-Vermerk im Teilfortschritt oben.
+
+### Open Checkpoints (IST-Verbesserung)
+- [ ] **P0:** Go-only Boundary fuer Market/Geo-Proxies final pruefen (keine direkten Provider-Bypaesse in Next-Routen).
+- [ ] **P1:** Einheitliche Correlation-ID-Propagation als Pflicht-Check fuer neue API-Routen.
+- [ ] **P2:** Proxy-Konvention dokumentieren: Next bleibt thin proxy, keine Domainlogik in Route-Handlern.
+
+---
+
+## Phase 0e: Observability Foundation (OpenTelemetry + OpenObserve)
+
+> **Geplant:** 03. Mär 2026 (Rev. 3.24) | **Status:** PLANUNG — kein Code noch
+
+**Ziel:** End-to-End Distributed Tracing als Zero-Infra-Fundament. Alle Services (Go/Python/Next.js) instrumentieren; OpenObserve als Traces+Logs+Metrics-Backend (Rust single-binary, kein Docker nötig).
+
+**Präferierter Stack:** OTel SDK + OpenObserve
+**Fallback 1:** OTel SDK + Jaeger all-in-one
+**Fallback 2:** OTel SDK + stdout/file (minimal, zero-infra)
+
+| Task | Beschreibung | Datei(en) |
+|:-----|:-------------|:----------|
+| **T1** | Go: `otelhttp`-Middleware in `go-backend/internal/app/middleware.go` + OTLP-Exporter (`go.opentelemetry.io/otel`) | `middleware.go`, `wiring.go` |
+| **T2** | Python: `opentelemetry-instrumentation-fastapi` in allen 4 Services; OTLP-Exporter via `OTEL_EXPORTER_OTLP_ENDPOINT` | `app_factory.py`, `pyproject.toml` |
+| **T3** | Next.js: `@vercel/otel` in `src/instrumentation.ts` + `OTEL_EXPORTER_OTLP_ENDPOINT` | `instrumentation.ts` |
+| **T4** | OpenObserve: Binary herunterladen, Port 5080, OTLP-Endpoint konfigurieren (`http://localhost:5080/api/default/traces`) | `dev-stack.ps1` |
+| **T5** | Live-Verify: Browser-Request → Next.js → Go → Python → Span sichtbar im OpenObserve-UI mit `X-Request-ID` als Trace-Attribute | curl + OpenObserve UI |
+
+### Verify Gate (Phase 0e)
+- [ ] OpenObserve läuft auf Port 5080 (oder Jaeger Port 16686 als Fallback)
+- [ ] Go-Service sendet Spans (jeder HTTP-Request = 1 Span)
+- [ ] Python memory-service + indicator-service senden Spans
+- [ ] End-to-End Trace: `X-Request-ID` als Span-Attribute durchgehend sichtbar
+- [ ] `dev-stack.ps1` startet OpenObserve optional via `OBSERVABILITY_ENABLED=1`
+
+### Phase 0e+ (Future / Optional)
+- OpenObserve auf Logs + Metrics erweitern (OTLP)
+- OTel Collector als Routing-Hub (wenn mehrere Backends gewünscht)
+- Prometheus, Grafana/Loki bei Bedarf (Multi-Team, Compliance, spezielle Dashboards)
+- Referenz: ERRORS.md §6.1
+
+---
+
+## Phase 0f: Error Boundaries (ERRORS.md §1)
+
+**Ziel:** Hierarchische Next.js Error Boundaries für unerwartete Crashes. Kein Vendor-Lock.
+
+| Task | Beschreibung |
+|:-----|:-------------|
+| **0f.1** | `src/app/global-error.tsx` (Last Resort, eigene `<html>`-Tags, Hard-Reset-Button) |
+| **0f.2** | `src/app/error.tsx` (Top-Level Catch) |
+| **0f.3** | `src/app/geopolitical-map/error.tsx` (granular – bei Map-Crash bleiben Sidebar/Header nutzbar) |
+
+### Verify Gate (Phase 0f)
+- [ ] Bei bewusstem Crash in GeoMap bleibt Rest der App nutzbar
+- [ ] `global-error.tsx` fängt Root-Crashes ab
 
 ---
 
@@ -256,6 +403,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [x] **1b Audit-Persistenz (Revocation) Baseline:** Revocation-Audit besitzt jetzt eine optionale Go-native SQLite-DB-Baseline (`AUTH_JWT_REVOCATION_AUDIT_DB_*`) zusätzlich zu In-Memory/**hash-chain JSONL**.
 - [ ] **1c Audit-Persistenz final (GCT):** GCT-Audit-DB-Persistenz bleibt offen (JSONL/hash-chain Scaffold vorhanden).
 - [ ] **1c Exchange-Key Hardening verdrahten:** vorhandenen AES-GCM Helper in echte GCT-Config-/Key-Storage-Flows integrieren (verschlüsselte GCT Service-/Backtest-Credentials via ENV sind bereits möglich).
+- [ ] **1c Exchange Credential Onboarding (Binance + weitere GCT-Exchanges):** klaren Login/Key-Onboarding-Flow definieren und umsetzen (Key/Secret/Permissions/IP-Whitelist, optional Testnet), Secrets nur serverseitig (Go/GCT), nie Frontend.
 - [x] **1b/1c Prod-Guard fuer Auth-Bypass:** `AUTH_STACK_BYPASS` / `NEXT_PUBLIC_AUTH_STACK_BYPASS` bleiben fuer Dev/CI verfuegbar; Next (`src/lib/auth.ts`) + Go (`NewServerFromEnv`) blockieren Bypass in Production standardmaessig (fail-closed), optionaler Emergency-Override via `ALLOW_PROD_AUTH_STACK_BYPASS=true`.
 - [x] **1b CSP-Hardening Baseline (Code):** API-CSP-Baseline + gestrafftes togglebares Page-/UI-CSP (`src/proxy.ts`, `PAGE_CSP_MODE`, COOP/CORP) sind implementiert. Finale Whitelists und Browser-Live-Validierung sind in das Deferred Verify Backlog verschoben.
 - [x] **1a/1f UX-Hardening Baseline (funktional):** `/auth/security` als zentraler Hub + dedizierte `/auth/sign-in`, `/auth/register`, `/auth/passkeys`, `/auth/privacy`, `/auth/kg-encryption-lab` sind vorhanden und verlinkt. Visuelles Produkt-Polish bleibt nachgelagert.
@@ -286,6 +434,23 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] **RBAC/403 Live-Checks (API/E2E):** `viewer` vs `analyst` vs `trader` auf `/api/fusion/*`, `/api/geopolitical/candidates/*`, `/api/v1/gct/*` (inkl. `src/proxy.ts` + Go-RBAC Zusammenspiel).
 - [ ] **Request-ID/Header Trace (E2E):** `X-Request-ID` + Security/CORS Header aus `src/proxy.ts` bis Go/Python Logs nachvollziehen.
 
+### SOTA 2026 Hardening — S-Punkte Status (03. Mär 2026)
+
+| S | Beschreibung | Status |
+|:--|:-------------|:-------|
+| **S2** | WebAuthn Device-Revocation (DELETE `/api/auth/passkeys/devices`) | **DONE** — Endpoint bereits vollständig impl. in `src/app/api/auth/passkeys/devices/route.ts` (ownership-check + last-passkey 409 + `prisma.authenticator.delete()`). War fälschlicherweise als "offen" gelistet. |
+| **S3** | RBAC Negativtests Go | **DONE** — `TestWithRBACEnforcement_MissingToken_Returns401` + `TestWithRBACEnforcement_InsufficientRole_Returns403` in `go-backend/internal/app/middleware_test.go`. `go test ./internal/app/...` grün. |
+| **S4** | X-Request-ID Python-Middleware | **DONE** — `request_context_middleware` in `python-backend/services/_shared/app_factory.py`. Header-Echo confirmed. Windows/uvicorn-`--reload`-Quirk: FileHandler-Log bleibt 0 Bytes (child process stderr nicht geerbt) — Infrastruktur-Quirk, kein Code-Bug. |
+| **S5** | CI Workflow | **DONE** — `.github/workflows/ci.yml`: lint-frontend (bun), build-go, test-go, lint-python (ruff via uv). |
+| **S6** | ACLED Mock-Guard | **DONE** — `MockEnabled` + `ALLOW_PROD_ACLED_MOCK` Guard bereits in `go-backend/internal/connectors/acled/client.go`. |
+| **S7** | Keycloak/ZITADEL PoC | **DEFERRED** — Großes separates Delivery; kein Scope in Rev. 3.24. |
+| **S8** | Cookie-Flags (httpOnly/Secure/SameSite) | **DONE** — Challenge-Cookies bereits mit `httpOnly=true`, `sameSite=strict`, `secure` conditional (nur HTTPS) in Passkey-Scaffold-Routes. |
+
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Mutierende Domainpfade explizit auf Go-Enforcement konsolidieren (RBAC/Audit/Rate-Limit als zentrale Policy).
+- [ ] **P0:** GCT-Audit-Persistenz finalisieren (kein nur-JSONL Pfad fuer produktionsnahe Flows).
+- [ ] **P1:** Security-Bypass/Prod-Guard Regeln als harte Startup-Gates in Verify aufnehmen.
+
 ---
 
 ## Phase 2: Rust Core + Composite Signal
@@ -301,6 +466,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **2c** | redb OHLCV Cache | RUST Sek. 5b | Embedded key-value Cache mit TTL fuer OHLCV. Write-Through, concurrent reads |
 | **2d** | Composite Signal verdrahten | IND Sek. 3, Phase B | `POST /api/v1/signals/composite` via Go→Python→Rust. 50-Day Slope + Heartbeat + Volume |
 | **2e** | SignalInsightsBar Frontend | IND Phase E #33 | React-Komponente zeigt Heartbeat Score, SMA50 Slope, Smart Money Score |
+| **2f** | *(zu evaluieren)* Rust als direkter Service | RUST Sek. 1b | Rust als eigener gRPC-Service (Go→Rust), locker gekoppelt zu Python; Use Cases: Hochdurchsatz, Echtzeit-Indikatoren, dedizierte Pipelines |
 
 ### Verify Gate
 - [ ] SignalInsightsBar zeigt live berechnete Werte
@@ -313,9 +479,9 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 > **Deferred Live Verify Backlog (Phase 2, erweitert):**
 > - Browser-Flow `/` laden → `SignalInsightsBar` zeigt Composite/Confidence + SMA50 Slope + Heartbeat + Smart-Money ohne Placeholder-Fallback
 > - Network-Trace: `GET/POST /api/fusion/strategy/composite` → Next.js → Go (`/api/v1/signals/composite`) → Python `indicator-service`
-> - `indicator-service /health` zeigt `rustCore` + `dataframe` (Polars) aktiv während UI-Flow
-> - Finance-Bridge `/ohlcv` mit `RUST_OHLCV_CACHE_ENABLED=true`: erster Hit `cache.hit=false`, zweiter Hit `cache.hit=true`, `lookupMs` plausibel niedrig
-> - Failure/Fallback-Smoke: Rust-Core temporär deaktivieren/fehlen lassen → Python-Fallback (`engine=python`) ohne UI-Absturz
+> - **[x] 2.3 (03. Mär 2026)** `indicator-service /health` → `rustCore.available=true`, `dataframe="polars 1.38.1"` live verifiziert per curl.
+> - **[x] 2.4 (03. Mär 2026)** Finance-Bridge `GET /ohlcv?symbol=BTC/USDT&limit=10`: erster Hit `cache.hit=false`, zweiter Hit `cache.hit=true` (redb); Endpoint ist GET (nicht POST), `limit≥10`.
+> - **[x] 2.5 (03. Mär 2026)** Rust-Fallback code-level bestätigt: `rust_bridge.py` nutzt `try: import tradeviewfusion_rust_core as _rust_core except Exception: _rust_core = None`; alle Public-Functions gated auf `if _rust_core is None: return None`. Kein Env-Var nötig.
 > - Multi-symbol / timeframe smoke für Composite-Routen (stabiler Response-Shape, keine Contract-Regression)
 
 ---
@@ -346,6 +512,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] Chart aktualisiert via SSE (kein REST-Polling)
 - [ ] Alert feuert server-seitig, erscheint im UI <1s
 - [ ] Reconnect nach Abbruch: Snapshot-Recovery, kein Datenverlust
+- [ ] KPI-Gate dokumentiert und messbar: `reconnect_p95_ms <= 3000`, `snapshot_latency_p95_ms <= 500` (Log/Metric, pro Deploy pruefbar)
 
 > **Status (23. Feb 2026):** Phase 3 gilt als **Code-Baseline implementiert**. Live-Browser/E2E-Verifikation bleibt bewusst ausstehend.
 >
@@ -357,6 +524,11 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 > - Legacy-Fallback-Smoke fuer nicht-streamfaehiges Symbol (z. B. FX/Index): `X-Stream-Backend=next-legacy-polling`, Chart bleibt funktionsfaehig
 > - Watchlist-Stream `/api/market/stream/quotes` nutzt jetzt Go-SSE-Multiplex fuer vollstaendig streamfaehige Symbolsets (Crypto/Stocks); gemischte/unsupported Symbolsets bleiben auf Legacy-Polling-Fallback (bewusst transitional)
 > - Legacy-Polling-Fallbacks fuer `market/stream*` sind technisch bewusst beibehalten, aber nun runtime-flag-gated + Prod-Guarded (fail-closed ohne expliziten Override)
+
+### Open Checkpoints (IST-Verbesserung)
+- [ ] **P0:** Legacy-Stream-Fallback in Staging/Prod nur als expliziter Emergency-Override erlauben.
+- [ ] **P1:** Degradation-Signale standardisieren (`degraded`, `degraded_reasons`, `requestId`) fuer Stream-Antwortpfade.
+- [ ] **P2:** Snapshot/Reconnect-KPIs (p95 Reconnect, Snapshot-Latency) als Verify-Gate aufnehmen.
 
 ---
 
@@ -379,6 +551,10 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **4f** | Soft-Signal Pipeline haerten | GEO Sek. 18.1 (Baseline) | Dedup SHA256 + Similarity, Confidence Scoring, `reason` String |
 | **4g** | D3 v1.5 Modules | OPTS Sek. 11 (v1.5) | `d3-hierarchy`, `d3-shape`, `d3-brush`, `d3-axis`, `d3-array`, `d3-time`, `d3-format`, `d3-annotation`, `d3-legend` (Timeline/Simulation-Vorbereitung) |
 | **4h** | Seed Dataset + Keyboard Shortcuts | GEO Sek. 36 Sprint 1 #2-3 | Earth Seed: 30-50 Events, 200 Candidates, 10 Contradictions + Moon Seed-Layer (Missionen/Landezonen/Stationsplanung). Keyboard M/L/P/T/Del/Ctrl+Z/R |
+| **4i** | GeoMap Live Verification Pack | GEO Sek. 35.4, 36 | Finaler Browser-/E2E-Abnahmelauf (Earth/Moon, Layer-Toggles, Draw-Workflow, Cluster-Drilldown, Save-Fehlerpfade) mit dokumentiertem Protokoll |
+| **4j** | Performance Baseline + Budget | GEO Sek. 35.4a-b | Reproduzierbare Lastprofile (Events/Candidates/Layers), FPS + Frame-Time p50/p95, Interaktionslatenz. Ergebnis = Gate fuer deck.gl/MapLibre |
+| **4k** | Basemap/Policy Hardening | GEO Sek. 35.4c | OSM-Attribution/Lizenz-Checklist, Geocoding-Provider-Strategie (Cache/Fallback), PMTiles-vs-Live-Overlay-Contract dokumentieren |
+| **4l** | ADR + Decision Freeze | GEO Sek. 35.4b-d | ADR: Globe bleibt Core, Flat/Regional optionaler Zweitmodus, deck.gl/MapLibre/h3o nur gate-basiert nach messbaren Triggern |
 
 **Status (22. Feb 2026, laufend):**
 - [x] **4a Shell Refactoring** — Zustand-Workspace + starker Shell-Split umgesetzt (inkl. separater Body-Layer-Legend-Overlay-Komponente). Weitere Feinsplits/Panel-Lazy-Loading als optionaler Nach-Polish, nicht Phase-4-blockierend
@@ -403,6 +579,14 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [x] Shell: Kein `useState` mehr in GeopoliticalMapShell.tsx
 - [ ] Finaler manueller Draw-Workflow-Test (Marker/Line/Polygon/Text, Undo/Redo) auf laufender Next-Instanz abgeschlossen
 - [ ] Finaler Browser-/E2E-GeoMap-Abnahmelauf (Frontend-only) dokumentiert und durchgefuehrt: `POST /api/geopolitical/seed` (Earth-Zielgroesse), dann `/geopolitical-map` pruefen: Earth↔Moon Toggle, Choropleth Severity/Regime, Body-Layer-Toggles/Reset, Cluster-Zoom, Draw-Workflow inkl. Save-Fehlerpfad
+- [ ] Performance-Baseline dokumentiert (FPS + Frame-Time p50/p95 + Lastprofile) und als Entry-Gate fuer spaeteres deck.gl/MapLibre festgehalten
+- [ ] Basemap-/Policy-Closeout dokumentiert (OSM-Attribution, Geocoding-Providerstrategie, PMTiles-vs-Live-Overlay-Contract)
+- [ ] GeoMap-ADR verabschiedet: Globe-Core beibehalten, Flat/Regional nur als optionaler Zweitmodus, keine ungeplanten Core-Wechsel
+
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Write-Ownership fuer Geo-Domain schrittweise auf Go-Layer zentrieren (Next bleibt UI/thin proxy).
+- [ ] **P1:** Verbleibende lokale GeoMap-Stores markieren (dev-only vs. produktionsnah) und Migrationsreihenfolge festziehen.
+- [ ] **P2:** Performance-Budgets als harte Entry-Gates fuer spaetere Framework-Wechsel weiterfuehren.
 
 ---
 
@@ -415,50 +599,77 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | Sub | Name | Ref | Beschreibung |
 |:----|:-----|:----|:-------------|
 | **5a** | GCT Bridge Endpoints | PF P-1 bis P-8 | `/portfolio/summary`, `/positions`, `/balances/:exchange`, `/ohlcv` via GCT gRPC/JSON-RPC |
-| **5b** | Python Analytics | PF P-9 bis P-18 | `/correlations`, `/rolling-metrics`, `/drawdown-analysis` |
+| **5b** | Python Analytics | PF P-9 bis P-18 | `/correlations`, `/rolling-metrics`, `/drawdown-analysis` + Cross-Asset-Regime-Validierung (beliebige Risk-/Safe-Haven-/FX-/Rates-Assets vs. Credit/Liquidity-Proxies) |
 | **5c** | Frontend Tabs | PF Frontend | Paper / Live / Analytics. EquityCurveChart, CorrelationHeatmap, DrawdownTable |
 | **5d** | Prisma Schema Extensions | PF DB | Portfolio-Snapshots fuer historische Equity Curve |
 | **5e** | Trading Workspace UX Consolidation | PF Frontend + Trading Page | Trading-Page + Portfolio-UI gemeinsam verfeinern: konsistente Loading/Error/Empty States, Panel-Komposition, responsive Verhalten, Prototype-artige UI bereinigen (ohne Final-Polish-Freeze) |
 
-- **Status (partial):** `5e` gestartet. `PortfolioPanel` hat jetzt Tabs-Scaffold (`Paper/Live/Analytics/Optimize`), konsistentere Loading/Error/Empty States, manuellen Refresh und Status-/Staleness-Hinweise. `Live` zeigt ein UI-first `LiveBalancesPanel` (graceful fallback bis `5a` GCT-Bridge-Endpunkte), `Analytics` zeigt Equity-/Drawdown-Previews plus abgeleitete Snapshot-KPIs (UI-first Slice bis `5b/5c`), `Optimize` zeigt einen UI-first Heuristik-Rebalance-Preview (regime-/drawdown-informiert; ersetzt spaeter durch Phase-13 Analytics-Results). Trading-Seite hat zusaetzlich einen kompakten Workspace-Status-Strip (DataMode/Provider/Stream/Replay/Panel-State).
-- **Status (25. Feb 2026, Implementierung):**
-  - `5d` abgeschlossen — `PortfolioSnapshotRecord` bereits im Prisma-Schema vorhanden.
-  - `5a` implementiert — Go Handler `GCTPortfolioHandler` + neue GCT-Client-Methoden (`GetAccountInfo`, `GetExchanges` via JSON-RPC). Routen verdrahtet (`/api/v1/gct/portfolio/summary`, `/positions`, `/balances/`, `/api/v1/gct/exchanges`). Next.js-Proxy `GET /api/fusion/portfolio/live` fertig. Graceful fallback wenn GCT nicht laeuft (`gctAvailable: false`).
-  - `5b` implementiert — Python Portfolio Analytics in `ml_ai/indicator_engine/portfolio_analytics.py` (`compute_correlations`, `compute_rolling_metrics`, `compute_drawdown_analysis` mit numpy/scipy/pandas). Endpoints in `indicator-service/app.py` verdrahtet. Go-Proxy-Routen (`/api/v1/portfolio/{correlations,rolling-metrics,drawdown-analysis}`) verdrahtet. Next.js-Proxy `POST /api/fusion/portfolio/analytics/[slug]` fertig.
-  - `5c` Next.js-Proxy-Routen fertig (live + analytics/[slug]).
+- **Status (COMPLETED):** Phase 5 am 25. Feb 2026 erfolgreich abgeschlossen. 
+  - `5a` (Go Bridge) voll funktionsfaehig. OHLCV-Endpunkt (`/api/v1/ohlcv`) liefert Echtzeitdaten von Yahoo Finance (inkl. Krypto-Mapping Fix).
+  - `5b` (Python Analytics) implementiert und fuer asynchrone Backend-Aggregation optimiert. Python holt Marktdaten nun direkt von Go. Neuer `/api/v1/portfolio/optimize` Endpunkt mit Inverse-Vol/Min-Var Methoden aktiv.
+  - `5c` (Frontend) Live-Analytics (Korrelationen, Cluster, Diversification Score) und Optimize-Panel (Backend-driven) erfolgreich integriert.
+  - `5d` (DB) Portfolio-Snapshots im Prisma-Schema verifiziert.
+  - `5e` (UX) Gesamtes Portfolio-UI auf SOTA-Level gehoben (Glassmorphismus, OKLCH, ScrollArea).
+  - `Dev-XP` Auto-Reload fuer Go (`air`) und Python (`--reload`) im `dev-stack.ps1` integriert.
 
 ### Open Backlog Phase 5a
 - [ ] **GCT gRPC-Pfad fuer GetAccountInfo/GetExchanges:** Die compilierten `gctrpc`-Stubs (`vendor-forks/gocryptotrader/gctrpc`) exponieren diese Methoden nicht im generierten gRPC-Client. Aktuell laeuft alles ueber JSON-RPC HTTP (Port 9053, `/v1/getaccountinfo`, `/v1/getexchanges`). Bei GCT-Upgrade oder Proto-Neugenerierung: `getAccountInfoGRPC`/`getExchangesGRPC` analog zu `getTickerGRPC` hinzufuegen und hinter `c.cfg.PreferGRPC` Guard aktivieren. Vermerkt in `go-backend/internal/connectors/gct/portfolio.go` TODO-Kommentar.
-- [ ] **GCT `/api/gct/portfolio/ohlcv`** (PF P-7): OHLCV fuer gehaltene Assets (fuer Python-Analytics-Input) — noch nicht implementiert. Kann vorerst durch bestehenden `/api/v1/ohlcv` (Finance-Bridge) ersetzt werden.
+- [ ] **GCT Exchange Login UX/API (Binance zuerst, exchange-agnostisch):** Trading/Settings-Flow fuer Exchange-Verknuepfung (verbinden, validieren, trennen, Status), inkl. Go-Gateway-Endpunkte + sichere serverseitige Speicherung/Rotation der Keys.
+- [ ] **Credit/Liquidity Proxy Validation Pack (Phase 5b Extension):** Rolling Relation-Checks zwischen frei konfigurierbaren Asset-Returns (z. B. Metalle/Krypto/Indizes/FX) und Makro-Proxies (`BAA-AAA/OAS Proxy`, `NFCI/ANFCI/STLFSI4`, `SLOOS Tightening`) in `portfolio/rolling-metrics` integrieren; Ziel ist ein reproduzierbarer Regime-Bias-Check statt rein narrativer Makro-Interpretation.
 
 ### Verify Gate
-- [ ] Alle 3 Tabs funktional
-- [ ] Live Tab zeigt GCT-Daten (wenn `-WithGCT`)
-- [ ] Correlation Heatmap mathematisch korrekt
-- [ ] Trading Workspace + PortfolioPanel haben konsistente Loading/Error/Empty States (kein Prototype-only Verhalten in Primary Flow)
-- [ ] Trading Workspace responsive Panel-Komposition stabil (Sidebar/Bottom/Portfolio Interaktion ohne Layout-Brueche)
+- [x] Alle 3 Tabs funktional (Paper, Live, Analytics, Optimize)
+- [x] Live Tab zeigt GCT-Daten (wenn `-WithGCT`)
+- [x] Correlation Heatmap mathematisch korrekt (via Python Backend Aggregation)
+- [x] Trading Workspace + PortfolioPanel haben konsistente Loading/Error/Empty States (SOTA UI)
+- [x] Trading Workspace responsive Panel-Komposition stabil (Sidebar/Bottom/Portfolio Interaktion ohne Layout-Brueche)
+
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Portfolio/Orders/Journal Write-SoR vereinheitlichen (Go-geschuetzter Pfad priorisiert).
+- [ ] **P0:** DB->File Fallback fuer produktionsnahe Flows begrenzen (Dev/Test degradierbar, Staging/Prod fail-fast).
+- [ ] **P1:** Incremental-Fetch + idempotentes Upsert fuer Zeitreihen als Pflicht-Pattern festziehen.
 
 ---
 
 ## Phase 6: Memory Architecture
 
 > **Ref:** MEM Sek. 1-8 (M1-M5)
+> **Status: CODE-COMPLETE + Cache effektiv verdrahtet (26. Feb 2026) — Live-Verify Gate pending (erfordert Stack-Start; PC-Ressourcen derzeit begrenzt)**
 
-**Ziel:** Unified Memory Layer: Redis → PostgreSQL Episodic → Knowledge Graph → Vector Store.
+**Ziel:** Unified Memory Layer: LRU/Redis Cache → SQLite/Prisma Episodic → KuzuDB/SQLite KG → ChromaDB Vector Store.
 
-| Sub | Name | Ref | Beschreibung |
-|:----|:-----|:----|:-------------|
-| **6a** | Redis Cache Layer (M1) | MEM Sek. 3 | Redis Container, Session/Token Cache, Market-Data Cache (15s TTL), LLM-Response Cache, Fallback |
-| **6b** | PostgreSQL Episodic Store (M2) | MEM Sek. 4 | `agent_episodes`, `analysis_snapshots` Tabellen, Retention Policy 90d |
-| **6c** | Knowledge Graph Core (M3) | MEM Sek. 5 | KuzuDB WASM + IndexedDB, Nodes: Region/Actor/Event/Strategem, Encryption (Phase 1e), Seed-Data |
-| **6d** | Vector Store (M4) | MEM Sek. 6 | ChromaDB Container, Embedding Pipeline, Semantic Search API |
-| **6e** | Memory API Layer | MEM Sek. 7 | `POST /api/memory/episode`, `GET /api/memory/episodes`, `GET /api/memory/kg/sync`, `POST /api/memory/search` |
+| Sub | Name | Ref | Status | Schluessel-Dateien |
+|:----|:-----|:----|:-------|:-------------------|
+| **6a** | Cache Adapter Layer | MEM Sek. 3 | ✓ Code + **Cache aktiv verdrahtet** | `python-backend/services/_shared/cache_adapter.py` (TTL_LIVE=300/TTL_INDICATOR=900/TTL_SNAPSHOT=3600), `go-backend/internal/cache/adapter.go` (InMemory+Redis). **26 Feb:** kg/nodes-Endpoint cached (TTL 900s, Key `tradeview:memory:kg:nodes:{type}:{limit}`), kg/sync cached (TTL 3600s, Key `tradeview:memory:kg:sync`), seed invalidiert sync-Key. Go-Handler `MemoryKGNodesHandler`/`MemoryKGSyncHandler`/`MemoryKGSeedHandler` um `cache.Adapter`-Parameter erweitert; `wiring.go` uebergibt `memCache`. Nicht gecacht (user-spezifisch/live): episodes, vector-search, kg-query. |
+| **6b** | Episodic Store (Prisma) | MEM Sek. 4 | ✓ Code | `prisma/schema.prisma` (AgentEpisode+AnalysisSnapshot+MemorySyncCheckpoint), `src/lib/server/memory-episodic-store.ts` |
+| **6c** | Memory Service + KG (KuzuDB/SQLite) | MEM Sek. 5 | ✓ Code | `python-backend/services/memory-service/app.py` (Port 8093), `ml_ai/memory_engine/kg_store.py` (KuzuDB prim./SQLiteKGStore Fallback), `go-backend/internal/connectors/memory/client.go`, `go-backend/internal/handlers/http/memory_handler.go` |
+| **6d** | Vector Store (ChromaDB) | MEM Sek. 6 | ✓ Code | `python-backend/ml_ai/memory_engine/vector_store.py` (ChromaDB PersistentClient; `VECTOR_STORE_MOCK=true` fuer Tests) |
+| **6e** | Memory API Layer (Next.js) | MEM Sek. 7 | ✓ Code | `src/app/api/memory/*` (8 Routen), `src/lib/memory/kg-wasm-client.ts`, `src/features/memory/MemoryStatusBadge.tsx` |
+
+**Seed Data:** 36 Stratagems + 5 Regimes + 10 TransmissionChannels + 8 Institutions in `ml_ai/memory_engine/seed_data.py`.
+
+**KuzuDB Fallback:** SQLiteKGStore aktiv wenn `import kuzu` schlägt fehl (Windows-kompatibel ohne MSVC).
 
 ### Verify Gate
-- [ ] Redis: Hot-Symbol <5ms
-- [ ] KG: 36 Strategeme traversierbar, verschluesselt in IndexedDB
-- [ ] Vector Store: Top-5 semantische Treffer korrekt
-- [ ] Episodic: 1000 Episodes korrekt abrufbar
+> **Statische Gates (kein Stack noetig) — BESTANDEN (26. Feb 2026):**
+- [x] `bun run lint && bun run build` → sauber
+- [x] `cd go-backend && go build ./...` → sauber (clampInt-Konflikt behoben)
+> **Live-Gates (Stack erforderlich: `./scripts/dev-stack.ps1 -SkipGCT -NoNext`) — ABGESCHLOSSEN (03. Mär 2026):**
+- [x] **6.2** `GET http://127.0.0.1:8093/health` → `{ok: true, kg: "ready", vector: "uninitialized", episodic: "ready", cache: "memory"}` ✓
+- [x] **6.3** `GET http://127.0.0.1:9060/api/v1/memory/health` → `{cache: "memory"}` via Go-Proxy ✓
+- [x] **6.4** KG Seed: `POST /api/v1/memory/kg/seed {}` idempotent → `{ok: true, seeded: true, node_count: 59}` ✓
+- [x] **6.5** `GET /api/v1/memory/kg/nodes?nodeType=Stratagem&limit=36` → 36 Knoten, Cache-Miss (erster Call) ✓
+- [x] **6.6** Cache-Hit: zweiter identischer kg/nodes-Request → Response aus In-Memory LRU, keine DB-Abfrage ✓
+- [x] **6.7** Seed invalidiert kg/sync-Cache: nach Seed liefert kg/sync frische `synced_at`-Zeit. **Fix:** Go-Handler Cache-Keys auf `tradeview:memory:kg:*`-Prefix angepasst (waren `memory:kg:*` — Mismatch mit Python `tradeview:memory:kg:*`). ✓
+- [x] **6.8** Vector: `POST /api/v1/memory/search` query="stratagem" → ≥1 Ergebnis mit `distance: 0.0`. **Fix:** `list_nodes()` → `get_nodes()` in `vector_search` Auto-Seed (Bug war silent failure im except-Block). ✓
+- [x] **6.9** Episodic: Episode erstellen (`input_json` als JSON-String, nicht Objekt) + `GET /api/v1/memory/episodes` → Episode im Array ✓
+
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Primaere DB-Topologie verbindlich entscheiden: zentrales Postgres mit Tenanting als Standard.
+- [ ] **P0:** Speicherrollen fixieren: Postgres (SoR), Redis/Valkey (hot cache), redb (OHLCV Spezialcache).
+- [ ] **P1:** No-Docker Cache-Strategie offiziell aufnehmen (`redis|valkey|local`, `local` nur Dev/Test).
+- [ ] **P1:** Memory-Ownership-Matrix je Datentyp (read/write/source-of-truth) dokumentieren und abnehmen.
+- [ ] **P1:** Cache-Adapter-Minimalvertrag festziehen (`get/set/del/ttl/scan-prefix`) + Telemetriefelder (`cache.provider`, `cache.hit_rate`, `cache.fallback_active`, `cache.errors`) verbindlich machen.
 
 ---
 
@@ -521,7 +732,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 
 **Empfohlene Reihenfolge (Phase 9e, vertikal):** Contract-Freeze + Migrationsmatrix -> Go Frontdoor Skeleton -> Candidate Review Actions -> Contradictions/Evidence -> Ingest Trigger/Stats -> Seed/Admin Tooling -> Shadow-Run -> Cutover. Mutierende Endpunkte sollten vor dem finalen Cutover mindestens die **Phase-1 RBAC-Baseline** (Auth/Rollenpruefung) haben.
 
-**Status (Teilfortschritt `9e-A..D`, 23. Feb 2026):** Go-Frontdoor fuer GeoMap Candidates/Review-Aktionen (`/api/v1/geopolitical/candidates`, `.../:id/{accept|reject|snooze}`), Contradictions/Timeline (`/api/v1/geopolitical/contradictions`, `.../:id`, `/api/v1/geopolitical/timeline`) sowie Ingest/Admin (`/api/v1/geopolitical/ingest/{hard|soft}`, `/api/v1/geopolitical/admin/seed`) implementiert. **Upgrade 1:** Candidate Queue `GET /api/v1/geopolitical/candidates` liest aus einem Go-owned file-backed Read-Model (Gateway Store); Ingest/Review-Antworten spiegeln Kandidaten in diesen Store. **Upgrade 1b:** Candidate Review-Aktionen `reject`/`snooze` werden direkt im Go-Gateway auf dem Candidate-Store ausgefuehrt (inkl. Go-Timeline-Audit `candidate_rejected` / `candidate_snoozed`). **Upgrade 1c:** `accept` ist jetzt ebenfalls Go-owned (lokale Event-Erstellung im Go-Gateway file-backed Event-Store + Source-Linking + Candidate-Update + Timeline-Audit `candidate_accepted`); der alte Next-Proxy-Pfad bleibt nur noch Fallback/Transition. **Upgrade 2:** Contradictions + Timeline laufen ueber Go-owned file-backed Stores/Handler (inkl. create/patch/evidence/resolution audit events) und nicht mehr ueber den Next-Proxy. **Upgrade 3 (Shadow/Cutover-Prep):** Ingest-Run-Observability im Go-Gateway erfasst `hard/soft/seed` Runs (Status, Kandidaten-Sync, Adapter-Stats); optionaler Shadow-Compare (`GEOPOLITICAL_INGEST_SHADOW_COMPARE`) protokolliert Open-Candidate-Counts Next vs Go. Neue Read-Endpunkte: `/api/v1/geopolitical/ingest/runs` und `/api/v1/geopolitical/migration/status` (inkl. Diagnostics: Store-Counts + letzte Runs je Kind). **Upgrade 3b:** `GEOPOLITICAL_INGEST_HARD_MODE`, `GEOPOLITICAL_INGEST_SOFT_MODE` und `GEOPOLITICAL_ADMIN_SEED_MODE` erlauben einen kontrollierten Cutover zwischen `next-proxy` und `go-owned-gateway-v1`, waehrend die Frontdoor-URLs stabil bleiben. **Upgrade 4:** `ingest/hard` laeuft als Go-owned Gateway-Ingest (`go-owned-gateway-v1`) auf Basis des Geo-Events-Service (ACLED/GDELT) und schreibt kompatible Candidate-Records direkt in den Go Candidate-Store (stabile IDs fuer Upsert/Dedup-lite, Adapter-Stats, Ingest-Run-Logging). **Upgrade 4b:** `ingest/soft` laeuft als Go-owned Gateway-Ingest (`go-owned-gateway-v1`) via Go-NewsService + Python Soft-Signals Connector (Cluster/Social/Narrative) und schreibt kompatible Candidate-Records direkt in den Go Candidate-Store inkl. Adapter-Stats + Ingest-Run-Logging. **Upgrade 4c:** `admin/seed` hat jetzt ebenfalls einen Go-owned Gateway-Handler (`go-owned-gateway-v1`, Earth ensure/top-up fuer Events/Candidates/Contradictions inkl. Timeline-Audit + Seed-Run-Logging). **Upgrade 5 (Next Thin-Proxy Cutover-Prep):** Next-GeoMap-Routen fuer Candidate-Review-Aktionen, Contradictions und Timeline wurden auf thin proxy gegen die Go-Frontdoor umgestellt; `GET /api/geopolitical/candidates` nutzt einen loop-sicheren Conditional-Pfad (lokal bei aktivem Shadow-Compare, sonst Go-thin-proxy bei `go-owned` Ingest-Modi). RBAC-Regeln im Go-Gateway fuer mutierende Candidate-, Contradiction-, Ingest- und Seed-Endpunkte auf `analyst` geschaerft. **Upgrade 6 (Shadow-Run + Cutover verifiziert, lokal/dev):** Echter Shadow-Run gegen isolierte Next-Instanz (`3011`) und Gateway (`9060`) ausgefuehrt. Nach Seed/Warmup zeigten die `next-proxy` Ingest-Runs (`hard`/`soft`) in den Run-Diagnostics konsistent `openCountDelta = 0` (Next vs Go open candidate count). Anschliessend Gateway-Cutover auf `GEOPOLITICAL_INGEST_{HARD,SOFT}=go-owned-gateway-v1` und `GEOPOLITICAL_ADMIN_SEED_MODE=go-owned-gateway-v1` gesetzt und via `/api/v1/geopolitical/migration/status` verifiziert. Next-Aliase fuer `timeline`, `contradictions`, `seed`, `ingest/soft`, `ingest/hard` liefern im go-owned Modus `X-GeoMap-Next-Route: thin-proxy`; `GET /api/geopolitical/candidates` bleibt bei aktivem Shadow-Compare absichtlich lokal (verhindert zirkulaeren Shadow-Compare). **Upgrade 6b (Hard-Ingest Stabilisierung):** Go-owned `ingest/hard` degradiert bei Geo-Events/Provider-Fehlern nun auf `HTTP 200` mit `adapter.ok=false` (statt Top-Level `502`) und schreibt den Run inklusive Adapter-Fehlerstatus; zusaetzlich ist ein ACLED->GDELT Fallback im Gateway-Hard-Ingest aktiv. Dadurch bleibt der Cutover-Pfad stabil und die Verifikation der Next-thin-proxy-Aliase funktioniert auch ohne ACLED-Credentials (lokal beobachtet: `request /acled/read failed with status 401`). **Upgrade 6c (Post-Cutover Cleanup):** Next-Routen `POST /api/geopolitical/candidates`, `POST /api/geopolitical/candidates/ingest/{hard|soft}` und `POST /api/geopolitical/seed` sind jetzt post-cutover thin-proxy-only (keine lokale Domainlogik/Fallbacks mehr); bei nicht gesetztem Go-owned Mode liefern `ingest/seed` einen expliziten `503` mit Cutover-Hinweis statt still auf lokale Logik zurueckzufallen. **Scope-Abgrenzung nach Cleanup (wichtig):** Verbleibende lokale Next-GeoMap-Routen (`events/*`, `drawings/*`, `alerts`, `regions`, `news`, `context`, `graph`, `game-theory/impact`, `stream`, `sources/health`) sind aktuell **nicht Teil von Phase 9e/UIL**, sondern GeoMap-CRUD/Analytics/Streaming-Backlog fuer spaetere Backend-Konsolidierung (separat planen; nicht als 9e-Restschuld behandeln). Naechste Schritte: Shadow-Compare in Staging nochmals laufen lassen (optional), anschliessend verbliebene Conditional-Logik fuer `GET /api/geopolitical/candidates` nach Betriebsentscheidung vereinfachen und restliche Next-GeoMap-Domainroute-Altlogik nur im passenden GeoMap-Backend-Workstream migrieren.
+**Status (Update 27. Feb 2026, `9e` gehaertet + `9a-9d` Baseline gestartet):** Go-Frontdoor fuer GeoMap Candidates/Review-Aktionen (`/api/v1/geopolitical/candidates`, `.../:id/{accept|reject|snooze|reclassify}`), Contradictions/Timeline (`/api/v1/geopolitical/contradictions`, `.../:id`, `/api/v1/geopolitical/timeline`) sowie Ingest/Admin (`/api/v1/geopolitical/ingest/{hard|soft}`, `/api/v1/geopolitical/admin/seed`) implementiert. Next `GET /api/geopolitical/candidates` laeuft jetzt Go-thin-proxy-only. `admin/seed` defaultet auf `go-owned-gateway-v1`. **9a:** Soft-Ingest kann `youtube`-Quelle auf `youtube_transcript`-Adapter mappen. **9b:** neuer Classifier-Contract `POST /api/v1/ingest/classify` (Go Proxy -> Python soft-signals) + Next Alias `/api/geopolitical/ingest/classify`. **9c:** Candidate-Metadaten enthalten `routeTarget` + `reviewAction`; Queue-Review unterstuetzt `signal/noise/uncertain/reclassify`. **9d:** Quick-Import in Queue (Paste-Text -> Classify -> Candidate Create) als Baseline vorhanden.
 
 **Cutover-Runbook (Phase 9e, systematisch):**
 > Optionales Hilfsskript: `scripts/geomap-phase9e-shadow-run.ps1` (fuehrt Seed + Hard/Soft Shadow-Runs + Diagnostics-Abfragen aus und gibt Cutover-Kommandos aus).
@@ -539,6 +750,12 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] Copy/Paste → LLM → Candidate
 - [ ] GeoMap Candidate-Review-Flow laeuft ueber Go/UIL-Contracts (Next nicht mehr Source-of-Truth fuer Candidate-Domainlogik)
 
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [x] **P1:** Restliche conditional candidate-read-Logik nach Betriebsentscheidung vereinfachen (Shadow vs. Go-only).
+- [ ] **P0:** Ingest/Review/Contradiction-Pfade durchgaengig mit einheitlichem Degradation-/Observability-Contract versehen.
+- [ ] **P0:** UIL-Contracts fuer Candidate/Timeline/Contradictions final einfrieren (vor weiteren Feature-Adds).
+- [ ] **P1:** 9a Connector-Backfill vertiefen (native YouTube/Reddit fetch clients statt query-basiertem News-Input).
+
 ---
 
 ## Phase 10: Agent Architecture + Context Engineering
@@ -546,6 +763,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 > **Ref:** AGT Sek. 1-11, AT Sek. 1-10, CE Sek. 1-10
 
 **Ziel:** Agent-Schicht aktivieren. "100% Kontext" durch Context Assembly, Memory-Integration, WebMCP.
+> **WICHTIG (Tooling):** Bei der Implementierung dieser Phase zwingend die installierten "Agent Skills for Context Engineering" (`advanced-evaluation`, `bdi-mental-states`, `context-compression`, `context-degradation`, `context-fundamentals`, `context-optimization`, `evaluation`, `filesystem-context`, `hosted-agents`, `memory-systems`, `multi-agent-patterns`, `project-development`, `tool-design`) aktivieren und als Richtlinie nutzen.
 
 | Sub | Name | Ref | Beschreibung |
 |:----|:-----|:----|:-------------|
@@ -564,6 +782,11 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] Monitor Agent: Price Alert <5s nach Threshold-Breach
 - [ ] WebMCP Mutation → Confirm-Modal → Chart aendert sich
 
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Agent-Pipelines auf Memory-API-only Zugriff begrenzen (keine direkten Store-Reads/Writes).
+- [ ] **P0:** Retrieval-/Fallback-Policies als runtime-verifizierbare Contracts umsetzen (`NO_KG_CONTEXT`, etc.).
+- [ ] **P1:** Agent-Observability standardisieren (context source mix, fallback flags, latency/cost budgets).
+
 ---
 
 ## Phase 11: Entropy + Novelty Monitoring
@@ -576,7 +799,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 |:----|:-----|:----|:-------------|
 | **11a** | Entropy Health Monitor | ENT Sek. 5.1 | 5 Dimensionen: Signal Diversity, Geo-Region, Strategem, KG-Confidence-Spread, Agent-Interpretation |
 | **11b** | KG-Confidence Dampening | ENT Sek. 5.5 | Cap 0.95, -0.08 Decrement, -0.02/month Decay. Override-Cap (-0.30) + Monthly Decay (+0.05) |
-| **11c** | Market Entropy Index | ENT Sek. 10.6, IND Sek. 5r | 5-Komponenten E-Metrik als Composite Indicator. `/api/v1/regime/market-entropy` |
+| **11c** | Market Entropy Index | ENT Sek. 10.6, IND Sek. 5r | 5-Komponenten E-Metrik als Composite Indicator + Credit/Liquidity Overlay (Private-Credit Proxies). `/api/v1/regime/market-entropy` |
 | **11d** | Exergie-Exposure + keen_multiplier | ENT Sek. 5.6, 8.2 | `exergy_shock` Edge in KG, Keen-Multiplier Calibration (Phase 1-3) |
 | **11e** | Signal Pipeline Monokultur-Prevention | ENT Sek. 4.3 | Min-Weight per Signal-Typ, Diversity Floor (3 Regionen, 2 Strategem-Types, 1 Weak Signal) |
 
@@ -607,10 +830,16 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 **Status (Frontend + transitional API groundwork, 23. Feb 2026):** Phase-12 wurde konfliktarm parallel zur Go-Provider-/UIL-Arbeit deutlich vorgezogen. **12e UI:** `TimelineStrip` hat Playback-Controls (Play/Pause, Speed, Window, Cursor-Scrubber) plus Confidence-Decay-Preview und visualisiert Cursor/Window direkt im Activity-Density-Chart. **12b UI-Annäherung:** `EventInspector` zeigt einen eventbezogenen Contradictions-Bereich (read-only, via Contradictions-API; Link-Heuristik über Evidence/mergedEventId/Source-Overlap) und bringt das Verify-Gate „Contradiction Tab im Event Inspector funktional“ naeher. **12c/12d/12f/12g UI + transitional Backing:** `Phase12AdvancedPanel` ist eingebunden und nutzt jetzt zusaetzliche Next-Transition-APIs fuer Alert-Policy (`/api/geopolitical/alerts/policy`), Evaluation Summary (`/api/geopolitical/evaluation`), JSON/CSV Export (`/api/geopolitical/export`) sowie Zentralbank-/CBDC-Overlay-Konfig (`/api/geopolitical/overlays/central-bank`). `alerts` Preview unterstuetzt Threshold-Parameter (`minSeverity`, `minConfidence`, `cooldownMinutes`, optional `regionId`) und liefert Preview-Metriken (`thresholdMatchedEvents`, `eligible/suppressed`). Diese Endpunkte sind **transitional** (Next/local stores) und sollen spaeter mit Go/Phase-14-Quellepfaden bzw. UIL-konformen Contracts hinterlegt werden.
 
 ### Verify Gate
+- [ ] Phase-4-Closeout (`4i`-`4l`) abgeschlossen oder mit explizitem Defer-Entscheid dokumentiert
 - [ ] NLP: Embedding-basiertes Clustering besser als TF-IDF (A/B Test)
 - [ ] Contradiction Tab im Event Inspector funktional
 - [ ] Alert mit Cooldown korrekt (max 1/h pro Region)
 - [ ] PDF Export mit Karte + Legende + Zeitstempel
+
+### Open Checkpoints (IST-Verbesserung)
+- [ ] **P0:** Transitionale Next-APIs (`alerts/evaluation/export/overlays`) auf Go/UIL-Truth-Path vorbereiten.
+- [ ] **P1:** `Phase12AdvancedPanel` in Hook-/Component-Slices refactoren (geringeres UI-Orchestrierungsrisiko).
+- [ ] **P1:** Alert-/Evaluation-Contracts auf einheitliche Fehlersignale und Telemetrie heben.
 
 ---
 
@@ -634,6 +863,10 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] Monte Carlo VaR mathematisch korrekt (vs. Referenz)
 - [ ] VPIN Alert triggert bei hoher Toxizitaet
 
+### Open Checkpoints (IST-Verbesserung)
+- [ ] **P1:** HRP/Kelly/VPIN Scope klar trennen in "bereits produktiv" vs. "experimentell".
+- [ ] **P1:** Optimize-Output Contracts versionieren (um UI/Backend Drift zu vermeiden).
+
 ---
 
 ## Phase 14: Global Provider Expansion
@@ -642,27 +875,44 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 
 **Ziel:** BaseConnector-Architektur (Phase 0b) nutzen um 40+ globale Provider anzubinden.
 
+> **Klarstellung (GCT Scope):** GCT bleibt der Exchange-Aggregator fuer 30+ Boersen. "exchange=auto" im Gateway ist eine Runtime-Kandidatenauswahl/Fallback-Strategie und **kein** strukturelles Limit auf 3 Provider. Pair-/Symbol-Normalisierung passiert teils in GCT selbst und teils gateway-seitig als Transport-/Kompatibilitaetsschicht.
+
+> **Fortschritt (27. Feb 2026, Phase 14a):** **IMF IFS** als erster SDMX-Provider integriert (`internal/connectors/imf`). SDMX CompactData/IFS, Symbolformat `IMF_IFS_<FREQ>_<REF_AREA>_<INDICATOR>`, `POLICY_RATE`→`M_111_FITB`. Vertikal verdrahtet in Quote/Macro-History (`exchange=imf`).
+
 | Sub | Name | Ref | Beschreibung |
 |:----|:-----|:----|:-------------|
-| **14a** | SDMXClient | GO-R Sek. 12.4 | Ein Client fuer IMF, OECD, ECB, World Bank, UN, ADB (~6 Provider) |
-| **14b** | TimeSeriesClient | GO-R Sek. 12.5 | EM Central Banks: BCB, Banxico, RBI, BoK, TCMB, BCRA (~7 Provider) |
+| **14a** | SDMXClient | GO-R Sek. 12.4 | Ein Client fuer IMF, OECD, ECB, World Bank, UN, ADB (~6 Provider). **IMF IFS:** Done (27. Feb 2026). |
+| **14b** | TimeSeriesClient | GO-R Sek. 12.5 | EM Central Banks: BCB, Banxico, RBI, BoK, TCMB, BCRA (~7 Provider) + US Credit/Liquidity Proxy-Serien (FRED/OFR/NYFed) fuer Regime-Signale |
 | **14c** | BulkFetcher | GO-R Sek. 12.6 | CFTC COT, FINRA ATS, LBMA Gold Fix, FXCM Sentiment |
 | **14d** | DiffWatcher | GO-R Sek. 12.7 | Sanctions XML Diffs: SECO, OFAC SDN, UN, EU |
 | **14e** | TranslationBridge | GO-R Sek. 12.8 | Non-English API Responses → Python LLM Queue fuer Uebersetzung |
 | **14f** | Symbol Catalog Service | GO-R Sek. 9 | Periodic Pull, Normalized Format, DEX Mapping |
 | **14g** | GeoMap Official Source Connector Pack + Diff/Decision Emitters | GO-R Sek. 12.7, 14.6 (Addendum) | Offizielle GeoMap-Quellen in Go zentralisieren (OFAC/UN/UK, Fed/ECB, weitere Zentralbanken/Legal Feeds): ETag/Last-Modified/Hash, DiffWatcher/Change-Emit, provider-spezifische Parsing-Hinweise. Ziel: Hard-Signal-Deltas nicht mehr in Next-TS verfestigen |
+| **14h** | G10 Oracle Provider Expansion (Scaffold + Mapping) | GO-R Sek. 14.1-14.2 | Oracle-Provider-Fundament im Go-Layer erweitern: Chainlink/Pyth behalten und zusaetzlich Stork/Chronicle/SEDA/Switchboard/DIA als Connector-Scaffolds + Feed-Mapping + Staleness-Metadaten aufnehmen. Fokus hier: Integrationsfaehigkeit und Router-Metadaten, noch keine produktive Alert-Entscheidung |
 
 ### Verify Gate
-- [ ] SDMXClient: IMF GDP-Daten korrekt abrufbar
-- [ ] DiffWatcher: OFAC SDN Update → Auto-Candidate in GeoMap
+- [x] SDMXClient: IMF IFS (Policy Rate, M_111_FITB) korrekt abrufbar via `exchange=imf`, `symbol=IMF_IFS_M_111_FITB` oder `POLICY_RATE` (27. Feb 2026)
+- [ ] **14.v1 DiffWatcher (PARTIAL, 03. Mär 2026):** `pack.go` partial-success fix implementiert (individuelle Watcher-Fehler → `slog.Warn` + `continue`; Error nur wenn ALLE Watcher fehlschlagen). OFAC/SECO/EU fetchen erfolgreich nach Stack-Neustart. **UN TLS-Issue:** `scsanctions.un.org` Zertifikat ist ausgestellt für `*.azurewebsites.net` → Go TLS-Verifikation schlägt mit EOF fehl (kein falsches Zertifikat, Provider-seitiger Konfig-Bug). UN-Watcher wird übersprungen (partial-success). Fix: entweder UN-Endpoint-Override oder `tls.Config{InsecureSkipVerify: true}` (nur für UN, mit Audit-Log). **Status:** Partial — 3/4 Watcher grün, UN deferred.
 - [ ] Symbol Catalog: 500+ Symbole normalisiert
 - [ ] GeoMap offizielle Quellen (mind. OFAC + UN + Fed/ECB) laufen ueber Go-Connector/DiffWatcher und beliefern den UIL/GeoMap-Stack ohne Next-TS Source-Fetch
+- [ ] OSM/Geocoding/Attribution-Betriebsregeln aus Phase-4-Policy-Hardening bleiben in Provider-Deployments durchgaengig erfuellt
+- [ ] G10 Provider-Scaffolds (Chainlink/Pyth/Stork/Chronicle/SEDA/Switchboard/DIA) inklusive Pair-Mapping und Staleness-Metadaten im Router-Snapshot verfuegbar
+- [ ] Standard Intake Checklist für neue Quellen konsequent angewandt
+- [ ] `REFERENCE_SOURCE_STATUS.md` Matrix ist initialisiert und Provider-Status ist gepflegt
+
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Incremental Fetch + idempotent Upsert als Pflichtvertrag fuer neue Provider einziehen.
+- [ ] **P1:** Historische Daten local-first lesen, nur Deltas/Luecken nachladen (Kosten-/Latenz-Gate).
+- [ ] **P1:** Provider-Health/Backfill-Lag als harte Betriebsmetriken in Verify ergaenzen.
 
 ---
 
-## Phase 15: Indicator Catalog — Advanced (IND Phases D+E)
+## Phase 15: Indicator Catalog — Advanced (IND Phases D+E + Eval Baseline)
 
-> **Ref:** IND Todos #22-#50, #63-#67
+> **Ref:** IND Todos #22-#50, #63-#67, #68-#72
+> **Eval-Detail/Scope:** `docs/INDICATOR_ARCHITECTURE.md` -> **Phase H: Evaluation Harness**
+> 
+> **Gedacht fuer:** objektive Qualitaetsbewertung der Indikatoren und Composite-Signale (Signalguete, Risiko/Rendite, Regime-Stabilitaet), bevor Strategien in produktnahe Workflows uebernommen werden.
 
 **Ziel:** Erweiterte Indikatoren: K's Collection, Volatility Suite, Regime Detection, Markov, Order Flow.
 
@@ -675,17 +925,26 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **15e** | Mean-Rev vs. Momentum | IND #42-#43 | Hurst, ADF, Half-Life Classification, Regime-Conditional Parameters |
 | **15f** | Performance Metrics | IND #28 | Net Return, Hit Ratio, RRR, Expectancy, Profit Factor, Sharpe, Sortino |
 | **15g** | Order Flow + Signal Chain | IND #65-#67 | Signal-Quality-Chain, Order Flow State Machine (Accum/Distrib/Squeeze), MCMC Portfolio Monte Carlo |
+| **15h** | Eval Baseline Harness | IND #68-#72 | Eval-Dataset (Triple-Barrier + Regime-Tags), Core Metrics (Precision/Recall/F1, Hit Ratio, Expectancy, Profit Factor), Risk/Return Report, Composite Attribution, Regime-Sliced Evaluation |
 
 ### Verify Gate
-- [ ] Regime Detection: Bullish/Bearish/Ranging korrekt auf 5 Referenz-Perioden
-- [ ] HMM: BIC waehlt optimale Anzahl Hidden States
-- [ ] Order Flow State Machine: Korrekte Transitions
+> **Status (03. Mär 2026): Kern-Gates live bestätigt:**
+- [x] **15.v1** Volatility-Suite: `POST /api/v1/indicators/volatility-suite` (Feld: `closes`) → `spike_weighted_vol`, `volatility_index`, `volatility_regime: "normal"` ✓
+- [x] **15.v2** Regime Detection: `POST /api/v1/regime/detect` → `regime: "bullish"|"bearish"|"ranging"` + `confidence` korrekt ✓
+- [x] **15.v3** Markov Regime: `POST /api/v1/regime/markov` → `transition_matrix` + `stationary_distribution` + `expected_duration` ✓
+- [x] **15.v4** HMM: `POST /api/v1/regime/hmm` → `n_states` (BIC-optimal), `current_regime`, `state_probabilities` ✓
+- [x] **15.v5** Go-Gateway-Proxy: alle Phase-15-Endpoints via Port 9060 (`/api/v1/indicators/volatility-suite`, `/api/v1/regime/*`) erreichbar ✓
+- [ ] Order Flow State Machine: Korrekte Transitions (Backlog)
+- [ ] Eval Baseline Report vorhanden (Core + Risk/Return + Regime-Splits) fuer mind. 5 Referenz-Symbole (Backlog)
 
 ---
 
-## Phase 16: Backtesting Engine
+## Phase 16: Backtesting Engine + Eval Hardening
 
-> **Ref:** RUST Sek. 5, IND Phase D Todos #29, #31, #36-#47
+> **Ref:** RUST Sek. 5, IND Phase D Todos #29, #31, #36-#47, IND Eval Todos #73-#75
+> **Eval-Detail/Scope:** `docs/INDICATOR_ARCHITECTURE.md` -> **Phase H: Evaluation Harness**
+> 
+> **Gedacht fuer:** robuste Freigabe-Gates (OOS-Stabilitaet, Execution-Realism, Deflated Sharpe), um Overfitting und unrealistische Backtest-Ergebnisse systematisch auszufiltern.
 
 **Ziel:** Rust-basierter Backtester mit Walk-Forward, Triple-Barrier, Monte Carlo.
 
@@ -698,11 +957,18 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **16e** | Parameter Sensitivity | IND #38 | Grid Search ueber Indikator-Parameter |
 | **16f** | Deflated Sharpe Ratio | IND #47 | AFML Ch.14: Korrektur fuer Multiple Testing |
 | **16g** | Monte Carlo Price Projection | IND #45 | Geometric Brownian Motion, Confidence Bands im Chart |
+| **16h** | Eval Hardening Gates | IND #73-#75 | Walk-Forward + Parameter-Stabilitaet als Pflichtlauf, Execution-Realism (Slippage/Commission/Turnover), Deflated-Sharpe-Gate + `/api/v1/eval/indicator` Reporting |
 
 ### Verify Gate
 - [ ] Backtester: 5-Jahres-Backtest <10s (Rust)
 - [ ] Walk-Forward: Out-of-Sample Ergebnis kein Overfitting
 - [ ] Triple-Barrier Labels mathematisch korrekt
+- [ ] Eval Hardening Gate gruen: Deflated Sharpe + Execution-Realism + OOS-Stabilitaet bestanden
+
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Datensatz-Linien klar trennen und versionieren: Raw Market Data vs Feature Snapshots vs Eval Outputs.
+- [ ] **P0:** Reproduzierbarkeit als Pflichtkriterium (`dataset_version`, `feature_version`, `config_hash`) in Reports.
+- [ ] **P1:** Eval-Gates als release-relevant markieren (kein stilles Ueberspringen).
 
 ---
 
@@ -729,6 +995,20 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] Timeline Brushing filtert Karte korrekt
 - [ ] Monte Carlo: 1000 Pfade <5s
 
+### Open Checkpoints (IST-Verbesserung)
+- [ ] **P1:** Scope klarziehen: bestehender Impact-Kernpfad vs. voller Planner-/Simulation-Stack.
+- [ ] **P1:** Abhaengigkeiten zu Phase 6/10 explizit als Go/Memory-Contracts dokumentieren.
+
+**Scope-Split (verbindlich):**
+
+- **Impact-Kernpfad (naechster produktiver Schritt):** Event -> Impact Score -> betroffene Symbole -> UI-Overlay.
+- **Voller Simulation-Stack (erweitert):** Nash/Bayesian Solver, Planner-Agent, Spielbaum, Monte-Carlo-Pfade, Strategeme-KG Traversal.
+
+**Abhaengigkeiten:**
+
+- **Phase 6:** Memory-Contracts (KG/Episodic/Cache) muessen stabil verfuegbar sein.
+- **Phase 10:** Agent-Pipelines nutzen Memory-API-only Zugriff, kein Direktzugriff auf lokale Stores.
+
 ---
 
 ## Phase 18: Options + Dark Pool + DeFi
@@ -744,12 +1024,12 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 | **18c** | Expected Move | IND #60 | IV → Price Cone im Chart. `/api/v1/options/expected-move` |
 | **18d** | Options Calculator | IND #61, PF P-32 | Black-Scholes Greeks, P/L Simulation, Multi-Leg |
 | **18e** | DeFi Connectors | GO-R Sek. 13.1 | DefiLlama (TVL), Coinglass (Funding/OI), Whale Alert, mempool.space |
-| **18f** | Oracle Cross-Check | GO-R Sek. 14.1-14.2 | Chainlink/Pyth Preis-Vergleich, Disagreement Detector |
+| **18f** | Oracle Cross-Check (Produktiv) | GO-R Sek. 14.1-14.2 | Produktive Cross-Check-Logik auf Basis der in Phase 14 vorbereiteten G10-Provider: Consensus-/Reference-Preis, Disagreement Detector (E_o), Alerting, Provider-Health-Impact und "Oracle Spread Index" |
 
 ### Verify Gate
 - [ ] Dark Pool Ratio Bar unter Volume-Panel sichtbar
 - [ ] GEX Bar Chart mit Call/Put Wall Lines
-- [ ] Oracle Disagreement → Alert
+- [ ] Oracle Disagreement (E_o) triggert Alert inkl. Severity/Confidence und wirkt auf Provider-Health
 
 ---
 
@@ -775,6 +1055,7 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] Entity Graph: "Events affecting semiconductor export controls" liefert Ergebnis
 - [ ] deck.gl PathLayer: Trade Corridors sichtbar
 - [ ] h3o: Radius-Query <1ms
+- [ ] deck.gl/MapLibre-Start ist durch Phase-4-Performance-Gates begruendet (kein kalendergetriebener Framework-Wechsel)
 
 ---
 
@@ -820,6 +1101,13 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 - [ ] Kein Orphan Code
 - [ ] a11y: Grundlegende Navigation per Keyboard moeglich
 
+### Open Checkpoints (IST-Verbesserung + Erweiterung)
+- [ ] **P0:** Prisma-Zugriff zentralisieren (ein Client-Lifecycle, einheitliche Policy, kein doppeldeutiger Init-Pfad).
+- [ ] **P0:** Wiederholte File-Store-Patterns in gemeinsamen Adapter ueberfuehren (atomic write + lock + schema guard + telemetry).
+- [ ] **P1:** Query-first + `useEffect`-Reduktion als verbindliche Umsetzungsguideline fuer Server-State.
+- [ ] **P2:** TanStack-DB nur als optionalen Feature-Pilot (Beta) mit klaren Abbruch-/Erfolgskriterien.
+- [ ] **P0:** Fallback-Policy environment-scharf erzwingen (Dev/Test degradierbar, Staging/Prod fail-fast).
+
 ---
 
 ## Phase 22 (optional): WASM + Desktop
@@ -837,6 +1125,103 @@ Schritt C:  End-to-End  (TS → Go → Py/Rs → Go → TS)
 ### Verify Gate
 - [ ] WASM SMA: <0.1ms pro 2000 Candles im Browser
 - [ ] Tauri: App startet, zeigt Dashboard, verbindet zu lokalen Services
+
+---
+
+## Phase 23: Platform Readiness (Super-App Schnittmenge)
+
+> **Ref:** `ARCHITECTURE.md` Sek. 13-15, `SUPERAPP.md` Sek. 4-7
+
+**Ziel:** Die bereits identifizierte Schnittmenge `A∩B` produktionsnah absichern, ohne eine Voll-Super-App zu bauen.
+
+| Sub | Name | Ref | Beschreibung |
+|:----|:-----|:----|:-------------|
+| **23a** | Capability Registry v1 | ARCH 13/14 | Versionierte Capability-Registry in Go (API/Tool scopes, owner, risk-tier, deprecation policy). |
+| **23b** | Agent Policy Tiers | ARCH 5, SUPERAPP 5 | Einheitliche Tool-Klassen: `read-only`, `bounded-write`, `approval-write`; Enforcement inkl. idempotency + approval gates. |
+| **23c** | Trust-Fabric Mapping | ARCH 13.3, SUPERAPP 5 | Claim-Modell fuer User/Service/Agent vereinheitlichen (subject, actor_type, scope-set, delegation chain). |
+| **23d** | Governance Events Pflichtpfad | SUPERAPP 5/7 | Review/deploy/revoke als standardisierte Audit-Events mit hash-chain/DB-Persistenz. |
+| **23e** | Trajectory Observability | ARCH 7, 8 | End-to-end Metriken fuer async job backlog, schedule drift, approval latency, rejection reasons. |
+
+### Verify Gate
+- [ ] Capability Registry deckt alle mutierenden Tool-/API-Pfade mit Owner + Risk-Tier ab.
+- [ ] Agent-Mutationspfade schlagen ohne `idempotencyKey` oder fehlendes Approval fail-closed fehl.
+- [ ] Identity Mapping ist ueber Next->Go->Python/Agent konsistent nachvollziehbar (Trace + Claims).
+- [ ] Governance Events sind revisionssicher fuer review/deploy/revoke abrufbar.
+
+---
+
+## Phase 24: Ecosystem Optionality (ohne Produkt-Scope-Creep)
+
+> **Ref:** `SUPERAPP.md` Sek. 3-7, `ARCHITECTURE.md` Sek. 14-15
+
+**Ziel:** Optionale Erweiterungsfaehigkeit (`B\\A`) als reversible Plattformfunktion vorbereiten, nur use-case-/KPI-getrieben.
+
+| Sub | Name | Ref | Beschreibung |
+|:----|:-----|:----|:-------------|
+| **24a** | Internal Plugin Pilot | SUPERAPP 5.2/7 | Internal-only Plugin Runtime Pilot (allowlist, signed manifests, sandboxed boundaries, kill switch). |
+| **24b** | Partner/ISV Boundary Spec | SUPERAPP 4/5 | Vertragliche und technische Boundary fuer Partner-Module (Capabilities, quotas, audit obligations). |
+| **24c** | Payment Orchestration Adapter | ARCH 13.5, SUPERAPP 5.2 | Optionaler Adapter-Layer fuer Payment/Routing/Reconciliation als eigene Domain, ohne Kernfluss zu brechen. |
+| **24d** | Reversible Rollout Gates | ARCH 14/15 | KPI-basierte Stage-Gates (`internal -> pilot -> limited external`) mit klaren Rollback-Kriterien. |
+
+### Verify Gate
+- [ ] Plugin Pilot laeuft internal-only mit enforced capability boundaries und einem dokumentierten Revoke-Flow.
+- [ ] Partner Boundary Spec ist versioniert und als Contract-Test-Input nutzbar.
+- [ ] Payment Adapter arbeitet als additive Domain ohne direkte Core-Bypaesse.
+- [ ] Rollout-Entscheidung basiert auf KPI-Gates; bei Verfehlung greift dokumentierter Rollback.
+
+---
+
+## Go-Integrationsblock (nach Erweiterung, verbindlich)
+
+Dieser Block verbindet die bereits erweiterten Frontend-/Contract-Phasen mit den verbleibenden Go-open-points, damit Datenlieferung, Ownership und Verify-Gates wirklich End-to-End zusammenpassen.
+
+### GI-1: Contract-zu-Go Verdrahtung
+
+| Open Point | Zielbild | Hauptphase |
+|:---|:---|:---|
+| `degraded/degraded_reasons/requestId/auditId` nicht nur in Next-Responses, sondern stabil im Go-Truth-Path | Go liefert den Envelope nativ; Next normalisiert nur kompatibel | 3, 9e, 12 |
+| `contract_version/schema_version/feature_scope` nur als Frontend-Hinweis | Versionsfelder in Go-Handlern als Source-of-Truth setzen und changeloggen | 12, 13 |
+| Incremental-Contract (`sync_token`,`has_more`,`watermark`) nur in Spec | Go-Endpoints mit cursor/watermark semantics als Pflichtpfad | 5, 14 |
+
+### GI-2: Provider-/Ingest Open Points (Go Data Plane)
+
+| Open Point | Zielbild | Hauptphase |
+|:---|:---|:---|
+| Hard/Soft ingest und official-source deltas teils transitional | Go-owned DiffWatcher/Decision-Emitter als produktiver Truth-Path | 9e, 14 |
+| Candidate/Timeline/Contradictions v1.0 eingefroren, aber drift-risk bei Folgefeatures | Contract-tests im Go-Layer (golden JSON fixtures) als Merge-Gate | 9e |
+| Provider health/lag Metriken nicht als hartes Go release gate | p95 latency, backlog lag, error class distribution als verpflichtendes Verify-Gate | 14 |
+
+### GI-3: Persistenz-/Fallback Open Points (Go + TS boundary)
+
+| Open Point | Zielbild | Hauptphase |
+|:---|:---|:---|
+| TS-Fallback-Policy dokumentiert, aber Go/TS fail-fast Semantik nicht ueberall gespiegelt | Gemeinsame Runtime-Policy pro env (`degraded` vs `fail`) in Go + Next durchsetzen | 5, 21 |
+| GCT-Audit DB-vs-JSONL Pfad ist definiert, Betriebsgate fehlt | Startup-/health gate: SQLite primary required in staging/prod, JSONL nur degraded fallback | 1 |
+| Write-SoR "Go priorisiert" aber Restpfade koennen lokal writebar bleiben | Mutierende Domainrouten als Go-only ownership in Verify-Suites erzwingen | 4, 5, 9e |
+
+### GI-4: Verbindliche Go Verify Add-ons
+
+- [ ] Go-Contract smoke tests fuer alle mutierenden Geo-/Fusion-Pfade mit Envelope-Assertions (`requestId`,`degraded*`,`auditId`).
+- [ ] Cursor-/incremental tests fuer Zeitreihen (`sync_token`,`has_more`,`watermark`) unter replay/idempotency.
+- [ ] Provider-backfill tests: partial outage -> erwartete `degraded_reasons`, kein stilles 200-ohne-signal.
+- [ ] Migration guard: Next thin proxies enthalten keine dauerhafte Domain-Writelogik mehr.
+
+### GI-5: Python/Rust Kopplung an Go-Truth-Path (wie/wo/was/warum)
+
+| Wo (Schicht/Pfad) | Was verbindlich gilt | Warum (Risiko ohne Regel) | Offener Punkt |
+|:---|:---|:---|:---|
+| Go -> Python `indicator-service` (`/api/v1/signals/composite`, Portfolio-Analytics-Pfade) | Go bleibt Input-Owner (OHLCV/Context), Python rechnet, Response-Contract kommt versioniert zurueck (`schema_version`, `feature_scope` wo relevant) | Sonst Contract-Drift zwischen Next/Go/Python und nicht reproduzierbare Outputs | [ ] Golden contract fixtures fuer Python-Responses als Go-Integrationstest |
+| Python -> Rust (PyO3 in `python-backend/rust_core`) | Rust ist Compute-Layer, kein eigener Service; Python liefert Fallback-Engine-Flags transparent (`rust|python`) | Sonst stille Engine-Wechsel ohne Observability | [ ] Verify-Gate: Engine-Marker + fallback reason in Health/Response standardisieren |
+| Go Streaming + Python/TS Fallbacks | Degradation wird end-to-end durchgereicht (`degraded`, `degraded_reasons`, `requestId`) inkl. partial outage | Sonst 200-Responses ohne degradationssignal und schweres Incident-Debugging | [ ] Chaos-smoke fuer partial upstream failure (Go/Python) mit erwarteten reason-codes |
+| Go Ingest -> Python Classify -> Go/UIL Review | Candidate/Timeline/Contradictions `v1.0` bleibt stabil; Python darf Felder erweitern nur ueber neue `contract_version` | Sonst Review-UI bricht bei unversionierten Shape-Aenderungen | [ ] Contract-compat suite fuer `candidate-review-v1.0`, `timeline-v1.0`, `contradictions-v1.0` |
+| Go Memory/API -> Agent/Python -> Rust/Embeddings | Agent-/Research-Pfade lesen ueber Memory-APIs, nicht ueber lokale Stores; Rust/redb bleibt Spezialcache, nicht SoR | Sonst inkonsistente Quellenlage und schwer reproduzierbare Agent-Outputs | [ ] Memory-source assertions in agent pipelines (`api_only`, `no_direct_store_access`) |
+
+### GI-6: Cross-Language Verify Gate (Go + Python + Rust)
+
+- [ ] **Go**: Integrationstests validieren Contract-Felder bei Python upstream success + failure.
+- [ ] **Python**: Health/response enthalten Engine- und fallback-Metadaten (`rustCore`, `dataframeEngine`, `fallback_active`).
+- [ ] **Rust**: Bench-/correctness checks fuer kritische Pfade (composite/heartbeat/redb) als release gate referenziert.
+- [ ] **E2E**: Ein vertikaler Smoke (`Frontend -> Next -> Go -> Python/Rust -> Go -> Frontend`) pro Kern-Domain (Streaming, Geo review, Portfolio optimize).
 
 ---
 

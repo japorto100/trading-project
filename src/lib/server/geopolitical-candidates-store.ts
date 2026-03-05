@@ -1,56 +1,36 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import { findDuplicateCandidate } from "@/lib/geopolitical/dedup";
 import type { GeoCandidate, GeoCandidatesStoreFile } from "@/lib/geopolitical/types";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 const DATA_DIR = path.join(process.cwd(), "data", "geopolitical");
 const STORE_PATH = path.join(DATA_DIR, "candidates.json");
 const DEFAULT_CANDIDATE_TTL_HOURS = 72;
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<GeoCandidatesStoreFile>({
+	storeName: "geopolitical-candidates-store",
+	filePath: STORE_PATH,
+	defaultValue: { candidates: [] },
+	isValid: (value: unknown): value is GeoCandidatesStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as GeoCandidatesStoreFile).candidates),
+});
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
-}
-
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
+	return localStore.withWriteLock(task);
 }
 
 async function readStore(): Promise<GeoCandidatesStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as GeoCandidatesStoreFile;
-		if (!parsed || !Array.isArray(parsed.candidates)) {
-			return { candidates: [] };
-		}
-		return { candidates: parsed.candidates };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) return { candidates: [] };
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(store: GeoCandidatesStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+	await localStore.write(store);
 }
 
 function sortNewestFirst(candidates: GeoCandidate[]): GeoCandidate[] {
@@ -156,9 +136,12 @@ export async function listGeoCandidates(filters?: {
 			return mapped.filter((candidate: GeoCandidate) =>
 				candidate.headline.toLowerCase().includes(query),
 			);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo candidates DB list failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo candidates DB client unavailable");
 	}
 
 	const store = await readStore();
@@ -219,9 +202,12 @@ export async function createGeoCandidate(
 				},
 			});
 			return { candidate: toCandidate(created), deduped: false };
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo candidates DB create failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo candidates DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -277,9 +263,12 @@ export async function updateGeoCandidateState(
 				},
 			});
 			return toCandidate(updated);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo candidates DB state update failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo candidates DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -306,9 +295,12 @@ export async function getGeoCandidate(candidateId: string): Promise<GeoCandidate
 		try {
 			const row = await db.geoCandidateRecord.findUnique({ where: { id: candidateId } });
 			return row ? toCandidate(row) : null;
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo candidates DB get failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo candidates DB client unavailable");
 	}
 
 	const store = await readStore();
@@ -332,9 +324,12 @@ export async function expireStaleGeoCandidates(): Promise<number> {
 				},
 			});
 			return Number(result?.count ?? 0);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo candidates DB expiry sweep failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo candidates DB client unavailable");
 	}
 
 	return withWriteLock(async () => {

@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 func TestNormalizeCanonicalDefaultAliases(t *testing.T) {
@@ -41,7 +42,12 @@ func TestParseSeriesSymbolRejectsInvalidKey(t *testing.T) {
 
 func TestGetSeriesRejectsUnsupportedAssetType(t *testing.T) {
 	client := NewClient(Config{})
-	_, err := client.GetSeries(context.Background(), gct.Pair{Base: "POLICY_RATE"}, "spot", 10)
+	_, err := client.GetSeries(
+		context.Background(),
+		currency.NewPair(currency.NewCode("POLICY_RATE"), currency.NewCode("USD")),
+		asset.Spot,
+		10,
+	)
 	if err == nil {
 		t.Fatal("expected unsupported assetType error")
 	}

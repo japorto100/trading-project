@@ -4,9 +4,6 @@ import { resolveFusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
 import { isLegacyQuotesStreamFallbackEnabled } from "@/lib/server/stream-runtime-flags";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
 const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
@@ -84,13 +81,10 @@ function inferGoStreamRoute(symbol: string): GoStreamRoute | null {
 
 	switch (resolved.type) {
 		case "crypto": {
-			const upstreamSymbol = resolved.symbol.endsWith("/USD")
-				? `${resolved.symbol.slice(0, -4)}/USDT`
-				: resolved.symbol;
 			return {
 				requestedSymbol: resolved.symbol,
-				upstreamSymbol,
-				exchange: "binance",
+				upstreamSymbol: resolved.symbol,
+				exchange: "auto",
 				assetType: "spot",
 			};
 		}
@@ -98,7 +92,7 @@ function inferGoStreamRoute(symbol: string): GoStreamRoute | null {
 			return {
 				requestedSymbol: resolved.symbol,
 				upstreamSymbol: resolved.symbol,
-				exchange: "finnhub",
+				exchange: "auto",
 				assetType: "equity",
 			};
 		default:
@@ -215,6 +209,9 @@ function createLegacyPollingQuotesStreamResponse(
 									state: "live",
 									message: "Quote batch stream recovered (legacy polling)",
 									fallbackReason,
+									degraded: true,
+									degraded_reasons: ["LEGACY_QUOTES_FALLBACK_ACTIVE"],
+									requestId,
 									ts: new Date().toISOString(),
 								}),
 							);
@@ -229,6 +226,9 @@ function createLegacyPollingQuotesStreamResponse(
 									state: "degraded",
 									message: error instanceof Error ? error.message : "quote batch fetch failed",
 									fallbackReason,
+									degraded: true,
+									degraded_reasons: ["LEGACY_QUOTES_FETCH_FAILED"],
+									requestId,
 									ts: new Date().toISOString(),
 								}),
 							);
@@ -247,6 +247,9 @@ function createLegacyPollingQuotesStreamResponse(
 						pollMs,
 						backend: "legacy-polling",
 						fallbackReason,
+						degraded: true,
+						degraded_reasons: ["LEGACY_QUOTES_FALLBACK_ACTIVE"],
+						requestId,
 						emittedAt: Date.now(),
 					}),
 				);
@@ -321,6 +324,9 @@ function createGoMultiplexQuotesStreamResponse(
 							message,
 							liveConnections,
 							reconnectAttempts: reconnectCount,
+							degraded: state !== "live",
+							degraded_reasons: state === "live" ? [] : ["GO_QUOTES_STREAM_RECONNECTING"],
+							requestId,
 							ts: new Date().toISOString(),
 						}),
 					);
@@ -505,6 +511,9 @@ export async function GET(request: NextRequest) {
 				success: false,
 				error: "Legacy quotes stream fallback disabled for mixed/unsupported symbol set",
 				code: "stream_quotes_fallback_disabled",
+				requestId,
+				degraded: true,
+				degraded_reasons: ["LEGACY_QUOTES_FALLBACK_DISABLED", "UNSUPPORTED_SYMBOL_MIX"],
 			}),
 			{
 				status: 400,

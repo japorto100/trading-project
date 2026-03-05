@@ -359,7 +359,7 @@ func (c *Config) GetExchangeAssetTypes(exchName string) (asset.Items, error) {
 }
 
 // SupportsExchangeAssetType returns whether or not the exchange supports the supplied asset type
-func (c *Config) SupportsExchangeAssetType(exchName string, assetType asset.Item) error {
+func (c *Config) SupportsExchangeAssetType(exchName string, assetType string) error {
 	exchCfg, err := c.GetExchangeConfig(exchName)
 	if err != nil {
 		return err
@@ -384,7 +384,7 @@ func (c *Config) SupportsExchangeAssetType(exchName string, assetType asset.Item
 }
 
 // SetPairs sets the exchanges currency pairs
-func (c *Config) SetPairs(exchName string, assetType asset.Item, enabled bool, pairs currency.Pairs) error {
+func (c *Config) SetPairs(exchName string, assetType string, enabled bool, pairs currency.Pairs) error {
 	exchCfg, err := c.GetExchangeConfig(exchName)
 	if err != nil {
 		return err
@@ -399,7 +399,7 @@ func (c *Config) SetPairs(exchName string, assetType asset.Item, enabled bool, p
 }
 
 // GetCurrencyPairConfig returns currency pair config for the desired exchange and asset type
-func (c *Config) GetCurrencyPairConfig(exchName string, assetType asset.Item) (*currency.PairStore, error) {
+func (c *Config) GetCurrencyPairConfig(exchName string, assetType string) (*currency.PairStore, error) {
 	exchCfg, err := c.GetExchangeConfig(exchName)
 	if err != nil {
 		return nil, err
@@ -609,7 +609,7 @@ func (c *Config) CheckPairConsistency(exchName string) error {
 
 // SupportsPair returns true or not whether the exchange supports the supplied
 // pair
-func (c *Config) SupportsPair(exchName string, p currency.Pair, assetType asset.Item) bool {
+func (c *Config) SupportsPair(exchName string, p currency.Pair, assetType string) bool {
 	pairs, err := c.GetAvailablePairs(exchName, assetType)
 	if err != nil {
 		return false
@@ -618,7 +618,7 @@ func (c *Config) SupportsPair(exchName string, p currency.Pair, assetType asset.
 }
 
 // GetPairFormat returns the exchanges pair config storage format
-func (c *Config) GetPairFormat(exchName string, assetType asset.Item) (currency.PairFormat, error) {
+func (c *Config) GetPairFormat(exchName string, assetType string) (currency.PairFormat, error) {
 	exchCfg, err := c.GetExchangeConfig(exchName)
 	if err != nil {
 		return currency.EMPTYFORMAT, err
@@ -656,7 +656,7 @@ func (c *Config) GetPairFormat(exchName string, assetType asset.Item) (currency.
 }
 
 // GetAvailablePairs returns a list of currency pairs for a specific exchange
-func (c *Config) GetAvailablePairs(exchName string, assetType asset.Item) (currency.Pairs, error) {
+func (c *Config) GetAvailablePairs(exchName string, assetType string) (currency.Pairs, error) {
 	exchCfg, err := c.GetExchangeConfig(exchName)
 	if err != nil {
 		return nil, err
@@ -737,7 +737,7 @@ func (c *Config) CheckSyncManagerConfig() {
 }
 
 // GetEnabledPairs returns a list of currency pairs for a specific exchange
-func (c *Config) GetEnabledPairs(exchName string, assetType asset.Item) (currency.Pairs, error) {
+func (c *Config) GetEnabledPairs(exchName string, assetType string) (currency.Pairs, error) {
 	exchCfg, err := c.GetExchangeConfig(exchName)
 	if err != nil {
 		return nil, err

@@ -4,7 +4,7 @@ import { BarChart3, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import type { ChartType, DrawingType } from "@/chart/types";
-import { DrawingToolbar } from "@/components/DrawingToolbar";
+import { DrawingToolbar, type PatternOverlayState } from "@/components/DrawingToolbar";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import { SignalInsightsBar } from "@/features/trading/SignalInsightsBar";
 import type { CompositeSignalInsights, LayoutMode, SignalSnapshot } from "@/features/trading/types";
@@ -75,6 +75,11 @@ export function TradingWorkspace({
 	const [drawingCommand, setDrawingCommand] = useState<DrawingCommand | null>(null);
 	const [canUndoDrawings, setCanUndoDrawings] = useState(false);
 	const [canRedoDrawings, setCanRedoDrawings] = useState(false);
+	const [patternOverlay, setPatternOverlay] = useState<PatternOverlayState>({
+		elliottWave: false,
+		harmonic: false,
+		pricePatterns: false,
+	});
 
 	return (
 		<main className="flex-1 flex flex-col overflow-hidden bg-background" data-layout={layout}>
@@ -119,6 +124,8 @@ export function TradingWorkspace({
 						onUndo={() => setDrawingCommand({ kind: "undo", nonce: Date.now() })}
 						onRedo={() => setDrawingCommand({ kind: "redo", nonce: Date.now() })}
 						onDeleteAll={() => setDrawingCommand({ kind: "clear", nonce: Date.now() })}
+						patternOverlay={patternOverlay}
+						onPatternToggle={setPatternOverlay}
 					/>
 				)}
 
@@ -148,6 +155,7 @@ export function TradingWorkspace({
 							effectiveStartYear={effectiveStartYear}
 							onHistoryRangeChange={onHistoryRangeChange}
 							onCustomStartYearChange={onCustomStartYearChange}
+							patternOverlay={patternOverlay}
 						/>
 					) : (
 						<div className="flex items-center justify-center h-full">

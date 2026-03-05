@@ -1446,7 +1446,7 @@ func (e *Exchange) wsHandleOrder(ctx context.Context, data []any) error {
 }
 
 // WsInsertSnapshot add the initial orderbook snapshot when subscribed to a channel
-func (e *Exchange) WsInsertSnapshot(p currency.Pair, assetType asset.Item, books []WebsocketBook, fundingRate bool) error {
+func (e *Exchange) WsInsertSnapshot(p currency.Pair, assetType string, books []WebsocketBook, fundingRate bool) error {
 	if len(books) == 0 {
 		return errors.New("no orderbooks submitted")
 	}
@@ -1489,7 +1489,7 @@ func (e *Exchange) WsInsertSnapshot(p currency.Pair, assetType asset.Item, books
 
 // WsUpdateOrderbook updates the orderbook list, removing and adding to the
 // orderbook sides
-func (e *Exchange) WsUpdateOrderbook(ctx context.Context, c *subscription.Subscription, p currency.Pair, assetType asset.Item, book []WebsocketBook, sequenceNo int64, fundingRate bool) error {
+func (e *Exchange) WsUpdateOrderbook(ctx context.Context, c *subscription.Subscription, p currency.Pair, assetType string, book []WebsocketBook, sequenceNo int64, fundingRate bool) error {
 	if c == nil {
 		return fmt.Errorf("%w: Subscription param", common.ErrNilPointer)
 	}

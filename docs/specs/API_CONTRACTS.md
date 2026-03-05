@@ -14,6 +14,8 @@
 
 **Oberste Regel:** `Next.js → Go → Python → Rust`. Keine Service-Ebene wird übersprungen.
 
+**Proxy-Konventionen:** Siehe [`PROXY_CONVENTIONS.md`](../PROXY_CONVENTIONS.md) fuer Correlation-ID-Propagation, Thin-Proxy-Regel und Provider-Bypass-Verbot.
+
 ---
 
 ## 1. Frontend → Go Gateway (Bestehende Endpoints)
@@ -33,7 +35,7 @@ Das Frontend kommuniziert ausschließlich mit dem Go Gateway auf Port `9060`. Al
 
 ### 1.2 Market Data — Quote
 - **`GET /api/v1/quote`**
-- Query: `symbol` (AAPL, BTC/USD), `exchange` (`auto`, finnhub, ecb, fred, bcb, banxico, bok, bcra, tcmb, rbi, binance/kraken/...), `assetType` (equity, spot, forex, macro)
+- Query: `symbol` (AAPL, BTC/USD), `exchange` (`auto`, finnhub, ecb, fred, bcb, banxico, bok, bcra, tcmb, rbi, imf, binance/kraken/...), `assetType` (equity, spot, forex, macro)
 - Hinweis: `exchange=auto` aktiviert im Go-Quote-Pfad ein Adaptive-Router/Fallback-Scaffold (Health-Score + Circuit-State).
 - Hinweis (G4 Start, 23. Feb 2026): `exchange=bcb` (Banco Central do Brasil / SGS) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `POLICY_RATE` (Alias auf `BCB_SGS_432`), `BCB_SGS_<id>` oder numerische SGS-IDs.
 - Hinweis (G4 Slice, 23. Feb 2026): `exchange=banxico` (Banxico SIE) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `BANXICO_<seriesId>` oder rohe Serien-IDs (z. B. `SF43718`). Ein projektweiter `POLICY_RATE`-Alias fuer Banxico wird spaeter fest standardisiert.
@@ -41,6 +43,7 @@ Das Frontend kommuniziert ausschließlich mit dem Go Gateway auf Port `9060`. Al
 - Hinweis (G4 Slice, 23. Feb 2026): `exchange=bcra` (BCRA Principales Variables v4) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `BCRA_<idVariable>` oder rohe numerische IDs (z. B. `160`). `POLICY_RATE` ist temporaer auf `BCRA_160` gemappt.
 - Hinweis (G4 Slice, 23. Feb 2026): `exchange=tcmb` (TCMB EVDS3 / Tuerkei) ist implementiert fuer `assetType=macro`; Symbolformat akzeptiert `TCMB_EVDS_<seriesCode>` (kanonisch mit `_` statt `.`) oder rohe EVDS-Seriencodes (`TP_AB_TOPLAM` / `TP.AB.TOPLAM`). Der Connector nutzt den EVDS3 JSON-Endpoint `POST /igmevdsms-dis/fe` (serverseitig verifiziert, aktuell ohne API-Key). Ein projektweiter `POLICY_RATE`-Alias fuer TCMB bleibt vorerst offen.
 - Hinweis (G4 Slice, 23. Feb 2026): `exchange=rbi` (RBI DBIE / Indien) ist implementiert fuer `assetType=macro` im ersten DBIE-Slice **FX Reserves**. Symbolformat akzeptiert `RBI_DBIE_FXRES_<reserveCode>_<currencyCode>_<freq>` oder Kurzformen wie `FXRES_TR_USD_W` (`W|M|D` → `WEEKLY|MONTHLY|DAILY`). Der Connector nutzt den RBI DBIE Gateway-Handshake `POST /CIMS_Gateway_DBIE/GATEWAY/SERVICES/security_generateSessionToken` plus `POST /CIMS_Gateway_DBIE/GATEWAY/SERVICES/dbie_foreignExchangeReserves` (live via Browser-Network verifiziert). `POLICY_RATE`-Alias fuer RBI bleibt vorerst offen.
+- Hinweis (Phase 14a, 26. Feb 2026): `exchange=imf` (IMF IFS SDMX) ist implementiert fuer `assetType=macro`. Symbolformat akzeptiert `IMF_IFS_<FREQ>_<REF_AREA>_<INDICATOR>` (z. B. `M_111_FITB` fuer monatliche USA Policy Rate) oder `POLICY_RATE` (Alias auf `IMF_IFS_M_111_FITB`). Connector nutzt `https://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/IFS`.
 - **`GET /api/v1/quote/fallback`** (Transitional, **implementiert 22. Feb 2026**)
 - Query: `symbol`, `assetType` (z. B. `index`, `etf`, `commodity`)
 - Zweck: Go-Proxy auf Python Finance-Bridge `/quote`, damit Next.js keine direkten Provider/ Python-Calls fuer diese Asset-Typen braucht waehrend Phase 0c.
@@ -60,7 +63,7 @@ Das Frontend kommuniziert ausschließlich mit dem Go Gateway auf Port `9060`. Al
 - **`GET /api/v1/macro/history`**
 - Query: `series` (GDP, CPI, UNRATE), `startDate`, `endDate`
 - Response `200`: Array von `{ date, value, source }` Objekten
-- **Implementierungsstand (23. Feb 2026, Go Baseline):** Die bestehende Route verwendet aktuell Query-Form `symbol`, `exchange`, `assetType`, `limit` (statt `series/startDate/endDate`) und unterstuetzt `exchange` = `fred|fed|boj|snb|bcb|banxico|bok|bcra|tcmb|rbi|ecb`. Fuer `bcb`/`banxico`/`bok`/`bcra`/`tcmb`/`rbi` gilt `assetType=macro`; `bcb` nutzt den SGS-Aliaspfad, `banxico` nutzt `BANXICO_<id>` bzw. rohe Serien-IDs, `bok` nutzt `BOK_ECOS_<stat>_<cycle>_<item1>` bzw. rohe Triaden + `POLICY_RATE`-Alias, `bcra` nutzt `BCRA_<id>` bzw. rohe IDs + `POLICY_RATE -> BCRA_160`, `tcmb` nutzt `TCMB_EVDS_<series>` (kanonisch `_` statt `.`) bzw. rohe EVDS-Seriencodes und `rbi` nutzt `RBI_DBIE_FXRES_<reserve>_<currency>_<freq>` bzw. Kurzformen wie `FXRES_TR_USD_W`.
+- **Implementierungsstand (26. Feb 2026, Go Baseline):** Die bestehende Route verwendet aktuell Query-Form `symbol`, `exchange`, `assetType`, `limit` (statt `series/startDate/endDate`) und unterstuetzt `exchange` = `fred|fed|boj|snb|bcb|banxico|bok|bcra|tcmb|rbi|imf|ecb`. Fuer `bcb`/`banxico`/`bok`/`bcra`/`tcmb`/`rbi`/`imf` gilt `assetType=macro`; `bcb` nutzt den SGS-Aliaspfad, `banxico` nutzt `BANXICO_<id>` bzw. rohe Serien-IDs, `bok` nutzt `BOK_ECOS_<stat>_<cycle>_<item1>` bzw. rohe Triaden + `POLICY_RATE`-Alias, `bcra` nutzt `BCRA_<id>` bzw. rohe IDs + `POLICY_RATE -> BCRA_160`, `tcmb` nutzt `TCMB_EVDS_<series>` (kanonisch `_` statt `.`) bzw. rohe EVDS-Seriencodes, `rbi` nutzt `RBI_DBIE_FXRES_<reserve>_<currency>_<freq>` bzw. Kurzformen wie `FXRES_TR_USD_W`, und `imf` nutzt `IMF_IFS_<FREQ>_<REF_AREA>_<INDICATOR>` (z. B. `M_111_FITB`) + `POLICY_RATE`-Alias.
 
 ### 1.4 Streaming — Market Data (SSE)
 - **`GET /api/v1/stream/market`**
@@ -101,6 +104,64 @@ Das Frontend kommuniziert ausschließlich mit dem Go Gateway auf Port `9060`. Al
 ### 1.11 Geopolitical Stream (SSE)
 - **`GET /api/geopolitical/stream`**
 - Response: SSE mit Event-Types: `candidate.new`, `candidate.updated`, `event.updated`, `timeline.appended`
+
+### 1.12 Advanced Indicator/Eval/ML Endpoints (Implementiert, 02. Mär 2026)
+
+Alle folgenden Routen sind im Go-Gateway (`wiring.go`) als `IndicatorProxyHandler` verdrahtet und werden auf den Python `indicator-service` (8092) weitergeleitet:
+
+- **Phase 15d–15h**
+- `POST /api/v1/indicators/alternative-bars`
+- `POST /api/v1/indicators/cusum`
+- `POST /api/v1/regime/meanrev-momentum`
+- `POST /api/v1/eval/performance-metrics`
+- `POST /api/v1/signals/quality-chain`
+- `POST /api/v1/orderflow/state-machine`
+- `POST /api/v1/eval/baseline`
+
+- **Phase 16**
+- `POST /api/v1/backtest/run`
+- `POST /api/v1/backtest/walk-forward`
+- `POST /api/v1/eval/deflated-sharpe`
+- `POST /api/v1/eval/indicator`
+
+- **Phase 20**
+- `POST /api/v1/ml/feature-engineering`
+- `POST /api/v1/ml/classify-signal`
+- `POST /api/v1/ml/hybrid-fusion`
+- `POST /api/v1/ml/bias-monitoring`
+
+- **Phase 18**
+- `POST /api/v1/darkpool/signal`
+- `POST /api/v1/options/gex-profile`
+- `POST /api/v1/options/expected-move`
+- `POST /api/v1/options/calculator`
+- `POST /api/v1/defi/stress`
+- `POST /api/v1/oracle/cross-check`
+
+**Verifikation (aktuell):**
+- Python-Testblock `python-backend/tests/test_phase15_16_20.py`: **9 passed**.
+- Python-Testblock `python-backend/tests/test_phase18.py`: **6 passed**.
+- Go-Proxy-Handler-Slice `go test ./internal/handlers/http -run TestIndicatorProxyHandler -count=1`: **ok**.
+
+### 1.13 Game-Theory Simulation Baseline Endpoints (Implementiert, 02. Mär 2026)
+
+Alle folgenden Routen sind im Go-Gateway (`wiring.go`) als Proxy auf den Python `geopolitical-soft-signals` Service (8091) verdrahtet:
+
+- `POST /api/v1/game-theory/nash-solve`
+- `POST /api/v1/game-theory/transmission-paths`
+- `POST /api/v1/game-theory/monte-carlo`
+- `POST /api/v1/game-theory/strategeme-match`
+- `POST /api/v1/game-theory/timeline-regimes`
+
+**Kurz-Contract:**
+- `nash-solve`: Spieler + Outcome/Payoff-Matrix -> Pure-Nash-Kandidaten (`equilibria`) + `selected`.
+- `transmission-paths`: Event/Region/Impact -> Channel-Arcs (`energy|rates|equity|fx`) mit Richtung + Impact.
+- `monte-carlo`: GBM-Baseline (`initialPrice`, `drift`, `volatility`, `days`, `paths`) -> `p10/p50/p90`.
+- `strategeme-match`: Text -> Strategeme-Matches (`S06/S08/S05/S27`) mit Confidence.
+- `timeline-regimes`: Liste `(date, impactScore)` -> Regime-Baender (`calm|watch|elevated`).
+
+**Verifikation (aktuell):**
+- Python-Testblock `python-backend/tests/test_phase17_game_theory.py` vorhanden (Phase-17 Baseline).
 
 ---
 
@@ -305,7 +366,18 @@ Diese Endpoints existieren noch nicht und werden in den jeweiligen Phasen gebaut
 
 ---
 
+## 0. Go ↔ Python: Transport (gRPC IPC)
+
+Die Go-Connectors (indicatorservice, financebridge, softsignals) nutzen **gRPC `ForwardRequest`** als primären Transport zu den Python-Services. Fallback: HTTP, wenn gRPC nicht erreichbar ist.
+
+- **Proto:** `go-backend/internal/proto/ipc/ipc.proto` — `PythonIPC.ForwardRequest` leitet HTTP-Requests an die ASGI-App weiter.
+- **Python:** gRPC-Server startet bei `GRPC_ENABLED=1`; Port = HTTP-Port + 1000 (z. B. 9081, 9091, 9092).
+
+---
+
 ## 3. Go → Python: Soft-Signals Service (Port 8091)
+
+**Transport:** gRPC-first (`ForwardRequest`), HTTP-Fallback.
 
 Go ruft diese Endpoints auf dem Python Soft-Signals Service auf. Python antwortet, Go leitet an Frontend weiter.
 
@@ -359,6 +431,8 @@ Go ruft diese Endpoints auf dem Python Soft-Signals Service auf. Python antworte
 ---
 
 ## 4. Go → Python: Indicator Service (Port 8092)
+
+**Transport:** gRPC-first (`ForwardRequest`), HTTP-Fallback.
 
 Go ruft diese Endpoints auf. Go liefert OHLCV-Daten als Payload mit — Python fetcht NICHT selbst.
 
@@ -422,7 +496,38 @@ Go ruft diese Endpoints auf. Go liefert OHLCV-Daten als Payload mit — Python f
 
 ### 4.6 Regime & Risk (Geplant)
 - **`POST /api/v1/regime/detect`** — Markt-Regime-Erkennung
+- **`POST /api/v1/regime/market-entropy`** — Cross-Market Entropy + Credit/Liquidity Overlay
 - **`POST /api/v1/risk/position-size`** — Positionsgrößenberechnung
+
+**`POST /api/v1/regime/market-entropy` (v1.1 Erweiterung, geplant)**
+- Body:
+```json
+{
+  "symbols": ["SPY", "DXY", "XAU/USD"],
+  "lookback_days": 30
+}
+```
+- Response:
+```json
+{
+  "market_entropy": 0.57,
+  "components": {
+    "vol_dispersion": 0.62,
+    "congestion": 0.41,
+    "market_variance": 0.55,
+    "leverage_proxy": 0.49,
+    "oracle_disagreement": 0.36,
+    "credit_liquidity_stress": 1.12,
+    "hy_oas_z": 1.41,
+    "ig_oas_z": 0.73,
+    "financial_conditions_z": 0.89,
+    "sloos_tightening": 1.05
+  },
+  "asset_bias": { "SPY": -0.8, "DXY": 0.5, "XAU/USD": 0.9 },
+  "interpretation": "credit-stress-regime",
+  "regime_adjustment": 0.44
+}
+```
 
 ### 4.7 Portfolio Analytics (Geplant, Phase 2)
 - **`POST /api/v1/portfolio/correlations`** — Korrelationsmatrix
@@ -436,6 +541,8 @@ Go ruft diese Endpoints auf. Go liefert OHLCV-Daten als Payload mit — Python f
 ---
 
 ## 5. Go → Python: Finance Bridge (Port 8081)
+
+**Transport:** gRPC-first (`ForwardRequest`), HTTP-Fallback.
 
 > **Hinweis:** Dieser Service wird möglicherweise in den Go Data Router absorbiert (Phase 0). Bis dahin:
 
@@ -863,6 +970,18 @@ KG-Delta fuer Frontend IndexedDB Sync. Frontend sendet letzten bekannten Timesta
 }
 ```
 
+**Review-Ergaenzung (Phase 21 / TanStack-DB-Pilot, Empfehlung):**
+
+Falls ein query-driven client store pilotiert wird, sollte der Sync-Contract zusaetzlich folgende Felder standardisieren:
+
+| Feld | Typ | Zweck |
+|:---|:---|:---|
+| `sync_token` | string | Cursor-basierter Folgeabruf statt nur Timestamp |
+| `has_more` | boolean | Chunking fuer grosse Deltas |
+| `watermark` | ISO 8601 | Letzter stabiler Server-Stand |
+| `degraded` | boolean | Kennzeichnet reduzierte Datenqualitaet/Fallback |
+| `degraded_reasons` | string[] | z. B. `["NO_VECTOR_CONTEXT","NO_EPISODIC_CONTEXT"]` |
+
 - **`POST /api/v1/memory/kg/backup`** (Geplant)
 
 Verschluesselter Upload des User-KG (Frontend → Backend) fuer Key-Recovery-Szenarios.
@@ -1056,6 +1175,10 @@ type AnalysisEvent =
 > **Quelle:** `AGENT_TOOLS.md` Sek. 5 (Frontend State Observation)  
 > **Service:** Next.js API Route (intern, kein Go Gateway)  
 > **Auth:** Agent-interner Zugriff. Bearer Token mit Scope `agent:state:read`.
+
+**Review-Ergaenzung (Sicherheitsgrenze):**
+- Diese Endpoints liefern Observation-Kontext und sind **kein** Ersatz fuer serverseitige Domain-Reads/Writes.
+- Mutierende Fachlogik bleibt auf Go-geschuetzten API-Pfaden.
 
 ### 13.1 State Snapshot (REST)
 
@@ -1418,3 +1541,127 @@ Real-Time State-Change Events fuer proaktive Agent-Reaktion.
 - Erstellt einen Prisma-`User` mit optionalem `passwordHash` (Scrypt, serverseitig generiert).
 - Validiert minimale Passwortregeln (derzeit Baseline: `>=12` Zeichen).
 - Ist absichtlich **deaktiviert**, wenn Auth global aus oder im Test-/Dev-Bypass ist, damit CI/Smokes keine persistenten User erzeugen.
+
+---
+
+## 15. Baseline Contract Checklists (Phase 0 / 21)
+
+### 15.1 Correlation-ID Pflichtcheck fuer neue API-Routen
+
+Jede neue oder geaenderte API-Route muss diese Punkte erfuellen:
+
+- Request-ID lesen oder erzeugen (`X-Request-ID`).
+- `X-Request-ID` an jeden Downstream-Call weiterreichen (Go/Python/interne Next-Route).
+- `X-Request-ID` im Response-Header zurueckgeben.
+- Fehlerpayloads enthalten `requestId` im Body.
+- Strukturierte Logs enthalten `requestId`.
+
+### 15.2 PR-Checklist (einzufuegender Standardblock)
+
+```md
+## API Contract Checklist
+- [ ] Route propagiert `X-Request-ID` Downstream und echoed sie im Response.
+- [ ] Response-Envelope enthaelt `requestId`, `degraded`, `degraded_reasons`.
+- [ ] Mutierende Route laeuft ueber Go-geschuetzten Pfad (RBAC/Rate-Limit/Audit).
+- [ ] Neue Response-Felder sind in `docs/specs/API_CONTRACTS.md` dokumentiert.
+```
+
+---
+
+## 16. Write-SoR Contract (Phase 5)
+
+- Portfolio/Orders/Trade-Journal Writes sind standardmaessig **Go-owned** (`Frontend -> Next thin proxy -> Go`).
+- Direkte lokale TS-Store-Writes sind nur fuer kontrollierte Dev/Paper-Faelle zulaessig.
+- Mutierende Endpunkte bleiben RBAC-/Audit-pflichtig (mindestens `analyst`/`trader`, je Domain).
+- Fallback-Verhalten folgt `PERSISTENCE_FALLBACK_MODE`:
+  - `degraded`: Dev/Test erlaubt, Response markiert Degradation.
+  - `fail`: Staging/Prod fail-fast (kein stiller File-Fallback).
+
+---
+
+## 17. Incremental Fetch + Idempotent Upsert (Phase 5 / 14)
+
+### 17.1 Incremental-Response Pflichtfelder
+
+Fuer Zeitreihen-/Delta-Endpunkte (`history`, `sync`, `timeline`, Provider-Backfills):
+
+```json
+{
+  "items": [],
+  "sync_token": "opaque-cursor",
+  "has_more": false,
+  "watermark": "2026-02-26T12:00:00Z",
+  "requestId": "uuid",
+  "degraded": false,
+  "degraded_reasons": []
+}
+```
+
+### 17.2 Idempotent Upsert Schluessel
+
+Upserts muessen pro Domain einen stabilen Natural Key verwenden:
+
+- Market time series: `(symbol, timeframe, timestamp)`
+- Geo timeline: `(entityType, entityId, action, occurredAt)`
+- Candidate ingest: `(source, externalId|dedupHash)`
+
+Replays derselben Payload duerfen keine Duplikate erzeugen.
+
+---
+
+## 18. GeoMap Degradation + UIL Freeze v1.0 (Phase 9e)
+
+### 18.1 Einheitlicher Response-Envelope (Geo mutierend + review)
+
+```json
+{
+  "success": true,
+  "data": {},
+  "requestId": "uuid",
+  "degraded": false,
+  "degraded_reasons": [],
+  "auditId": "uuid",
+  "contract_version": "geo-review-v1.0"
+}
+```
+
+`auditId` ist fuer review/ingest/contradiction-mutations verpflichtend.
+
+### 18.2 Eingefrorene UIL Contracts (v1.0)
+
+- `candidate-review-v1.0`
+- `timeline-v1.0`
+- `contradictions-v1.0`
+
+Breaking changes nur ueber neue `contract_version` (z. B. `v1.1`), nie still im selben Tag.
+
+---
+
+## 19. Transitionale Geo Advanced APIs (Phase 12)
+
+Fuer diese Next-Transition-APIs gilt ein stabiler Envelope:
+
+- `GET/PATCH /api/geopolitical/alerts/policy` -> `contract_version: "phase12-alerts-policy-v1"`
+- `GET /api/geopolitical/evaluation` -> `contract_version: "phase12-evaluation-v1"`
+- `POST /api/geopolitical/export` -> `contract_version: "phase12-export-v1"`
+- `GET/PATCH /api/geopolitical/overlays/central-bank` -> `contract_version: "phase12-overlay-v1"`
+- `GET /api/geopolitical/macro-overlay?indicator=policy_rate` -> `contract_version: "macro-overlay-v1"` (Policy Rate pro Land fuer GeoMap Choropleth)
+- `GET /api/geopolitical/macro-quote?symbol=...` -> Proxy zu Go Gateway `exchange`+`assetType=macro` (MacroPanel)
+
+Alle Antworten enthalten mindestens:
+
+- `requestId`
+- `degraded`
+- `degraded_reasons`
+- `contract_version`
+
+---
+
+## 20. Portfolio Optimize Scope + Versioning (Phase 13)
+
+- `schema_version` ist Pflicht fuer Optimize-/Sizing-Outputs.
+- `feature_scope` kennzeichnet Produktionsreife:
+  - `production`: stabile Kern-Endpoints (z. B. correlations, rolling-metrics, drawdown-analysis)
+  - `experimental`: neue/iterative Methoden (aktuell `optimize`, erweiterte sizing-Methoden)
+- Scope fuer Methoden:
+  - `HRP`/`Kelly`/`VPIN` werden als **feature-flag-/experiment-gesteuert** behandelt, bis Verify Gates aus Phase 13 gruen sind.

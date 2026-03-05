@@ -487,6 +487,1422 @@
       "actor": "manual-create-check",
       "at": "2026-02-23T16:55:13Z",
       "diffSummary": "New candidate: Manual test candidate after Go cutover"
+    },
+    {
+      "id": "gt_76f7a911cfb7da64",
+      "eventId": "gcg_dgsc41kuvc80",
+      "action": "created",
+      "actor": "cmm97an8r001cu18koc12l4m0",
+      "at": "2026-03-02T13:35:34Z",
+      "diffSummary": "New candidate: RBAC analyst test candidate"
+    },
+    {
+      "id": "gt_b21dad65b38a8a75",
+      "eventId": "gcg_dgsc9j52j8rw",
+      "action": "created",
+      "actor": "cmm97an8r001cu18koc12l4m0",
+      "at": "2026-03-02T13:42:44Z",
+      "diffSummary": "New candidate: Analyst can create candidate"
+    },
+    {
+      "id": "gt_e1cbaa79e4856123",
+      "eventId": "gcg_dgsca7x3hqog",
+      "action": "created",
+      "actor": "cmm97an8r001cu18koc12l4m0",
+      "at": "2026-03-02T13:43:38Z",
+      "diffSummary": "New candidate: Trader candidate attempt"
+    },
+    {
+      "id": "gt_7e205a6bbc33c039",
+      "eventId": "ge_00a225c59390b60d",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:49:59Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #51"
+    },
+    {
+      "id": "gt_31ea242c36efa07f",
+      "eventId": "ge_863286f0f586e6f7",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #52"
+    },
+    {
+      "id": "gt_4f4984b63488b979",
+      "eventId": "ge_753becc1c88de54d",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #53"
+    },
+    {
+      "id": "gt_20592b5760de75d7",
+      "eventId": "ge_5eae57fbc15b8b8c",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #54"
+    },
+    {
+      "id": "gt_08787f1bc663f5a2",
+      "eventId": "ge_b8eeb14deb466328",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #55"
+    },
+    {
+      "id": "gt_28efc2b2f9325bef",
+      "eventId": "ge_087ec379704cf7a5",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #56"
+    },
+    {
+      "id": "gt_9b22d7b8c8eeb58c",
+      "eventId": "ge_73fb9deaca218b7e",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #57"
+    },
+    {
+      "id": "gt_36e6508b52e4dff5",
+      "eventId": "ge_bd5c9e8ee463e0d2",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #58"
+    },
+    {
+      "id": "gt_a4c45f961e4efb9b",
+      "eventId": "ge_79c294f39afe5bd8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #59"
+    },
+    {
+      "id": "gt_889958202cf46edd",
+      "eventId": "ge_c47d6c768acd74a3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #60"
+    },
+    {
+      "id": "gt_4b472d00497ed140",
+      "eventId": "ge_b539d4a786e67cf3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #61"
+    },
+    {
+      "id": "gt_f792d5ebe4633527",
+      "eventId": "ge_35c2cbbae2cd6a15",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #62"
+    },
+    {
+      "id": "gt_291b53049723ae6a",
+      "eventId": "ge_2e1a9e2a156e85ab",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #63"
+    },
+    {
+      "id": "gt_26b84b49c9240fd6",
+      "eventId": "ge_06bc225ba8d99b5b",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #64"
+    },
+    {
+      "id": "gt_5617b85a9eeffb02",
+      "eventId": "ge_56cdae72c1f3241c",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #65"
+    },
+    {
+      "id": "gt_305d0561717bfbfa",
+      "eventId": "ge_5fabc06e8cb6416e",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #66"
+    },
+    {
+      "id": "gt_b3f9ef74d0fff369",
+      "eventId": "ge_4881bd1d054c7d79",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #67"
+    },
+    {
+      "id": "gt_b5563880fe5c8504",
+      "eventId": "ge_aee3591cef010097",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #68"
+    },
+    {
+      "id": "gt_44cdefa147147f6b",
+      "eventId": "ge_feab40431d3c69e2",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #69"
+    },
+    {
+      "id": "gt_9185e4b10a137e14",
+      "eventId": "ge_bb13760ee3f43e36",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #70"
+    },
+    {
+      "id": "gt_ab96ac8b94eaae52",
+      "eventId": "ge_dcd041e5a79c3007",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #71"
+    },
+    {
+      "id": "gt_ae6a779381858e4b",
+      "eventId": "ge_70b2a4caaa014d2c",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #72"
+    },
+    {
+      "id": "gt_0195c5d475c9ba0f",
+      "eventId": "ge_c59e26417f9a9915",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #73"
+    },
+    {
+      "id": "gt_5f46fdc6cae842e1",
+      "eventId": "ge_347ca2d4163c3eb1",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:00Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #74"
+    },
+    {
+      "id": "gt_00e85dc9e37e0bca",
+      "eventId": "ge_c69b225d43199b2d",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #75"
+    },
+    {
+      "id": "gt_c231a5cb7a8ea9e1",
+      "eventId": "ge_f771006761cf5d6f",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #76"
+    },
+    {
+      "id": "gt_d545977f6cb887ec",
+      "eventId": "ge_afdcc381840b547d",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #77"
+    },
+    {
+      "id": "gt_4bf15168ac6ea1fd",
+      "eventId": "ge_f567339714e4b765",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #78"
+    },
+    {
+      "id": "gt_977f73b955fbbda0",
+      "eventId": "ge_15ccf8bd31654449",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #79"
+    },
+    {
+      "id": "gt_5da6617ec4d28913",
+      "eventId": "ge_3fab40acf3f2f9c0",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #80"
+    },
+    {
+      "id": "gt_1184af5ab672d4a5",
+      "eventId": "ge_bff9d2c4b2e66887",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #81"
+    },
+    {
+      "id": "gt_bc682400028a70ae",
+      "eventId": "ge_8e8f511df45b71bc",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #82"
+    },
+    {
+      "id": "gt_e8ed8603d158e060",
+      "eventId": "ge_5ab7180d2da4befe",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #83"
+    },
+    {
+      "id": "gt_d687840c77001b4e",
+      "eventId": "ge_7c335c3e3ba11335",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #84"
+    },
+    {
+      "id": "gt_083e2d1d08fb336d",
+      "eventId": "ge_ee80736701fedcf8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #85"
+    },
+    {
+      "id": "gt_9a7dd01db5ae8c4f",
+      "eventId": "ge_e95636a9e7af0f48",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #86"
+    },
+    {
+      "id": "gt_659e04756c541a53",
+      "eventId": "ge_b1ab07618fc5af63",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #87"
+    },
+    {
+      "id": "gt_3b1ef639548a9965",
+      "eventId": "ge_2b628b14dd5ec643",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #88"
+    },
+    {
+      "id": "gt_18ad79c2af6e1fd0",
+      "eventId": "ge_e8bfd8df15842ab6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #89"
+    },
+    {
+      "id": "gt_85103f31cb210c79",
+      "eventId": "ge_5d3b47b4ef859fdb",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #90"
+    },
+    {
+      "id": "gt_de27d37a6d2f9afe",
+      "eventId": "ge_0a3be20416e5226e",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #91"
+    },
+    {
+      "id": "gt_2fd398c2506c1dd6",
+      "eventId": "ge_2d563732db14902a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:01Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #92"
+    },
+    {
+      "id": "gt_3d556fef0ab93a64",
+      "eventId": "ge_e978c6e21f32ee0d",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #93"
+    },
+    {
+      "id": "gt_4a188df8ba46fd29",
+      "eventId": "ge_f2cbb6a2073823e4",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #94"
+    },
+    {
+      "id": "gt_cc9e3953c6a8f59c",
+      "eventId": "ge_18876260eaff7926",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #95"
+    },
+    {
+      "id": "gt_ac139637140031c8",
+      "eventId": "ge_900489e006245e7b",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #96"
+    },
+    {
+      "id": "gt_4e654a1294cc6566",
+      "eventId": "ge_e1744f4895e16f7a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #97"
+    },
+    {
+      "id": "gt_85e8e060e9ca0386",
+      "eventId": "ge_608aafb2c8869403",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #98"
+    },
+    {
+      "id": "gt_26fa5f1e554f108e",
+      "eventId": "ge_4e52be52dd6a9621",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #99"
+    },
+    {
+      "id": "gt_bbdb8ef89263f9f7",
+      "eventId": "ge_24cec3c47c9ad1aa",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #100"
+    },
+    {
+      "id": "gt_df477c1e8568bdd5",
+      "eventId": "ge_053e79b2f961c124",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #101"
+    },
+    {
+      "id": "gt_968e112c5899a0fb",
+      "eventId": "ge_5957b180491c15ba",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #102"
+    },
+    {
+      "id": "gt_b751cdca3e8de9ca",
+      "eventId": "ge_f46b128f11417a3a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #103"
+    },
+    {
+      "id": "gt_36acf958a2949e86",
+      "eventId": "ge_696c573306f5d2aa",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #104"
+    },
+    {
+      "id": "gt_408c3f28bac7bb66",
+      "eventId": "ge_a67d4bf59b56336e",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #105"
+    },
+    {
+      "id": "gt_d71b59668861043d",
+      "eventId": "ge_4ec3d6fb149113b8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #106"
+    },
+    {
+      "id": "gt_2a6600d3162e43f0",
+      "eventId": "ge_5bed6272b63053ab",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:02Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #107"
+    },
+    {
+      "id": "gt_842fb64c92f76947",
+      "eventId": "ge_46bf1b5aaea21dc1",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #108"
+    },
+    {
+      "id": "gt_725b052eb16038e9",
+      "eventId": "ge_ec30d1dc38855c2c",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #109"
+    },
+    {
+      "id": "gt_98b87efaa8950272",
+      "eventId": "ge_6c68447c608bb66a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #110"
+    },
+    {
+      "id": "gt_fa8031cf8edee763",
+      "eventId": "ge_573f3d3bf33b2717",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #111"
+    },
+    {
+      "id": "gt_28a2c9c07480db46",
+      "eventId": "ge_023be35b5160daed",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #112"
+    },
+    {
+      "id": "gt_7e9a400538385f21",
+      "eventId": "ge_d75a6fce4b2e6c63",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #113"
+    },
+    {
+      "id": "gt_6d25535d8978a305",
+      "eventId": "ge_b9ed7d6c2f6053b9",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #114"
+    },
+    {
+      "id": "gt_507b8e946d636d00",
+      "eventId": "ge_3699429bc2168d43",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:03Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #115"
+    },
+    {
+      "id": "gt_5ca83b9a9e87e753",
+      "eventId": "ge_0e48a3a3d54d3397",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #116"
+    },
+    {
+      "id": "gt_5c01ce4f162c3926",
+      "eventId": "ge_553b7b3ff832e10e",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #117"
+    },
+    {
+      "id": "gt_b45967ebf2b127f9",
+      "eventId": "ge_62595e606f717d85",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #118"
+    },
+    {
+      "id": "gt_93afb21989ff3b05",
+      "eventId": "ge_2dc4e86089cc3fa6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #119"
+    },
+    {
+      "id": "gt_b0be4e739e375351",
+      "eventId": "ge_a8a0cbe8a3af1266",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #120"
+    },
+    {
+      "id": "gt_00be24e053ea0136",
+      "eventId": "ge_7efd4dfdc7f6e861",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #121"
+    },
+    {
+      "id": "gt_481b96c85fbf6fe0",
+      "eventId": "ge_952feb0dd47a4ed3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #122"
+    },
+    {
+      "id": "gt_ef17178877c38c74",
+      "eventId": "ge_bdfc719e7a9d4fc1",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #123"
+    },
+    {
+      "id": "gt_8817822f1a04ebfc",
+      "eventId": "ge_c551c7e8390f5102",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #124"
+    },
+    {
+      "id": "gt_c34648d2023a91cf",
+      "eventId": "ge_905b84ea58e38d54",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #125"
+    },
+    {
+      "id": "gt_69f91b9210b7559f",
+      "eventId": "ge_05e6202b5d920bd8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #126"
+    },
+    {
+      "id": "gt_5f77afb5df799161",
+      "eventId": "ge_ceafcf12957702ce",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #127"
+    },
+    {
+      "id": "gt_b64743df30705bd5",
+      "eventId": "ge_b88ab8bbb25c0fbf",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #128"
+    },
+    {
+      "id": "gt_b54b63f5ea78cdbd",
+      "eventId": "ge_25522cd77db1c0f2",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #129"
+    },
+    {
+      "id": "gt_f1b9f18c09cd820b",
+      "eventId": "ge_f4ee383562d52d44",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #130"
+    },
+    {
+      "id": "gt_258cf544a7b4e71f",
+      "eventId": "ge_abe6041a2f16fda6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #131"
+    },
+    {
+      "id": "gt_8dc64c1ca4f806b6",
+      "eventId": "ge_7d47bd95af4bcd2a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:04Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #132"
+    },
+    {
+      "id": "gt_40ce5f736dc7bf1f",
+      "eventId": "ge_ba49e6de988e8f22",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #133"
+    },
+    {
+      "id": "gt_cde21cf420f1df6e",
+      "eventId": "ge_f5c8e51911defd97",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #134"
+    },
+    {
+      "id": "gt_9c3ae3aa78caec71",
+      "eventId": "ge_1df47a73faba1362",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #135"
+    },
+    {
+      "id": "gt_5e89b21c2d51b59a",
+      "eventId": "ge_2ae92f0482915bd1",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #136"
+    },
+    {
+      "id": "gt_3052bab7d0eac4eb",
+      "eventId": "ge_cdeb2821368b241c",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #137"
+    },
+    {
+      "id": "gt_232532fee106441a",
+      "eventId": "ge_1da4495c7363d226",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #138"
+    },
+    {
+      "id": "gt_fd2392dca380bb05",
+      "eventId": "ge_9db05cd894fcf068",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #139"
+    },
+    {
+      "id": "gt_9730c85df1b7a4bf",
+      "eventId": "ge_61b920cbb238fb9e",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #140"
+    },
+    {
+      "id": "gt_c7de8557ddd81f77",
+      "eventId": "ge_2bc97ca45697ea00",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #141"
+    },
+    {
+      "id": "gt_1d9f117317ccf575",
+      "eventId": "ge_ab02da957e5a8b2b",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #142"
+    },
+    {
+      "id": "gt_9b5b8287cb4227d4",
+      "eventId": "ge_108c236458c152d2",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #143"
+    },
+    {
+      "id": "gt_0d42500f6fdd6e5e",
+      "eventId": "ge_78acc055e42f0ffa",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #144"
+    },
+    {
+      "id": "gt_226e0a39274fed13",
+      "eventId": "ge_e36420c232d1d045",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #145"
+    },
+    {
+      "id": "gt_c88e212b5fbeee4d",
+      "eventId": "ge_309a8c6e44eb71a1",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #146"
+    },
+    {
+      "id": "gt_17a56583fb69f154",
+      "eventId": "ge_577bf19eaa1e5773",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #147"
+    },
+    {
+      "id": "gt_70d66789c390c83d",
+      "eventId": "ge_724b1d0b7f7ffdc6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #148"
+    },
+    {
+      "id": "gt_24642577ca518428",
+      "eventId": "ge_5a2ba8a32f605557",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #149"
+    },
+    {
+      "id": "gt_1662aec59eeabeaf",
+      "eventId": "ge_0205cf87ed161d25",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #150"
+    },
+    {
+      "id": "gt_5302e4b2004da839",
+      "eventId": "ge_17488ae0e0f14585",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #151"
+    },
+    {
+      "id": "gt_7b0806e067f3a8c6",
+      "eventId": "ge_b70f6929e1f38930",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #152"
+    },
+    {
+      "id": "gt_c6335df38dca85d3",
+      "eventId": "ge_31c0b92d12b94603",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #153"
+    },
+    {
+      "id": "gt_9c79de940dabd942",
+      "eventId": "ge_9685c6e5e99304b6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #154"
+    },
+    {
+      "id": "gt_bd36d3aef2c4fef5",
+      "eventId": "ge_4c992b85c821533a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #155"
+    },
+    {
+      "id": "gt_113029690261062d",
+      "eventId": "ge_3a5073fbc94276a8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #156"
+    },
+    {
+      "id": "gt_3d450cfe12864743",
+      "eventId": "ge_8b50bcccf35ecbb8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #157"
+    },
+    {
+      "id": "gt_b5df4afd32ce358b",
+      "eventId": "ge_0c7049362dce6149",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:05Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #158"
+    },
+    {
+      "id": "gt_885c999e212bf2d4",
+      "eventId": "ge_e3ec388b2337d521",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #159"
+    },
+    {
+      "id": "gt_6fc93ac44809c081",
+      "eventId": "ge_72296305cb9009ac",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #160"
+    },
+    {
+      "id": "gt_43dfa5ad7a3a8112",
+      "eventId": "ge_0954c7a1304b8ef4",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #161"
+    },
+    {
+      "id": "gt_b6fba55f8a360c95",
+      "eventId": "ge_2d913260097f7889",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #162"
+    },
+    {
+      "id": "gt_e975ab7f4b4038b8",
+      "eventId": "ge_c18bdb4ef11c7ff6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #163"
+    },
+    {
+      "id": "gt_a82c3890f5825d90",
+      "eventId": "ge_a5771c331fad338e",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #164"
+    },
+    {
+      "id": "gt_e776d1afc60cae6b",
+      "eventId": "ge_dd0e0336c4d58b03",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #165"
+    },
+    {
+      "id": "gt_a2adfa37b24a76a6",
+      "eventId": "ge_ffbd0d0d2ef6bcf6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #166"
+    },
+    {
+      "id": "gt_167155b33cfa6c60",
+      "eventId": "ge_89eb9eac2babb35a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #167"
+    },
+    {
+      "id": "gt_1a0837b95f2df77f",
+      "eventId": "ge_cf5edcf012556abf",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #168"
+    },
+    {
+      "id": "gt_767155242164bc26",
+      "eventId": "ge_61f5488e9931ae43",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #169"
+    },
+    {
+      "id": "gt_68f07d68aab5b1e5",
+      "eventId": "ge_8355b706b73e266d",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #170"
+    },
+    {
+      "id": "gt_d5d9c07cbf0c81ac",
+      "eventId": "ge_064a85db5d98e3c5",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #171"
+    },
+    {
+      "id": "gt_de1e9050de7dd710",
+      "eventId": "ge_b5981f5a8ce9acb3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #172"
+    },
+    {
+      "id": "gt_8cdeb34e8107eef8",
+      "eventId": "ge_1c0196beadaf6cc3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #173"
+    },
+    {
+      "id": "gt_206a3a439d588649",
+      "eventId": "ge_3a2049b340379d59",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #174"
+    },
+    {
+      "id": "gt_1e84cc19d020ed6d",
+      "eventId": "ge_6c3e659e68856b35",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #175"
+    },
+    {
+      "id": "gt_3c69256240c3deae",
+      "eventId": "ge_eaa112951e91f629",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #176"
+    },
+    {
+      "id": "gt_fc58bc7ba2074823",
+      "eventId": "ge_7e8c4c03d9e3688b",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #177"
+    },
+    {
+      "id": "gt_84ad3d786d61ee57",
+      "eventId": "ge_9637376a5f98c0c5",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:06Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #178"
+    },
+    {
+      "id": "gt_749bed9a1d4c8e39",
+      "eventId": "ge_00fa329f345bcdaf",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #179"
+    },
+    {
+      "id": "gt_7e9d8b74108c2921",
+      "eventId": "ge_39fd297ccc4333e6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #180"
+    },
+    {
+      "id": "gt_2129d9075d0ec54a",
+      "eventId": "ge_98eb0f940eb75ee6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #181"
+    },
+    {
+      "id": "gt_e086868826d97bd2",
+      "eventId": "ge_897415e33249d98d",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #182"
+    },
+    {
+      "id": "gt_cf9489d53840c9ba",
+      "eventId": "ge_1fbf40f63a9769c3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #183"
+    },
+    {
+      "id": "gt_f6789202deb6cb9b",
+      "eventId": "ge_fb55066638532275",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #184"
+    },
+    {
+      "id": "gt_a7dc616a4e5fe68f",
+      "eventId": "ge_65fe48c32004c3c5",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #185"
+    },
+    {
+      "id": "gt_08dccd74048bdb25",
+      "eventId": "ge_6cef98b5e07b5db4",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #186"
+    },
+    {
+      "id": "gt_0c106ab620ba858f",
+      "eventId": "ge_e469daafd5df6ac3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #187"
+    },
+    {
+      "id": "gt_482515044eb4c33f",
+      "eventId": "ge_63260c6c344edc13",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #188"
+    },
+    {
+      "id": "gt_8f5df7808949feea",
+      "eventId": "ge_5e3637286328776c",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #189"
+    },
+    {
+      "id": "gt_608a983e23df4626",
+      "eventId": "ge_6c3dbde306e6bbb8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #190"
+    },
+    {
+      "id": "gt_5b9d929e29f37d45",
+      "eventId": "ge_2faad023d66764be",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #191"
+    },
+    {
+      "id": "gt_8668bfac3880ae10",
+      "eventId": "ge_11173c5eb7025e09",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #192"
+    },
+    {
+      "id": "gt_ad7e034439d68d1c",
+      "eventId": "ge_ea5b17ffa22c3ecf",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #193"
+    },
+    {
+      "id": "gt_97dddf01684a6b0b",
+      "eventId": "ge_4a80e53839ff1dba",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:07Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #194"
+    },
+    {
+      "id": "gt_3288a7b6c4c436a4",
+      "eventId": "ge_79707ddb6d28e191",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #195"
+    },
+    {
+      "id": "gt_3b71bc52ace59dd2",
+      "eventId": "ge_32e47b260ded94bc",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #196"
+    },
+    {
+      "id": "gt_f31793017e9ce697",
+      "eventId": "ge_e185635a522f8b84",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #197"
+    },
+    {
+      "id": "gt_45cb29f6d10180e5",
+      "eventId": "ge_7ba175da32d1cef8",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #198"
+    },
+    {
+      "id": "gt_b5b6ae2fa64f575b",
+      "eventId": "ge_f5d0f2487c934586",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #199"
+    },
+    {
+      "id": "gt_300cab9a047c493a",
+      "eventId": "ge_2d5bfb309c750a83",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #200"
+    },
+    {
+      "id": "gt_91e07bd196a0fba8",
+      "eventId": "ge_4815c6c31342a113",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #201"
+    },
+    {
+      "id": "gt_f4cb13fa09117446",
+      "eventId": "ge_aed5994309ad9db5",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #202"
+    },
+    {
+      "id": "gt_9546752141ef7b80",
+      "eventId": "ge_8dcb3d7ddcc518eb",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #203"
+    },
+    {
+      "id": "gt_f02aedfe295b68cb",
+      "eventId": "ge_7c0de6e08b26aa7b",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #204"
+    },
+    {
+      "id": "gt_b4069b5d91961c0f",
+      "eventId": "ge_c5a3b1a346c13125",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #205"
+    },
+    {
+      "id": "gt_bc8f1c5e22eea514",
+      "eventId": "ge_41291d61fe1872c7",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Europe #206"
+    },
+    {
+      "id": "gt_77072470c3c110d1",
+      "eventId": "ge_4cb7140249d7f8b6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #207"
+    },
+    {
+      "id": "gt_7fbb1023eb19f7a3",
+      "eventId": "ge_eb1fd86a3b626cc6",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #208"
+    },
+    {
+      "id": "gt_9041a57f4fdc9af9",
+      "eventId": "ge_4436a25cc145a9fa",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - South Asia #209"
+    },
+    {
+      "id": "gt_161e1abcd9ecb834",
+      "eventId": "ge_1c6f0cb83afa3be5",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - Southeast Asia #210"
+    },
+    {
+      "id": "gt_51b09620f87fd9f1",
+      "eventId": "ge_9c85636b2ce4f087",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - North America #211"
+    },
+    {
+      "id": "gt_ca42eaa712e45b6a",
+      "eventId": "ge_0b62af349dcd1230",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Europe #212"
+    },
+    {
+      "id": "gt_9c33ee61d9b21c92",
+      "eventId": "ge_6eb3112802026197",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - MENA #213"
+    },
+    {
+      "id": "gt_978fdd84b174bf0e",
+      "eventId": "ge_c5198f606565dabc",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Rates monitoring update - East Asia #214"
+    },
+    {
+      "id": "gt_2cf3a8c73ffce85d",
+      "eventId": "ge_16586d36cde8e71a",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - South Asia #215"
+    },
+    {
+      "id": "gt_ca446fa42faa29f0",
+      "eventId": "ge_3eea7c02ca8f27d3",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - Southeast Asia #216"
+    },
+    {
+      "id": "gt_94e83945cb0a4656",
+      "eventId": "ge_62f63de8fb7e7eaa",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Sanctions monitoring update - North America #217"
+    },
+    {
+      "id": "gt_296c06a4a7a30896",
+      "eventId": "ge_5d531a5eda7477f9",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Conflict monitoring update - MENA #219"
+    },
+    {
+      "id": "gt_9a06582676717ec4",
+      "eventId": "ge_2555a8b8bb2dd641",
+      "action": "created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:08Z",
+      "diffSummary": "Seeded Earth event: Seed Energy monitoring update - East Asia #220"
+    },
+    {
+      "id": "gt_d8e086804959e23f",
+      "eventId": "contradiction:gctrd_f947c5d86844c720",
+      "action": "contradiction_created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:09Z",
+      "diffSummary": "Seeded contradiction: South Asia: contradictory signals for conflict"
+    },
+    {
+      "id": "gt_7ff63a01a7b3cff1",
+      "eventId": "contradiction:gctrd_993f83a3634f1363",
+      "action": "contradiction_created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:09Z",
+      "diffSummary": "Seeded contradiction: Southeast Asia: contradictory signals for energy"
+    },
+    {
+      "id": "gt_1829cda1c06a2566",
+      "eventId": "contradiction:gctrd_14b140b7d1f09996",
+      "action": "contradiction_created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:09Z",
+      "diffSummary": "Seeded contradiction: North America: contradictory signals for sanctions"
+    },
+    {
+      "id": "gt_4410171ea33ea7f2",
+      "eventId": "contradiction:gctrd_6dc723106fcebc52",
+      "action": "contradiction_created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:09Z",
+      "diffSummary": "Seeded contradiction: Europe: contradictory signals for rates"
+    },
+    {
+      "id": "gt_d94b76242c529068",
+      "eventId": "contradiction:gctrd_408eaa367a5d9f0a",
+      "action": "contradiction_created",
+      "actor": "local-analyst",
+      "at": "2026-03-02T16:50:09Z",
+      "diffSummary": "Seeded contradiction: MENA: contradictory signals for conflict"
     }
   ]
 }

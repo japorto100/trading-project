@@ -7,14 +7,17 @@ import {
 	Fullscreen,
 	Globe,
 	Layout,
+	LogOut,
 	Moon,
 	RefreshCw,
 	Star,
 	StarOff,
 	Sun,
+	User,
 	Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import type { ChartType } from "@/chart/types";
 import { AlertPanel } from "@/components/AlertPanel";
@@ -34,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import type { LayoutMode } from "@/features/trading/types";
+import { isAuthEnabled, isAuthStackBypassEnabled } from "@/lib/auth/runtime-flags";
 import type { FusionSymbol } from "@/lib/fusion-symbols";
 import type { TimeframeValue } from "@/lib/providers/types";
 
@@ -112,7 +116,12 @@ export function TradingHeader({
 	onResetReplay,
 	onSeekReplay,
 }: TradingHeaderProps) {
+	const { data: session } = useSession();
 	const [clockTime, setClockTime] = useState("");
+	const [isSigningOut, setIsSigningOut] = useState(false);
+	const authEnabled = isAuthEnabled();
+	const authBypassed = isAuthStackBypassEnabled();
+	const canShowAuthControls = authEnabled && !authBypassed;
 
 	useEffect(() => {
 		setClockTime(new Date().toLocaleTimeString());
@@ -233,6 +242,9 @@ export function TradingHeader({
 									{replayIndex}/{Math.max(replayMax, 1)}
 								</span>
 								<input
+									id="trading-replay-index"
+									name="trading_replay_index"
+									aria-label="Replay position"
 									type="range"
 									min={1}
 									max={Math.max(replayMax, 1)}
@@ -320,6 +332,80 @@ export function TradingHeader({
 
 					<AlertPanel />
 					<SettingsPanel />
+					{canShowAuthControls ? (
+						session?.user ? (
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-8 w-8"
+										aria-label="Account menu"
+										data-testid="header-account-menu"
+									>
+										<User className="h-4 w-4" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-56">
+									<div className="flex items-center justify-start gap-2 p-2">
+										<div className="flex flex-col space-y-0.5 leading-none">
+											{session.user.name && (
+												<p className="font-medium text-xs">{session.user.name}</p>
+											)}
+											{session.user.email && (
+												<p className="w-[200px] truncate text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+													{session.user.email}
+												</p>
+											)}
+										</div>
+									</div>
+									<Separator className="my-1 opacity-50" />
+									<DropdownMenuItem asChild>
+										<Link href="/auth/security" className="cursor-pointer">
+											<User className="mr-2 h-4 w-4" />
+											<span>Auth & Security</span>
+										</Link>
+									</DropdownMenuItem>
+									<DropdownMenuItem asChild>
+										<Link href="/auth/passkeys" className="cursor-pointer">
+											<Zap className="mr-2 h-4 w-4 text-amber-500" />
+											<span>Manage Passkeys</span>
+										</Link>
+									</DropdownMenuItem>
+									<Separator className="my-1 opacity-50" />
+									<DropdownMenuItem
+										data-testid="header-signout"
+										disabled={isSigningOut}
+										className="text-destructive focus:text-destructive cursor-pointer"
+										onSelect={async (event) => {
+											event.preventDefault();
+											setIsSigningOut(true);
+											try {
+												await signOut({ callbackUrl: "/auth/sign-in" });
+											} finally {
+												setIsSigningOut(false);
+											}
+										}}
+									>
+										<LogOut className="mr-2 h-4 w-4" />
+										<span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						) : (
+							<Button
+								variant="outline"
+								size="sm"
+								className="h-8 text-[10px] uppercase font-black tracking-widest gap-2"
+								asChild
+							>
+								<Link href="/auth/sign-in">
+									<User className="h-3.5 w-3.5" />
+									Sign In
+								</Link>
+							</Button>
+						)
+					) : null}
 
 					<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onThemeToggle}>
 						{isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

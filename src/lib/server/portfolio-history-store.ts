@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { PortfolioSnapshot } from "@/lib/orders/portfolio";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 interface SnapshotStoreFile {
@@ -19,16 +20,15 @@ export interface PortfolioSnapshotEntry {
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_PATH = path.join(DATA_DIR, "portfolio-snapshots.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<SnapshotStoreFile>({
+	storeName: "portfolio-history",
+	filePath: STORE_PATH,
+	defaultValue: { entries: [] },
+	isValid: (value: unknown): value is SnapshotStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as SnapshotStoreFile).entries),
+});
 
 type DbClient = NonNullable<ReturnType<typeof getPrismaClient>>;
 
@@ -46,38 +46,16 @@ function getDbClient(): DbClient | null {
 	return getPrismaClient();
 }
 
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
-}
-
 async function readStore(): Promise<SnapshotStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as SnapshotStoreFile;
-		if (!parsed || !Array.isArray(parsed.entries)) {
-			return { entries: [] };
-		}
-		return { entries: parsed.entries };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) {
-			return { entries: [] };
-		}
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(data: SnapshotStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+	await localStore.write(data);
 }
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
+	return localStore.withWriteLock(task);
 }
 
 function toEntry(record: DbSnapshotRecord): PortfolioSnapshotEntry {
@@ -187,9 +165,12 @@ export async function listPortfolioSnapshots(
 	if (db) {
 		try {
 			return await listSnapshotsDb(db, profileKey, safeLimit);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Portfolio snapshots DB read failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Portfolio snapshots DB client unavailable");
 	}
 
 	return listSnapshotsFile(profileKey, safeLimit);
@@ -203,9 +184,12 @@ export async function savePortfolioSnapshot(
 	if (db) {
 		try {
 			return await saveSnapshotDb(db, profileKey, snapshot);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Portfolio snapshots DB write failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Portfolio snapshots DB client unavailable");
 	}
 
 	return saveSnapshotFile(profileKey, snapshot);

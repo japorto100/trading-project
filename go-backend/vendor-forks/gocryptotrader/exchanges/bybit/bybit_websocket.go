@@ -228,7 +228,7 @@ func (e *Exchange) wsHandleTradeData(conn websocket.Connection, respRaw []byte) 
 	}
 }
 
-func (e *Exchange) wsHandleData(ctx context.Context, conn websocket.Connection, assetType asset.Item, respRaw []byte) error {
+func (e *Exchange) wsHandleData(ctx context.Context, conn websocket.Connection, assetType string, respRaw []byte) error {
 	var result WebsocketResponse
 	if err := json.Unmarshal(respRaw, &result); err != nil {
 		return err
@@ -420,7 +420,7 @@ func (e *Exchange) wsLeverageTokenNav(ctx context.Context, resp *WebsocketRespon
 	return e.Websocket.DataHandler.Send(ctx, result)
 }
 
-func (e *Exchange) wsProcessLeverageTokenTicker(ctx context.Context, assetType asset.Item, resp *WebsocketResponse) error {
+func (e *Exchange) wsProcessLeverageTokenTicker(ctx context.Context, assetType string, resp *WebsocketResponse) error {
 	var result TickerWebsocket
 	if err := json.Unmarshal(resp.Data, &result); err != nil {
 		return err
@@ -440,7 +440,7 @@ func (e *Exchange) wsProcessLeverageTokenTicker(ctx context.Context, assetType a
 	})
 }
 
-func (e *Exchange) wsProcessLeverageTokenKline(ctx context.Context, assetType asset.Item, resp *WebsocketResponse, topicSplit []string) error {
+func (e *Exchange) wsProcessLeverageTokenKline(ctx context.Context, assetType string, resp *WebsocketResponse, topicSplit []string) error {
 	var result LTKlines
 	if err := json.Unmarshal(resp.Data, &result); err != nil {
 		return err
@@ -480,7 +480,7 @@ func (e *Exchange) wsProcessLiquidation(ctx context.Context, resp *WebsocketResp
 	return e.Websocket.DataHandler.Send(ctx, result)
 }
 
-func (e *Exchange) wsProcessKline(ctx context.Context, assetType asset.Item, resp *WebsocketResponse, topicSplit []string) error {
+func (e *Exchange) wsProcessKline(ctx context.Context, assetType string, resp *WebsocketResponse, topicSplit []string) error {
 	var result WsKlines
 	if err := json.Unmarshal(resp.Data, &result); err != nil {
 		return err
@@ -513,7 +513,7 @@ func (e *Exchange) wsProcessKline(ctx context.Context, assetType asset.Item, res
 	return e.Websocket.DataHandler.Send(ctx, spotCandlesticks)
 }
 
-func (e *Exchange) wsProcessPublicTicker(ctx context.Context, assetType asset.Item, resp *WebsocketResponse) error {
+func (e *Exchange) wsProcessPublicTicker(ctx context.Context, assetType string, resp *WebsocketResponse) error {
 	var tickResp TickerWebsocket
 	if err := json.Unmarshal(resp.Data, &tickResp); err != nil {
 		return err
@@ -598,7 +598,7 @@ func updateTicker(tick *ticker.Price, resp *TickerWebsocket) {
 	}
 }
 
-func (e *Exchange) wsProcessPublicTrade(assetType asset.Item, resp *WebsocketResponse) error {
+func (e *Exchange) wsProcessPublicTrade(assetType string, resp *WebsocketResponse) error {
 	var result WebsocketPublicTrades
 	if err := json.Unmarshal(resp.Data, &result); err != nil {
 		return err
@@ -627,7 +627,7 @@ func (e *Exchange) wsProcessPublicTrade(assetType asset.Item, resp *WebsocketRes
 	return trade.AddTradesToBuffer(tradeDatas...)
 }
 
-func (e *Exchange) wsProcessOrderbook(assetType asset.Item, resp *WebsocketResponse) error {
+func (e *Exchange) wsProcessOrderbook(assetType string, resp *WebsocketResponse) error {
 	var result WsOrderbookDetail
 	if err := json.Unmarshal(resp.Data, &result); err != nil {
 		return err
@@ -743,7 +743,7 @@ func (e *Exchange) submitDirectSubscription(ctx context.Context, conn websocket.
 
 // directSubscriptionPayload builds subscription payloads without template expansion
 // TODO: Remove this function when template expansion is across all assets
-func (e *Exchange) directSubscriptionPayload(assetType asset.Item, operation string, channelsToSubscribe subscription.List) ([]SubscriptionArgument, error) {
+func (e *Exchange) directSubscriptionPayload(assetType string, operation string, channelsToSubscribe subscription.List) ([]SubscriptionArgument, error) {
 	var args []SubscriptionArgument
 	arg := SubscriptionArgument{
 		Operation: operation,

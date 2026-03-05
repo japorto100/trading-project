@@ -6,14 +6,16 @@ import (
 	"strings"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 type macroHistoryClient interface {
-	GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error)
+	GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error)
 }
 
 type forexHistoryClient interface {
-	GetSeries(ctx context.Context, pair gct.Pair, limit int) ([]gct.SeriesPoint, error)
+	GetSeries(ctx context.Context, pair currency.Pair, limit int) ([]gct.SeriesPoint, error)
 }
 
 type MacroService struct {
@@ -28,7 +30,7 @@ func NewMacroService(macroClient macroHistoryClient, forexClient forexHistoryCli
 	}
 }
 
-func (s *MacroService) History(ctx context.Context, exchange string, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
+func (s *MacroService) History(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
 	if limit <= 0 {
 		limit = 30
 	}
@@ -37,13 +39,13 @@ func (s *MacroService) History(ctx context.Context, exchange string, pair gct.Pa
 	}
 
 	switch strings.ToUpper(strings.TrimSpace(exchange)) {
-	case "FRED", "FED", "BOJ", "SNB", "BCB", "BANXICO", "BOK", "BCRA", "TCMB", "RBI":
+	case "FRED", "FED", "BOJ", "SNB", "BCB", "BANXICO", "BOK", "BCRA", "TCMB", "RBI", "IMF":
 		if s.macroClient == nil {
 			return nil, fmt.Errorf("macro client unavailable")
 		}
-		pair.Base = ResolveMacroSeries(exchange, pair.Base)
-		if pair.Quote == "" {
-			pair.Quote = "USD"
+		pair.Base = currency.NewCode(ResolveMacroSeries(exchange, pair.Base.String()))
+		if pair.Quote.String() == "" {
+			pair.Quote = currency.NewCode("USD")
 		}
 		return s.macroClient.GetSeries(ctx, pair, assetType, limit)
 	case "ECB":

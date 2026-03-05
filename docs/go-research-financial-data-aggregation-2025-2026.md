@@ -441,13 +441,15 @@ type PolygonOption struct {
 
 ## 12. BaseConnector-Architektur + Quellen-Gruppen (NEU 2026-02-22)
 
-> **Kontext:** Mit 15+ bestehenden und 40+ geplanten Connectors (Global Expansion, Legal, Emerging Markets, Oracle Networks, DeFi, CBDC -- siehe [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md)) wird die bisherige 1:1 Copy/Paste-Struktur (`client.go` pro Connector mit wiederholtem HTTP-Boilerplate) unwartbar. Dieses Kapitel definiert **Quellen-Gruppen** (10 Gruppen, inkl. G10 Oracle Networks) mit jeweils speziellem Handling und einen **gemeinsamen BaseConnector** der Querschnitts-Logik zentralisiert.
+> **Kontext:** Mit 15+ bestehenden und 40+ geplanten Connectors (Global Expansion, Legal, Emerging Markets, Oracle Networks, DeFi, CBDC -- siehe [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md)) wird die bisherige 1:1 Copy/Paste-Struktur (`client.go` pro Connector mit wiederholtem HTTP-Boilerplate) unwartbar. Dieses Kapitel definiert **Quellen-Gruppen** (11 Gruppen, inkl. G10 Oracle Networks, G11 Python IPC) mit jeweils speziellem Handling und einen **gemeinsamen BaseConnector** der Querschnitts-Logik zentralisiert.
 >
 > **Ist-Zustand-Analyse:** Jeder der 10 bestehenden Connectors hat eigenes `Config` struct, eigenen `NewClient()`, eigene HTTP-Request-Logik, eigenes Error-Wrapping in `gct.RequestError`. Shared Types (`Ticker`, `SeriesPoint`, `Pair`, `RequestError`) leben in `gct/client.go` -- historisch bedingt, nicht intuitiv. `news/retry.go` hat Backoff-Logik die nur im `news/`-Package sichtbar ist. Interfaces sind implizit am Consumer (Services) definiert, nicht am Provider -- das ist Go-idiomatic und soll so bleiben.
 
 > **Implementierungs-Update (23. Feb 2026, Codex):** Baseline fuer Sek. 12 ist gestartet: `internal/connectors/base` enthaelt bereits `http_client`, `retry`, `ratelimit`, `types` plus erste Gruppen-Scaffolds (`sdmx_client`, `timeseries`, `bulk_fetcher`, `rss_client`, `diff_watcher`, `translation`, `oracle_client`). Der Adaptive Router (`internal/router/adaptive`) kann optionale Provider-Metadaten (`group`, `kind`) aus `provider-router.yaml` laden und im Status-Snapshot ausgeben. Zusaetzlich wurden `capabilities.go` (Provider-Capability-Matrix) und `error_classification.go` (Retry/Auth/Quota/Schema-Drift-Klassen) als GCT-inspirierte Base-Bausteine angelegt.
+>
+> **Implementierungs-Update (27. Feb 2026):** IPC-Client fuer Python-Services implementiert: `internal/connectors/ipc/client.go` mit gRPC `ForwardRequest` (primär), HTTP-Fallback. Connectors `indicatorservice`, `financebridge`, `softsignals` nutzen den IPC-Client.
 
-### 12.1 Die 10 Quellen-Gruppen
+### 12.1 Die 11 Quellen-Gruppen
 
 Nicht alle Quellen funktionieren gleich. Jede Gruppe hat eigenes Fetch-Pattern, eigene Fehlerbehandlung und eigene Base-Abstraktion.
 
@@ -462,12 +464,15 @@ Nicht alle Quellen funktionieren gleich. Jede Gruppe hat eigenes Fetch-Pattern, 
 | **G7: Sanctions/Legal XML-Listen** | Download → Diff-Detection → Alert bei Aenderung | -- (OFAC/UN/EU in Masterplan geplant) | SECO Sanktionslisten (XML), OFAC SDN (XML), UN Consolidated (XML), EU Sanctions Map | Shared `DiffWatcher`: Letzte Version speichern, Diff berechnen, neue Eintraege als GeoMap-Events emittieren |
 | **G8: Non-English Sources** | Go fetcht Rohtext → Python LLM uebersetzt + extrahiert | -- | NBS China (Mandarin), PBoC (Mandarin), wenshu.court.gov.cn (Mandarin), SCJN/CVM (ES/PT), arabische Quellen | Go-Connector liefert Raw-Bytes/Text an Python-Queue. Python LLM-Pipeline: Detect Language → Translate → Extract Entities → Classify. Human-Review-Flag fuer Unsicherheit |
 | **G9: Inoffizielle/Scraping** | Wie G1, aber fragiler (Format kann brechen) | Yahoo (unofficial) | NSE India (unofficial), investing.com (unofficial) | Extra Error-Monitoring: Response-Format-Validation, Schema-Drift-Detection (erwartet Field X, fehlt → Alert). ToS-Awareness-Flag in Config. Kein Fallback-TO diese Quellen, nur Fallback-FROM |
-| **G10: Oracle Networks** | On-Chain Read oder REST-Gateway → aggregierte Preisdaten mit kryptographischer Verifizierung | -- | Chainlink Data Feeds, Pyth Network, Band Protocol, Redstone, API3 | **Dezentrale Preis-Verifikationsschicht.** Nicht als Primaer-Provider, sondern als Cross-Check gegen Web2-Provider. Median aus 17+ unabhaengigen Operators (Chainlink) bzw. 120+ institutionellen Publishern (Pyth). Oracle Disagreement (Divergenz Web2 vs. Web3) als eigenes Stress-Signal. Siehe REFERENCE_PROJECTS.md "Web3 Oracle Networks" |
+| **G10: Oracle Networks** | On-Chain Read oder REST-Gateway → aggregierte Preisdaten mit kryptographischer Verifizierung | -- | Chainlink Data Feeds, Pyth Network, Band Protocol, Redstone, API3, Stork, Chronicle, SEDA, Switchboard, DIA | **Dezentrale Preis-Verifikationsschicht.** Nicht als Primaer-Provider, sondern als Cross-Check gegen Web2-Provider. Median aus 17+ unabhaengigen Operators (Chainlink) bzw. 120+ institutionellen Publishern (Pyth). Oracle Disagreement (Divergenz Web2 vs. Web3) als eigenes Stress-Signal. Hinweis: SEDA/Switchboard sind zusaetzlich wichtig fuer spaetere programmierbare Custom-Validatoren. Siehe REFERENCE_PROJECTS.md "Web3 Oracle Networks" |
+| **G11: Python IPC (gRPC)** | gRPC `ForwardRequest` als generischer Proxy zu Python-Services | indicator-service, finance-bridge, soft-signals | -- | gRPC-first, HTTP-Fallback. Python-Services starten gRPC bei `GRPC_ENABLED=1`; Port = HTTP-Port + 1000 |
 
 ### 12.2 BaseConnector-Paketstruktur
 
 ```
 go-backend/internal/connectors/
+  ipc/
+    client.go          # PythonIPC-Client: gRPC ForwardRequest, HTTP-Fallback
   base/
     http_client.go     # BaseHTTPClient: Config, NewClient, DoRequest[T], Error-Wrapping
     ratelimit.go       # Token-Bucket pro Connector-Instanz (aus news/retry.go + router/ratelimit.go konsolidiert)
@@ -1085,7 +1090,7 @@ Der Router (Sek. 2-3) muss die `group`-Property aus der Config kennen, weil vers
 > 5. **M4 + G5** (BulkFetcher + Bulk-Sources) -- 1 Tag
 > 6. **M5 + L1** (DiffWatcher + SECO Sanctions) -- 0.5 Tage
 > 7. **G16 + RSS** (Asia/EM News-Feeds) -- sofort, bestehender rss_client.go
-> 8. **G10 (Oracle)** (Chainlink + Pyth REST Clients) -- 1 Tag, Cross-Check-Infrastruktur
+> 8. **G10 (Oracle)** (Phase 14: Chainlink/Pyth + Stork/Chronicle/SEDA/Switchboard/DIA Scaffolds; Phase 18: produktiver Disagreement Detector) -- 1-2 Tage je nach Feed-Mapping-Tiefe
 > 9. **DeFi/On-Chain** (DefiLlama + Coinglass + mempool.space) -- 1 Tag, alle haben saubere REST-APIs
 > 10. **CBDC/De-Dollarization** (Atlantic Council Scrape + IMF COFER) -- 0.5 Tage, Bulk/Periodic
 
@@ -1129,6 +1134,11 @@ type OracleProvider string
 const (
     OracleChainlink OracleProvider = "chainlink"
     OraclePyth      OracleProvider = "pyth"
+    OracleStork     OracleProvider = "stork"
+    OracleChronicle OracleProvider = "chronicle"
+    OracleSEDA      OracleProvider = "seda"
+    OracleSwitchboard OracleProvider = "switchboard"
+    OracleDIA       OracleProvider = "dia"
 )
 
 type OracleConfig struct {
@@ -1182,7 +1192,8 @@ type OracleDisagreement struct {
 //     alert_threshold_pct: 1.0    # >1% Divergenz = Alert
 //     pairs: [BTC/USD, ETH/USD, XAU/USD, CHF/USD, EUR/USD]
 //     check_interval: 5m
-//     providers: [chainlink, pyth]
+//     providers: [chainlink, pyth, stork, chronicle]  # Phase 18 produktiv
+//     optional_scaffold_providers: [seda, switchboard, dia] # Phase 14 vorbereiten
 ```
 
 > **Datenfluss:**

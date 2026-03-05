@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { listGeoCandidates } from "@/lib/server/geopolitical-candidates-store";
 import { listGeoContradictions } from "@/lib/server/geopolitical-contradictions-store";
@@ -7,6 +8,7 @@ import { listGeoTimeline } from "@/lib/server/geopolitical-timeline-store";
 type ExportFormat = "json" | "csv";
 
 export async function POST(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	try {
 		const body = (await request.json()) as {
 			format?: ExportFormat;
@@ -39,6 +41,10 @@ export async function POST(request: NextRequest) {
 				filename: `geomap-summary-${Date.now()}.csv`,
 				mimeType: "text/csv;charset=utf-8",
 				content: lines.join("\n"),
+				requestId,
+				degraded: false,
+				degraded_reasons: [],
+				contract_version: "phase12-export-v1",
 			});
 		}
 
@@ -68,10 +74,21 @@ export async function POST(request: NextRequest) {
 				null,
 				2,
 			),
+			requestId,
+			degraded: false,
+			degraded_reasons: [],
+			contract_version: "phase12-export-v1",
 		});
 	} catch (error: unknown) {
 		return NextResponse.json(
-			{ success: false, error: error instanceof Error ? error.message : "export failed" },
+			{
+				success: false,
+				error: error instanceof Error ? error.message : "export failed",
+				requestId,
+				degraded: true,
+				degraded_reasons: ["EXPORT_FAILED"],
+				contract_version: "phase12-export-v1",
+			},
 			{ status: 400 },
 		);
 	}

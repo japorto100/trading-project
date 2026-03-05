@@ -1466,6 +1466,39 @@ Hohe Entropie → niedrigere Gewichte fuer aggressive Signale, hoeheres Gewicht 
 
 **Beziehung zu 5m (Entropy Features):** Sek. 5m misst Shannon/Lempel-Ziv Entropy **einer einzelnen Zeitreihe** (wie vorhersagbar ist dieses Asset?). Der Market Entropy Index misst **Cross-Market Stress** (wie gestresst ist das Gesamtsystem?). Komplementaer, nicht redundant.
 
+**5r.1 Credit-Liquidity Regime Overlay (asset-agnostisch, NEU 2026-02-25)**
+
+> **Problemstellung:** "Private Credit boomt" ist ohne Regime-Kontext mehrdeutig. Das Overlay trennt **Risk-on Liquidity Expansion** von **spaetem Kreditzyklus-/Deleveraging-Stress** mit reproduzierbaren Proxies.
+
+**Zusatz-Komponenten (v1):**
+- `hy_oas_z`: z-score von `BAMLH0A0HYM2` (US HY OAS, taeglich)
+- `ig_oas_z`: z-score von `BAMLC0A0CM` (US IG OAS, taeglich)
+- `financial_conditions_z`: z-score von `ANFCI` / `STLFSI4`
+- `sloos_tightening`: normalisierter Wert aus `DRTSCILM` / `DRTSCLCC` (quartalsweise hold-last-value)
+
+**Aggregation (Overlay-Score):**
+```text
+credit_liquidity_stress =
+  0.35 * hy_oas_z +
+  0.20 * ig_oas_z +
+  0.25 * financial_conditions_z +
+  0.20 * sloos_tightening
+```
+
+**Regime-Mapping (asset-agnostisch, heuristisch):**
+- `stress <= 0.0` (Risk-on): prozyklische Assets tendenziell positiv, defensive Assets neutral
+- `0.0 < stress <= 1.0` (Transition): Reduktion aggressiver Exposures, ausgewogene Gewichtung
+- `stress > 1.0` (Credit Stress): defensive Assets tendenziell positiv, prozyklische Assets unter Druck
+
+**Endpoint-Erweiterung (Rueckwaertskompatibel):** `POST /api/v1/regime/market-entropy`
+- Neue Felder in `components`:
+  - `credit_liquidity_stress`
+  - `hy_oas_z`, `ig_oas_z`, `financial_conditions_z`, `sloos_tightening`
+- Neues Top-Level-Feld:
+  - `asset_bias`: frei konfigurierbare Symbol-Map, z. B. `{ "ES": -0.6, "DXY": 0.4, "XAU": 0.7 }`
+
+> **Hinweis:** Dieses Overlay ist bewusst proxy-basiert (direkte Private-Credit-Books bleiben weitgehend opak) und wird in Phase 14b datenquellenseitig + Phase 5b analytisch validiert.
+
 ---
 
 **5s. Synthetischer URB-Index -- Universe Reserve Basket Benchmark (NEU 2026-02-22, UVD Parallel)**
@@ -1974,6 +2007,10 @@ def regime_switching_monte_carlo(
 
 ## 7. Python Indicator Service: Architektur
 
+### Go → Python Transport
+
+**Transport:** gRPC `ForwardRequest` (primär), HTTP (Fallback). Go nutzt `internal/connectors/ipc` bzw. `internal/connectors/indicatorservice` (IPC-basiert).
+
 ### 7.1 Projekt-Struktur
 
 ```
@@ -2194,6 +2231,32 @@ Organisiert in 5 Phasen. Jedes Todo hat Datei-Referenzen und Buch-Zeilen.
 | 66 | MCMC Portfolio Monte Carlo (Regime-Switching GBM) | Sektion 5q.5 | 2-3 Tage | #63 + #48 |
 | 67 | Order Flow State Machine (Accumulation/Distribution/Squeeze) | Sektion 5q.4 | 3-4 Tage | #49 + #58 |
 
+### Phase H: Evaluation Harness (ab Phase 15, Hardening in Phase 16)
+
+> **Zielbild:** Evaluation als eigener Lieferstrang im Indicator-Track (nicht in `docs/specs/`).
+> 
+> - **Phase 15 (Baseline):** Metriken + Reports + Regime-Splits fuer schnelle Qualitaetsrueckmeldung.
+> - **Phase 16 (Hardening):** Walk-Forward, Slippage/Commission, Deflated Sharpe, robuste Gates vor produktnaher Nutzung.
+
+| # | Todo | Referenz | Aufwand | Abhaengigkeit |
+|---|------|---------|---------|--------------|
+| 68 | Eval-Dataset Builder: Triple-Barrier-Labels + Trade-Outcomes + Regime-Tags je Symbol/Timeframe | AFML Ch.3 + Todo #44 | 1-2 Tage | #44, #35 |
+| 69 | Core Eval Metrics: Precision/Recall/F1 (buy/sell/neutral), Hit Ratio, Expectancy, Profit Factor | Ch.12 L5694-5812 | 1 Tag | #28, #68 |
+| 70 | Risk/Return Eval: Net Return, Sharpe, Sortino, Max Drawdown, Calmar als Standardreport | Ch.12 + Todo #28 | 0.5-1 Tag | #28, #68 |
+| 71 | Composite Component Attribution: Beitrag von `sma50_slope`, `heartbeat`, `smart_money_score`, `composite_confidence` pro Signal | Sektion 3 (Dreier-Signal) | 1 Tag | #6, #68 |
+| 72 | Regime-Sliced Evaluation: Kennzahlen getrennt fuer bullish/bearish/ranging + Transition-Fehler | Todo #35, #63, #64 | 1-2 Tage | #35, #63, #68 |
+| 73 | Walk-Forward + Parameter-Stabilitaet als verpflichtende Eval-Laeufe (OOS-Score, Fragilitaetscheck) | Ch.12 + Todo #36, #38 | 1-2 Tage | #36, #38, #68 |
+| 74 | Execution-Realism Layer: Slippage/Commission/Turnover-Impact als Pflicht-Overlay auf alle Eval-Reports | Todo #37 | 1 Tag | #37, #70 |
+| 75 | Deflated Sharpe Gate + minimaler Go/Next Eval Endpoint (`/api/v1/eval/indicator`) fuer UI/CI Reporting | AFML Ch.14 + Todo #47 | 1-2 Tage | #47, #69-74 |
+
+**Minimal erforderliche Eval-Indikatoren (Pflicht-Set fuer Start):**
+
+- **Signal-Qualitaet:** Precision, Recall, F1, Hit Ratio, Expectancy, Profit Factor
+- **Risiko/Rendite:** Net Return, Sharpe, Sortino, Max Drawdown, Calmar
+- **Robustheit:** Walk-Forward OOS-Score, Parameter-Stabilitaet, Deflated Sharpe Ratio
+- **Regime-Stabilitaet:** Metrics je Regime (bull/bear/range) + Transition-Fehlerrate
+- **Execution-Realitaet:** Slippage/Commission-Impact, Turnover
+
 ---
 
 ## Querverweis-Tabelle
@@ -2210,6 +2273,7 @@ Organisiert in 5 Phasen. Jedes Todo hat Datei-Referenzen und Buch-Zeilen.
 | GoCryptoTrader Integration | [`go-research`](./go-research-financial-data-aggregation-2025-2026.md) Sek. 10 (GCT Fork) |
 | Externe Projekte / Libraries | `REFERENCE_PROJECTS.md` |
 | TS Indikator Cleanup | Dieses Dokument Sektion 6 |
+| Evaluation Harness (Phase 15/16) | Dieses Dokument **Phase H**, Todos #68-#75 |
 | Backtesting + Performance | Dieses Dokument Sektion 5, Kapitel 12 |
 | Regime Detection | Dieses Dokument Sektion 5a (nach Kapitel 12), Todo #35 |
 | Walk-Forward / Sensitivity Testing | Dieses Dokument Sektion 5b, Todos #36 + #38 |

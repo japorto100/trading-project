@@ -231,17 +231,100 @@ export function useGeopoliticalMarkerMutations({
 	}, [fetchAll, setBusy]);
 
 	const handleCandidateAction = useCallback(
-		async (candidateId: string, action: "accept" | "reject" | "snooze") => {
+		async (candidateId: string, action: "accept" | "reject" | "snooze" | "reclassify") => {
 			setBusy(true);
+			const body =
+				action === "reclassify"
+					? { reviewNote: "reclassified via queue", category: "news_narrative" }
+					: { reviewNote: `${action} via queue` };
 			await fetch(`/api/geopolitical/candidates/${encodeURIComponent(candidateId)}/${action}`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ reviewNote: `${action} via queue` }),
+				body: JSON.stringify(body),
 			});
 			setBusy(false);
 			await fetchAll();
 		},
 		[fetchAll, setBusy],
+	);
+
+	const quickImportCandidate = useCallback(
+		async (rawText: string) => {
+			if (rawText.trim().length < 6) {
+				setError("Quick import text is too short.");
+				return;
+			}
+			setBusy(true);
+			setError(null);
+			try {
+				const classifyResponse = await fetch("/api/geopolitical/ingest/classify", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						source: "manual_import",
+						items: [
+							{
+								source: "manual_import",
+								title: rawText.trim().slice(0, 180),
+								url: "manual://quick-import",
+								content: rawText.trim(),
+								lang: "en",
+							},
+						],
+						maxCandidates: 1,
+					}),
+				});
+				if (!classifyResponse.ok) {
+					throw new Error(`Classify failed (${classifyResponse.status})`);
+				}
+				const classifyPayload = (await classifyResponse.json()) as {
+					candidates?: Array<{
+						headline: string;
+						confidence: number;
+						severityHint: number;
+						regionHint?: string;
+						countryHints?: string[];
+						category?: string;
+						symbol?: string;
+						routeTarget?: "geo" | "macro" | "trading" | "research";
+						reviewAction?: string;
+						dedupHash?: string;
+					}>;
+				};
+				const candidate = classifyPayload.candidates?.[0];
+				if (!candidate) {
+					throw new Error("No candidate generated from import.");
+				}
+				const createResponse = await fetch("/api/geopolitical/candidates", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						triggerType: "manual_import",
+						headline: candidate.headline,
+						confidence: candidate.confidence,
+						severityHint: candidate.severityHint,
+						regionHint: candidate.regionHint ?? "global",
+						countryHints: candidate.countryHints ?? [],
+						category: candidate.category ?? "news_narrative",
+						symbol: candidate.symbol ?? "newspaper",
+						routeTarget: candidate.routeTarget ?? "geo",
+						reviewAction: candidate.reviewAction ?? "human_review",
+						dedupHash: candidate.dedupHash,
+						reviewNote: `quick_import:${candidate.reviewAction ?? "human_review"}`,
+						sourceRefs: [{ provider: "manual_import", url: "manual://quick-import" }],
+					}),
+				});
+				if (!createResponse.ok) {
+					throw new Error(`Candidate create failed (${createResponse.status})`);
+				}
+				await fetchAll();
+			} catch (requestError) {
+				setError(requestError instanceof Error ? requestError.message : "Quick import failed");
+			} finally {
+				setBusy(false);
+			}
+		},
+		[fetchAll, setBusy, setError],
 	);
 
 	const addSourceToSelectedEvent = useCallback(
@@ -303,6 +386,7 @@ export function useGeopoliticalMarkerMutations({
 		runHardIngest,
 		runSoftIngest,
 		handleCandidateAction,
+		quickImportCandidate,
 		addSourceToSelectedEvent,
 		addAssetToSelectedEvent,
 	};

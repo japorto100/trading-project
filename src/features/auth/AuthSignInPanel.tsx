@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { signIn as signInWithWebAuthn } from "next-auth/webauthn";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,7 +42,7 @@ function isPasskeyProviderEnabledClient(): boolean {
 
 export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 	const router = useRouter();
-	const [username, setUsername] = useState("admin");
+	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [passkeyEmail, setPasskeyEmail] = useState("");
 	const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -51,6 +51,14 @@ export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 	const authEnabled = isAuthEnabledClient();
 	const authBypassed = isAuthStackBypassEnabledClient();
 	const passkeyProviderEnabled = isPasskeyProviderEnabledClient();
+
+	// SOTA 2026: Auto-trigger WebAuthn Conditional UI (Autofill)
+	useEffect(() => {
+		if (authEnabled && passkeyProviderEnabled) {
+			// Trigger passive passkey check for autofill support
+			void signInWithWebAuthn("passkey", { redirect: false });
+		}
+	}, [authEnabled, passkeyProviderEnabled]);
 
 	async function runCredentialsSignIn() {
 		setLoadingAction("credentials");
@@ -65,32 +73,22 @@ export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 				return;
 			}
 
-			const response = await signIn("credentials", {
-				redirect: false,
+			await signIn("credentials", {
+				redirect: true,
+				callbackUrl: nextPath ?? "/",
 				username,
 				password,
 			});
 
-			if (!response) {
-				setResult({ kind: "error", message: "No response from NextAuth signIn." });
-				return;
-			}
-			if (!response.ok) {
-				setResult({
-					kind: "error",
-					message: response.error ?? "Credentials sign-in failed.",
-				});
-				return;
-			}
+			// With redirect:true, code execution usually stops here as the page reloads.
 
 			setResult({
 				kind: "success",
 				message: "Credentials session created successfully.",
 			});
-			if (nextPath) {
-				router.replace(nextPath);
-				return;
-			}
+			router.replace(nextPath ?? "/");
+			router.refresh();
+			return;
 		} catch (error: unknown) {
 			setResult({
 				kind: "error",
@@ -148,10 +146,9 @@ export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 					message: `Passkey session created for ${verify.user.email ?? verify.user.id}.`,
 				});
 			}
-			if (nextPath) {
-				router.replace(nextPath);
-				return;
-			}
+			router.replace(nextPath ?? "/");
+			router.refresh();
+			return;
 		} catch (error: unknown) {
 			if (error instanceof PasskeyClientError) {
 				setResult({
@@ -176,43 +173,11 @@ export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 				<CardHeader>
 					<CardTitle>Sign In</CardTitle>
 					<CardDescription>
-						Transitional auth surface for Phase 1a. Supports credentials and passkey scaffold
-						sign-in.
+						Passkey-first sign in. Credentials remain available as a controlled fallback.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-6">
 					<div className="grid gap-6 md:grid-cols-2">
-						<div className="space-y-4">
-							<div className="text-sm font-medium">Credentials</div>
-							<div className="space-y-2">
-								<Label htmlFor="username">Username</Label>
-								<Input
-									id="username"
-									value={username}
-									onChange={(event) => setUsername(event.target.value)}
-									autoComplete="username"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="password">Password</Label>
-								<Input
-									id="password"
-									type="password"
-									value={password}
-									onChange={(event) => setPassword(event.target.value)}
-									autoComplete="current-password"
-								/>
-							</div>
-							<Button
-								type="button"
-								className="w-full"
-								disabled={loadingAction !== null}
-								onClick={() => void runCredentialsSignIn()}
-							>
-								{loadingAction === "credentials" ? "Signing in..." : "Sign In (Credentials)"}
-							</Button>
-						</div>
-
 						<div className="space-y-4">
 							<div className="text-sm font-medium">
 								Passkey ({passkeyProviderEnabled ? "Auth.js Provider" : "Scaffold Fallback"})
@@ -225,6 +190,7 @@ export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 									onChange={(event) => setPasskeyEmail(event.target.value)}
 									placeholder="Leave empty for discoverable passkeys"
 									autoComplete="email webauthn"
+									disabled={passkeyProviderEnabled}
 								/>
 							</div>
 							<Button
@@ -241,6 +207,45 @@ export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 									? "Uses the real Auth.js/next-auth Passkey Provider (`passkey`) for final session issuance."
 									: "Uses `/api/auth/passkeys/*` scaffold endpoints and transitional NextAuth provider `passkey-scaffold`."}
 							</p>
+						</div>
+
+						<div className="space-y-4">
+							<div className="text-sm font-medium">Credentials (Fallback)</div>
+							<div className="space-y-2">
+								<Label htmlFor="username">Email or Username</Label>
+								<Input
+									id="username"
+									value={username}
+									onChange={(event) => setUsername(event.target.value)}
+									autoComplete="username"
+								/>
+							</div>
+							<div className="space-y-2">
+								<div className="flex items-center justify-between">
+									<Label htmlFor="password">Password</Label>
+									<Link
+										href="/auth/forgot-password"
+										className="text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground transition-colors"
+									>
+										Forgot Password?
+									</Link>
+								</div>
+								<Input
+									id="password"
+									type="password"
+									value={password}
+									onChange={(event) => setPassword(event.target.value)}
+									autoComplete="current-password"
+								/>
+							</div>
+							<Button
+								type="button"
+								className="w-full"
+								disabled={loadingAction !== null}
+								onClick={() => void runCredentialsSignIn()}
+							>
+								{loadingAction === "credentials" ? "Signing in..." : "Sign In (Credentials)"}
+							</Button>
 						</div>
 					</div>
 
@@ -273,8 +278,8 @@ export function AuthSignInPanel({ nextPath }: AuthSignInPanelProps) {
 						>
 							Create Account
 						</Link>
-						<Link href="/auth/passkeys-lab" className="underline underline-offset-4">
-							Open Passkey Lab
+						<Link href="/auth/passkeys" className="underline underline-offset-4">
+							Manage Passkeys
 						</Link>
 						<Link href="/auth/security" className="underline underline-offset-4">
 							Auth & Security Hub

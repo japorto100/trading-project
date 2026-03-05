@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 func TestGetTicker_ReturnsLatestObservation(t *testing.T) {
@@ -23,7 +25,7 @@ func TestGetTicker_ReturnsLatestObservation(t *testing.T) {
 		APIKey:  "token",
 	})
 
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "CPIAUCSL", Quote: "USD"}, "macro")
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -37,7 +39,7 @@ func TestGetTicker_ReturnsLatestObservation(t *testing.T) {
 
 func TestGetTicker_RejectsMissingKey(t *testing.T) {
 	client := NewClient(Config{})
-	_, err := client.GetTicker(context.Background(), gct.Pair{Base: "CPIAUCSL", Quote: "USD"}, "macro")
+	_, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), asset.Empty)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -64,7 +66,7 @@ func TestGetSeries_ReturnsObservations(t *testing.T) {
 		APIKey:  "token",
 	})
 
-	series, err := client.GetSeries(context.Background(), gct.Pair{Base: "CPIAUCSL", Quote: "USD"}, "macro", 2)
+	series, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), asset.Empty, 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

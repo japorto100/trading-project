@@ -20,6 +20,14 @@ except Exception:
     MiniBatchKMeans = None
     TfidfVectorizer = None
 
+try:
+    from sentence_transformers import SentenceTransformer as _SentenceTransformer
+    import hdbscan as _hdbscan
+    import numpy as _np
+    _EMBEDDING_AVAILABLE = True
+except Exception:
+    _EMBEDDING_AVAILABLE = False
+
 
 SourceTier = Literal["A", "B", "C"]
 
@@ -61,6 +69,46 @@ class CandidateOutput(BaseModel):
 
 class SignalResponse(BaseModel):
     candidates: list[CandidateOutput]
+
+
+class IngestRawItem(BaseModel):
+    source: str = "manual_import"
+    title: str = Field(min_length=3)
+    url: str = Field(min_length=4)
+    content: str | None = None
+    publishedAt: str | None = None
+    lang: str | None = None
+
+
+class IngestClassifyRequest(BaseModel):
+    source: str = "manual_import"
+    items: list[IngestRawItem] = Field(default_factory=list)
+    maxCandidates: int = Field(default=6, ge=1, le=20)
+
+
+ReviewAction = Literal["auto_route", "human_review", "auto_reject"]
+
+
+class IngestClassifiedCandidate(BaseModel):
+    headline: str
+    confidence: float = Field(default=0.45, ge=0.0, le=1.0)
+    severityHint: int = Field(default=2, ge=1, le=5)
+    regionHint: str = "global"
+    countryHints: list[str] = Field(default_factory=list)
+    sourceRefs: list[SourceRefOutput] = Field(default_factory=list)
+    symbol: str | None = None
+    category: str | None = None
+    routeTarget: Literal["geo", "macro", "trading", "research"] = "geo"
+    reviewAction: ReviewAction = "human_review"
+    dedupHash: str
+
+
+class IngestClassifyResponse(BaseModel):
+    success: bool = True
+    source: str
+    generatedAt: str
+    classificationVersion: str = "uil-9b-v1"
+    candidates: list[IngestClassifiedCandidate] = Field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -375,32 +423,40 @@ def classify_theme(text: str) -> ThemeRule:
     return best_rule
 
 
-def build_news_cluster_ml(payload: SignalRequest) -> SignalResponse | None:
-    if TfidfVectorizer is None or MiniBatchKMeans is None:
-        return None
-    if len(payload.articles) < 4:
-        return None
+class NLPClusterRequest(BaseModel):
+    texts: list[str] = Field(min_length=1)
+    min_cluster_size: int = Field(default=2, ge=2, le=50)
 
-    texts = [article_text(article) for article in payload.articles]
-    n_clusters = max(1, min(payload.maxCandidates, min(6, len(payload.articles) // 2)))
-    if n_clusters <= 1:
-        return None
 
-    try:
-        vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1, max_features=1500)
-        features = vectorizer.fit_transform(texts)
-        model = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
-        labels = model.fit_predict(features)
-    except Exception:
-        return None
+class NLPClusterResponse(BaseModel):
+    clusters: dict[int, list[str]]
+    noise_count: int
 
-    buckets: dict[int, list[ArticleInput]] = {}
-    for article, label in zip(payload.articles, labels):
-        buckets.setdefault(int(label), []).append(article)
 
+def cluster_narratives_embedding(texts: list[str], min_cluster_size: int = 2) -> dict:
+    """Cluster texts using sentence-transformers embeddings + HDBSCAN.
+
+    Returns {"clusters": {label: [text, ...]}, "noise_count": N}.
+    Raises ImportError if sentence-transformers or hdbscan are not installed.
+    """
+    if not _EMBEDDING_AVAILABLE:
+        raise ImportError("sentence-transformers and hdbscan are required for embedding clustering")
+    model = _SentenceTransformer("all-MiniLM-L6-v2")
+    embeddings = model.encode(texts)
+    clusterer = _hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, metric="euclidean")
+    labels = clusterer.fit_predict(embeddings)
+    clusters: dict[int, list[str]] = {}
+    for idx, label in enumerate(labels):
+        clusters.setdefault(int(label), []).append(texts[idx])
+    return {"clusters": clusters, "noise_count": int(_np.sum(labels == -1))}
+
+
+def _build_candidates_from_buckets(
+    buckets: dict[int, list[ArticleInput]], max_candidates: int
+) -> list[CandidateOutput]:
     ranked_clusters = sorted(buckets.values(), key=lambda group: len(group), reverse=True)
     candidates: list[CandidateOutput] = []
-    for group in ranked_clusters[: payload.maxCandidates]:
+    for group in ranked_clusters[:max_candidates]:
         primary = sorted(group, key=lambda item: parse_iso(item.publishedAt), reverse=True)[0]
         text = article_text(primary)
         theme = classify_theme(text)
@@ -420,8 +476,61 @@ def build_news_cluster_ml(payload: SignalRequest) -> SignalResponse | None:
                 category=theme.category,
             )
         )
+    return candidates
 
-    return SignalResponse(candidates=candidates)
+
+def build_news_cluster_ml(payload: SignalRequest) -> SignalResponse | None:
+    if len(payload.articles) < 2:
+        return None
+
+    texts = [article_text(article) for article in payload.articles]
+
+    # Phase 12a: Try embedding-based clustering first (sentence-transformers + HDBSCAN).
+    # Falls back to TF-IDF/KMeans if not installed or on any runtime error.
+    if _EMBEDDING_AVAILABLE and len(payload.articles) >= 2:
+        try:
+            result = cluster_narratives_embedding(texts, min_cluster_size=2)
+            raw_clusters: dict[int, list[str]] = result["clusters"]
+            # Map text back to ArticleInput (exclude noise label -1)
+            text_to_article = {article_text(a): a for a in payload.articles}
+            buckets: dict[int, list[ArticleInput]] = {}
+            for label, cluster_texts in raw_clusters.items():
+                if label == -1:
+                    continue
+                articles_in_cluster = [text_to_article[t] for t in cluster_texts if t in text_to_article]
+                if articles_in_cluster:
+                    buckets[label] = articles_in_cluster
+            if buckets:
+                candidates = _build_candidates_from_buckets(buckets, payload.maxCandidates)
+                if candidates:
+                    return SignalResponse(candidates=candidates)
+        except Exception:
+            pass  # Fall through to TF-IDF/KMeans
+
+    # Fallback: TF-IDF/KMeans
+    if TfidfVectorizer is None or MiniBatchKMeans is None:
+        return None
+    if len(payload.articles) < 4:
+        return None
+
+    n_clusters = max(1, min(payload.maxCandidates, min(6, len(payload.articles) // 2)))
+    if n_clusters <= 1:
+        return None
+
+    try:
+        vectorizer = TfidfVectorizer(ngram_range=(1, 2), min_df=1, max_features=1500)
+        features = vectorizer.fit_transform(texts)
+        model = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+        labels = model.fit_predict(features)
+    except Exception:
+        return None
+
+    tfidf_buckets: dict[int, list[ArticleInput]] = {}
+    for article, label in zip(payload.articles, labels):
+        tfidf_buckets.setdefault(int(label), []).append(article)
+
+    candidates = _build_candidates_from_buckets(tfidf_buckets, payload.maxCandidates)
+    return SignalResponse(candidates=candidates) if candidates else None
 
 
 def build_news_cluster(payload: SignalRequest) -> SignalResponse:
@@ -631,3 +740,92 @@ def build_narrative_shift(payload: SignalRequest) -> SignalResponse:
         )
 
     return SignalResponse(candidates=candidates[: payload.maxCandidates])
+
+
+def _ingest_items_to_signal_request(payload: IngestClassifyRequest) -> SignalRequest:
+    items = payload.items[: payload.maxCandidates * 3]
+    generated_at = datetime.now(timezone.utc).isoformat()
+    if not items:
+        return SignalRequest(adapterId="news_cluster", generatedAt=generated_at, articles=[], maxCandidates=payload.maxCandidates)
+
+    articles: list[ArticleInput] = []
+    for item in items:
+        published_at = item.publishedAt or generated_at
+        articles.append(
+            ArticleInput(
+                title=item.title,
+                url=item.url,
+                publishedAt=published_at,
+                source=item.source,
+                summary=item.content or "",
+            )
+        )
+    adapter_id = normalize_text(payload.source)
+    if "reddit" in adapter_id or "social" in adapter_id:
+        adapter_id = "social_surge"
+    elif "youtube" in adapter_id or "narrative" in adapter_id:
+        adapter_id = "narrative_shift"
+    else:
+        adapter_id = "news_cluster"
+    return SignalRequest(
+        adapterId=adapter_id,
+        generatedAt=generated_at,
+        articles=articles,
+        maxCandidates=payload.maxCandidates,
+    )
+
+
+def _route_target_for_category(category: str | None) -> Literal["geo", "macro", "trading", "research"]:
+    value = normalize_text(category or "")
+    if any(token in value for token in ("monetary", "rates", "inflation", "macro")):
+        return "macro"
+    if any(token in value for token in ("order", "market_microstructure", "trading", "signal")):
+        return "trading"
+    if any(token in value for token in ("research", "knowledge", "paper")):
+        return "research"
+    return "geo"
+
+
+def _review_action_from_confidence(confidence: float) -> ReviewAction:
+    if confidence >= 0.85:
+        return "auto_route"
+    if confidence >= 0.40:
+        return "human_review"
+    return "auto_reject"
+
+
+def build_ingest_classification(payload: IngestClassifyRequest) -> IngestClassifyResponse:
+    req = _ingest_items_to_signal_request(payload)
+    if req.adapterId == "social_surge":
+        raw = build_social_surge(req)
+    elif req.adapterId == "narrative_shift":
+        raw = build_narrative_shift(req)
+    else:
+        raw = build_news_cluster(req)
+
+    generated_at = datetime.now(timezone.utc).isoformat()
+    enriched: list[IngestClassifiedCandidate] = []
+    for candidate in raw.candidates:
+        source_url = candidate.sourceRefs[0].url if candidate.sourceRefs else ""
+        dedup_hash = hashlib.sha256(f"{candidate.headline}|{source_url}".encode("utf-8")).hexdigest()
+        enriched.append(
+            IngestClassifiedCandidate(
+                headline=candidate.headline,
+                confidence=candidate.confidence,
+                severityHint=candidate.severityHint,
+                regionHint=candidate.regionHint,
+                countryHints=candidate.countryHints,
+                sourceRefs=candidate.sourceRefs,
+                symbol=candidate.symbol,
+                category=candidate.category,
+                routeTarget=_route_target_for_category(candidate.category),
+                reviewAction=_review_action_from_confidence(candidate.confidence),
+                dedupHash=dedup_hash,
+            )
+        )
+
+    return IngestClassifyResponse(
+        source=payload.source,
+        generatedAt=generated_at,
+        candidates=enriched,
+    )

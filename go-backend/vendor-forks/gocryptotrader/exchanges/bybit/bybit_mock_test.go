@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 		log.Fatalf("Bybit unable to UpdateTradablePairs: %s", err)
 	}
 
-	setEnabledPair := func(assetType asset.Item, pair currency.Pair) {
+	setEnabledPair := func(assetType string, pair currency.Pair) {
 		okay, err := e.IsPairEnabled(pair, assetType)
 		if !okay || err != nil {
 			err = e.CurrencyPairs.EnablePair(assetType, pair)

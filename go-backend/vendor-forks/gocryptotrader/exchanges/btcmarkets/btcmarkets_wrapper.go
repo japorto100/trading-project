@@ -249,7 +249,7 @@ func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, a asset.It
 }
 
 // UpdateOrderbook updates and returns the orderbook for a currency pair
-func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType asset.Item) (*orderbook.Book, error) {
+func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType string) (*orderbook.Book, error) {
 	if p.IsEmpty() {
 		return nil, currency.ErrCurrencyPairEmpty
 	}
@@ -284,7 +284,7 @@ func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetTy
 }
 
 // UpdateAccountBalances retrieves currency balances
-func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType asset.Item) (accounts.SubAccounts, error) {
+func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType string) (accounts.SubAccounts, error) {
 	resp, err := e.GetAccountBalance(ctx)
 	if err != nil {
 		return nil, err
@@ -332,7 +332,7 @@ func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, _
 }
 
 // GetRecentTrades returns the most recent trades for a currency and asset
-func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType asset.Item) ([]trade.Data, error) {
+func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType string) ([]trade.Data, error) {
 	var err error
 	p, err = e.FormatExchangeCurrency(p, assetType)
 	if err != nil {
@@ -832,7 +832,7 @@ func (e *Exchange) GetOrderHistory(ctx context.Context, req *order.MultiOrderReq
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper functionality
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	if err != nil {
 		if e.CheckTransientError(err) == nil {

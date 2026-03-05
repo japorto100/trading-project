@@ -100,7 +100,7 @@ func instantiateTradablePairs() {
 		}
 	}
 
-	updateTradablePair := func(assetType asset.Item, tradablePair *currency.Pair) {
+	updateTradablePair := func(assetType string, tradablePair *currency.Pair) {
 		if e.CurrencyPairs.IsAssetEnabled(assetType) == nil {
 			pairs, err := e.GetEnabledPairs(assetType)
 			handleError(err, fmt.Sprintf("Failed to get enabled pairs for asset type %v", assetType))

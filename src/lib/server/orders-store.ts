@@ -1,8 +1,9 @@
-﻿import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
 import type { CreatePaperOrderInput, OrderStatus, PaperOrder } from "@/lib/orders/types";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 interface OrdersStoreFile {
@@ -12,16 +13,13 @@ interface OrdersStoreFile {
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_PATH = path.join(DATA_DIR, "paper-orders.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<OrdersStoreFile>({
+	storeName: "orders-store",
+	filePath: STORE_PATH,
+	defaultValue: { orders: [] },
+	isValid: (value: unknown): value is OrdersStoreFile =>
+		typeof value === "object" && value !== null && Array.isArray((value as OrdersStoreFile).orders),
+});
 
 type DbClient = NonNullable<ReturnType<typeof getPrismaClient>>;
 
@@ -49,38 +47,16 @@ function getDbClient(): DbClient | null {
 	return getPrismaClient();
 }
 
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
-}
-
 async function readStore(): Promise<OrdersStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as OrdersStoreFile;
-		if (!parsed || !Array.isArray(parsed.orders)) {
-			return { orders: [] };
-		}
-		return { orders: parsed.orders };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) {
-			return { orders: [] };
-		}
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(data: OrdersStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+	await localStore.write(data);
 }
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
+	return localStore.withWriteLock(task);
 }
 
 function sortNewestFirst(rows: PaperOrder[]): PaperOrder[] {
@@ -463,9 +439,12 @@ export async function listPaperOrders(profileKey: string, symbol?: string): Prom
 	if (db) {
 		try {
 			return await listPaperOrdersDb(db, profileKey, symbol);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Orders DB read failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Orders DB client unavailable");
 	}
 
 	return listPaperOrdersFile(profileKey, symbol);
@@ -476,9 +455,12 @@ export async function createPaperOrder(input: CreatePaperOrderInput): Promise<Pa
 	if (db) {
 		try {
 			return await createPaperOrderDb(db, input);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Orders DB write failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Orders DB client unavailable");
 	}
 
 	return createPaperOrderFile(input);
@@ -493,9 +475,12 @@ export async function updatePaperOrderStatus(
 	if (db) {
 		try {
 			return await updatePaperOrderStatusDb(db, profileKey, orderId, status);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Orders DB status update failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Orders DB client unavailable");
 	}
 
 	return updatePaperOrderStatusFile(profileKey, orderId, status);
@@ -509,9 +494,12 @@ export async function evaluateTriggeredOrdersForSymbol(
 	if (db) {
 		try {
 			return await evaluateTriggeredOrdersForSymbolDb(db, symbol, marketPrice);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Orders DB trigger evaluation failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Orders DB client unavailable");
 	}
 
 	return evaluateTriggeredOrdersForSymbolFile(symbol, marketPrice);
@@ -524,9 +512,12 @@ export async function evaluateTriggeredOrdersForSymbols(
 	if (db) {
 		try {
 			return await evaluateTriggeredOrdersForSymbolsDb(db, symbolPrices);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Orders DB multi-symbol trigger evaluation failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Orders DB client unavailable");
 	}
 
 	return evaluateTriggeredOrdersForSymbolsFile(symbolPrices);

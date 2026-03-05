@@ -4,7 +4,34 @@ import { getErrorMessage } from "@/lib/utils";
 
 const GO_GATEWAY_BASE = process.env.GO_GATEWAY_BASE_URL ?? "http://127.0.0.1:9060";
 
-const ALLOWED_SLUGS = new Set(["correlations", "rolling-metrics", "drawdown-analysis"]);
+const ALLOWED_SLUGS = new Set([
+	"correlations",
+	"rolling-metrics",
+	"drawdown-analysis",
+	"optimize",
+	// Phase 13
+	"kelly-allocation",
+	"regime-sizing",
+	"monte-carlo-var",
+	"risk-warning",
+]);
+
+const EXPERIMENTAL_SLUGS = new Set([
+	"optimize",
+	"kelly-allocation",
+	"regime-sizing",
+	"monte-carlo-var",
+	"risk-warning",
+]);
+
+function resolveBackendSlug(slug: string): string {
+	return slug;
+}
+
+function slugScope(slug: string): "production" | "experimental" {
+	if (EXPERIMENTAL_SLUGS.has(slug)) return "experimental";
+	return "production";
+}
 
 /**
  * POST /api/fusion/portfolio/analytics/[slug]
@@ -30,7 +57,7 @@ export async function POST(
 
 	try {
 		const body = await request.text();
-		const url = `${GO_GATEWAY_BASE}/api/v1/portfolio/${slug}`;
+		const url = `${GO_GATEWAY_BASE}/api/v1/portfolio/${resolveBackendSlug(slug)}`;
 
 		const headers: HeadersInit = {
 			"Content-Type": "application/json",
@@ -52,18 +79,54 @@ export async function POST(
 		if (!response.ok) {
 			const text = await response.text().catch(() => "");
 			return NextResponse.json(
-				{ error: `Analytics backend error (${response.status})`, detail: text },
+				{
+					success: false,
+					error: `Analytics backend error (${response.status})`,
+					detail: text,
+					requestId,
+					degraded: true,
+					degraded_reasons: ["ANALYTICS_BACKEND_ERROR"],
+					schema_version: "1.0",
+					feature_scope: slugScope(slug),
+				},
 				{ status: response.status, headers: { "X-Request-ID": requestId } },
 			);
 		}
 
 		const payload = (await response.json()) as unknown;
-		return NextResponse.json(payload, {
+		const enhancedPayload =
+			payload && typeof payload === "object" && !Array.isArray(payload)
+				? {
+						...payload,
+						requestId,
+						degraded: false,
+						degraded_reasons: [],
+						schema_version: "1.0",
+						feature_scope: slugScope(slug),
+					}
+				: {
+						success: true,
+						data: payload,
+						requestId,
+						degraded: false,
+						degraded_reasons: [],
+						schema_version: "1.0",
+						feature_scope: slugScope(slug),
+					};
+		return NextResponse.json(enhancedPayload, {
 			headers: { "X-Request-ID": requestId },
 		});
 	} catch (err: unknown) {
 		return NextResponse.json(
-			{ error: getErrorMessage(err) },
+			{
+				success: false,
+				error: getErrorMessage(err),
+				requestId,
+				degraded: true,
+				degraded_reasons: ["ANALYTICS_PROXY_ERROR"],
+				schema_version: "1.0",
+				feature_scope: slugScope(slug),
+			},
 			{ status: 502, headers: { "X-Request-ID": requestId } },
 		);
 	}

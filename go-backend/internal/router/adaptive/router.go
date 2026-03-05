@@ -12,16 +12,19 @@ import (
 	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
 
 	"gopkg.in/yaml.v3"
+	"github.com/go-playground/validator/v10"
 )
 
+var validate = validator.New()
+
 type Config struct {
-	AssetClasses map[string]AssetClassConfig `yaml:"asset_classes"`
-	Providers    map[string]ProviderConfig   `yaml:"providers"`
+	AssetClasses map[string]AssetClassConfig `yaml:"asset_classes" validate:"required,dive"`
+	Providers    map[string]ProviderConfig   `yaml:"providers" validate:"required,dive"`
 }
 
 type AssetClassConfig struct {
-	Providers []string `yaml:"providers"`
-	Strategy  string   `yaml:"strategy"`
+	Providers []string `yaml:"providers" validate:"required,min=1"`
+	Strategy  string   `yaml:"strategy" validate:"required"`
 }
 
 type ProviderConfig struct {
@@ -110,6 +113,9 @@ func LoadFromFile(path string) (*Router, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(raw, &cfg); err != nil {
 		return nil, fmt.Errorf("decode adaptive router config: %w", err)
+	}
+	if err := validate.Struct(cfg); err != nil {
+		return nil, fmt.Errorf("validate adaptive router config: %w", err)
 	}
 	return New(cfg), nil
 }

@@ -37,6 +37,7 @@ export function TimeframeSelector({ currentTimeframe, onTimeframeChange }: Timef
 					key={tf.value}
 					value={tf.value}
 					aria-label={tf.label}
+					data-testid={`timeframe-${tf.value}`}
 					className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
 						currentTimeframe === tf.value
 							? "bg-emerald-500 text-white hover:bg-emerald-600"

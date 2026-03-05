@@ -55,6 +55,45 @@
 
 ---
 
+## 1a. Python vs. Rust: Ownership Matrix
+
+Um architektonischen Drift zu vermeiden, gelten folgende klare Grenzen zwischen Python und Rust (PyO3).
+
+| Domäne | Python | Rust Core | Begründung |
+|--------|--------|------------|------------|
+| **Indikatoren (MA, RSI, ATR, BB, …)** | Orchestrierung, Caching, API | Kernlogik | Rust 10–50× schneller, Python für HTTP/Redis/ML |
+| **Pattern-Detection** (Elliott, Harmonic, Candlestick) | Orchestrierung, Job-Queue | Scan-Algorithmen | CPU-lastig, Rust sinnvoll |
+| **Composite Signal** | Aggregation, ML-Features | SMA50-Slope, Heartbeat, Batch | Rust bereits integriert für O(1) incremental Updates |
+| **LLM / NLP** | Sentiment, Entity Extraction, Übersetzung | — | Rust hat kein sinnvolles ML-Ökosystem dafür |
+| **Soft-Signals** (Cluster, Social, Narrative) | Vollständig | — | LLM + NLP dominiert, Python bevorzugt |
+| **OHLCV-Preprocessing** | — | Polars/Zero-Copy | Bereits auf Polars umgestellt |
+| **OHLCV-Cache** | — | redb | ACID-compliant, 3x schneller als sled |
+| **Backtesting** | Strategy-Logik, Job-Queue | Walk-Forward, Triple-Barrier, Monte Carlo | Rust für Kern-Berechnungen über Jahre |
+| **GeoMap Spatial** | — | h3o, geo-rs | Ab v3, >5k Events, 26x schneller als JS |
+| **ML/AI** (XGBoost, Scikit, PyTorch) | Vollständig | — | Python-Ökosystem ist alternativlos |
+
+## 1b. Inter-Process Communication (IPC): Go <-> Python <-> Rust
+
+Die Architektur erzwingt Hochleistungs-Pfade für die Kommunikation zwischen den Microservices. Der Go Gateway ist der zentrale I/O-Hub, während Python/Rust die Compute-Ebene bilden. 
+Für diese Kommunikation gilt als Standard: **gRPC (inkl. Streaming)**.
+
+| Architektur-Ebene | Kommunikation | Begründung |
+|--------|--------|------------|
+| **Go <-> Python** | **gRPC** (`ipc.proto`) | Ersetzt langsames REST/HTTP. Extrem wichtig für Streaming-Tick-Data an ML-Modelle, Soft-Signals, und hochfrequente Inference-Requests. |
+| **Python <-> Rust Core** | **PyO3 / FFI** | Direkter Memory-Zugriff (Zero-Copy via Polars), keine Netzwerk-Latenz. |
+| **Go <-> Frontend** | **REST / SSE** | Go dient als Frontend-BFF (Backend for Frontend), daher reguläre Web-Standards. |
+
+**Option: Rust als direkter Service (zu evaluieren)**
+
+Aktuell: Rust ist PyO3-Library, von Python geladen. Alternative: Rust als **eigener Microservice** mit gRPC von Go, locker gekoppelt zu Python. Use Cases: hoher Durchsatz (Echtzeit-Indikatoren, Order-Routing), niedrige Latenz ohne Python-Overhead, dedizierte Pipelines (z.B. Tick→Bar-Aggregation). SOTA 2026: Beides valide — PyO3 für Compute-Kern im Python-Prozess, Rust-Service für spezielle Hochleistungs-Pfade. Siehe EXECUTION_PLAN Phase 2 „zu evaluieren“.
+
+**Checkliste: Neuer Indikator / Pattern → Python oder Rust?**
+1. CPU-intensive Berechnung über 1000+ Bars? → **Rust Core**
+2. LLM / NLP / Sentiment erforderlich? → **Python**
+3. Neuer Standard-Indikator? → **Zuerst Rust, Python als Fallback**
+
+---
+
 ## 2. Definitiv einbauen: Rust Indicator Core via PyO3
 
 ### Problem

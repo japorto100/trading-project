@@ -3,8 +3,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { requireLLMConsentOrResponse } from "@/lib/server/consent-guard";
 import { fetchGeopoliticalGameTheoryViaGateway } from "@/lib/server/geopolitical-game-theory-bridge";
 
-export const runtime = "nodejs";
-
 function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {
 	response.headers.set("X-Request-ID", requestId);
 	return response;

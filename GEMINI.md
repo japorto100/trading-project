@@ -65,6 +65,9 @@ When debugging common issues:
 - `docs/specs/API_CONTRACTS.md` — all endpoint definitions incl. Memory (Sek. 11), Agent (Sek. 12), State Observation (Sek. 13).
 - `docs/GEOPOLITICAL_MAP_MASTERPLAN.md` — comprehensive spec for the map feature (35+ sections).
 - `docs/GEOPOLITICAL_OPTIONS.md` — D3 module catalog, feature-to-module matrix, staged install plan.
+- `docs/PROXY_CONVENTIONS.md` — Phase 0/1: Correlation-ID, thin proxy, provider-bypass rules.
+- `docs/GEOMAP_VERIFY.md` — Phase 4: Draw-workflow, E2E acceptance, save error paths.
+- `docs/BASEMAP_POLICY.md`, `docs/GEOCODING_STRATEGY.md`, `docs/PMTILES_CONTRACT.md`, `docs/PERFORMANCE_BASELINE.md` — Phase 4 GeoMap policy docs.
 
 ## Memory Management
 - Run `/memory refresh` after editing `GEMINI.md` or `AGENTS.md` to reload context.

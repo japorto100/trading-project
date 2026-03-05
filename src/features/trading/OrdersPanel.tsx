@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
 	Select,
 	SelectContent,
@@ -242,19 +243,19 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 					</Alert>
 				) : null}
 
-				<div className="grid grid-cols-2 gap-2">
+				<div className="grid grid-cols-2 gap-2 p-1 bg-accent/20 rounded-md border border-border/50">
 					<Button
 						size="sm"
-						variant={side === "buy" ? "default" : "outline"}
-						className={side === "buy" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+						variant="ghost"
+						className={`transition-all duration-300 ${side === "buy" ? "bg-success/20 text-success hover:bg-success/30 hover:text-success shadow-chromatic border border-success/30" : "text-muted-foreground hover:bg-accent/50"}`}
 						onClick={() => setSide("buy")}
 					>
 						Buy
 					</Button>
 					<Button
 						size="sm"
-						variant={side === "sell" ? "default" : "outline"}
-						className={side === "sell" ? "bg-red-600 hover:bg-red-700 text-white" : ""}
+						variant="ghost"
+						className={`transition-all duration-300 ${side === "sell" ? "bg-error/20 text-error hover:bg-error/30 hover:text-error shadow-chromatic-error border border-error/30" : "text-muted-foreground hover:bg-accent/50"}`}
 						onClick={() => setSide("sell")}
 					>
 						Sell
@@ -373,110 +374,138 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 					</div>
 				</div>
 
-				<div className="rounded-md border border-border bg-card/30 p-2 text-xs space-y-1">
-					<div className="flex items-center justify-between">
-						<span className="text-muted-foreground">Entry</span>
-						<span>{entryPrice > 0 ? entryPrice.toFixed(4) : "-"}</span>
+				<div className="rounded-xl border border-border/50 bg-background/50 backdrop-blur p-3 text-xs space-y-3 shadow-sm">
+					<div className="flex items-center justify-between font-mono">
+						<span className="text-muted-foreground">Entry / Notional</span>
+						<span>
+							{entryPrice > 0 ? entryPrice.toFixed(4) : "-"}{" "}
+							<span className="text-muted-foreground/50">|</span>{" "}
+							{notional > 0 ? notional.toFixed(2) : "-"}
+						</span>
 					</div>
-					<div className="flex items-center justify-between">
-						<span className="text-muted-foreground">Notional</span>
-						<span>{notional > 0 ? notional.toFixed(2) : "-"}</span>
-					</div>
-					<div className="flex items-center justify-between">
-						<span className="text-muted-foreground">Est. Risk</span>
-						<span>{riskEstimate !== null ? riskEstimate.toFixed(2) : "-"}</span>
-					</div>
-					<div className="flex items-center justify-between">
-						<span className="text-muted-foreground">Est. Reward</span>
-						<span>{rewardEstimate !== null ? rewardEstimate.toFixed(2) : "-"}</span>
-					</div>
-					<div className="flex items-center justify-between">
-						<span className="text-muted-foreground">R:R</span>
-						<span>{rewardRiskRatio !== null ? rewardRiskRatio.toFixed(2) : "-"}</span>
-					</div>
+
+					{/* Risk/Reward Gauge */}
+					{riskEstimate !== null && rewardEstimate !== null ? (
+						<div className="space-y-1.5">
+							<div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider">
+								<span className="text-error">Risk: {riskEstimate.toFixed(2)}</span>
+								<span className="text-muted-foreground">R:R {rewardRiskRatio?.toFixed(2)}</span>
+								<span className="text-success">Reward: {rewardEstimate.toFixed(2)}</span>
+							</div>
+							<div className="h-1.5 w-full rounded-full bg-accent/50 flex overflow-hidden">
+								<div
+									className="h-full bg-error transition-all duration-500"
+									style={{
+										width: `${Math.min(100, (riskEstimate / (riskEstimate + rewardEstimate)) * 100)}%`,
+									}}
+								/>
+								<div
+									className="h-full bg-success transition-all duration-500"
+									style={{
+										width: `${Math.min(100, (rewardEstimate / (riskEstimate + rewardEstimate)) * 100)}%`,
+									}}
+								/>
+							</div>
+						</div>
+					) : (
+						<div className="flex items-center justify-between text-muted-foreground">
+							<span>Set SL/TP for R:R</span>
+						</div>
+					)}
 				</div>
 
-				<Button className="w-full" onClick={placeOrder}>
-					Place Paper Order
+				<Button
+					className={`w-full font-bold uppercase tracking-widest transition-all duration-300 ${
+						side === "buy"
+							? "bg-success hover:bg-success/90 text-success-foreground shadow-chromatic"
+							: "bg-error hover:bg-error/90 text-error-foreground shadow-chromatic-error"
+					}`}
+					onClick={placeOrder}
+				>
+					Place {side} Order
 				</Button>
 			</div>
 
-			<div className="flex-1 overflow-y-auto p-3 space-y-3">
-				<div>
-					<p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Open Orders</p>
-					{loadingOrders && <p className="text-xs text-muted-foreground">Loading...</p>}
-					{!loadingOrders && openOrders.length === 0 && (
-						<p className="text-xs text-muted-foreground">No open orders for {symbol}.</p>
-					)}
-					<div className="space-y-2">
-						{openOrders.map((order) => (
-							<div
-								key={order.id}
-								className="rounded-md border border-border bg-card/30 p-2 text-xs"
-							>
-								<div className="mb-1 flex items-center justify-between">
-									<span className="font-medium">
-										{order.side.toUpperCase()} {order.quantity} {order.symbol}
-									</span>
-									<Badge variant="outline">{order.type}</Badge>
+			<ScrollArea className="flex-1">
+				<div className="p-3 space-y-3">
+					<div>
+						<p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+							Open Orders
+						</p>
+						{loadingOrders && <p className="text-xs text-muted-foreground">Loading...</p>}
+						{!loadingOrders && openOrders.length === 0 && (
+							<p className="text-xs text-muted-foreground">No open orders for {symbol}.</p>
+						)}
+						<div className="space-y-2">
+							{openOrders.map((order) => (
+								<div
+									key={order.id}
+									className="rounded-md border border-border bg-card/30 p-2 text-xs"
+								>
+									<div className="mb-1 flex items-center justify-between">
+										<span className="font-medium">
+											{order.side.toUpperCase()} {order.quantity} {order.symbol}
+										</span>
+										<Badge variant="outline">{order.type}</Badge>
+									</div>
+									<p className="text-muted-foreground">Entry {order.entryPrice.toFixed(4)}</p>
+									{(order.stopLoss || order.takeProfit) && (
+										<p className="text-muted-foreground">
+											SL {order.stopLoss?.toFixed(4) || "-"} / TP{" "}
+											{order.takeProfit?.toFixed(4) || "-"}
+										</p>
+									)}
+									<div className="mt-2 flex gap-2">
+										<Button
+											size="sm"
+											variant="outline"
+											className="h-7 text-xs"
+											onClick={() => updateOrderStatus(order.id, "filled")}
+										>
+											Mark Filled
+										</Button>
+										<Button
+											size="sm"
+											variant="outline"
+											className="h-7 text-xs"
+											onClick={() => updateOrderStatus(order.id, "cancelled")}
+										>
+											Cancel
+										</Button>
+									</div>
 								</div>
-								<p className="text-muted-foreground">Entry {order.entryPrice.toFixed(4)}</p>
-								{(order.stopLoss || order.takeProfit) && (
-									<p className="text-muted-foreground">
-										SL {order.stopLoss?.toFixed(4) || "-"} / TP{" "}
-										{order.takeProfit?.toFixed(4) || "-"}
-									</p>
-								)}
-								<div className="mt-2 flex gap-2">
-									<Button
-										size="sm"
-										variant="outline"
-										className="h-7 text-xs"
-										onClick={() => updateOrderStatus(order.id, "filled")}
-									>
-										Mark Filled
-									</Button>
-									<Button
-										size="sm"
-										variant="outline"
-										className="h-7 text-xs"
-										onClick={() => updateOrderStatus(order.id, "cancelled")}
-									>
-										Cancel
-									</Button>
-								</div>
-							</div>
-						))}
+							))}
+						</div>
 					</div>
-				</div>
 
-				<div>
-					<p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
-						Recent Closed
-					</p>
-					{!loadingOrders && closedOrders.length === 0 && (
-						<p className="text-xs text-muted-foreground">No closed orders yet.</p>
-					)}
-					<div className="space-y-2">
-						{closedOrders.map((order) => (
-							<div key={order.id} className="rounded-md border border-border p-2 text-xs">
-								<div className="flex items-center justify-between">
-									<span>
-										{order.side.toUpperCase()} {order.quantity} {order.symbol}
-									</span>
-									<Badge variant="outline">{order.status}</Badge>
+					<div>
+						<p className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+							Recent Closed
+						</p>
+						{!loadingOrders && closedOrders.length === 0 && (
+							<p className="text-xs text-muted-foreground">No closed orders yet.</p>
+						)}
+						<div className="space-y-2">
+							{closedOrders.map((order) => (
+								<div key={order.id} className="rounded-md border border-border p-2 text-xs">
+									<div className="flex items-center justify-between">
+										<span>
+											{order.side.toUpperCase()} {order.quantity} {order.symbol}
+										</span>
+										<Badge variant="outline">{order.status}</Badge>
+									</div>
+									<p className="text-muted-foreground">
+										{order.type} @ {order.entryPrice.toFixed(4)}
+									</p>
+									{typeof order.filledPrice === "number" && (
+										<p className="text-muted-foreground">Filled @ {order.filledPrice.toFixed(4)}</p>
+									)}
 								</div>
-								<p className="text-muted-foreground">
-									{order.type} @ {order.entryPrice.toFixed(4)}
-								</p>
-								{typeof order.filledPrice === "number" && (
-									<p className="text-muted-foreground">Filled @ {order.filledPrice.toFixed(4)}</p>
-								)}
-							</div>
-						))}
+							))}
+						</div>
 					</div>
 				</div>
-			</div>
+			</ScrollArea>
 		</div>
 	);
 }

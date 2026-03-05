@@ -385,6 +385,8 @@ export function GeoContradictionsPanel() {
 										<label className="space-y-1">
 											<span className="text-[11px] text-muted-foreground">Resolution outcome</span>
 											<select
+												id={`contradiction-resolution-outcome-${item.id}`}
+												name={`contradiction_resolution_outcome_${item.id}`}
 												className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 												value={
 													(drafts[item.id] ?? createDraftFromContradiction(item)).resolutionOutcome
@@ -408,6 +410,8 @@ export function GeoContradictionsPanel() {
 										<label className="space-y-1">
 											<span className="text-[11px] text-muted-foreground">Summary</span>
 											<input
+												id={`contradiction-summary-${item.id}`}
+												name={`contradiction_summary_${item.id}`}
 												className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 												value={(drafts[item.id] ?? createDraftFromContradiction(item)).summary}
 												onChange={(event) =>
@@ -421,6 +425,8 @@ export function GeoContradictionsPanel() {
 										<label className="space-y-1">
 											<span className="text-[11px] text-muted-foreground">Merged event ID</span>
 											<input
+												id={`contradiction-merged-event-${item.id}`}
+												name={`contradiction_merged_event_id_${item.id}`}
 												className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 												placeholder="ge_..."
 												value={
@@ -438,6 +444,8 @@ export function GeoContradictionsPanel() {
 										<label className="space-y-1">
 											<span className="text-[11px] text-muted-foreground">Merged candidate ID</span>
 											<input
+												id={`contradiction-merged-candidate-${item.id}`}
+												name={`contradiction_merged_candidate_id_${item.id}`}
 												className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 												placeholder="gc_..."
 												value={
@@ -456,6 +464,8 @@ export function GeoContradictionsPanel() {
 									<label className="block space-y-1">
 										<span className="text-[11px] text-muted-foreground">Resolution note</span>
 										<textarea
+											id={`contradiction-resolution-note-${item.id}`}
+											name={`contradiction_resolution_note_${item.id}`}
 											className="min-h-16 w-full rounded border border-border bg-background px-2 py-1 text-xs"
 											value={(drafts[item.id] ?? createDraftFromContradiction(item)).resolutionNote}
 											onChange={(event) =>
@@ -494,6 +504,8 @@ export function GeoContradictionsPanel() {
 											<label className="space-y-1">
 												<span className="text-[11px] text-muted-foreground">Kind</span>
 												<select
+													id={`contradiction-evidence-kind-${item.id}`}
+													name={`contradiction_evidence_kind_${item.id}`}
 													className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 													value={
 														(drafts[item.id] ?? createDraftFromContradiction(item)).evidenceKind
@@ -516,6 +528,8 @@ export function GeoContradictionsPanel() {
 											<label className="space-y-1">
 												<span className="text-[11px] text-muted-foreground">Label</span>
 												<input
+													id={`contradiction-evidence-label-${item.id}`}
+													name={`contradiction_evidence_label_${item.id}`}
 													className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 													value={
 														(drafts[item.id] ?? createDraftFromContradiction(item)).evidenceLabel
@@ -534,6 +548,8 @@ export function GeoContradictionsPanel() {
 											<label className="space-y-1">
 												<span className="text-[11px] text-muted-foreground">URL (optional)</span>
 												<input
+													id={`contradiction-evidence-url-${item.id}`}
+													name={`contradiction_evidence_url_${item.id}`}
 													className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 													value={
 														(drafts[item.id] ?? createDraftFromContradiction(item)).evidenceUrl
@@ -553,6 +569,8 @@ export function GeoContradictionsPanel() {
 												</span>
 												<div className="grid grid-cols-2 gap-1">
 													<input
+														id={`contradiction-evidence-event-id-${item.id}`}
+														name={`contradiction_evidence_event_id_${item.id}`}
 														className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 														placeholder="eventId"
 														value={
@@ -568,6 +586,8 @@ export function GeoContradictionsPanel() {
 														disabled={loading || actionBusyId !== null}
 													/>
 													<input
+														id={`contradiction-evidence-candidate-id-${item.id}`}
+														name={`contradiction_evidence_candidate_id_${item.id}`}
 														className="w-full rounded border border-border bg-background px-2 py-1 text-xs"
 														placeholder="candidateId"
 														value={
@@ -588,6 +608,8 @@ export function GeoContradictionsPanel() {
 										<label className="mt-2 block space-y-1">
 											<span className="text-[11px] text-muted-foreground">Evidence note</span>
 											<textarea
+												id={`contradiction-evidence-note-${item.id}`}
+												name={`contradiction_evidence_note_${item.id}`}
 												className="min-h-14 w-full rounded border border-border bg-background px-2 py-1 text-xs"
 												value={(drafts[item.id] ?? createDraftFromContradiction(item)).evidenceNote}
 												onChange={(event) =>

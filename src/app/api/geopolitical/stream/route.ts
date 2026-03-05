@@ -3,8 +3,6 @@ import { listGeoCandidates } from "@/lib/server/geopolitical-candidates-store";
 import { listGeoEvents } from "@/lib/server/geopolitical-events-store";
 import { listGeoTimeline } from "@/lib/server/geopolitical-timeline-store";
 
-export const runtime = "nodejs";
-
 function toSseMessage(type: string, payload: unknown): string {
 	return `event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`;
 }

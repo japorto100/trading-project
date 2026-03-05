@@ -17,25 +17,60 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 	return response;
 }
 
+function buildErrorResponse(requestId: string, error: unknown): NextResponse {
+	const message = getErrorMessage(error);
+	const persistenceError =
+		message.includes("fallback is disabled") ||
+		message.toLowerCase().includes("db client unavailable");
+	return withRequestIdHeader(
+		NextResponse.json(
+			{
+				success: false,
+				error: message,
+				requestId,
+				degraded: true,
+				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
+			},
+			{ status: persistenceError ? 503 : 500 },
+		),
+		requestId,
+	);
+}
+
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	try {
 		const profileKey = request.nextUrl.searchParams.get("profileKey");
 		if (!profileKey) {
 			return withRequestIdHeader(
-				NextResponse.json({ error: "profileKey is required" }, { status: 400 }),
+				NextResponse.json(
+					{
+						success: false,
+						error: "profileKey is required",
+						requestId,
+						degraded: false,
+						degraded_reasons: [],
+					},
+					{ status: 400 },
+				),
 				requestId,
 			);
 		}
 		const limitParam = Number(request.nextUrl.searchParams.get("limit"));
 		const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : 50;
 		const entries = await listPortfolioSnapshots(profileKey, limit);
-		return withRequestIdHeader(NextResponse.json({ success: true, entries }), requestId);
-	} catch (error: unknown) {
 		return withRequestIdHeader(
-			NextResponse.json({ error: getErrorMessage(error) }, { status: 500 }),
+			NextResponse.json({
+				success: true,
+				entries,
+				requestId,
+				degraded: false,
+				degraded_reasons: [],
+			}),
 			requestId,
 		);
+	} catch (error: unknown) {
+		return buildErrorResponse(requestId, error);
 	}
 }
 
@@ -46,7 +81,16 @@ export async function POST(request: NextRequest) {
 		payload = await request.json();
 	} catch {
 		return withRequestIdHeader(
-			NextResponse.json({ error: "invalid JSON body" }, { status: 400 }),
+			NextResponse.json(
+				{
+					success: false,
+					error: "invalid JSON body",
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
 			requestId,
 		);
 	}
@@ -56,8 +100,12 @@ export async function POST(request: NextRequest) {
 		return withRequestIdHeader(
 			NextResponse.json(
 				{
+					success: false,
 					error: "invalid payload",
 					details: parsed.error.flatten(),
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
 				},
 				{ status: 400 },
 			),
@@ -77,15 +125,15 @@ export async function POST(request: NextRequest) {
 					stored,
 					snapshot,
 					prices,
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
 				},
 				{ status: 201 },
 			),
 			requestId,
 		);
 	} catch (error: unknown) {
-		return withRequestIdHeader(
-			NextResponse.json({ error: getErrorMessage(error) }, { status: 500 }),
-			requestId,
-		);
+		return buildErrorResponse(requestId, error);
 	}
 }

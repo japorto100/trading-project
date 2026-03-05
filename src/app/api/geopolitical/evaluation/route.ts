@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { GeoEvaluationSummary } from "@/lib/geopolitical/phase12-types";
 import { listGeoCandidates } from "@/lib/server/geopolitical-candidates-store";
@@ -6,6 +7,7 @@ import { listGeoEvents } from "@/lib/server/geopolitical-events-store";
 import { listGeoTimeline } from "@/lib/server/geopolitical-timeline-store";
 
 export async function GET() {
+	const requestId = randomUUID();
 	const [events, candidates, contradictions, timeline] = await Promise.all([
 		listGeoEvents(),
 		listGeoCandidates(),
@@ -54,5 +56,12 @@ export async function GET() {
 		},
 	};
 
-	return NextResponse.json({ success: true, summary });
+	return NextResponse.json({
+		success: true,
+		summary,
+		requestId,
+		degraded: false,
+		degraded_reasons: [],
+		contract_version: "phase12-evaluation-v1",
+	});
 }

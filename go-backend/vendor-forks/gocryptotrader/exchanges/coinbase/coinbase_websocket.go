@@ -237,7 +237,7 @@ func (e *Exchange) wsProcessUser(ctx context.Context, resp *StandardWebsocketRes
 			if wsUser[i].Orders[j].LimitPrice != 0 {
 				price = wsUser[i].Orders[j].LimitPrice
 			}
-			var assetType asset.Item
+			var assetType string
 			if assetType, err = stringToStandardAsset(wsUser[i].Orders[j].ProductType); err != nil {
 				return err
 			}

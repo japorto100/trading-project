@@ -7,13 +7,15 @@ import (
 )
 
 type jwtRevocationBlocklist struct {
-	mu      sync.RWMutex
-	entries map[string]time.Time
+	mu             sync.RWMutex
+	jtiEntries     map[string]time.Time
+	userRevocations map[string]time.Time // userId -> revokedBefore timestamp
 }
 
 func newJWTRevocationBlocklist() *jwtRevocationBlocklist {
 	return &jwtRevocationBlocklist{
-		entries: make(map[string]time.Time),
+		jtiEntries:      make(map[string]time.Time),
+		userRevocations: make(map[string]time.Time),
 	}
 }
 
@@ -28,38 +30,54 @@ func (b *jwtRevocationBlocklist) Revoke(jti string, expiresAt time.Time) {
 
 	exp := expiresAt
 	if exp.IsZero() {
-		// Default guardrail if caller cannot provide token expiry.
 		exp = time.Now().Add(15 * time.Minute)
 	}
 
 	b.mu.Lock()
-	b.entries[key] = exp
+	b.jtiEntries[key] = exp
 	b.mu.Unlock()
 }
 
-func (b *jwtRevocationBlocklist) IsRevoked(jti string, now time.Time) bool {
+func (b *jwtRevocationBlocklist) RevokeUser(userId string, revokedBefore time.Time) {
+	if b == nil || userId == "" {
+		return
+	}
+	b.mu.Lock()
+	b.userRevocations[userId] = revokedBefore
+	b.mu.Unlock()
+}
+
+func (b *jwtRevocationBlocklist) IsRevoked(jti string, userId string, issuedAt time.Time, now time.Time) bool {
 	if b == nil {
 		return false
 	}
-	key := strings.TrimSpace(jti)
-	if key == "" {
-		return false
-	}
-
 	if now.IsZero() {
 		now = time.Now()
 	}
 
-	b.mu.Lock()
-	defer b.mu.Unlock()
+	b.mu.RLock()
+	defer b.mu.RUnlock()
 
-	exp, ok := b.entries[key]
-	if !ok {
-		return false
+	// 1. Check specific JTI
+	if jti != "" {
+		if exp, ok := b.jtiEntries[jti]; ok {
+			if !exp.After(now) {
+				// Cleanup expired entry would need a Write Lock, 
+				// we skip it in the hot path RLock for performance.
+				return false 
+			}
+			return true
+		}
 	}
-	if !exp.After(now) {
-		delete(b.entries, key)
-		return false
+
+	// 2. Check global user revocation (e.g. password change)
+	if userId != "" && !issuedAt.IsZero() {
+		if revokedBefore, ok := b.userRevocations[userId]; ok {
+			if !issuedAt.After(revokedBefore) {
+				return true // Token was issued before the revocation event
+			}
+		}
 	}
-	return true
+
+	return false
 }

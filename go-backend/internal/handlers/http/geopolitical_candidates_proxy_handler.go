@@ -70,14 +70,12 @@ func GeopoliticalCandidatesProxyHandler(
 			return
 		}
 
-		if candidateID, action, ok := parseCandidateActionPath(r.URL.Path); ok && (action == "reject" || action == "snooze" || action == "accept") {
-			if action != "accept" || events != nil {
-				handleLocalCandidateReviewAction(w, r, store, timeline, events, candidateID, action)
-				return
-			}
+		if candidateID, action, ok := parseCandidateActionPath(r.URL.Path); ok && (action == "reject" || action == "snooze" || action == "accept" || action == "reclassify") {
+			handleLocalCandidateReviewAction(w, r, store, timeline, events, candidateID, action)
+			return
 		}
 
-		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/geopolitical/candidates" && strings.TrimSpace(r.URL.Query().Get("mode")) == "" {
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/geopolitical/candidates" {
 			if store != nil {
 				handleLocalCandidateCreate(w, r, store, timeline)
 				return
@@ -167,44 +165,127 @@ func handleLocalCandidateReviewAction(
 		return
 	}
 
-	reviewNote := parseCandidateReviewNote(r)
-	var nextState string
-	var timelineAction string
 	switch action {
 	case "reject":
-		nextState = "rejected"
-		timelineAction = "candidate_rejected"
+		reviewNote := parseCandidateReviewNote(r)
+		before, updated, err := store.UpdateState(candidateID, geopoliticalServices.CandidateStateUpdate{
+			State:      "rejected",
+			ReviewNote: reviewNote,
+		})
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "candidate queue update failed"})
+			return
+		}
+		if updated == nil || before == nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "candidate not found"})
+			return
+		}
+		actor := geoActorFromRequest(r)
+		if timeline != nil {
+			_, _ = timeline.Append(geopoliticalServices.GeoTimelineEntry{
+				EventID:     candidateID,
+				Action:      "candidate_rejected",
+				Actor:       actor,
+				DiffSummary: "Candidate " + candidateID + " " + action + "ed",
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"success": true, "candidate": updated})
+		return
 	case "snooze":
-		nextState = "snoozed"
-		timelineAction = "candidate_snoozed"
+		reviewNote := parseCandidateReviewNote(r)
+		before, updated, err := store.UpdateState(candidateID, geopoliticalServices.CandidateStateUpdate{
+			State:      "snoozed",
+			ReviewNote: reviewNote,
+		})
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "candidate queue update failed"})
+			return
+		}
+		if updated == nil || before == nil {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "candidate not found"})
+			return
+		}
+		actor := geoActorFromRequest(r)
+		if timeline != nil {
+			_, _ = timeline.Append(geopoliticalServices.GeoTimelineEntry{
+				EventID:     candidateID,
+				Action:      "candidate_snoozed",
+				Actor:       actor,
+				DiffSummary: "Candidate " + candidateID + " " + action + "ed",
+			})
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"success": true, "candidate": updated})
+		return
 	case "accept":
 		handleLocalCandidateAccept(w, r, store, timeline, events, candidate)
+		return
+	case "reclassify":
+		handleLocalCandidateReclassify(w, r, store, timeline, candidate)
 		return
 	default:
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "unsupported candidate action"})
 		return
 	}
+}
 
-	before, updated, err := store.UpdateState(candidateID, geopoliticalServices.CandidateStateUpdate{
-		State:      nextState,
-		ReviewNote: reviewNote,
-	})
-	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "candidate queue update failed"})
+func handleLocalCandidateReclassify(
+	w http.ResponseWriter,
+	r *http.Request,
+	store geopoliticalCandidateQueueStore,
+	timeline geopoliticalTimelineStore,
+	candidate map[string]any,
+) {
+	if store == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "geopolitical candidate queue store unavailable"})
 		return
 	}
-	if updated == nil || before == nil {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "candidate not found"})
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
 		return
 	}
-
-	actor := geoActorFromRequest(r)
+	if body == nil {
+		body = map[string]any{}
+	}
+	candidateID := strings.TrimSpace(stringFieldCandidateMap(candidate, "id"))
+	updated := map[string]any{}
+	for k, v := range candidate {
+		updated[k] = v
+	}
+	if category := trimStringForAPI(stringFieldCandidateMap(body, "category"), 80); category != "" {
+		updated["category"] = category
+	}
+	if symbol := trimStringForAPI(stringFieldCandidateMap(body, "symbol"), 50); symbol != "" {
+		updated["symbol"] = symbol
+	}
+	if regionHint := trimStringForAPI(stringFieldCandidateMap(body, "regionHint"), 120); regionHint != "" {
+		updated["regionHint"] = regionHint
+	}
+	if reviewNote := trimStringForAPI(stringFieldCandidateMap(body, "reviewNote"), 500); reviewNote != "" {
+		updated["reviewNote"] = reviewNote
+	}
+	if routeTarget := normalizeRouteTarget(stringFieldCandidateMap(body, "routeTarget")); routeTarget != "" {
+		updated["routeTarget"] = routeTarget
+	}
+	if reviewAction := normalizeReviewAction(stringFieldCandidateMap(body, "reviewAction")); reviewAction != "" {
+		updated["reviewAction"] = reviewAction
+	}
+	if confidence := numberFieldCandidateMap(body, "confidence"); confidence > 0 {
+		updated["confidence"] = clampFloat(confidence, 0, 1, confidence)
+	}
+	if severity := int(numberFieldCandidateMap(body, "severityHint")); severity > 0 {
+		updated["severityHint"] = clampInt(severity, 1, 5, severity)
+	}
+	if err := store.UpsertCandidate(updated); err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "candidate queue write failed"})
+		return
+	}
 	if timeline != nil {
 		_, _ = timeline.Append(geopoliticalServices.GeoTimelineEntry{
 			EventID:     candidateID,
-			Action:      timelineAction,
-			Actor:       actor,
-			DiffSummary: "Candidate " + candidateID + " " + action + "ed",
+			Action:      "note_updated",
+			Actor:       geoActorFromRequest(r),
+			DiffSummary: "Candidate " + candidateID + " reclassified",
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"success": true, "candidate": updated})
@@ -388,6 +469,15 @@ func buildLocalCandidateCreateRecord(input map[string]any) (map[string]any, erro
 	}
 	if hotspotIDs := sanitizeStringSliceCandidateMap(input, "hotspotIds"); len(hotspotIDs) > 0 {
 		out["hotspotIds"] = hotspotIDs
+	}
+	if routeTarget := normalizeRouteTarget(stringFieldCandidateMap(input, "routeTarget")); routeTarget != "" {
+		out["routeTarget"] = routeTarget
+	}
+	if reviewAction := normalizeReviewAction(stringFieldCandidateMap(input, "reviewAction")); reviewAction != "" {
+		out["reviewAction"] = reviewAction
+	}
+	if dedupHash := normalizeDedupHash(stringFieldCandidateMap(input, "dedupHash")); dedupHash != "" {
+		out["dedupHash"] = dedupHash
 	}
 	return out, nil
 }
@@ -601,6 +691,37 @@ func confidenceToLadder(confidence float64) int {
 	}
 }
 
+func normalizeRouteTarget(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "geo", "macro", "trading", "research":
+		return strings.ToLower(strings.TrimSpace(value))
+	default:
+		return ""
+	}
+}
+
+func normalizeReviewAction(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "auto_route", "human_review", "auto_reject":
+		return strings.ToLower(strings.TrimSpace(value))
+	default:
+		return ""
+	}
+}
+
+func normalizeDedupHash(value string) string {
+	trimmed := strings.ToLower(strings.TrimSpace(value))
+	if len(trimmed) != 64 {
+		return ""
+	}
+	for _, ch := range trimmed {
+		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
+			return ""
+		}
+	}
+	return trimmed
+}
+
 func defaultGeoCoordinateForRegion(regionHint string) (lat, lng float64) {
 	normalized := strings.ToLower(strings.TrimSpace(regionHint))
 	switch {
@@ -718,7 +839,7 @@ func mapGeopoliticalCandidatesProxyPath(r *http.Request) (string, bool) {
 	}
 	action := strings.TrimSpace(parts[1])
 	switch action {
-	case "accept", "reject", "snooze":
+	case "accept", "reject", "snooze", "reclassify":
 		return "/api/geopolitical/candidates/" + parts[0] + "/" + action, true
 	default:
 		return "", false
@@ -748,6 +869,9 @@ func forwardedGeopoliticalCandidateHeaders(r *http.Request) map[string]string {
 	}
 	if user := strings.TrimSpace(r.Header.Get("X-Auth-User")); user != "" {
 		headers["X-Auth-User"] = user
+	}
+	if requestID := strings.TrimSpace(r.Header.Get("X-Request-ID")); requestID != "" {
+		headers["X-Request-ID"] = requestID
 	}
 	return headers
 }

@@ -3,8 +3,6 @@ import type { GeoEvent } from "@/lib/geopolitical/types";
 import { fetchExternalEventsViaGateway } from "@/lib/server/geopolitical-acled-bridge";
 import { listGeoEvents } from "@/lib/server/geopolitical-events-store";
 
-export const runtime = "nodejs";
-
 type NodeType = "event" | "region" | "event_type" | "sub_event_type" | "asset";
 type EdgeType = "event-region" | "event-type" | "event-subevent" | "event-asset";
 
@@ -173,6 +171,17 @@ export async function GET(request: NextRequest) {
 		});
 	} catch (error: unknown) {
 		const message = error instanceof Error ? error.message : "graph generation failed";
-		return NextResponse.json({ success: false, error: message }, { status: 500 });
+		return NextResponse.json({
+			success: true,
+			source,
+			nodeCount: 0,
+			edgeCount: 0,
+			nodes: [],
+			edges: [],
+			topRegions: [],
+			topSubEventTypes: [],
+			degraded: true,
+			error: message,
+		});
 	}
 }

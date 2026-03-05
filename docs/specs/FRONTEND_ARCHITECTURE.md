@@ -321,6 +321,17 @@ const { data, isLoading, error } = useQuery({
 
 ---
 
+### 6.1 Review-Ergaenzung (SOTA 2026, Empfehlung)
+
+> Empfehlung aus `docs/review.md` — noch kein finaler Execution-Transfer.
+
+- **Query-first statt fetch-in-useEffect:** Datenabrufe fuer Server-State primär ueber TanStack Query.
+- **Effect-Reduktion:** `useEffect` nur fuer echte Side-Effects (DOM, subscriptions, imperative browser APIs), nicht fuer Standard-Data-Fetching.
+- **Go-Boundary bleibt:** Kein Architekturwechsel weg von `Browser -> Next API -> Go`; keine Umgehung der Security-/Policy-Schicht.
+- **TanStack DB nur als Pilotpfad:** Optional fuer einzelne stark interaktive Features, nicht als globaler Ersatz von Query/SoR.
+
+---
+
 ## 7. Dependencies: Keep / Kill / Add
 
 ### Kill (Phase 0-21)
@@ -357,6 +368,12 @@ const { data, isLoading, error } = useQuery({
 | `d3-inertia` | Globe Rotation Inertia | 12 |
 | `d3-hierarchy` | Scenario Tree / Spielbaum | 17 |
 
+### Optional Add (Pilot, nicht global)
+
+| Package | Zweck | Phase |
+|:---|:---|:---|
+| `@tanstack/db` + `@tanstack/react-db` + `@tanstack/query-db-collection` | Pilot fuer reactive client store in klar abgegrenztem Feature | 21 (optional) |
+
 ---
 
 ## 8. Konventionen (SOLL)
@@ -369,3 +386,80 @@ const { data, isLoading, error } = useQuery({
 | **Feature-Ordner sind eigenständig** | `features/trading/` und `features/geopolitical/` haben eigene Types, Stores, Components. |
 | **Keine Business-Logik in API-Routes** | API-Routes sind Proxies (fetch → Go → return). Logik lebt in Go/Python. |
 | **Dead Code sofort markieren** | `// ⚠️ DEAD CODE` Kommentar + in `webapp.md` notieren → Phase 21 loeschen. |
+| **TanStack DB ist optionaler Pilot** | Nur fuer klar abgegrenzte High-Interactivity-Flows; kein Big-Bang Rollout bei Beta-Status. |
+
+---
+
+## 9. Proxy-Konvention (verbindlich)
+
+### 9.1 Next.js API Route = Thin Proxy
+
+Eine Frontend-API-Route darf:
+
+- Request validieren/sanitizen (z. B. Zod, primitive Guards)
+- `X-Request-ID` weiterreichen
+- Auth-/RBAC-konforme Header durchreichen
+- Go-Response normalisieren (Contract-Felder ergaenzen, keine Domainentscheidung)
+
+Eine Frontend-API-Route darf **nicht**:
+
+- Provider direkt aufrufen
+- dauerhafte Domain-Entscheidungen treffen (Scoring, Matching, dedup policy)
+- Source-of-Truth fuer mutierende Domainpfade sein
+
+### 9.2 Mutierende Pfade
+
+`POST/PATCH/DELETE` auf Domainobjekten laufen ueber Go-geschuetzten Pfad. Next bleibt BFF-Proxylayer.
+
+---
+
+## 10. Query-First + useEffect Reduktion (Phase 21 P1)
+
+### 10.1 Standardregel
+
+- Server-State immer zuerst mit TanStack Query modellieren (`useQuery`, `useMutation`).
+- `useEffect` fuer Data-Fetching nur, wenn Query technisch nicht passt (begruenden im Codekommentar).
+
+### 10.2 useEffect ist weiterhin richtig fuer
+
+- Event-Subscriptions (SSE/WebSocket)
+- Imperative Browser-APIs (ResizeObserver, IntersectionObserver)
+- Timer/interval cleanup
+
+### 10.3 Anti-Pattern
+
+```tsx
+useEffect(() => {
+  fetch("/api/fusion/portfolio").then(...)
+}, [symbol])
+```
+
+Stattdessen Query-Key-getrieben:
+
+```tsx
+useQuery({ queryKey: ["portfolio", symbol], queryFn: ... })
+```
+
+---
+
+## 11. TanStack DB Pilot-Kriterien (Phase 21 P2)
+
+TanStack DB ist optional und nur fuer Pilot-Flows zulaessig.
+
+### 11.1 Startkriterien
+
+- Feature ist stark interaktiv (lokale Edits + server sync + relationale Client-Views)
+- Query-only Ansatz fuehrt nachweislich zu komplexem Glue-Code
+- Pilot ist klar abgegrenzt (ein Feature, kein globaler Rollout)
+
+### 11.2 Abbruchkriterien
+
+- steigende Incident-/Regression-Rate
+- unklare Ownership zwischen Query Cache und DB Collections
+- merklicher Debug-/Onboarding-Aufwand ohne Mehrwert
+
+### 11.3 Erfolgsmetriken
+
+- weniger Glue-Code und manuelle Sync-Effekte
+- stabile Latenz und weniger unnötige Refetches
+- kein Bruch der SoR-Grenze (`Go remains source-of-truth`)

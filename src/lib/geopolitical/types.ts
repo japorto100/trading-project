@@ -77,7 +77,13 @@ export interface GeoEventsStoreFile {
 export interface GeoCandidate {
 	id: string;
 	generatedAt: string;
-	triggerType: "hard_signal" | "news_cluster" | "manual_import";
+	triggerType:
+		| "hard_signal"
+		| "news_cluster"
+		| "social_surge"
+		| "narrative_shift"
+		| "youtube_transcript"
+		| "manual_import";
 	confidence: number;
 	severityHint: GeoSeverity;
 	headline: string;
@@ -90,6 +96,9 @@ export interface GeoCandidate {
 	symbol?: string;
 	category?: string;
 	hotspotIds?: string[];
+	routeTarget?: "geo" | "macro" | "trading" | "research";
+	reviewAction?: "auto_route" | "human_review" | "auto_reject";
+	dedupHash?: string;
 }
 
 export interface GeoCandidatesStoreFile {

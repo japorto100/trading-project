@@ -140,19 +140,43 @@ export function EventInspector({ event, busy, onAddSource, onAddAsset }: EventIn
 				</div>
 
 				<div className="mt-2 space-y-2">
+					<label
+						className="block text-xs font-medium text-muted-foreground"
+						htmlFor="event-inspector-source-provider"
+					>
+						Provider
+					</label>
 					<Input
+						id="event-inspector-source-provider"
+						name="eventInspectorSourceProvider"
 						value={sourceProvider}
 						onChange={(event) => setSourceProvider(event.target.value)}
 						placeholder="Provider"
 						aria-label="Source provider"
 					/>
+					<label
+						className="block text-xs font-medium text-muted-foreground"
+						htmlFor="event-inspector-source-url"
+					>
+						URL
+					</label>
 					<Input
+						id="event-inspector-source-url"
+						name="eventInspectorSourceUrl"
 						value={sourceUrl}
 						onChange={(event) => setSourceUrl(event.target.value)}
 						placeholder="https://..."
 						aria-label="Source URL"
 					/>
+					<label
+						className="block text-xs font-medium text-muted-foreground"
+						htmlFor="event-inspector-source-title"
+					>
+						Title (optional)
+					</label>
 					<Input
+						id="event-inspector-source-title"
+						name="eventInspectorSourceTitle"
 						value={sourceTitle}
 						onChange={(event) => setSourceTitle(event.target.value)}
 						placeholder="Source title (optional)"
@@ -239,13 +263,29 @@ export function EventInspector({ event, busy, onAddSource, onAddAsset }: EventIn
 				</div>
 
 				<div className="mt-2 space-y-2">
+					<label
+						className="block text-xs font-medium text-muted-foreground"
+						htmlFor="event-inspector-asset-symbol"
+					>
+						Asset symbol
+					</label>
 					<Input
+						id="event-inspector-asset-symbol"
+						name="eventInspectorAssetSymbol"
 						value={assetSymbol}
 						onChange={(event) => setAssetSymbol(event.target.value)}
 						placeholder="Ticker/Symbol"
 						aria-label="Asset symbol"
 					/>
+					<label
+						className="block text-xs font-medium text-muted-foreground"
+						htmlFor="event-inspector-asset-rationale"
+					>
+						Rationale (optional)
+					</label>
 					<Input
+						id="event-inspector-asset-rationale"
+						name="eventInspectorAssetRationale"
 						value={assetRationale}
 						onChange={(event) => setAssetRationale(event.target.value)}
 						placeholder="Rationale (optional)"

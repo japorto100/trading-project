@@ -12,6 +12,8 @@ import (
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 const DefaultBaseURL = "https://api.bcb.gov.br"
@@ -49,7 +51,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error) {
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
 	series, err := c.GetSeries(ctx, pair, assetType, 1)
 	if err != nil {
 		return gct.Ticker{}, err
@@ -61,14 +63,14 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 			Cause:      fmt.Errorf("no observations"),
 		}
 	}
-	seriesID, _ := normalizeSeriesID(pair.Base)
+	seriesID, _ := normalizeSeriesID(pair.Base.String())
 	value := series[0].Value
 	lastUpdated := series[0].Timestamp
 	if lastUpdated <= 0 {
 		lastUpdated = time.Now().Unix()
 	}
 	return gct.Ticker{
-		Pair:        gct.Pair{Base: seriesPrefix + seriesID, Quote: "USD"},
+		Pair:        currency.NewPair(currency.NewCode(seriesPrefix + seriesID), currency.NewCode("USD")),
 		Currency:    seriesPrefix + seriesID,
 		LastUpdated: lastUpdated,
 		Last:        value,
@@ -80,8 +82,8 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	}, nil
 }
 
-func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
-	if strings.ToLower(strings.TrimSpace(assetType)) != "macro" {
+func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+	if !gct.IsSemanticAssetType(assetType, "macro") {
 		return nil, &gct.RequestError{
 			Path:       defaultPath,
 			StatusCode: http.StatusBadRequest,
@@ -91,7 +93,7 @@ func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string,
 	if c == nil || c.baseClient == nil {
 		return nil, fmt.Errorf("bcb client unavailable")
 	}
-	seriesID, ok := normalizeSeriesID(pair.Base)
+	seriesID, ok := normalizeSeriesID(pair.Base.String())
 	if !ok {
 		return nil, &gct.RequestError{
 			Path:       defaultPath,

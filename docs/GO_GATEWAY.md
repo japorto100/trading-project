@@ -80,10 +80,12 @@ Go Gateway bleibt unverändert. RSC nutzt dieselben REST-Endpoints. Einzige Anfo
 - `internal/connectors/base/diff_watcher.go`
 - `internal/connectors/base/translation.go`
 - `internal/connectors/base/oracle_client.go`
-- **Bereits migrierte Bestands-Connectoren auf `base.Client`:** `acled`, `finnhub`, `fred`, `ecb`, `indicatorservice`, `financebridge`, `softsignals`, `geopoliticalnext`, `gdelt`, `news/*`, `gametheory`, `crisiswatch`
+- **Bereits migrierte Bestands-Connectoren auf `base.Client`:** `acled`, `finnhub`, `fred`, `ecb`, `geopoliticalnext`, `gdelt`, `news/*`, `gametheory`, `crisiswatch`. **`indicatorservice`, `financebridge`, `softsignals`** nutzen den **IPC-Client** (`internal/connectors/ipc`) — gRPC-first, HTTP-Fallback.
 - **Bestands-Queue Status:** Die priorisierten produktiven HTTP-Connectoren sind auf `base.Client` vereinheitlicht. Naechster Fokus: **Reference-Quellen gruppenweise** (`G4` Zentralbank-Zeitreihen, dann `G3` SDMX), contract-first + router metadata/capabilities gepflegt.
 - **Reference-Start (G4):** `BCB` (SGS), `Banxico` (SIE), `BoK ECOS`, `BCRA` (Principales Variables v4), `TCMB EVDS3` und ein erster `RBI DBIE`-Slice (FX Reserves) sind integriert (`internal/connectors/bcb`, `internal/connectors/banxico`, `internal/connectors/bok`, `internal/connectors/bcra`, `internal/connectors/tcmb`, `internal/connectors/rbi`) und via `market.NewRoutedMacroClient(...)` + Prefix-Registry in Quote-/Macro-History-Pfade verdrahtet. Prefixe: `BCB_SGS_*`, `BANXICO_*`, `BOK_ECOS_*`, `BCRA_*`, `TCMB_EVDS_*`, `RBI_DBIE_FXRES_*`. Dieses Prefix-Routing reduziert source-spezifische Sonderfaelle in `internal/app/wiring.go` und ist die Basis fuer weitere G4-Provider und spaetere RBI-DBIE-Dataset-Erweiterungen.
 - **G3-SDMX Foundation (vor Connector-Batch):** `internal/connectors/base/sdmx_client.go` besitzt jetzt einen geordneten Dimension-Key-Builder, Dataflow-/Datastructure-Pfad-Helper, Query-Optionen und einen generischen SDMX-JSON-Single-Series-Parser. Damit koennen `ECB`/`OECD`/`IMF`-Connectoren im naechsten Schritt gruppenweise statt als Einzelloesungen gebaut werden (Research-Matrix: `docs/tmp/G3_SDMX_SOURCE_INTAKE_2026-02-23.md`).
+
+**Go ↔ Python IPC:** Proto `go-backend/internal/proto/ipc/ipc.proto` mit `ForwardRequest` RPC. Python-Services starten gRPC bei `GRPC_ENABLED=1`; Port-Konvention: gRPC = HTTP-Port + 1000 (z. B. 8081→9081, 8091→9091, 8092→9092).
 
 ### Empfohlene Reihenfolge (effizient)
 

@@ -1,13 +1,21 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type { ChartType } from "@/chart/types";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BottomStats } from "@/features/trading/BottomStats";
+import { CommandPalette } from "@/features/trading/CommandPalette";
 import { RightDetailsSidebar } from "@/features/trading/RightDetailsSidebar";
 import { TradingHeader } from "@/features/trading/TradingHeader";
 import { TradingPageSkeleton } from "@/features/trading/TradingPageSkeleton";
@@ -46,6 +54,7 @@ import {
 	calculateSMA,
 	detectSMACrossEvents,
 } from "@/lib/indicators";
+import { isMacroSymbol } from "@/lib/macro-symbols";
 import type { OHLCVData, TimeframeValue } from "@/lib/providers/types";
 import { readFusionPreferences, writeFusionPreferences } from "@/lib/storage/preferences";
 import {
@@ -105,7 +114,7 @@ function componentScore(
 	return typeof score === "number" && Number.isFinite(score) ? score : null;
 }
 
-export default function Home() {
+function TradingDashboard() {
 	// State
 	const [isDarkMode, setIsDarkMode] = useState(true);
 	const [currentSymbol, setCurrentSymbol] = useState<FusionSymbol>(WATCHLIST_CATEGORIES.crypto[0]);
@@ -145,7 +154,7 @@ export default function Home() {
 	>("connecting");
 	const [streamReconnects, setStreamReconnects] = useState(0);
 	const [streamLastTickAt, setStreamLastTickAt] = useState<number | null>(null);
-	const [streamClockMs, setStreamClockMs] = useState<number>(Date.now());
+	const [streamClockMs, setStreamClockMs] = useState<number>(0);
 	const [compositeSignalInsights, setCompositeSignalInsights] =
 		useState<CompositeSignalInsights | null>(null);
 
@@ -189,6 +198,13 @@ export default function Home() {
 	useEffect(() => {
 		setCustomStartYear((prev) => clampStartYearForSymbol(prev, currentSymbol));
 	}, [currentSymbol]);
+
+	// Route to Macro panel when macro symbol is selected
+	useEffect(() => {
+		if (isMacroSymbol(currentSymbol.symbol)) {
+			setActiveSidebarPanel("macro");
+		}
+	}, [currentSymbol.symbol]);
 
 	// Load chart data: API first, demo fallback.
 	const loadChartData = useCallback(async () => {
@@ -1008,35 +1024,53 @@ export default function Home() {
 				onSeekReplay={seekReplay}
 			/>
 
-			<div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-muted/20 px-3 py-2 text-xs">
-				<div className="flex flex-wrap items-center gap-2">
-					<Badge variant="outline">{loading ? "Loading market data" : "Market ready"}</Badge>
-					<Badge variant="outline">Mode: {dataMode}</Badge>
-					<Badge variant="outline">Provider: {dataProvider}</Badge>
-					<Badge
-						variant="outline"
-						className={
-							streamState === "live"
-								? "text-emerald-600"
-								: streamState === "degraded"
-									? "text-amber-600"
-									: "text-muted-foreground"
-						}
+			<div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/30 bg-background/50 backdrop-blur-md px-4 py-1.5 text-[10px] uppercase font-bold tracking-wider">
+				<div className="flex flex-wrap items-center gap-4">
+					<div
+						className="flex items-center gap-1.5"
+						title={loading ? "Loading market data" : "Market ready"}
 					>
-						Stream: {streamState}
-					</Badge>
-					<Badge variant="outline">{streamAgeLabel}</Badge>
-					<Badge variant="outline">Reconnects: {streamReconnects}</Badge>
-					{replayMode ? (
-						<Badge variant="outline" className="text-indigo-600">
-							Replay {replayPlaying ? "playing" : "paused"}
-						</Badge>
-					) : null}
+						<div
+							className={`h-1.5 w-1.5 rounded-full ${loading ? "bg-amber-500 animate-pulse" : "bg-success shadow-chromatic"}`}
+						/>
+						<span className="text-muted-foreground">
+							{dataMode} • {dataProvider}
+						</span>
+					</div>
+
+					<div className="flex items-center gap-1.5">
+						<div
+							className={`h-1.5 w-1.5 rounded-full ${
+								streamState === "live"
+									? "bg-success shadow-chromatic"
+									: streamState === "degraded"
+										? "bg-amber-500"
+										: "bg-muted-foreground"
+							}`}
+						/>
+						<span className={streamState === "live" ? "text-success" : "text-muted-foreground"}>
+							{streamState === "live" ? "Stream Active" : `Stream: ${streamState}`}
+						</span>
+						<span className="text-muted-foreground/50 ml-1">({streamAgeLabel})</span>
+					</div>
+
+					{streamReconnects > 0 && (
+						<span className="text-amber-500/80">Re: {streamReconnects}</span>
+					)}
+
+					{replayMode && (
+						<div className="flex items-center gap-1.5 text-indigo-400">
+							<div
+								className={`h-1.5 w-1.5 rounded-full bg-indigo-500 ${replayPlaying ? "animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.5)]" : ""}`}
+							/>
+							Replay
+						</div>
+					)}
 				</div>
-				<div className="flex flex-wrap items-center gap-2 text-muted-foreground">
-					<span>L: {sidebarOpen ? "open" : "closed"}</span>
-					<span>R: {rightSidebarOpen ? "open" : "closed"}</span>
-					<span>Layout: {layout}</span>
+				<div className="flex flex-wrap items-center gap-3 text-muted-foreground/40 hidden md:flex">
+					<span>L: {sidebarOpen ? "1" : "0"}</span>
+					<span>R: {rightSidebarOpen ? "1" : "0"}</span>
+					<span>UI: {layout}</span>
 					<span>Panel: {activeSidebarPanel}</span>
 				</div>
 			</div>
@@ -1162,7 +1196,22 @@ export default function Home() {
 						<ChevronLeft className="h-4 w-4" />
 					</Button>
 				)}
+
+				<CommandPalette
+					onSymbolChange={handleSymbolChange}
+					onTimeframeChange={handleTimeframeChange}
+					onThemeToggle={handleThemeToggle}
+					isDarkMode={isDarkMode}
+				/>
 			</div>
 		</div>
+	);
+}
+
+export default function Home() {
+	return (
+		<Suspense fallback={null}>
+			<TradingDashboard />
+		</Suspense>
 	);
 }

@@ -201,6 +201,9 @@ func TestGeopoliticalCandidatesProxyHandler_ForwardsListAndReviewActions(t *test
 			"confidence":0.83,
 			"severityHint":3,
 			"regionHint":"north-america",
+			"routeTarget":"macro",
+			"reviewAction":"human_review",
+			"dedupHash":"1111111111111111111111111111111111111111111111111111111111111111",
 			"countryHints":["US"],
 			"sourceRefs":[{"provider":"fed","url":"https://example.test/fed"}]
 		}`))
@@ -221,6 +224,15 @@ func TestGeopoliticalCandidatesProxyHandler_ForwardsListAndReviewActions(t *test
 		if got := store.upsertedOne["headline"]; got != "Fed minutes mention broader disinflation" {
 			t.Fatalf("unexpected headline: %v", got)
 		}
+		if got := store.upsertedOne["routeTarget"]; got != "macro" {
+			t.Fatalf("expected routeTarget=macro, got %v", got)
+		}
+		if got := store.upsertedOne["reviewAction"]; got != "human_review" {
+			t.Fatalf("expected reviewAction=human_review, got %v", got)
+		}
+		if got := store.upsertedOne["dedupHash"]; got != "1111111111111111111111111111111111111111111111111111111111111111" {
+			t.Fatalf("expected dedupHash persisted, got %v", got)
+		}
 		if len(timeline.appended) != 1 || timeline.appended[0].Action != "created" || timeline.appended[0].Actor != "analyst.zoe" {
 			t.Fatalf("expected created timeline append, got %+v", timeline.appended)
 		}
@@ -229,12 +241,18 @@ func TestGeopoliticalCandidatesProxyHandler_ForwardsListAndReviewActions(t *test
 		}
 	})
 
-	t.Run("accept POST maps to transitional next route and forwards actor", func(t *testing.T) {
+	t.Run("accept POST without local event deps returns 503 and does not proxy", func(t *testing.T) {
 		client := &fakeGeopoliticalCandidatesProxyClient{
 			status: http.StatusOK,
 			body:   []byte(`{"success":true,"candidate":{"id":"c-123","state":"accepted","headline":"Fed update"},"event":{"id":"evt-9"}}`),
 		}
-		store := &fakeGeopoliticalCandidateQueueStore{}
+		store := &fakeGeopoliticalCandidateQueueStore{
+			items: []map[string]any{{
+				"id":       "c-123",
+				"headline": "Fed update",
+				"state":    "open",
+			}},
+		}
 		timeline := &fakeGeopoliticalTimelineStore{}
 		handler := GeopoliticalCandidatesProxyHandler(client, store, timeline, nil)
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/candidates/c-123/accept", strings.NewReader(`{"analystNote":"ok"}`))
@@ -244,26 +262,11 @@ func TestGeopoliticalCandidatesProxyHandler_ForwardsListAndReviewActions(t *test
 
 		handler.ServeHTTP(res, req)
 
-		if res.Code != http.StatusOK {
-			t.Fatalf("expected 200, got %d", res.Code)
+		if res.Code != http.StatusServiceUnavailable {
+			t.Fatalf("expected 503, got %d", res.Code)
 		}
-		if client.lastPath != "/api/geopolitical/candidates/c-123/accept" {
-			t.Fatalf("unexpected target path: %s", client.lastPath)
-		}
-		if string(client.lastBody) != `{"analystNote":"ok"}` {
-			t.Fatalf("unexpected forwarded body: %s", string(client.lastBody))
-		}
-		if got := client.lastHeaders["X-Geo-Actor"]; got != "analyst.alex" {
-			t.Fatalf("expected X-Geo-Actor forwarded from X-Auth-User, got %q", got)
-		}
-		if got := client.lastHeaders["X-User-Role"]; got != "analyst" {
-			t.Fatalf("expected X-User-Role=analyst, got %q", got)
-		}
-		if store.upsertedOne == nil || store.upsertedOne["id"] != "c-123" {
-			t.Fatalf("expected synced candidate in store, got %+v", store.upsertedOne)
-		}
-		if len(timeline.appended) != 1 || timeline.appended[0].Action != "candidate_accepted" || timeline.appended[0].EventID != "evt-9" {
-			t.Fatalf("expected candidate_accepted timeline append for evt-9, got %+v", timeline.appended)
+		if client.lastPath != "" {
+			t.Fatalf("expected no proxy call, got path %q", client.lastPath)
 		}
 	})
 
@@ -341,6 +344,75 @@ func TestGeopoliticalCandidatesProxyHandler_ForwardsListAndReviewActions(t *test
 			t.Fatalf("unexpected timeline entry: %+v", timeline.appended[0])
 		}
 	})
+
+	t.Run("base POST ignores mode query and remains local go-owned create", func(t *testing.T) {
+		store := &fakeGeopoliticalCandidateQueueStore{}
+		timeline := &fakeGeopoliticalTimelineStore{}
+		handler := GeopoliticalCandidatesProxyHandler(&fakeGeopoliticalCandidatesProxyClient{}, store, timeline, nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/candidates?mode=hard", strings.NewReader(`{
+			"triggerType":"manual_import",
+			"headline":"BoJ guidance shifts with inflation surprise"
+		}`))
+		res := httptest.NewRecorder()
+
+		handler.ServeHTTP(res, req)
+
+		if res.Code != http.StatusCreated {
+			t.Fatalf("expected 201, got %d body=%s", res.Code, res.Body.String())
+		}
+		if store.upsertedOne == nil {
+			t.Fatalf("expected local candidate upsert")
+		}
+	})
+
+	t.Run("reclassify POST updates candidate metadata locally", func(t *testing.T) {
+		store := &fakeGeopoliticalCandidateQueueStore{
+			items: []map[string]any{{
+				"id":         "c-90",
+				"headline":   "Macro narrative update",
+				"state":      "open",
+				"category":   "news_narrative",
+				"symbol":     "newspaper",
+				"regionHint": "global",
+			}},
+		}
+		timeline := &fakeGeopoliticalTimelineStore{}
+		handler := GeopoliticalCandidatesProxyHandler(nil, store, timeline, nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/candidates/c-90/reclassify", strings.NewReader(`{
+			"category":"macro_policy",
+			"symbol":"percent",
+			"routeTarget":"macro",
+			"reviewAction":"auto_route",
+			"regionHint":"europe",
+			"reviewNote":"reclassify via queue"
+		}`))
+		req.Header.Set("X-Auth-User", "analyst.lee")
+		res := httptest.NewRecorder()
+
+		handler.ServeHTTP(res, req)
+
+		if res.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d body=%s", res.Code, res.Body.String())
+		}
+		if store.upsertedOne == nil {
+			t.Fatalf("expected local upsert for reclassify")
+		}
+		if got := store.upsertedOne["category"]; got != "macro_policy" {
+			t.Fatalf("expected category updated, got %v", got)
+		}
+		if got := store.upsertedOne["symbol"]; got != "percent" {
+			t.Fatalf("expected symbol updated, got %v", got)
+		}
+		if got := store.upsertedOne["routeTarget"]; got != "macro" {
+			t.Fatalf("expected routeTarget updated, got %v", got)
+		}
+		if got := store.upsertedOne["reviewAction"]; got != "auto_route" {
+			t.Fatalf("expected reviewAction updated, got %v", got)
+		}
+		if len(timeline.appended) != 1 || timeline.appended[0].Action != "note_updated" {
+			t.Fatalf("expected note_updated timeline append, got %+v", timeline.appended)
+		}
+	})
 }
 
 func TestGeopoliticalCandidatesProxyHandler_ValidationAndErrors(t *testing.T) {
@@ -375,12 +447,37 @@ func TestGeopoliticalCandidatesProxyHandler_ValidationAndErrors(t *testing.T) {
 	})
 
 	t.Run("upstream error", func(t *testing.T) {
-		handler := GeopoliticalCandidatesProxyHandler(&fakeGeopoliticalCandidatesProxyClient{err: errors.New("boom")}, &fakeGeopoliticalCandidateQueueStore{}, nil, nil)
-		req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/candidates/c-1/accept", strings.NewReader(`{}`))
+		handler := GeopoliticalCandidatesProxyHandler(&fakeGeopoliticalCandidatesProxyClient{err: errors.New("boom")}, nil, nil, nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/candidates", strings.NewReader(`{"headline":"Alpha beta gamma","triggerType":"manual_import"}`))
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, req)
 		if res.Code != http.StatusBadGateway {
 			t.Fatalf("expected 502, got %d", res.Code)
+		}
+	})
+
+	t.Run("proxy forwards request-id and auth headers", func(t *testing.T) {
+		client := &fakeGeopoliticalCandidatesProxyClient{
+			status: http.StatusOK,
+			body:   []byte(`{"success":true}`),
+		}
+		handler := GeopoliticalCandidatesProxyHandler(client, nil, nil, nil)
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/candidates", strings.NewReader(`{"headline":"Alpha beta gamma","triggerType":"manual_import"}`))
+		req.Header.Set("X-Request-ID", "req-123")
+		req.Header.Set("X-User-Role", "analyst")
+		req.Header.Set("X-Auth-User", "analyst.jo")
+		res := httptest.NewRecorder()
+
+		handler.ServeHTTP(res, req)
+
+		if res.Code != http.StatusOK {
+			t.Fatalf("expected 200, got %d", res.Code)
+		}
+		if client.lastHeaders["X-Request-ID"] != "req-123" {
+			t.Fatalf("expected X-Request-ID passthrough, got %+v", client.lastHeaders)
+		}
+		if client.lastHeaders["X-User-Role"] != "analyst" || client.lastHeaders["X-Auth-User"] != "analyst.jo" {
+			t.Fatalf("expected auth passthrough headers, got %+v", client.lastHeaders)
 		}
 	})
 
@@ -395,7 +492,9 @@ func TestGeopoliticalCandidatesProxyHandler_ValidationAndErrors(t *testing.T) {
 	})
 
 	t.Run("accept without proxy client returns 503", func(t *testing.T) {
-		handler := GeopoliticalCandidatesProxyHandler(nil, &fakeGeopoliticalCandidateQueueStore{}, nil, nil)
+		handler := GeopoliticalCandidatesProxyHandler(nil, &fakeGeopoliticalCandidateQueueStore{
+			items: []map[string]any{{"id": "c-1", "headline": "Event", "state": "open"}},
+		}, nil, nil)
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/candidates/c-1/accept", strings.NewReader(`{}`))
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, req)

@@ -6,12 +6,13 @@
  * Keep temporarily for reference until the remaining migration/cleanup is complete.
  */
 
-import { ClipboardList, List, Newspaper, SlidersHorizontal, Wallet } from "lucide-react";
+import { BarChart3, ClipboardList, List, Newspaper, SlidersHorizontal, Wallet } from "lucide-react";
 import { WatchlistPanel } from "@/components/fusion/WatchlistPanel";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MacroPanel } from "@/features/trading/MacroPanel";
 import { NewsPanel } from "@/features/trading/NewsPanel";
 import { OrdersPanel } from "@/features/trading/OrdersPanel";
 import { PortfolioPanel } from "@/features/trading/PortfolioPanel";
@@ -95,7 +96,7 @@ export function TradingSidebar({
 }: TradingSidebarProps) {
 	return (
 		<aside className="w-72 border-r border-border bg-card/30 flex flex-col h-full">
-			<div className="grid grid-cols-5 border-b border-border">
+			<div className="grid grid-cols-6 border-b border-border">
 				<Button
 					variant={activeSidebarPanel === "watchlist" ? "secondary" : "ghost"}
 					className="h-10 rounded-none"
@@ -119,6 +120,14 @@ export function TradingSidebar({
 				>
 					<Newspaper className="h-4 w-4 mr-1" />
 					<span className="text-[11px]">News</span>
+				</Button>
+				<Button
+					variant={activeSidebarPanel === "macro" ? "secondary" : "ghost"}
+					className="h-10 rounded-none"
+					onClick={() => onSetActiveSidebarPanel("macro")}
+				>
+					<BarChart3 className="h-4 w-4 mr-1" />
+					<span className="text-[11px]">Macro</span>
 				</Button>
 				<Button
 					variant={activeSidebarPanel === "orders" ? "secondary" : "ghost"}
@@ -168,6 +177,9 @@ export function TradingSidebar({
 									</TabsTrigger>
 									<TabsTrigger value="indices" className="text-xs px-2.5 shrink-0">
 										Idx
+									</TabsTrigger>
+									<TabsTrigger value="macro" className="text-xs px-2.5 shrink-0">
+										Macro
 									</TabsTrigger>
 								</TabsList>
 								{/* Faded edges for horizontal scroll indication */}
@@ -576,6 +588,7 @@ export function TradingSidebar({
 			)}
 
 			{activeSidebarPanel === "news" && <NewsPanel symbol={currentSymbol} />}
+			{activeSidebarPanel === "macro" && <MacroPanel symbol={currentSymbol} />}
 
 			{activeSidebarPanel === "orders" && (
 				<OrdersPanel symbol={currentSymbol} markPrice={currentPrice} />

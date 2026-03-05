@@ -490,9 +490,14 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 					>
 						Live
 					</button>
-					<label className="flex items-center gap-1 text-muted-foreground">
+					<label
+						className="flex items-center gap-1 text-muted-foreground"
+						htmlFor="timeline-playback-speed"
+					>
 						<span>Speed</span>
 						<select
+							id="timeline-playback-speed"
+							name="timeline_playback_speed"
 							className="rounded border border-border bg-background px-1 py-1 text-[11px]"
 							value={String(playbackSpeedMultiplier)}
 							onChange={(event) => setPlaybackSpeedMultiplier(Number(event.target.value) || 1)}
@@ -505,9 +510,14 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 							))}
 						</select>
 					</label>
-					<label className="flex items-center gap-1 text-muted-foreground">
+					<label
+						className="flex items-center gap-1 text-muted-foreground"
+						htmlFor="timeline-playback-window"
+					>
 						<span>Window</span>
 						<select
+							id="timeline-playback-window"
+							name="timeline_playback_window"
 							className="rounded border border-border bg-background px-1 py-1 text-[11px]"
 							value={String(playbackWindowHours)}
 							onChange={(event) => setPlaybackWindowHours(Number(event.target.value) || 24)}
@@ -520,8 +530,13 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 							))}
 						</select>
 					</label>
-					<label className="ml-auto flex items-center gap-1 text-muted-foreground">
+					<label
+						className="ml-auto flex items-center gap-1 text-muted-foreground"
+						htmlFor="timeline-decay-preview-enabled"
+					>
 						<input
+							id="timeline-decay-preview-enabled"
+							name="timeline_decay_preview_enabled"
 							type="checkbox"
 							checked={decayPreviewEnabled}
 							onChange={(event) => setDecayPreviewEnabled(event.target.checked)}
@@ -529,9 +544,14 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 						<span>Decay preview</span>
 					</label>
 					{decayPreviewEnabled ? (
-						<label className="flex items-center gap-1 text-muted-foreground">
+						<label
+							className="flex items-center gap-1 text-muted-foreground"
+							htmlFor="timeline-decay-half-life"
+						>
 							<span>Half-life</span>
 							<select
+								id="timeline-decay-half-life"
+								name="timeline_decay_half_life_hours"
 								className="rounded border border-border bg-background px-1 py-1 text-[11px]"
 								value={String(decayHalfLifeHours)}
 								onChange={(event) => setDecayHalfLifeHours(Number(event.target.value) || 24)}
@@ -553,6 +573,8 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 							</span>
 						</div>
 						<input
+							id="timeline-playback-cursor"
+							name="timeline_playback_cursor"
 							type="range"
 							min={timelineDomainMs[0]}
 							max={timelineDomainMs[1]}

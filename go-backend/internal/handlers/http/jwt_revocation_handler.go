@@ -10,6 +10,7 @@ import (
 )
 
 type jtiRevokerFunc func(jti string, expiresAt time.Time)
+type userRevokerFunc func(userId string, revokedBefore time.Time)
 type jtiRevocationAuditorFunc func(record JWTRevocationAuditRecord)
 type jtiRevocationAuditListerFunc func(limit int) []JWTRevocationAuditRecord
 
@@ -18,8 +19,64 @@ type revokeJTIRequest struct {
 	Exp *int64 `json:"exp,omitempty"`
 }
 
+type revokeUserRequest struct {
+	UserID        string `json:"userId"`
+	RevokedBefore *int64 `json:"revokedBefore,omitempty"`
+}
+
 func JWTJTIRevocationHandler(revoke jtiRevokerFunc) http.HandlerFunc {
 	return JWTJTIRevocationHandlerWithAudit(revoke, nil)
+}
+
+func JWTUserRevocationHandlerWithAudit(revoke userRevokerFunc, audit jtiRevocationAuditorFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+			return
+		}
+		if revoke == nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "user revocation unavailable"})
+			return
+		}
+
+		var payload revokeUserRequest
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json body"})
+			return
+		}
+
+		userId := strings.TrimSpace(payload.UserID)
+		if userId == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "userId is required"})
+			return
+		}
+
+		revokedBefore := time.Now().UTC()
+		if payload.RevokedBefore != nil && *payload.RevokedBefore > 0 {
+			revokedBefore = time.Unix(*payload.RevokedBefore, 0).UTC()
+		}
+
+		revoke(userId, revokedBefore)
+
+		if audit != nil {
+			audit(JWTRevocationAuditRecord{
+				JTI:        "GLOBAL_USER_REVOCATION:" + userId,
+				ExpiresAt:  revokedBefore, // misused field for user revocation timestamp
+				RequestID:  strings.TrimSpace(r.Header.Get("X-Request-ID")),
+				ActorUser:  strings.TrimSpace(r.Header.Get("X-Auth-User")),
+				ActorRole:  strings.TrimSpace(r.Header.Get("X-User-Role")),
+				SourceIP:   requestSourceIP(r),
+				RecordedAt: time.Now().UTC(),
+			})
+		}
+
+		writeJSON(w, http.StatusAccepted, map[string]any{
+			"accepted":      true,
+			"userId":        userId,
+			"revokedBefore": revokedBefore.Format(time.RFC3339),
+		})
+	}
 }
 
 func JWTJTIRevocationHandlerWithAudit(revoke jtiRevokerFunc, audit jtiRevocationAuditorFunc) http.HandlerFunc {

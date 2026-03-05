@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package ipc;
+
+option go_package = "tradeviewfusion/go-backend/internal/proto/ipc";
+
+// Generic HTTP proxy for any Python endpoint
+message ProxyRequest {
+    string method = 1;   // GET, POST, etc.
+    string path = 2;     // e.g. /api/v1/signals/composite
+    bytes body = 3;      // request body (for POST)
+    map<string, string> headers = 4;
+}
+
+message ProxyResponse {
+    int32 status_code = 1;
+    bytes body = 2;
+}
+
+// IPC Service defines the standard gRPC interface between Go Gateway and Python Data/ML Layer
+service PythonIPC {
+    // StreamMarketData sends high-frequency tick data from Go to Python
+    rpc StreamMarketData (stream MarketData) returns (Empty) {}
+    
+    // AnalyzeSoftSignal requests Python to process unstructured text (e.g. news)
+    rpc AnalyzeSoftSignal (SoftSignalRequest) returns (SoftSignalResponse) {}
+
+    // PerformInference requests Python to run a specific ML model
+    rpc PerformInference (InferenceRequest) returns (InferenceResponse) {}
+
+    // ForwardRequest forwards an HTTP-style request to the Python service (method + path + body).
+    // Enables gRPC for all Python endpoints. Python forwards to its internal HTTP handlers.
+    rpc ForwardRequest (ProxyRequest) returns (ProxyResponse) {}
+}
+
+message Empty {}
+
+message MarketData {
+    string symbol = 1;
+    string exchange = 2;
+    string asset_type = 3;
+    double last_price = 4;
+    double bid = 5;
+    double ask = 6;
+    double volume = 7;
+    int64 timestamp = 8;
+}
+
+message SoftSignalRequest {
+    string source = 1;
+    string title = 2;
+    string content = 3;
+    int64 published_at = 4;
+}
+
+message SoftSignalResponse {
+    double sentiment_score = 1;
+    repeated string entities = 2;
+    string classification = 3;
+}
+
+message InferenceRequest {
+    string model_name = 1;
+    map<string, double> features = 2;
+}
+
+message InferenceResponse {
+    double prediction = 1;
+    double confidence = 2;
+}

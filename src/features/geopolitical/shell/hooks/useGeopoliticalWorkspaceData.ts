@@ -91,6 +91,19 @@ export function useGeopoliticalWorkspaceData() {
 
 	const isExternalSource = eventsSource !== "local";
 
+	const fetchDrawings = useCallback(async () => {
+		try {
+			const response = await fetch("/api/geopolitical/drawings", { cache: "no-store" });
+			if (!response.ok) {
+				throw new Error(`Failed to fetch drawings (${response.status})`);
+			}
+			const payload = (await response.json()) as GeoDrawingsResponse;
+			setDrawings(Array.isArray(payload.drawings) ? payload.drawings : []);
+		} catch (drawingError) {
+			setError(drawingError instanceof Error ? drawingError.message : "Failed to refresh drawings");
+		}
+	}, [setDrawings, setError]);
+
 	const buildEventsQueryString = useCallback(() => {
 		const params = new URLSearchParams({
 			minSeverity: String(minSeverityFilter),
@@ -131,99 +144,107 @@ export function useGeopoliticalWorkspaceData() {
 		searchQuery,
 	]);
 
-	const fetchAll = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			const eventsQuery = buildEventsQueryString();
-			const candidateRegionHint =
-				eventsSource === "local" && activeRegionId
-					? `&regionHint=${encodeURIComponent(activeRegionId)}`
-					: "";
-			const [
-				eventsRes,
-				candidatesRes,
-				timelineRes,
-				regionsRes,
-				sourceHealthRes,
-				drawingsRes,
-				graphRes,
-			] = await Promise.all([
-				fetch(`/api/geopolitical/events?${eventsQuery}`, { cache: "no-store" }),
-				fetch(`/api/geopolitical/candidates?state=open${candidateRegionHint}`, {
-					cache: "no-store",
-				}),
-				fetch("/api/geopolitical/timeline?limit=120", { cache: "no-store" }),
-				fetch("/api/geopolitical/regions", { cache: "no-store" }),
-				fetch("/api/geopolitical/sources/health", { cache: "no-store" }),
-				fetch("/api/geopolitical/drawings", { cache: "no-store" }),
-				fetch(`/api/geopolitical/graph?${eventsQuery}`, { cache: "no-store" }),
-			]);
+	const fetchAll = useCallback(
+		async (options?: { silent?: boolean }) => {
+			const shouldShowLoading = options?.silent !== true;
+			if (shouldShowLoading) {
+				setLoading(true);
+			}
+			setError(null);
+			try {
+				const eventsQuery = buildEventsQueryString();
+				const candidateRegionHint =
+					eventsSource === "local" && activeRegionId
+						? `&regionHint=${encodeURIComponent(activeRegionId)}`
+						: "";
+				const [
+					eventsRes,
+					candidatesRes,
+					timelineRes,
+					regionsRes,
+					sourceHealthRes,
+					drawingsRes,
+					graphRes,
+				] = await Promise.all([
+					fetch(`/api/geopolitical/events?${eventsQuery}`, { cache: "no-store" }),
+					fetch(`/api/geopolitical/candidates?state=open${candidateRegionHint}`, {
+						cache: "no-store",
+					}),
+					fetch("/api/geopolitical/timeline?limit=120", { cache: "no-store" }),
+					fetch("/api/geopolitical/regions", { cache: "no-store" }),
+					fetch("/api/geopolitical/sources/health", { cache: "no-store" }),
+					fetch("/api/geopolitical/drawings", { cache: "no-store" }),
+					fetch(`/api/geopolitical/graph?${eventsQuery}`, { cache: "no-store" }),
+				]);
 
-			if (!eventsRes.ok) {
-				throw new Error(`Failed to fetch events (${eventsRes.status})`);
-			}
-			if (!candidatesRes.ok) {
-				throw new Error(`Failed to fetch candidates (${candidatesRes.status})`);
-			}
-			if (!timelineRes.ok) {
-				throw new Error(`Failed to fetch timeline (${timelineRes.status})`);
-			}
+				if (!eventsRes.ok) {
+					throw new Error(`Failed to fetch events (${eventsRes.status})`);
+				}
+				if (!candidatesRes.ok) {
+					throw new Error(`Failed to fetch candidates (${candidatesRes.status})`);
+				}
+				if (!timelineRes.ok) {
+					throw new Error(`Failed to fetch timeline (${timelineRes.status})`);
+				}
 
-			const eventsPayload = (await eventsRes.json()) as GeoEventsResponse;
-			const candidatesPayload = (await candidatesRes.json()) as GeoCandidatesResponse;
-			const timelinePayload = (await timelineRes.json()) as GeoTimelineResponse;
-			const regionsPayload = (await regionsRes.json()) as GeoRegionsResponse;
-			const sourceHealthPayload = (await sourceHealthRes.json()) as SourceHealthResponse;
-			const drawingsPayload = (await drawingsRes.json()) as GeoDrawingsResponse;
-			const graphPayload = graphRes.ok ? ((await graphRes.json()) as GeoGraphResponse) : null;
+				const eventsPayload = (await eventsRes.json()) as GeoEventsResponse;
+				const candidatesPayload = (await candidatesRes.json()) as GeoCandidatesResponse;
+				const timelinePayload = (await timelineRes.json()) as GeoTimelineResponse;
+				const regionsPayload = (await regionsRes.json()) as GeoRegionsResponse;
+				const sourceHealthPayload = (await sourceHealthRes.json()) as SourceHealthResponse;
+				const drawingsPayload = (await drawingsRes.json()) as GeoDrawingsResponse;
+				const graphPayload = graphRes.ok ? ((await graphRes.json()) as GeoGraphResponse) : null;
 
-			setEvents(Array.isArray(eventsPayload.events) ? eventsPayload.events : []);
-			if (
-				(eventsPayload.source === "acled" || eventsPayload.source === "gdelt") &&
-				eventsPayload.meta
-			) {
-				setAcledPage(eventsPayload.meta.page);
-				setAcledPageSize(eventsPayload.meta.pageSize);
-				setAcledTotal(eventsPayload.meta.total);
-				setAcledHasMore(eventsPayload.meta.hasMore);
-			} else {
-				setAcledTotal(0);
-				setAcledHasMore(false);
+				setEvents(Array.isArray(eventsPayload.events) ? eventsPayload.events : []);
+				if (
+					(eventsPayload.source === "acled" || eventsPayload.source === "gdelt") &&
+					eventsPayload.meta
+				) {
+					setAcledPage(eventsPayload.meta.page);
+					setAcledPageSize(eventsPayload.meta.pageSize);
+					setAcledTotal(eventsPayload.meta.total);
+					setAcledHasMore(eventsPayload.meta.hasMore);
+				} else {
+					setAcledTotal(0);
+					setAcledHasMore(false);
+				}
+				setCandidates(
+					Array.isArray(candidatesPayload.candidates) ? candidatesPayload.candidates : [],
+				);
+				setTimeline(Array.isArray(timelinePayload.timeline) ? timelinePayload.timeline : []);
+				setRegions(Array.isArray(regionsPayload.regions) ? regionsPayload.regions : []);
+				setSourceHealth(
+					Array.isArray(sourceHealthPayload.entries) ? sourceHealthPayload.entries : [],
+				);
+				setDrawings(Array.isArray(drawingsPayload.drawings) ? drawingsPayload.drawings : []);
+				setGraph(graphPayload?.success ? graphPayload : null);
+			} catch (fetchError) {
+				setError(fetchError instanceof Error ? fetchError.message : "Unknown loading error");
+			} finally {
+				if (shouldShowLoading) {
+					setLoading(false);
+				}
 			}
-			setCandidates(
-				Array.isArray(candidatesPayload.candidates) ? candidatesPayload.candidates : [],
-			);
-			setTimeline(Array.isArray(timelinePayload.timeline) ? timelinePayload.timeline : []);
-			setRegions(Array.isArray(regionsPayload.regions) ? regionsPayload.regions : []);
-			setSourceHealth(
-				Array.isArray(sourceHealthPayload.entries) ? sourceHealthPayload.entries : [],
-			);
-			setDrawings(Array.isArray(drawingsPayload.drawings) ? drawingsPayload.drawings : []);
-			setGraph(graphPayload?.success ? graphPayload : null);
-		} catch (fetchError) {
-			setError(fetchError instanceof Error ? fetchError.message : "Unknown loading error");
-		} finally {
-			setLoading(false);
-		}
-	}, [
-		activeRegionId,
-		buildEventsQueryString,
-		eventsSource,
-		setAcledHasMore,
-		setAcledPage,
-		setAcledPageSize,
-		setAcledTotal,
-		setCandidates,
-		setDrawings,
-		setError,
-		setEvents,
-		setGraph,
-		setLoading,
-		setRegions,
-		setSourceHealth,
-		setTimeline,
-	]);
+		},
+		[
+			activeRegionId,
+			buildEventsQueryString,
+			eventsSource,
+			setAcledHasMore,
+			setAcledPage,
+			setAcledPageSize,
+			setAcledTotal,
+			setCandidates,
+			setDrawings,
+			setError,
+			setEvents,
+			setGraph,
+			setLoading,
+			setRegions,
+			setSourceHealth,
+			setTimeline,
+		],
+	);
 
 	const fetchRegionNews = useCallback(async () => {
 		try {
@@ -355,16 +376,16 @@ export function useGeopoliticalWorkspaceData() {
 		if (typeof window === "undefined" || typeof window.EventSource === "undefined") return;
 		const source = new window.EventSource("/api/geopolitical/stream");
 		source.addEventListener("candidate.new", () => {
-			void fetchAll();
+			void fetchAll({ silent: true });
 		});
 		source.addEventListener("candidate.updated", () => {
-			void fetchAll();
+			void fetchAll({ silent: true });
 		});
 		source.addEventListener("event.updated", () => {
-			void fetchAll();
+			void fetchAll({ silent: true });
 		});
 		source.addEventListener("timeline.appended", () => {
-			void fetchAll();
+			void fetchAll({ silent: true });
 		});
 
 		return () => {
@@ -374,6 +395,7 @@ export function useGeopoliticalWorkspaceData() {
 
 	return {
 		fetchAll,
+		fetchDrawings,
 		fetchRegionNews,
 		fetchGeopoliticalContext,
 		fetchGameTheoryImpact,

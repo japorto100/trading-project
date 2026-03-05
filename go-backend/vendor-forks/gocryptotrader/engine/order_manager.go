@@ -831,7 +831,7 @@ func (m *OrderManager) processMatchingOrders(exch exchange.IBotExchange, orders 
 }
 
 // FetchAndUpdateExchangeOrder calls the exchange to upsert an order to the order store
-func (m *OrderManager) FetchAndUpdateExchangeOrder(exch exchange.IBotExchange, ord *order.Detail, assetType asset.Item) error {
+func (m *OrderManager) FetchAndUpdateExchangeOrder(exch exchange.IBotExchange, ord *order.Detail, assetType string) error {
 	if ord == nil {
 		return errors.New("order manager: Order is nil")
 	}

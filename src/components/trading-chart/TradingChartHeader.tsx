@@ -39,16 +39,18 @@ export function TradingChartHeader({
 	onCustomStartYearChange,
 }: TradingChartHeaderProps) {
 	return (
-		<div className="p-3 border-b border-border bg-card/30 flex items-center justify-between gap-4 flex-wrap">
+		<div className="p-3 border-b border-border/50 bg-background/50 backdrop-blur-sm flex items-center justify-between gap-4 flex-wrap shadow-sm">
 			<div className="flex items-center gap-4 flex-wrap">
 				<div>
 					<div className="flex items-center gap-2">
-						<span className="text-xl font-bold">
+						<span className="text-xl font-bold font-mono tracking-tight">
 							{hoveredPrice ? formatPrice(hoveredPrice.close) : formatPrice(lastCandle?.close || 0)}
 						</span>
 						<Badge
 							className={
-								isPositive ? "bg-emerald-500/20 text-emerald-500" : "bg-red-500/20 text-red-500"
+								isPositive
+									? "bg-success/15 text-success border-success/30 shadow-[0_0_10px_oklch(0.696_0.17_162.48/0.2)]"
+									: "bg-error/15 text-error border-error/30 shadow-[0_0_10px_oklch(0.627_0.258_29.23/0.2)]"
 							}
 						>
 							{isPositive ? (
@@ -63,43 +65,51 @@ export function TradingChartHeader({
 				</div>
 
 				<div className="flex items-center gap-3 text-xs">
-					<div className="flex items-center gap-1">
-						<span className="text-muted-foreground">O</span>
-						<span className="font-mono">
+					<div className="flex items-center gap-1 group transition-all duration-300">
+						<span className="text-muted-foreground/70 font-semibold group-hover:text-muted-foreground transition-colors">
+							O
+						</span>
+						<span className="font-mono transition-all duration-200">
 							{formatPrice(hoveredPrice?.open || lastCandle?.open || 0)}
 						</span>
 					</div>
-					<div className="flex items-center gap-1">
-						<span className="text-muted-foreground">H</span>
-						<span className="font-mono text-emerald-500">
+					<div className="flex items-center gap-1 group transition-all duration-300">
+						<span className="text-muted-foreground/70 font-semibold group-hover:text-success transition-colors">
+							H
+						</span>
+						<span className="font-mono text-success transition-all duration-200">
 							{formatPrice(hoveredPrice?.high || lastCandle?.high || 0)}
 						</span>
 					</div>
-					<div className="flex items-center gap-1">
-						<span className="text-muted-foreground">L</span>
-						<span className="font-mono text-red-500">
+					<div className="flex items-center gap-1 group transition-all duration-300">
+						<span className="text-muted-foreground/70 font-semibold group-hover:text-error transition-colors">
+							L
+						</span>
+						<span className="font-mono text-error transition-all duration-200">
 							{formatPrice(hoveredPrice?.low || lastCandle?.low || 0)}
 						</span>
 					</div>
-					<div className="flex items-center gap-1">
-						<span className="text-muted-foreground">C</span>
-						<span className="font-mono">
+					<div className="flex items-center gap-1 group transition-all duration-300">
+						<span className="text-muted-foreground/70 font-semibold group-hover:text-foreground transition-colors">
+							C
+						</span>
+						<span className="font-mono transition-all duration-200">
 							{formatPrice(hoveredPrice?.close || lastCandle?.close || 0)}
 						</span>
 					</div>
-					<Separator orientation="vertical" className="h-4" />
+					<Separator orientation="vertical" className="h-4 bg-border/50" />
 					<div className="flex items-center gap-1">
-						<Volume2 className="h-3 w-3 text-muted-foreground" />
-						<span className="font-mono">
+						<Volume2 className="h-3 w-3 text-muted-foreground/50" />
+						<span className="font-mono text-muted-foreground">
 							{formatVolume(hoveredPrice?.volume || lastCandle?.volume || 0)}
 						</span>
 					</div>
 					{hoveredPrice && (
 						<>
-							<Separator orientation="vertical" className="h-4" />
+							<Separator orientation="vertical" className="h-4 bg-border/50" />
 							<div className="flex items-center gap-1">
-								<Clock className="h-3 w-3 text-muted-foreground" />
-								<span className="font-mono text-muted-foreground">{hoveredPrice.time}</span>
+								<Clock className="h-3 w-3 text-muted-foreground/50" />
+								<span className="font-mono text-muted-foreground/80">{hoveredPrice.time}</span>
 							</div>
 						</>
 					)}

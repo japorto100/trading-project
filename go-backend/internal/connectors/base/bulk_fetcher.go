@@ -1,9 +1,11 @@
 package base
 
 import (
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 )
 
@@ -24,6 +26,7 @@ type BulkConfig struct {
 	Format       BulkFormat
 	ParseFunc    func(io.Reader) ([]any, error)
 	IdempotentBy string
+	HTTPClient   *http.Client
 }
 
 type BulkFetcher struct {
@@ -41,6 +44,35 @@ func (f *BulkFetcher) Fetch(ctx context.Context) ([]any, error) {
 	if strings.TrimSpace(f.cfg.URL) == "" {
 		return nil, fmt.Errorf("bulk fetch url required")
 	}
-	_ = ctx
-	return nil, fmt.Errorf("bulk fetcher scaffold: downloader/parser not implemented")
+	if f.cfg.ParseFunc == nil {
+		return nil, fmt.Errorf("bulk fetcher parse func required")
+	}
+	client := f.cfg.HTTPClient
+	if client == nil {
+		client = http.DefaultClient
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.cfg.URL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("bulk fetch request: %w", err)
+	}
+	req.Header.Set("Accept", "*/*")
+	req.Header.Set("User-Agent", "tradeview-fusion/1.0")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("bulk fetch: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("bulk fetch %s: %d", f.cfg.URL, resp.StatusCode)
+	}
+	var r io.Reader = resp.Body
+	if f.cfg.Format == BulkFormatCSVGZ || strings.HasSuffix(strings.ToLower(f.cfg.URL), ".gz") {
+		gz, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("bulk fetch gzip: %w", err)
+		}
+		defer func() { _ = gz.Close() }()
+		r = gz
+	}
+	return f.cfg.ParseFunc(r)
 }

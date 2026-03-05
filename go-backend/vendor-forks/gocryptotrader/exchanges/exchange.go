@@ -433,7 +433,7 @@ func (b *Base) GetRequestFormattedPairAndAssetType(p string) (currency.Pair, ass
 
 // GetAvailablePairs is a method that returns the available currency pairs
 // of the exchange by asset type
-func (b *Base) GetAvailablePairs(assetType asset.Item) (currency.Pairs, error) {
+func (b *Base) GetAvailablePairs(assetType string) (currency.Pairs, error) {
 	format, err := b.GetPairFormat(assetType, false)
 	if err != nil {
 		return nil, err
@@ -447,7 +447,7 @@ func (b *Base) GetAvailablePairs(assetType asset.Item) (currency.Pairs, error) {
 
 // SupportsPair returns true or not whether a currency pair exists in the
 // exchange available currencies or not
-func (b *Base) SupportsPair(p currency.Pair, enabledPairs bool, assetType asset.Item) error {
+func (b *Base) SupportsPair(p currency.Pair, enabledPairs bool, assetType string) error {
 	var pairs currency.Pairs
 	var err error
 	if enabledPairs {
@@ -466,7 +466,7 @@ func (b *Base) SupportsPair(p currency.Pair, enabledPairs bool, assetType asset.
 
 // FormatExchangeCurrencies returns a string containing
 // the exchanges formatted currency pairs
-func (b *Base) FormatExchangeCurrencies(pairs []currency.Pair, assetType asset.Item) (string, error) {
+func (b *Base) FormatExchangeCurrencies(pairs []currency.Pair, assetType string) (string, error) {
 	var currencyItems strings.Builder
 	pairFmt, err := b.GetPairFormat(assetType, true)
 	if err != nil {
@@ -493,7 +493,7 @@ func (b *Base) FormatExchangeCurrencies(pairs []currency.Pair, assetType asset.I
 
 // FormatExchangeCurrency is a method that formats and returns a currency pair
 // based on the user currency display preferences
-func (b *Base) FormatExchangeCurrency(p currency.Pair, assetType asset.Item) (currency.Pair, error) {
+func (b *Base) FormatExchangeCurrency(p currency.Pair, assetType string) (currency.Pair, error) {
 	if p.IsEmpty() {
 		return currency.EMPTYPAIR, currency.ErrCurrencyPairEmpty
 	}
@@ -615,7 +615,7 @@ func (b *Base) SetupDefaults(exch *config.Exchange) error {
 
 // SetPairs sets the exchange currency pairs for either enabledPairs or
 // availablePairs
-func (b *Base) SetPairs(pairs currency.Pairs, assetType asset.Item, enabled bool) error {
+func (b *Base) SetPairs(pairs currency.Pairs, assetType string, enabled bool) error {
 	if len(pairs) == 0 {
 		return fmt.Errorf("%s SetPairs error - pairs is empty", b.Name)
 	}
@@ -1320,7 +1320,7 @@ func (b *Base) GetCachedOpenInterest(_ context.Context, k ...key.PairAsset) ([]f
 }
 
 // FormatSymbol formats the given pair to a string suitable for exchange API requests
-func (b *Base) FormatSymbol(pair currency.Pair, assetType asset.Item) (string, error) {
+func (b *Base) FormatSymbol(pair currency.Pair, assetType string) (string, error) {
 	pairFmt, err := b.GetPairFormat(assetType, true)
 	if err != nil {
 		return pair.String(), err
@@ -1879,34 +1879,42 @@ func (b *Base) GetTradingRequirements() protocol.TradingRequirements {
 
 // GetCachedTicker returns the ticker for a currency pair and asset type
 // NOTE: UpdateTicker (or if supported UpdateTickers) method must be called first to update the ticker map
-func (b *Base) GetCachedTicker(p currency.Pair, assetType asset.Item) (*ticker.Price, error) {
+func (b *Base) GetCachedTicker(p currency.Pair, assetType string) (*ticker.Price, error) {
 	return ticker.GetTicker(b.Name, p, assetType)
 }
 
 // GetCachedOrderbook returns an orderbook snapshot for the currency pair and asset type
 // NOTE: UpdateOrderbook method must be called first to update the orderbook map
-func (b *Base) GetCachedOrderbook(p currency.Pair, assetType asset.Item) (*orderbook.Book, error) {
+func (b *Base) GetCachedOrderbook(p currency.Pair, assetType string) (*orderbook.Book, error) {
 	return orderbook.Get(b.Name, p, assetType)
 }
 
 // GetCachedSubAccounts retrieves all cached SubAccounts, filtered by credentials and asset
 // NOTE: Accounts.Save method should be called first to populate the local cache
-func (b *Base) GetCachedSubAccounts(ctx context.Context, assetType asset.Item) (accounts.SubAccounts, error) {
+func (b *Base) GetCachedSubAccounts(ctx context.Context, assetType string) (accounts.SubAccounts, error) {
 	creds, err := b.GetCredentials(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return b.Accounts.SubAccounts(creds, assetType)
+	a, err := asset.New(assetType)
+	if err != nil {
+		return nil, err
+	}
+	return b.Accounts.SubAccounts(creds, a)
 }
 
 // GetCachedCurrencyBalances retrieves cached balances for all SubAccounts grouped by currency
 // NOTE: Accounts.Save method should be called first to populate the local cache
-func (b *Base) GetCachedCurrencyBalances(ctx context.Context, assetType asset.Item) (accounts.CurrencyBalances, error) {
+func (b *Base) GetCachedCurrencyBalances(ctx context.Context, assetType string) (accounts.CurrencyBalances, error) {
 	creds, err := b.GetCredentials(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return b.Accounts.CurrencyBalances(creds, assetType)
+	a, err := asset.New(assetType)
+	if err != nil {
+		return nil, err
+	}
+	return b.Accounts.CurrencyBalances(creds, a)
 }
 
 // GetOrderExecutionLimits returns a limit based on the exchange, asset and pair from storage

@@ -1740,7 +1740,7 @@ func (e *Exchange) GetAvailableTransferChains(ctx context.Context, cryptocurrenc
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper functionality
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }

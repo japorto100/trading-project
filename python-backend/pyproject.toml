@@ -18,6 +18,35 @@ dependencies = [
     "pandas-stubs>=3.0.0.260204",
     "scipy-stubs>=1.17.1.0",
     "scikit-learn-stubs>=0.0.3",
+    # Phase 6a: Cache adapter
+    "cachetools>=5.3.0",
+    "redis>=5.0.0",
+    # Phase 15b: Volatility Suite (numpy available via scipy; explicit for clarity)
+    "numpy>=2.0.0",
+    # Phase 15c: Regime Detection
+    "hmmlearn>=0.3.0",
+    # Phase 12a: NLP Embedding Clustering
+    "hdbscan>=0.8.33",
+    # Phase 6c: KG store
+    "kuzu>=0.7.0",
+    # Phase 6d: Vector store
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0.0",
+    # Go <-> Python IPC (gRPC)
+    "grpcio>=1.68.0",
+    "grpcio-tools>=1.68.0",
+    "protobuf>=5.28.0",
+    "tradeviewfusion-rust-core",
+    # Phase 0e: OpenTelemetry (opt-in via OTEL_ENABLED=true)
+    "opentelemetry-sdk>=1.29.0",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
+    # HTTP transport tracing — provider-agnostic (traces any outbound httpx call,
+    # regardless of target: LLM APIs, REST, internal services).
+    "opentelemetry-instrumentation-httpx>=0.50b0",
+    # Anthropic-specific gen_ai.* spans (OpenLLMetry instrumentor, SOTA 2026).
+    # Adds token counts, model name, finish_reason ON TOP of the httpx span.
+    "opentelemetry-instrumentation-anthropic>=0.51.0",
 ]
 
 [project.optional-dependencies]
@@ -36,3 +65,6 @@ exclude = [
     ".venv/**",
     "**/.venv/**",
 ]
+
+[tool.uv.sources]
+tradeviewfusion-rust-core = { path = "rust_core" }

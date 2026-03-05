@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/ipc"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -19,6 +20,7 @@ const DefaultBaseURL = "http://127.0.0.1:8081"
 type Config struct {
 	BaseURL        string
 	BaseURLs       []string
+	GrpcAddress    string // optional; derived from primary BaseURL (port+1000) if empty
 	RequestTimeout time.Duration
 }
 
@@ -59,6 +61,7 @@ type Quote struct {
 
 type Client struct {
 	baseURLs    []string
+	ipcClient   *ipc.Client
 	baseClients []*base.Client
 }
 
@@ -77,8 +80,10 @@ func NewClient(cfg Config) *Client {
 		timeout = 8 * time.Second
 	}
 
+	primary := baseURLs[0]
 	return &Client{
 		baseURLs:    baseURLs,
+		ipcClient:   ipc.NewClient(ipc.Config{GrpcAddress: strings.TrimSpace(cfg.GrpcAddress), HTTPBaseURL: primary, Timeout: timeout}),
 		baseClients: newBaseClients(baseURLs, timeout),
 	}
 }
@@ -112,6 +117,24 @@ func (c *Client) GetOHLCV(ctx context.Context, req OHLCVRequest) ([]Candle, erro
 	if req.End != nil {
 		query.Set("end", strconv.FormatInt(*req.End, 10))
 	}
+	headers := map[string]string{"Accept": "application/json"}
+	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
+		headers["X-Request-ID"] = requestID
+	}
+
+	// Try IPC (gRPC-first) for primary
+	if status, body, err := c.ipcClient.Get(ctx, "/ohlcv", query, headers); err == nil && status < http.StatusBadRequest {
+		var payload struct {
+			Data []Candle `json:"data"`
+		}
+		if jsonErr := json.Unmarshal(body, &payload); jsonErr == nil {
+			if payload.Data == nil {
+				payload.Data = []Candle{}
+			}
+			return payload.Data, nil
+		}
+	}
+
 	var lastErr error
 	for _, client := range c.baseClients {
 		httpReq, err := client.NewRequest(ctx, http.MethodGet, "/ohlcv", query, nil)
@@ -171,6 +194,22 @@ func (c *Client) Search(ctx context.Context, query string) ([]SearchResult, erro
 
 	params := url.Values{}
 	params.Set("q", q)
+	headers := map[string]string{"Accept": "application/json"}
+	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
+		headers["X-Request-ID"] = requestID
+	}
+	if status, body, err := c.ipcClient.Get(ctx, "/search", params, headers); err == nil && status < http.StatusBadRequest {
+		var payload struct {
+			Data []SearchResult `json:"data"`
+		}
+		if jsonErr := json.Unmarshal(body, &payload); jsonErr == nil {
+			if payload.Data == nil {
+				payload.Data = []SearchResult{}
+			}
+			return payload.Data, nil
+		}
+	}
+
 	httpReq, err := c.primaryClient().NewRequest(ctx, http.MethodGet, "/search", params, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build financebridge search request: %w", err)
@@ -213,6 +252,19 @@ func (c *Client) GetQuote(ctx context.Context, symbol string) (Quote, error) {
 
 	params := url.Values{}
 	params.Set("symbol", s)
+	headers := map[string]string{"Accept": "application/json"}
+	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
+		headers["X-Request-ID"] = requestID
+	}
+	if status, body, err := c.ipcClient.Get(ctx, "/quote", params, headers); err == nil && status < http.StatusBadRequest {
+		var payload struct {
+			Data Quote `json:"data"`
+		}
+		if jsonErr := json.Unmarshal(body, &payload); jsonErr == nil {
+			return payload.Data, nil
+		}
+	}
+
 	httpReq, err := c.primaryClient().NewRequest(ctx, http.MethodGet, "/quote", params, nil)
 	if err != nil {
 		return Quote{}, fmt.Errorf("build financebridge quote request: %w", err)

@@ -336,7 +336,7 @@ func (bot *Engine) IsOnline() bool {
 
 // GetAllAvailablePairs returns a list of all available pairs on either enabled
 // or disabled exchanges
-func (bot *Engine) GetAllAvailablePairs(enabledExchangesOnly bool, assetType asset.Item) currency.Pairs {
+func (bot *Engine) GetAllAvailablePairs(enabledExchangesOnly bool, assetType string) currency.Pairs {
 	var pairList currency.Pairs
 	for x := range bot.Config.Exchanges {
 		if enabledExchangesOnly && !bot.Config.Exchanges[x].Enabled {
@@ -361,7 +361,7 @@ func (bot *Engine) GetAllAvailablePairs(enabledExchangesOnly bool, assetType ass
 
 // GetSpecificAvailablePairs returns a list of supported pairs based on specific
 // parameters
-func (bot *Engine) GetSpecificAvailablePairs(enabledExchangesOnly, fiatPairs, includeUSDT, cryptoPairs bool, assetType asset.Item) currency.Pairs {
+func (bot *Engine) GetSpecificAvailablePairs(enabledExchangesOnly, fiatPairs, includeUSDT, cryptoPairs bool, assetType string) currency.Pairs {
 	var pairList currency.Pairs
 	supportedPairs := bot.GetAllAvailablePairs(enabledExchangesOnly, assetType)
 
@@ -408,7 +408,7 @@ func IsRelatablePairs(p1, p2 currency.Pair, includeUSDT bool) bool {
 
 // MapCurrenciesByExchange returns a list of currency pairs mapped to an
 // exchange
-func (bot *Engine) MapCurrenciesByExchange(p currency.Pairs, enabledExchangesOnly bool, assetType asset.Item) map[string]currency.Pairs {
+func (bot *Engine) MapCurrenciesByExchange(p currency.Pairs, enabledExchangesOnly bool, assetType string) map[string]currency.Pairs {
 	currencyExchange := make(map[string]currency.Pairs)
 	for x := range p {
 		for y := range bot.Config.Exchanges {
@@ -433,7 +433,7 @@ func (bot *Engine) MapCurrenciesByExchange(p currency.Pairs, enabledExchangesOnl
 
 // GetExchangeNamesByCurrency returns a list of exchanges supporting
 // a currency pair based on whether the exchange is enabled or not
-func (bot *Engine) GetExchangeNamesByCurrency(p currency.Pair, enabled bool, assetType asset.Item) []string {
+func (bot *Engine) GetExchangeNamesByCurrency(p currency.Pair, enabled bool, assetType string) []string {
 	exchanges := make([]string, 0, len(bot.Config.Exchanges))
 	for x := range bot.Config.Exchanges {
 		if enabled != bot.Config.Exchanges[x].Enabled {
@@ -551,7 +551,7 @@ func GetExchangeHighestPriceByCurrencyPair(p currency.Pair, a asset.Item) (strin
 
 // GetExchangeLowestPriceByCurrencyPair returns the exchange with the lowest
 // price for a given currency pair and asset type
-func GetExchangeLowestPriceByCurrencyPair(p currency.Pair, assetType asset.Item) (string, error) {
+func GetExchangeLowestPriceByCurrencyPair(p currency.Pair, assetType string) (string, error) {
 	result := stats.SortExchangesByPrice(p, assetType, false)
 	if len(result) == 0 {
 		return "", errors.New("no stats for supplied currency pair and asset type")
@@ -561,7 +561,7 @@ func GetExchangeLowestPriceByCurrencyPair(p currency.Pair, assetType asset.Item)
 }
 
 // GetCryptocurrenciesByExchange returns a list of cryptocurrencies the exchange supports
-func (bot *Engine) GetCryptocurrenciesByExchange(exchangeName string, enabledExchangesOnly, enabledPairs bool, assetType asset.Item) ([]string, error) {
+func (bot *Engine) GetCryptocurrenciesByExchange(exchangeName string, enabledExchangesOnly, enabledPairs bool, assetType string) ([]string, error) {
 	var cryptocurrencies []string
 	for x := range bot.Config.Exchanges {
 		if !strings.EqualFold(bot.Config.Exchanges[x].Name, exchangeName) {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
 )
 
 const sampleRatesXML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -28,14 +29,14 @@ func TestGetTicker_EURUSD(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{RatesURL: server.URL})
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "EUR", Quote: "USD"})
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("EUR"), currency.NewCode("USD")))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if ticker.Last != 1.1 {
 		t.Fatalf("expected last 1.1, got %f", ticker.Last)
 	}
-	if ticker.Pair.Base != "EUR" || ticker.Pair.Quote != "USD" {
+	if ticker.Pair.Base.String() != "EUR" || ticker.Pair.Quote.String() != "USD" {
 		t.Fatalf("unexpected pair %s/%s", ticker.Pair.Base, ticker.Pair.Quote)
 	}
 }
@@ -48,7 +49,7 @@ func TestGetTicker_CrossPair(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{RatesURL: server.URL})
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "GBP", Quote: "USD"})
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("GBP"), currency.NewCode("USD")))
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -67,7 +68,7 @@ func TestGetTicker_UnsupportedPairReturnsBadRequest(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{RatesURL: server.URL})
-	_, err := client.GetTicker(context.Background(), gct.Pair{Base: "BTC", Quote: "USD"})
+	_, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("BTC"), currency.NewCode("USD")))
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -89,7 +90,7 @@ func TestGetSeries_ReturnsSinglePoint(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{RatesURL: server.URL})
-	series, err := client.GetSeries(context.Background(), gct.Pair{Base: "EUR", Quote: "USD"}, 10)
+	series, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("EUR"), currency.NewCode("USD")), 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

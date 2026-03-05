@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type {
 	GeoContradiction,
@@ -8,62 +7,41 @@ import type {
 	GeoContradictionsStoreFile,
 	GeoSourceRef,
 } from "@/lib/geopolitical/types";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
 
 const DATA_DIR = path.join(process.cwd(), "data", "geopolitical");
 const STORE_PATH = path.join(DATA_DIR, "contradictions.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<GeoContradictionsStoreFile>({
+	storeName: "geopolitical-contradictions-store",
+	filePath: STORE_PATH,
+	defaultValue: { contradictions: [] },
+	isValid: (value: unknown): value is GeoContradictionsStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as GeoContradictionsStoreFile).contradictions),
+});
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
-}
-
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
+	return localStore.withWriteLock(task);
 }
 
 async function readStore(): Promise<GeoContradictionsStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as GeoContradictionsStoreFile;
-		if (!parsed || !Array.isArray(parsed.contradictions)) {
-			return { contradictions: [] };
-		}
-		return {
-			contradictions: parsed.contradictions.map((item) => ({
-				...item,
-				evidence: Array.isArray(item.evidence) ? item.evidence : [],
-				resolution:
-					typeof item.resolution === "object" && item.resolution !== null
-						? item.resolution
-						: undefined,
-			})),
-		};
-	} catch (error) {
-		if (isNodeErrorWithCode(error, "ENOENT")) {
-			return { contradictions: [] };
-		}
-		throw error;
-	}
+	const parsed = await localStore.read();
+	return {
+		contradictions: parsed.contradictions.map((item) => ({
+			...item,
+			evidence: Array.isArray(item.evidence) ? item.evidence : [],
+			resolution:
+				typeof item.resolution === "object" && item.resolution !== null
+					? item.resolution
+					: undefined,
+		})),
+	};
 }
 
 async function writeStore(store: GeoContradictionsStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+	await localStore.write(store);
 }
 
 function sortNewestFirst(items: GeoContradiction[]): GeoContradiction[] {

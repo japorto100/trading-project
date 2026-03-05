@@ -257,13 +257,8 @@ func ExchangeAccountBalances(args ...objects.Object) (objects.Object, error) {
 	if !ok {
 		return nil, constructRuntimeError(3, accountBalancesFunc, "string", args[2])
 	}
-	assetType, err := asset.New(assetString)
-	if err != nil {
-		return errorResponsef(standardFormatting, err)
-	}
-
 	ctx := processScriptContext(scriptCtx)
-	rtnValue, err := wrappers.GetWrapper().AccountBalances(ctx, exchangeName, assetType)
+	rtnValue, err := wrappers.GetWrapper().AccountBalances(ctx, exchangeName, assetString)
 	if err != nil {
 		return errorResponsef(standardFormatting, err)
 	}
@@ -327,14 +322,9 @@ func ExchangeOrderQuery(args ...objects.Object) (objects.Object, error) {
 		}
 	}
 
-	assetType, err := asset.New(assetTypeString)
-	if err != nil {
-		return errorResponsef(standardFormatting, err)
-	}
-
 	ctx := processScriptContext(scriptCtx)
 	orderDetails, err := wrappers.GetWrapper().
-		QueryOrder(ctx, exchangeName, orderID, pair, assetType)
+		QueryOrder(ctx, exchangeName, orderID, pair, assetTypeString)
 	if err != nil {
 		return errorResponsef(standardFormatting, err)
 	}

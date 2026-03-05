@@ -96,7 +96,13 @@ func withJWTAuth(next http.Handler, cfg jwtAuthConfig) http.Handler {
 			r.Header.Set("X-Auth-User", sub)
 		}
 		if jti := strings.TrimSpace(claims.ID); jti != "" {
-			if cfg.revocations != nil && cfg.revocations.IsRevoked(jti, time.Now()) {
+			sub := strings.TrimSpace(claims.Subject)
+			var iat time.Time
+			if claims.IssuedAt != nil {
+				iat = claims.IssuedAt.Time
+			}
+			
+			if cfg.revocations != nil && cfg.revocations.IsRevoked(jti, sub, iat, time.Now()) {
 				writeJWTAuthError(w, http.StatusUnauthorized, "token revoked")
 				return
 			}

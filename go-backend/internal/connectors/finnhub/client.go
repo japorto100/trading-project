@@ -14,6 +14,8 @@ import (
 	"github.com/gorilla/websocket"
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 const DefaultBaseURL = "https://finnhub.io/api/v1"
@@ -61,8 +63,8 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error) {
-	if strings.ToLower(strings.TrimSpace(assetType)) != "equity" {
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
+	if !gct.IsSemanticAssetType(assetType, "equity") {
 		return gct.Ticker{}, &gct.RequestError{
 			Path:       "/quote",
 			StatusCode: http.StatusBadRequest,
@@ -77,7 +79,7 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 		}
 	}
 
-	symbol := strings.ToUpper(strings.TrimSpace(pair.Base))
+	symbol := strings.ToUpper(strings.TrimSpace(pair.Base.String()))
 	if symbol == "" {
 		return gct.Ticker{}, &gct.RequestError{
 			Path:       "/quote",
@@ -147,7 +149,7 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	}
 
 	return gct.Ticker{
-		Pair:        gct.Pair{Base: symbol, Quote: "USD"},
+		Pair:        currency.NewPair(currency.NewCode(symbol), currency.NewCode("USD")),
 		Currency:    symbol,
 		LastUpdated: lastUpdated,
 		Last:        payload.Current,
@@ -185,101 +187,99 @@ func (c *Client) OpenTradeStream(ctx context.Context, symbol string) (<-chan gct
 	query.Set("token", c.apiKey)
 	endpoint.RawQuery = query.Encode()
 
-	dialer := websocket.Dialer{
-		HandshakeTimeout: c.requestTimeout,
-	}
-	connection, _, err := dialer.DialContext(ctx, endpoint.String(), nil)
-	if err != nil {
-		return nil, nil, &gct.RequestError{
-			Path:  "/ws",
-			Cause: err,
-		}
-	}
-
-	subscribePayload := map[string]string{
-		"type":   "subscribe",
-		"symbol": instrument,
-	}
-	if err := connection.WriteJSON(subscribePayload); err != nil {
-		_ = connection.Close()
-		return nil, nil, fmt.Errorf("subscribe finnhub symbol: %w", err)
-	}
-
 	tickerChannel := make(chan gct.Ticker)
 	errorChannel := make(chan error, 1)
 
-	go func() {
-		defer close(tickerChannel)
-		defer close(errorChannel)
-		defer func() { _ = connection.Close() }()
+	wsClient := base.NewWebsocketClient(base.WebsocketConfig{
+		URL:                 endpoint.String(),
+		HandshakeTimeout:    c.requestTimeout,
+		PingInterval:        30 * time.Second,
+		WriteWait:           10 * time.Second,
+		ReconnectInterval:   2 * time.Second,
+		MaxReconnectRetries: 5,
+	})
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
+	wsClient.SetOnConnect(func() error {
+		subscribePayload := map[string]string{
+			"type":   "subscribe",
+			"symbol": instrument,
+		}
+		return wsClient.WriteJSON(subscribePayload)
+	})
 
-			_, message, readErr := connection.ReadMessage()
-			if readErr != nil {
-				if ctx.Err() != nil {
-					return
-				}
-				errorChannel <- fmt.Errorf("read finnhub websocket payload: %w", readErr)
-				return
-			}
+	wsClient.SetErrorHandler(func(err error) {
+		select {
+		case errorChannel <- fmt.Errorf("finnhub websocket error: %w", err):
+		default:
+		}
+	})
 
-			var payload struct {
-				Type string `json:"type"`
-				Data []struct {
-					Price     float64 `json:"p"`
-					Symbol    string  `json:"s"`
-					Timestamp int64   `json:"t"`
-					Volume    float64 `json:"v"`
-				} `json:"data"`
-			}
-			if err := json.Unmarshal(message, &payload); err != nil {
-				errorChannel <- fmt.Errorf("decode finnhub websocket payload: %w", err)
-				return
-			}
+	wsClient.SetMessageHandler(func(messageType int, message []byte) {
+		if messageType != websocket.TextMessage {
+			return
+		}
 
-			if strings.ToLower(payload.Type) != "trade" {
+		var payload struct {
+			Type string `json:"type"`
+			Data []struct {
+				Price     float64 `json:"p"`
+				Symbol    string  `json:"s"`
+				Timestamp int64   `json:"t"`
+				Volume    float64 `json:"v"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(message, &payload); err != nil {
+			// Not all messages are trades (e.g. ping), just ignore decode errors for now
+			return
+		}
+
+		if strings.ToLower(payload.Type) != "trade" {
+			return
+		}
+
+		for _, trade := range payload.Data {
+			if trade.Price <= 0 {
 				continue
 			}
 
-			for _, trade := range payload.Data {
-				if trade.Price <= 0 {
-					continue
-				}
+			tradeSymbol := strings.ToUpper(strings.TrimSpace(trade.Symbol))
+			if tradeSymbol == "" {
+				tradeSymbol = instrument
+			}
+			lastUpdated := trade.Timestamp / 1000
+			if lastUpdated <= 0 {
+				lastUpdated = time.Now().Unix()
+			}
 
-				tradeSymbol := strings.ToUpper(strings.TrimSpace(trade.Symbol))
-				if tradeSymbol == "" {
-					tradeSymbol = instrument
-				}
-				lastUpdated := trade.Timestamp / 1000
-				if lastUpdated <= 0 {
-					lastUpdated = time.Now().Unix()
-				}
+			ticker := gct.Ticker{
+				Pair:        currency.NewPair(currency.NewCode(tradeSymbol), currency.NewCode("USD")),
+				Currency:    tradeSymbol,
+				LastUpdated: lastUpdated,
+				Last:        trade.Price,
+				Bid:         trade.Price,
+				Ask:         trade.Price,
+				High:        trade.Price,
+				Low:         trade.Price,
+				Volume:      trade.Volume,
+			}
 
-				ticker := gct.Ticker{
-					Pair:        gct.Pair{Base: tradeSymbol, Quote: "USD"},
-					Currency:    tradeSymbol,
-					LastUpdated: lastUpdated,
-					Last:        trade.Price,
-					Bid:         trade.Price,
-					Ask:         trade.Price,
-					High:        trade.Price,
-					Low:         trade.Price,
-					Volume:      trade.Volume,
-				}
-
-				select {
-				case <-ctx.Done():
-					return
-				case tickerChannel <- ticker:
-				}
+			select {
+			case <-ctx.Done():
+				return
+			case tickerChannel <- ticker:
 			}
 		}
+	})
+
+	if err := wsClient.Connect(ctx); err != nil {
+		return nil, nil, fmt.Errorf("connect finnhub websocket: %w", err)
+	}
+
+	go func() {
+		<-ctx.Done()
+		wsClient.Close()
+		close(tickerChannel)
+		close(errorChannel)
 	}()
 
 	return tickerChannel, errorChannel, nil

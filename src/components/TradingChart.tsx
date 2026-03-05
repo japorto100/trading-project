@@ -4,6 +4,7 @@ import { BarChart3, RefreshCw } from "lucide-react";
 import type { MouseEvent } from "react";
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ChartType, DrawingType } from "@/chart/types";
+import type { PatternOverlayState } from "@/components/DrawingToolbar";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
 import {
 	type IndicatorSeriesRefs,
@@ -31,6 +32,15 @@ import type { HistoryRangePreset } from "@/lib/history-range";
 import { calculateADX, calculateATR, calculateRSI } from "@/lib/indicators";
 import { getErrorMessage } from "@/lib/utils";
 
+interface PatternData {
+	type: string;
+	direction: "bullish" | "bearish" | "neutral";
+	start_time: number;
+	end_time: number;
+	confidence: number;
+	details: Record<string, unknown>;
+}
+
 interface TradingChartProps {
 	candleData: TradingChartCandle[];
 	indicators: IndicatorSettings;
@@ -48,6 +58,7 @@ interface TradingChartProps {
 	effectiveStartYear: number;
 	onHistoryRangeChange: (preset: HistoryRangePreset) => void;
 	onCustomStartYearChange: (year: number) => void;
+	patternOverlay?: PatternOverlayState;
 }
 
 type LwcDrawingTool = "trendline" | "rectangle" | "horizontalline" | "verticalline";
@@ -142,6 +153,7 @@ export function TradingChart({
 	effectiveStartYear,
 	onHistoryRangeChange,
 	onCustomStartYearChange,
+	patternOverlay,
 }: TradingChartProps) {
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const rsiChartContainerRef = useRef<HTMLDivElement>(null);
@@ -186,7 +198,13 @@ export function TradingChart({
 		redo: [],
 	});
 	const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+	const [chartViewVersion, setChartViewVersion] = useState(0);
 	const [pendingPoint, setPendingPoint] = useState<LwcDrawingPoint | null>(null);
+	const [patternData, setPatternData] = useState<{
+		elliottWave: PatternData[];
+		harmonic: PatternData[];
+		pricePatterns: PatternData[];
+	}>({ elliottWave: [], harmonic: [], pricePatterns: [] });
 
 	const indicatorSeriesRefs = useMemo<IndicatorSeriesRefs>(
 		() => ({
@@ -431,6 +449,61 @@ export function TradingChart({
 		}
 	}, [drawingCommand]);
 
+	// Pattern overlay: fetch patterns when flags change
+	const elliottWaveEnabled = patternOverlay?.elliottWave ?? false;
+	const harmonicEnabled = patternOverlay?.harmonic ?? false;
+	const pricePatternsEnabled = patternOverlay?.pricePatterns ?? false;
+
+	useEffect(() => {
+		if (!chartLoaded || candleData.length < 20) return;
+		const ohlcv = candleData.map((c) => ({
+			time: c.time,
+			open: c.open,
+			high: c.high,
+			low: c.low,
+			close: c.close,
+			volume: c.volume ?? 0,
+		}));
+
+		const controllers: AbortController[] = [];
+		const fetchPattern = async (
+			flag: boolean,
+			patternType: string,
+			key: keyof typeof patternData,
+		) => {
+			if (!flag) {
+				setPatternData((prev) => ({ ...prev, [key]: [] }));
+				return;
+			}
+			const ctrl = new AbortController();
+			controllers.push(ctrl);
+			try {
+				const resp = await fetch(`/api/fusion/patterns/${patternType}`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ ohlcv }),
+					signal: ctrl.signal,
+					cache: "no-store",
+				});
+				if (!resp.ok) return;
+				const body = (await resp.json()) as { data?: { patterns?: PatternData[] } };
+				setPatternData((prev) => ({ ...prev, [key]: body.data?.patterns ?? [] }));
+			} catch {
+				// silent fail — patterns are decorative
+			}
+		};
+
+		void fetchPattern(elliottWaveEnabled, "elliott-wave", "elliottWave");
+		void fetchPattern(harmonicEnabled, "harmonic", "harmonic");
+		void fetchPattern(pricePatternsEnabled, "price", "pricePatterns");
+
+		return () => {
+			for (const ctrl of controllers) {
+				ctrl.abort();
+			}
+		};
+	}, [elliottWaveEnabled, harmonicEnabled, pricePatternsEnabled, chartLoaded, candleData]);
+
 	const getMainSeriesDataForType = useCallback(
 		(type: ChartType) => getMainSeriesData(candleData, type),
 		[candleData],
@@ -532,9 +605,9 @@ export function TradingChart({
 				volumeSeriesRef.current = null;
 				resetSeriesRefs(indicatorSeriesRefs);
 
-				const backgroundColor = isDarkMode ? "#0f172a" : "#ffffff";
-				const textColor = isDarkMode ? "#94a3b8" : "#475569";
-				const gridColor = isDarkMode ? "#1e293b" : "#e2e8f0";
+				const backgroundColor = isDarkMode ? "#0c0e14" : "#ffffff"; // Darker, subtle tint
+				const textColor = isDarkMode ? "#8b949e" : "#475569";
+				const gridColor = isDarkMode ? "rgba(43, 49, 57, 0.5)" : "#e2e8f0";
 
 				const chart = createChart(chartContainer, {
 					layout: {
@@ -550,16 +623,16 @@ export function TradingChart({
 					crosshair: {
 						mode: CrosshairMode.Normal,
 						vertLine: {
-							color: isDarkMode ? "#3b82f6" : "#2563eb",
+							color: isDarkMode ? "#00e676" : "#2563eb", // Bright success green
 							width: 1,
 							style: 2,
-							labelBackgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+							labelBackgroundColor: isDarkMode ? "#00e676" : "#2563eb",
 						},
 						horzLine: {
-							color: isDarkMode ? "#3b82f6" : "#2563eb",
+							color: isDarkMode ? "#00e676" : "#2563eb",
 							width: 1,
 							style: 2,
-							labelBackgroundColor: isDarkMode ? "#3b82f6" : "#2563eb",
+							labelBackgroundColor: isDarkMode ? "#00e676" : "#2563eb",
 						},
 					},
 					rightPriceScale: {
@@ -574,6 +647,12 @@ export function TradingChart({
 				});
 
 				chartRef.current = chart;
+				if (chartContainerRef.current) {
+					setOverlaySize({
+						width: chartContainerRef.current.clientWidth,
+						height: chartContainerRef.current.clientHeight,
+					});
+				}
 				const requireSeries = (
 					series: ChartSeriesHandle | undefined,
 					kind: string,
@@ -631,19 +710,19 @@ export function TradingChart({
 				let mainSeries: ChartSeriesHandle;
 				if (chartType === "line" || chartType === "area") {
 					mainSeries = addAreaSeriesCompat({
-						topColor: chartType === "area" ? "rgba(34, 197, 94, 0.4)" : "transparent",
-						bottomColor: chartType === "area" ? "rgba(34, 197, 94, 0)" : "transparent",
-						lineColor: "#22c55e",
+						topColor: chartType === "area" ? "rgba(0, 230, 118, 0.4)" : "transparent",
+						bottomColor: chartType === "area" ? "rgba(0, 230, 118, 0)" : "transparent",
+						lineColor: "#00e676",
 						lineWidth: 2,
 					});
 				} else {
 					mainSeries = addCandlestickSeriesCompat({
-						upColor: "#22c55e",
-						downColor: "#ef4444",
-						borderDownColor: "#ef4444",
-						borderUpColor: "#22c55e",
-						wickDownColor: "#ef4444",
-						wickUpColor: "#22c55e",
+						upColor: "#00e676",
+						downColor: "#ff1744",
+						borderDownColor: "#ff1744",
+						borderUpColor: "#00e676",
+						wickDownColor: "#ff1744",
+						wickUpColor: "#00e676",
 					});
 				}
 				mainSeries.setData(getMainSeriesDataForType(chartType));
@@ -767,6 +846,9 @@ export function TradingChart({
 					}
 				});
 
+				chart.timeScale().subscribeVisibleTimeRangeChange(() => {
+					if (isMounted) setChartViewVersion((v) => v + 1);
+				});
 				chart.timeScale().fitContent();
 				chartSignatureRef.current = signature;
 				setChartLoaded(true);
@@ -836,6 +918,7 @@ export function TradingChart({
 	}, []);
 
 	const overlayInteractive = Boolean(supportedActiveTool && !drawingsLocked);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: chartViewVersion is a manual pan/zoom trigger — forces recompute even though drawingToScreen reads from refs
 	const drawingPrimitives = useMemo(() => {
 		return drawingState.drawings
 			.map((drawing) => {
@@ -844,7 +927,7 @@ export function TradingChart({
 				return { drawing, p1, p2 };
 			})
 			.filter((item) => item.p1 !== null);
-	}, [drawingState.drawings, drawingToScreen]);
+	}, [drawingState.drawings, drawingToScreen, chartViewVersion]);
 
 	const pendingPrimitive = useMemo(() => {
 		if (!pendingPoint || !supportedActiveTool || !drawingsVisible) return null;
@@ -983,6 +1066,122 @@ export function TradingChart({
 								strokeWidth={1.5}
 							/>
 						)}
+
+						{/* Elliott Wave labels */}
+						{elliottWaveEnabled &&
+							patternData.elliottWave.map((pat) => {
+								const nearest = nearestCandle(pat.start_time);
+								if (!nearest) return null;
+								const screen = drawingToScreen({
+									time: pat.start_time,
+									price: pat.direction === "bearish" ? nearest.high : nearest.low,
+								});
+								if (!screen) return null;
+								const waveLabel = pat.type.replace("elliott_wave_", "W");
+								const yOff = pat.direction === "bearish" ? -18 : 14;
+								const ewColor = pat.direction === "bullish" ? "#60a5fa" : "#f87171";
+								return (
+									<g key={`ew-${pat.start_time}-${pat.type}`}>
+										<rect
+											x={screen.x - 12}
+											y={screen.y + yOff - 10}
+											width={24}
+											height={12}
+											rx={2}
+											fill={ewColor}
+											opacity={0.85}
+										/>
+										<text
+											x={screen.x}
+											y={screen.y + yOff}
+											textAnchor="middle"
+											fontSize={9}
+											fontWeight="bold"
+											fill="#0f172a"
+										>
+											{waveLabel.slice(0, 4)}
+										</text>
+									</g>
+								);
+							})}
+
+						{/* Harmonic zones */}
+						{harmonicEnabled &&
+							patternData.harmonic.map((pat) => {
+								const startNearest = nearestCandle(pat.start_time);
+								const endNearest = nearestCandle(pat.end_time);
+								if (!startNearest || !endNearest) return null;
+								const s = drawingToScreen({ time: pat.start_time, price: startNearest.close });
+								const e = drawingToScreen({ time: pat.end_time, price: endNearest.close });
+								if (!s || !e) return null;
+								const hx = Math.min(s.x, e.x);
+								const hw = Math.max(2, Math.abs(e.x - s.x));
+								const hColor = pat.direction === "bullish" ? "#34d399" : "#f87171";
+								const strokeW = Math.max(0.5, pat.confidence * 2);
+								return (
+									<g key={`harm-${pat.start_time}-${pat.type}`}>
+										<rect
+											x={hx}
+											y={0}
+											width={hw}
+											height={overlaySize.height}
+											fill={hColor}
+											opacity={0.08}
+										/>
+										<line
+											x1={hx}
+											y1={0}
+											x2={hx}
+											y2={overlaySize.height}
+											stroke={hColor}
+											strokeWidth={strokeW}
+											opacity={0.5}
+										/>
+										<text
+											x={hx + hw / 2}
+											y={16}
+											textAnchor="middle"
+											fontSize={8}
+											fill={hColor}
+											opacity={0.9}
+										>
+											{pat.type.replace(/_/g, " ").slice(0, 10)}
+										</text>
+									</g>
+								);
+							})}
+
+						{/* Price pattern markers */}
+						{pricePatternsEnabled &&
+							patternData.pricePatterns.map((pat) => {
+								const nearest = nearestCandle(pat.start_time);
+								if (!nearest) return null;
+								const priceLevel =
+									pat.direction === "bearish" ? nearest.high * 1.003 : nearest.low * 0.997;
+								const screen = drawingToScreen({ time: pat.start_time, price: priceLevel });
+								if (!screen) return null;
+								const ppColor = pat.direction === "bullish" ? "#34d399" : "#f87171";
+								const arrowPts =
+									pat.direction === "bearish"
+										? `${screen.x},${screen.y - 14} ${screen.x - 5},${screen.y - 4} ${screen.x + 5},${screen.y - 4}`
+										: `${screen.x},${screen.y + 14} ${screen.x - 5},${screen.y + 4} ${screen.x + 5},${screen.y + 4}`;
+								const labelY = pat.direction === "bearish" ? screen.y - 18 : screen.y + 22;
+								return (
+									<g key={`pp-${pat.start_time}-${pat.type}`}>
+										<polygon points={arrowPts} fill={ppColor} opacity={0.85} />
+										<text
+											x={screen.x}
+											y={labelY}
+											textAnchor="middle"
+											fontSize={8}
+											fill={ppColor}
+											opacity={0.9}
+										>
+											{pat.type.replace(/_/g, " ").slice(0, 8)}
+										</text>
+									</g>
+								);
+							})}
 					</svg>
 				)}
 				{supportedActiveTool && pendingPoint && (

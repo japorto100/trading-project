@@ -197,7 +197,7 @@ func (e *Exchange) Setup(exch *config.Exchange) error {
 }
 
 // FetchTradablePairs returns a list of the exchanges tradable pairs
-func (e *Exchange) FetchTradablePairs(ctx context.Context, assetType asset.Item) (currency.Pairs, error) {
+func (e *Exchange) FetchTradablePairs(ctx context.Context, assetType string) (currency.Pairs, error) {
 	if !e.SupportsAsset(assetType) {
 		return nil, fmt.Errorf("%s: %w - %v", e.Name, asset.ErrNotSupported, assetType)
 	}
@@ -243,7 +243,7 @@ func (e *Exchange) UpdateTickers(_ context.Context, _ asset.Item) error {
 }
 
 // UpdateTicker updates and returns the ticker for a currency pair
-func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType asset.Item) (*ticker.Price, error) {
+func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType string) (*ticker.Price, error) {
 	if !e.SupportsAsset(assetType) {
 		return nil, fmt.Errorf("%s: %w - %s", e.Name, asset.ErrNotSupported, assetType)
 	}
@@ -286,7 +286,7 @@ func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType 
 }
 
 // UpdateOrderbook updates and returns the orderbook for a currency pair
-func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType asset.Item) (*orderbook.Book, error) {
+func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType string) (*orderbook.Book, error) {
 	p, err := e.FormatExchangeCurrency(p, assetType)
 	if err != nil {
 		return nil, err
@@ -461,7 +461,7 @@ func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, _
 }
 
 // GetRecentTrades returns the most recent trades for a currency and asset
-func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType asset.Item) ([]trade.Data, error) {
+func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType string) ([]trade.Data, error) {
 	if !e.SupportsAsset(assetType) {
 		return nil, fmt.Errorf("%s: %w - %s", e.Name, asset.ErrNotSupported, assetType)
 	}
@@ -500,7 +500,7 @@ func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetTy
 }
 
 // GetHistoricTrades returns historic trade data within the timeframe provided
-func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType asset.Item, timestampStart, timestampEnd time.Time) ([]trade.Data, error) {
+func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType string, timestampStart, timestampEnd time.Time) ([]trade.Data, error) {
 	if common.StartEndTimeCheck(timestampStart, timestampEnd) != nil {
 		return nil, fmt.Errorf("invalid time range supplied. Start: %v End %v",
 			timestampStart,
@@ -725,7 +725,7 @@ func (e *Exchange) CancelAllOrders(ctx context.Context, cancel *order.Cancel) (o
 }
 
 // GetOrderInfo returns order information based on order ID
-func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, _ currency.Pair, assetType asset.Item) (*order.Detail, error) {
+func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, _ currency.Pair, assetType string) (*order.Detail, error) {
 	if !e.SupportsAsset(assetType) {
 		return nil, fmt.Errorf("%w assetType %v", asset.ErrNotSupported, assetType)
 	}
@@ -1020,7 +1020,7 @@ func (e *Exchange) GetFeeByType(ctx context.Context, feeBuilder *exchange.FeeBui
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper functionality
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }
@@ -1390,7 +1390,7 @@ func (e *Exchange) GetCurrencyTradeURL(_ context.Context, a asset.Item, cp curre
 
 // IsPerpetualFutureCurrency ensures a given asset and currency is a perpetual future
 // differs by exchange
-func (e *Exchange) IsPerpetualFutureCurrency(assetType asset.Item, pair currency.Pair) (bool, error) {
+func (e *Exchange) IsPerpetualFutureCurrency(assetType string, pair currency.Pair) (bool, error) {
 	if pair.IsEmpty() {
 		return false, currency.ErrCurrencyPairEmpty
 	}
@@ -1531,7 +1531,7 @@ func (e *Exchange) GetHistoricalFundingRates(ctx context.Context, r *fundingrate
 	}, nil
 }
 
-func formatPairString(assetType asset.Item, pair currency.Pair) string {
+func formatPairString(assetType string, pair currency.Pair) string {
 	switch assetType {
 	case asset.Futures:
 		return formatFuturesTradablePair(pair)

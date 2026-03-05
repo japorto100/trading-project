@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 interface JournalStoreFile {
@@ -42,16 +43,15 @@ export interface UpdateTradeJournalEntryInput {
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_PATH = path.join(DATA_DIR, "trade-journal.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<JournalStoreFile>({
+	storeName: "trade-journal-store",
+	filePath: STORE_PATH,
+	defaultValue: { entries: [] },
+	isValid: (value: unknown): value is JournalStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as JournalStoreFile).entries),
+});
 
 type DbClient = NonNullable<ReturnType<typeof getPrismaClient>>;
 
@@ -99,38 +99,16 @@ function toEntry(record: DbJournalRecord): TradeJournalEntry {
 	};
 }
 
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
-}
-
 async function readStore(): Promise<JournalStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as JournalStoreFile;
-		if (!parsed || !Array.isArray(parsed.entries)) {
-			return { entries: [] };
-		}
-		return { entries: parsed.entries };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) {
-			return { entries: [] };
-		}
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(data: JournalStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(data, null, 2), "utf-8");
+	await localStore.write(data);
 }
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
+	return localStore.withWriteLock(task);
 }
 
 async function ensureDbProfile(db: DbClient, profileKey: string): Promise<{ id: string }> {
@@ -331,9 +309,12 @@ export async function listTradeJournalEntries(
 	if (db) {
 		try {
 			return await listTradeJournalEntriesDb(db, profileKey, symbol, safeLimit);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Trade journal DB read failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Trade journal DB client unavailable");
 	}
 	return listTradeJournalEntriesFile(profileKey, symbol, safeLimit);
 }
@@ -345,9 +326,12 @@ export async function createTradeJournalEntry(
 	if (db) {
 		try {
 			return await createTradeJournalEntryDb(db, input);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Trade journal DB write failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Trade journal DB client unavailable");
 	}
 	return createTradeJournalEntryFile(input);
 }
@@ -361,9 +345,12 @@ export async function updateTradeJournalEntry(
 	if (db) {
 		try {
 			return await updateTradeJournalEntryDb(db, profileKey, entryId, input);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Trade journal DB update failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Trade journal DB client unavailable");
 	}
 	return updateTradeJournalEntryFile(profileKey, entryId, input);
 }
@@ -376,9 +363,12 @@ export async function deleteTradeJournalEntry(
 	if (db) {
 		try {
 			return await deleteTradeJournalEntryDb(db, profileKey, entryId);
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Trade journal DB delete failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Trade journal DB client unavailable");
 	}
 	return deleteTradeJournalEntryFile(profileKey, entryId);
 }

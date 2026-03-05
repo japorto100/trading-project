@@ -17,6 +17,7 @@ datasource db {
 
 model User {
   id             String          @id @default(cuid())
+  username       String?         @unique
   name           String?
   email          String?         @unique
   emailVerified  DateTime?
@@ -81,6 +82,7 @@ model VerificationToken {
 model Authenticator {
   id                   String   @id @default(cuid())
   userId               String
+  providerAccountId    String   @unique
   credentialID         String   @unique
   credentialPublicKey  String
   counter              Int
@@ -388,4 +390,55 @@ model GeoDrawingRecord {
   updatedAt DateTime       @updatedAt
 
   @@index([eventId, updatedAt])
+}
+
+// --- Phase 6: Memory Architecture ---
+
+model AgentEpisode {
+  id           String   @id @default(cuid())
+  sessionId    String
+  agentRole    String
+  inputJson    String
+  outputJson   String
+  toolsUsed    String   @default("[]")
+  durationMs   Int
+  tokenCount   Int      @default(0)
+  confidence   Float    @default(0.0)
+  tagsJson     String   @default("[]")
+  metadataJson String   @default("{}")
+  retainUntil  DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([agentRole])
+  @@index([createdAt])
+}
+
+model AnalysisSnapshot {
+  id           String   @id @default(cuid())
+  symbol       String?
+  region       String?
+  analysisType String
+  inputJson    String
+  outputJson   String
+  confidence   Float    @default(0.0)
+  modelId      String
+  retainUntil  DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([symbol])
+  @@index([analysisType])
+  @@index([createdAt])
+}
+
+model MemorySyncCheckpoint {
+  id         String   @id @default(cuid())
+  layerType  String
+  lastSyncAt DateTime
+  checksum   String   @default("")
+  metaJson   String   @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([layerType])
 }

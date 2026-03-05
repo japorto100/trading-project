@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { AlertCondition } from "@/lib/alerts";
@@ -20,43 +21,124 @@ const createAlertSchema = z.object({
 	enabled: z.boolean().optional(),
 });
 
+function withRequestId(response: NextResponse, requestId: string): NextResponse {
+	response.headers.set("X-Request-ID", requestId);
+	return response;
+}
+
+function errorResponse(requestId: string, error: unknown): NextResponse {
+	const message = error instanceof Error ? error.message : "alerts request failed";
+	const persistenceError =
+		message.includes("fallback is disabled") ||
+		message.toLowerCase().includes("db client unavailable");
+	return withRequestId(
+		NextResponse.json(
+			{
+				success: false,
+				error: message,
+				requestId,
+				degraded: true,
+				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
+			},
+			{ status: persistenceError ? 503 : 500 },
+		),
+		requestId,
+	);
+}
+
 export async function GET(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	const profileKey = request.nextUrl.searchParams.get("profileKey");
 	if (!profileKey) {
-		return NextResponse.json({ error: "profileKey is required" }, { status: 400 });
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "profileKey is required",
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
+		);
 	}
-	const symbolParam = request.nextUrl.searchParams.get("symbol");
-	const alerts = await listPriceAlerts(profileKey, symbolParam ?? undefined);
-	return NextResponse.json({ success: true, alerts });
+	try {
+		const symbolParam = request.nextUrl.searchParams.get("symbol");
+		const alerts = await listPriceAlerts(profileKey, symbolParam ?? undefined);
+		return withRequestId(
+			NextResponse.json({
+				success: true,
+				alerts,
+				requestId,
+				degraded: false,
+				degraded_reasons: [],
+			}),
+			requestId,
+		);
+	} catch (error: unknown) {
+		return errorResponse(requestId, error);
+	}
 }
 
 export async function POST(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	let payload: unknown;
 	try {
 		payload = await request.json();
 	} catch {
-		return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "invalid JSON body",
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
+		);
 	}
 
 	const parsed = createAlertSchema.safeParse(payload);
 	if (!parsed.success) {
-		return NextResponse.json(
-			{
-				error: "invalid alert payload",
-				details: parsed.error.flatten(),
-			},
-			{ status: 400 },
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "invalid alert payload",
+					details: parsed.error.flatten(),
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
 		);
 	}
 
-	const alert = await createPriceAlert({
-		profileKey: parsed.data.profileKey,
-		symbol: canonicalizeFusionSymbol(parsed.data.symbol),
-		condition: parsed.data.condition as AlertCondition,
-		targetValue: parsed.data.targetValue,
-		message: parsed.data.message?.trim() || undefined,
-		enabled: parsed.data.enabled,
-	});
+	try {
+		const alert = await createPriceAlert({
+			profileKey: parsed.data.profileKey,
+			symbol: canonicalizeFusionSymbol(parsed.data.symbol),
+			condition: parsed.data.condition as AlertCondition,
+			targetValue: parsed.data.targetValue,
+			message: parsed.data.message?.trim() || undefined,
+			enabled: parsed.data.enabled,
+		});
 
-	return NextResponse.json({ success: true, alert }, { status: 201 });
+		return withRequestId(
+			NextResponse.json(
+				{ success: true, alert, requestId, degraded: false, degraded_reasons: [] },
+				{ status: 201 },
+			),
+			requestId,
+		);
+	} catch (error: unknown) {
+		return errorResponse(requestId, error);
+	}
 }

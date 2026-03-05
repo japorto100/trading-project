@@ -64,11 +64,44 @@ export async function proxyGeopoliticalGatewayRequest(
 			cache: "no-store",
 		});
 		const payload = await upstream.arrayBuffer();
+		const contentType = upstream.headers.get("content-type") || "application/json";
+		if (contentType.includes("application/json")) {
+			try {
+				const rawText = new TextDecoder().decode(payload);
+				const parsed = JSON.parse(rawText) as unknown;
+				if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+					const enriched = {
+						...parsed,
+						requestId:
+							(parsed as { requestId?: unknown }).requestId &&
+							typeof (parsed as { requestId?: unknown }).requestId === "string"
+								? (parsed as { requestId: string }).requestId
+								: requestId,
+						degraded:
+							typeof (parsed as { degraded?: unknown }).degraded === "boolean"
+								? (parsed as { degraded: boolean }).degraded
+								: false,
+						degraded_reasons: Array.isArray(
+							(parsed as { degraded_reasons?: unknown }).degraded_reasons,
+						)
+							? (parsed as { degraded_reasons: string[] }).degraded_reasons
+							: [],
+					};
+					return withRequestIdHeader(
+						NextResponse.json(enriched, {
+							status: upstream.status,
+							headers: { "Content-Type": contentType },
+						}),
+						requestId,
+					);
+				}
+			} catch {
+				// Fall back to pass-through below when payload is not valid JSON.
+			}
+		}
 		const response = new NextResponse(payload, {
 			status: upstream.status,
-			headers: {
-				"Content-Type": upstream.headers.get("content-type") || "application/json",
-			},
+			headers: { "Content-Type": contentType },
 		});
 		return withRequestIdHeader(response, requestId);
 	} catch (error) {
@@ -77,6 +110,9 @@ export async function proxyGeopoliticalGatewayRequest(
 				{
 					success: false,
 					error: error instanceof Error ? error.message : "gateway proxy failed",
+					requestId,
+					degraded: true,
+					degraded_reasons: ["GO_GATEWAY_UNAVAILABLE"],
 				},
 				{ status: 502 },
 			),

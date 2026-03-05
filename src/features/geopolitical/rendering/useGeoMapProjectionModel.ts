@@ -34,6 +34,7 @@ export interface GeoMapProjectionModel {
 		eventCount: number;
 		maxSeverity: number;
 		regimeState: CountryRegimeState;
+		macroValue?: number;
 	}>;
 	graticulePath: string;
 	spherePath: string;
@@ -165,6 +166,7 @@ interface UseGeoMapProjectionModelParams {
 	candidates: GeoCandidate[];
 	drawings: GeoDrawing[];
 	bodyPointLayerVisibility?: Partial<Record<string, boolean>>;
+	macroOverlayData?: Record<string, { value: number }> | null;
 	rotation: [number, number, number];
 	scale: number;
 }
@@ -175,6 +177,7 @@ export function useGeoMapProjectionModel({
 	candidates,
 	drawings,
 	bodyPointLayerVisibility,
+	macroOverlayData,
 	rotation,
 	scale,
 }: UseGeoMapProjectionModelParams): GeoMapProjectionModel {
@@ -243,11 +246,16 @@ export function useGeoMapProjectionModel({
 
 		for (const country of countries) {
 			const metrics = countryMetricsById.get(country.id);
-			if (!metrics) continue;
-			country.intensity = metrics.intensity;
-			country.eventCount = metrics.eventCount;
-			country.maxSeverity = metrics.maxSeverity;
-			country.regimeState = deriveCountryRegimeState(metrics);
+			if (metrics) {
+				country.intensity = metrics.intensity;
+				country.eventCount = metrics.eventCount;
+				country.maxSeverity = metrics.maxSeverity;
+				country.regimeState = deriveCountryRegimeState(metrics);
+			}
+			const macroEntry = macroOverlayData?.[country.id];
+			if (macroEntry && Number.isFinite(macroEntry.value)) {
+				country.macroValue = macroEntry.value;
+			}
 		}
 
 		const graticulePath = pathGenerator(geoGraticule10()) ?? "";
@@ -368,5 +376,14 @@ export function useGeoMapProjectionModel({
 			drawingPaths,
 			bodyPointLayers,
 		};
-	}, [bodyPointLayerVisibility, candidates, drawings, events, mapBody, rotation, scale]);
+	}, [
+		bodyPointLayerVisibility,
+		candidates,
+		drawings,
+		events,
+		macroOverlayData,
+		mapBody,
+		rotation,
+		scale,
+	]);
 }

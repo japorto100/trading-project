@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 type MacroIngestTarget struct {
@@ -34,7 +36,7 @@ type MacroIngestService struct {
 }
 
 type macroHistoryProvider interface {
-	History(ctx context.Context, exchange string, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error)
+	History(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error)
 }
 
 func NewMacroIngestService(history macroHistoryProvider, outputDir string, requestTTL time.Duration) *MacroIngestService {
@@ -85,12 +87,12 @@ func (s *MacroIngestService) RunOnce(ctx context.Context, targets []MacroIngestT
 	var firstErr error
 	for _, target := range targets {
 		exchange := strings.ToUpper(strings.TrimSpace(target.Exchange))
-		asset := strings.ToLower(strings.TrimSpace(target.Asset))
-		if exchange == "" || asset == "" {
+		assetStr := strings.ToLower(strings.TrimSpace(target.Asset))
+		if exchange == "" || assetStr == "" {
 			continue
 		}
 		pair, normalizedSymbol := macroTargetPair(exchange, target.Symbol)
-		if pair.Base == "" {
+		if pair.Base.String() == "" {
 			continue
 		}
 		limit := target.Limit
@@ -99,7 +101,8 @@ func (s *MacroIngestService) RunOnce(ctx context.Context, targets []MacroIngestT
 		}
 
 		requestCtx, cancel := context.WithTimeout(ctx, s.requestTTL)
-		points, err := s.macroHistory.History(requestCtx, exchange, pair, asset, limit)
+		assetItem, _ := asset.New(assetStr)
+		points, err := s.macroHistory.History(requestCtx, exchange, pair, assetItem, limit)
 		cancel()
 		if err != nil {
 			if firstErr == nil {
@@ -111,7 +114,7 @@ func (s *MacroIngestService) RunOnce(ctx context.Context, targets []MacroIngestT
 		snapshot := MacroIngestSnapshot{
 			Exchange:  strings.ToLower(exchange),
 			Symbol:    normalizedSymbol,
-			AssetType: asset,
+			AssetType: assetStr,
 			FetchedAt: time.Now().Unix(),
 			Points:    points,
 		}
@@ -136,7 +139,7 @@ func (s *MacroIngestService) writeSnapshot(snapshot MacroIngestSnapshot) error {
 	return nil
 }
 
-func macroTargetPair(exchange, symbol string) (gct.Pair, string) {
+func macroTargetPair(exchange, symbol string) (currency.Pair, string) {
 	normalizedSymbol := strings.ToUpper(strings.TrimSpace(symbol))
 
 	if exchange == "ECB" {
@@ -144,18 +147,18 @@ func macroTargetPair(exchange, symbol string) (gct.Pair, string) {
 		normalizedSymbol = strings.ReplaceAll(normalizedSymbol, "_", "/")
 		parts := strings.Split(normalizedSymbol, "/")
 		if len(parts) == 2 {
-			return gct.Pair{Base: parts[0], Quote: parts[1]}, parts[0] + "/" + parts[1]
+			return currency.NewPair(currency.NewCode(parts[0]), currency.NewCode(parts[1])), parts[0] + "/" + parts[1]
 		}
-		return gct.Pair{}, ""
+		return currency.EMPTYPAIR, ""
 	}
 
 	normalizedSymbol = strings.ReplaceAll(normalizedSymbol, "-", "_")
 	normalizedSymbol = strings.ReplaceAll(normalizedSymbol, " ", "_")
 	seriesID := ResolveMacroSeries(exchange, normalizedSymbol)
 	if seriesID == "" {
-		return gct.Pair{}, ""
+		return currency.EMPTYPAIR, ""
 	}
-	return gct.Pair{Base: seriesID, Quote: "USD"}, seriesID
+	return currency.NewPair(currency.NewCode(seriesID), currency.NewCode("USD")), seriesID
 }
 
 func sanitizeMacroToken(value string) string {

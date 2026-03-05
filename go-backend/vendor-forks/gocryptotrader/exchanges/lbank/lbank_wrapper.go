@@ -195,7 +195,7 @@ func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, a asset.It
 }
 
 // UpdateOrderbook updates and returns the orderbook for a currency pair
-func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType asset.Item) (*orderbook.Book, error) {
+func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType string) (*orderbook.Book, error) {
 	if !e.SupportsAsset(assetType) {
 		return nil, fmt.Errorf("%w: %q", asset.ErrNotSupported, assetType)
 	}
@@ -225,7 +225,7 @@ func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetTy
 }
 
 // UpdateAccountBalances retrieves currency balances
-func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType asset.Item) (accounts.SubAccounts, error) {
+func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType string) (accounts.SubAccounts, error) {
 	resp, err := e.GetUserInfo(ctx)
 	if err != nil {
 		return nil, err
@@ -281,12 +281,12 @@ func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, a
 }
 
 // GetRecentTrades returns the most recent trades for a currency and asset
-func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType asset.Item) ([]trade.Data, error) {
+func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType string) ([]trade.Data, error) {
 	return e.GetHistoricTrades(ctx, p, assetType, time.Now().Add(-time.Minute*15), time.Now())
 }
 
 // GetHistoricTrades returns historic trade data within the timeframe provided
-func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType asset.Item, timestampStart, timestampEnd time.Time) ([]trade.Data, error) {
+func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType string, timestampStart, timestampEnd time.Time) ([]trade.Data, error) {
 	if err := common.StartEndTimeCheck(timestampStart, timestampEnd); err != nil {
 		return nil, fmt.Errorf("invalid time range supplied. Start: %v End %v %w", timestampStart, timestampEnd, err)
 	}
@@ -757,7 +757,7 @@ func (e *Exchange) getAllOpenOrderID(ctx context.Context) (map[string][]string, 
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper functionality
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }

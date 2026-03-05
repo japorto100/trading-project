@@ -9,7 +9,7 @@ asset_classes:
     providers: [ecb]
     strategy: authority_first
   macro:
-    providers: [fred, fed, boj, snb, bcb, banxico, bok, bcra, tcmb, rbi]
+    providers: [fred, fed, boj, snb, bcb, banxico, bok, bcra, tcmb, rbi, imf]
     strategy: authority_first
 
 providers:
@@ -144,6 +144,14 @@ providers:
     group: g4_centralbank_timeseries
     kind: central_bank_timeseries_rest
     notes: RBI DBIE gateway adapter (RBI_DBIE_FXRES_<reserve>_<currency>_<freq>) with session-token handshake
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  imf:
+    group: g4_centralbank_timeseries
+    kind: sdmx_timeseries
+    notes: IMF IFS SDMX adapter (IMF_IFS_<FREQ>_<REF_AREA>_<INDICATOR>, e.g. M_111_FITB for USA policy rate)
     capabilities:
       quote: true
       ohlcv: true

@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { OrderStatus } from "@/lib/orders/types";
@@ -14,22 +15,67 @@ const updateOrderStatusSchema = z.object({
 	status: z.enum(["open", "filled", "cancelled"]),
 });
 
+function withRequestId(response: NextResponse, requestId: string): NextResponse {
+	response.headers.set("X-Request-ID", requestId);
+	return response;
+}
+
+function errorResponse(requestId: string, error: unknown): NextResponse {
+	const message = error instanceof Error ? error.message : "order update failed";
+	const persistenceError =
+		message.includes("fallback is disabled") ||
+		message.toLowerCase().includes("db client unavailable");
+	return withRequestId(
+		NextResponse.json(
+			{
+				success: false,
+				error: message,
+				requestId,
+				degraded: true,
+				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
+			},
+			{ status: persistenceError ? 503 : 500 },
+		),
+		requestId,
+	);
+}
+
 export async function PATCH(request: NextRequest, context: ParamsShape) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	const { orderId } = await context.params;
 	let payload: unknown;
 	try {
 		payload = await request.json();
 	} catch {
-		return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "invalid JSON body",
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
+		);
 	}
 	const parsed = updateOrderStatusSchema.safeParse(payload);
 	if (!parsed.success) {
-		return NextResponse.json(
-			{
-				error: "invalid order status payload",
-				details: parsed.error.flatten(),
-			},
-			{ status: 400 },
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "invalid order status payload",
+					details: parsed.error.flatten(),
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
 		);
 	}
 
@@ -37,13 +83,50 @@ export async function PATCH(request: NextRequest, context: ParamsShape) {
 	const status = parsed.data.status as OrderStatus;
 
 	if (!profileKey || !orderId) {
-		return NextResponse.json({ error: "profileKey and orderId are required" }, { status: 400 });
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "profileKey and orderId are required",
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
+		);
 	}
 
-	const updated = await updatePaperOrderStatus(profileKey, orderId, status);
-	if (!updated) {
-		return NextResponse.json({ error: "order not found" }, { status: 404 });
-	}
+	try {
+		const updated = await updatePaperOrderStatus(profileKey, orderId, status);
+		if (!updated) {
+			return withRequestId(
+				NextResponse.json(
+					{
+						success: false,
+						error: "order not found",
+						requestId,
+						degraded: false,
+						degraded_reasons: [],
+					},
+					{ status: 404 },
+				),
+				requestId,
+			);
+		}
 
-	return NextResponse.json({ success: true, order: updated });
+		return withRequestId(
+			NextResponse.json({
+				success: true,
+				order: updated,
+				requestId,
+				degraded: false,
+				degraded_reasons: [],
+			}),
+			requestId,
+		);
+	} catch (error: unknown) {
+		return errorResponse(requestId, error);
+	}
 }

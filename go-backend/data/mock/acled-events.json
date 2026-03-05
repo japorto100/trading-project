@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "id": "mock-acled-geo-1",
+      "eventDate": "2026-03-02",
+      "country": "United States",
+      "region": "Americas",
+      "eventType": "Strategic developments",
+      "subEventType": "Policy signal",
+      "actor1": "Mock Actor A",
+      "actor2": "Mock Actor B",
+      "fatalities": 0,
+      "location": "Washington",
+      "latitude": 38.9072,
+      "longitude": -77.0369,
+      "source": "mock:acled:file",
+      "notes": "Local ACLED mock fixture for game-theory live verification."
+    }
+  ]
+}

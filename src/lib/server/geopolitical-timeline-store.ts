@@ -1,53 +1,33 @@
-﻿import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import type { GeoTimelineEntry, GeoTimelineStoreFile } from "@/lib/geopolitical/types";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 const DATA_DIR = path.join(process.cwd(), "data", "geopolitical");
 const STORE_PATH = path.join(DATA_DIR, "timeline.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<GeoTimelineStoreFile>({
+	storeName: "geopolitical-timeline-store",
+	filePath: STORE_PATH,
+	defaultValue: { timeline: [] },
+	isValid: (value: unknown): value is GeoTimelineStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as GeoTimelineStoreFile).timeline),
+});
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
-}
-
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
+	return localStore.withWriteLock(task);
 }
 
 async function readStore(): Promise<GeoTimelineStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as GeoTimelineStoreFile;
-		if (!parsed || !Array.isArray(parsed.timeline)) {
-			return { timeline: [] };
-		}
-		return { timeline: parsed.timeline };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) return { timeline: [] };
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(store: GeoTimelineStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+	await localStore.write(store);
 }
 
 function sortNewestFirst(entries: GeoTimelineEntry[]): GeoTimelineEntry[] {
@@ -90,9 +70,12 @@ export async function listGeoTimeline(eventId?: string, limit = 120): Promise<Ge
 				take: Math.max(1, Math.min(limit, 500)),
 			});
 			return rows.map(toTimelineEntry);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo timeline DB list failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo timeline DB client unavailable");
 	}
 
 	const store = await readStore();
@@ -118,9 +101,12 @@ export async function appendGeoTimelineEntry(
 				},
 			});
 			return toTimelineEntry(created);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo timeline DB append failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo timeline DB client unavailable");
 	}
 
 	return withWriteLock(async () => {

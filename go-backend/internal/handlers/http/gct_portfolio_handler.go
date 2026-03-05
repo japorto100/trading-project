@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 // gctPortfolioClient is the interface the handler needs from the GCT client.
 type gctPortfolioClient interface {
 	Health(ctx context.Context) gct.HealthStatus
-	GetAccountInfo(ctx context.Context, exchange, assetType string) (gct.AccountInfo, error)
+	GetAccountInfo(ctx context.Context, exchange string, assetType asset.Item) (gct.AccountInfo, error)
 	GetExchanges(ctx context.Context) ([]gct.ExchangeInfo, error)
 }
 
@@ -111,7 +112,8 @@ func handlePortfolioSummary(w http.ResponseWriter, r *http.Request, client gctPo
 
 	for _, ex := range exchanges {
 		assetType := "spot"
-		info, infoErr := client.GetAccountInfo(ctx, ex.Name, assetType)
+		assetItem, _ := asset.New(assetType)
+		info, infoErr := client.GetAccountInfo(ctx, ex.Name, assetItem)
 		if infoErr != nil {
 			resp.Notes = append(resp.Notes, "Could not load balances for "+ex.Name+": "+infoErr.Error())
 			continue
@@ -172,8 +174,9 @@ func handlePortfolioBalances(w http.ResponseWriter, r *http.Request, client gctP
 	if assetType == "" {
 		assetType = "spot"
 	}
+	assetItem, _ := asset.New(assetType)
 
-	info, err := client.GetAccountInfo(ctx, exchange, assetType)
+	info, err := client.GetAccountInfo(ctx, exchange, assetItem)
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return

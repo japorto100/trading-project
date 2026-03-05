@@ -1,3 +1,4 @@
+// Package base provides connector utilities. retry.go holds scaffold for future retry logic.
 package base
 
 import (
@@ -17,6 +18,9 @@ func isIdempotentMethod(method string) bool {
 	}
 }
 
+// shouldRetry is reserved for future connector retry logic.
+//
+//nolint:unused
 func shouldRetry(method string, resp *http.Response, err error) bool {
 	if !isIdempotentMethod(method) {
 		return false
@@ -37,6 +41,9 @@ func shouldRetry(method string, resp *http.Response, err error) bool {
 	return resp.StatusCode >= http.StatusInternalServerError
 }
 
+// retryBackoff is reserved for future connector retry logic.
+//
+//nolint:unused
 func retryBackoff(attempt int) time.Duration {
 	if attempt < 0 {
 		attempt = 0
@@ -50,6 +57,9 @@ func retryBackoff(attempt int) time.Duration {
 	return delay
 }
 
+// min is used by retryBackoff.
+//
+//nolint:unused
 func min(a, b int) int {
 	if a < b {
 		return a

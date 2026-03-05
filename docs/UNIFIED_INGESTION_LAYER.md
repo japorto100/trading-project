@@ -1,6 +1,9 @@
 # Unified Ingestion Layer (UIL) -- Unstrukturierte Datenquellen
 
-> **Stand:** 19. Februar 2026
+> **Stand:** 28. Februar 2026
+> **UIL Contract Freeze (v1.0):** Candidate, Timeline, Contradictions — siehe Sek. 8.1
+
+---
 > **Scope:** Architektur fuer die Aufnahme, Verarbeitung und Klassifizierung unstrukturierter Datenquellen (YouTube-Transcripts, Reddit, Copy/Paste, Chat-Exports, Paywall-Artikel). Hierarchische Klassifizierung, Double-Threshold Human-in-the-Loop Review, Training-Loop.
 > **Status:** Konzept. Kein Code implementiert.
 > **Prioritaet:** MITTEL. Setzt voraus dass Go Data Router (strukturierte Daten) und Soft-Signal Pipeline (GeoMap) stabil laufen.
@@ -820,6 +823,36 @@ GeoMap braucht ueber den generischen UIL-Candidate-Flow hinaus ein paar spezifis
 7. **Rückbau / Stabilisierung**
    - Next-TS Domainlogik fuer bereits Go-owned Pfade entfernen oder als minimalen thin proxy belassen (Post-Cutover Status: `ingest/seed`, `POST /api/geopolitical/candidates` sowie Review/Contradictions/Timeline-Aliase sind bereits thin-proxy oder thin-proxy+Shadow-Compare-guarded)
    - Cutover-Flags und Betriebsmodus dokumentieren (`SYSTEM_STATE.md`, `EXECUTION_PLAN.md`)
+
+---
+
+## 8.2 Contract Freeze (Phase 9e, v1.0)
+
+Diese UIL-Geo Contracts sind als `v1.0` eingefroren:
+
+- Candidate Review Queue / Actions -> `candidate-review-v1.0`
+- Contradictions API -> `contradictions-v1.0`
+- Timeline Read Model -> `timeline-v1.0`
+
+### 8.2.1 Einheitlicher Degradation-/Observability-Envelope
+
+Mutierende und review-relevante Antworten tragen verpflichtend:
+
+```json
+{
+  "requestId": "uuid",
+  "degraded": false,
+  "degraded_reasons": [],
+  "auditId": "uuid",
+  "contract_version": "candidate-review-v1.0"
+}
+```
+
+Hinweise:
+
+- `auditId` ist Pflicht fuer review/ingest/contradiction Mutationen.
+- Breaking Changes nur ueber neue `contract_version` (z. B. `v1.1`), nicht still in `v1.0`.
+- Next-Routen bleiben thin-proxy-kompatibel zum Go-Envelope (keine lokalen Sonderformate).
 
 ---
 

@@ -9,6 +9,16 @@ async function isServiceUp(url: string): Promise<boolean> {
 	}
 }
 
+async function waitUntilServiceUp(url: string, attempts = 3, delayMs = 800): Promise<boolean> {
+	for (let i = 0; i < attempts; i++) {
+		if (await isServiceUp(url)) return true;
+		if (i < attempts - 1) {
+			await new Promise((resolve) => setTimeout(resolve, delayMs));
+		}
+	}
+	return false;
+}
+
 test.describe("TradeView Fusion – Full Stack Data Flow", () => {
 	test("smoke: trading page loads", async ({ page }) => {
 		await page.goto("/");
@@ -18,7 +28,7 @@ test.describe("TradeView Fusion – Full Stack Data Flow", () => {
 
 	test("market data: BTC price row visible (requires Go gateway)", async ({ page }) => {
 		test.skip(
-			!(await isServiceUp("http://localhost:9060/health")),
+			!(await waitUntilServiceUp("http://localhost:9060/health")),
 			"Go gateway not running – skip market data test",
 		);
 
@@ -37,7 +47,7 @@ test.describe("TradeView Fusion – Full Stack Data Flow", () => {
 
 	test("ingest soft trigger (requires Go gateway)", async ({ page }) => {
 		test.skip(
-			!(await isServiceUp("http://localhost:9060/health")),
+			!(await waitUntilServiceUp("http://localhost:9060/health")),
 			"Go gateway not running – skip ingest test",
 		);
 
@@ -52,7 +62,7 @@ test.describe("TradeView Fusion – Full Stack Data Flow", () => {
 
 	test("strategy lab panel accessible (requires Python indicator service)", async ({ page }) => {
 		test.skip(
-			!(await isServiceUp("http://localhost:8090/health")),
+			!(await waitUntilServiceUp("http://localhost:8092/health")),
 			"Python indicator service not running – skip strategy test",
 		);
 

@@ -1,6 +1,4936 @@
 {
   "events": [
     {
+      "id": "ge_2555a8b8bb2dd641",
+      "title": "Seed Energy monitoring update - East Asia #220",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 32.22,
+          "lng": 117.22
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5d531a5eda7477f9",
+      "title": "Seed Conflict monitoring update - MENA #219",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 21.84,
+          "lng": 28.84
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_eb9703c3db730dd5",
+      "title": "Seed Rates monitoring update - Europe #218",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 55.46,
+          "lng": 21.46
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_62f63de8fb7e7eaa",
+      "title": "Seed Sanctions monitoring update - North America #217",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 44.08,
+          "lng": -96.92
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_3eea7c02ca8f27d3",
+      "title": "Seed Energy monitoring update - Southeast Asia #216",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 8.700000000000001,
+          "lng": 101.7
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_16586d36cde8e71a",
+      "title": "Seed Conflict monitoring update - South Asia #215",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 20.32,
+          "lng": 68.32
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_c5198f606565dabc",
+      "title": "Seed Rates monitoring update - East Asia #214",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.939999999999998,
+          "lng": 122.94
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_6eb3112802026197",
+      "title": "Seed Sanctions monitoring update - MENA #213",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 21.56,
+          "lng": 34.56
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_0b62af349dcd1230",
+      "title": "Seed Energy monitoring update - Europe #212",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 55.18,
+          "lng": 5.18
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_9c85636b2ce4f087",
+      "title": "Seed Conflict monitoring update - North America #211",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 43.8,
+          "lng": -91.2
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_1c6f0cb83afa3be5",
+      "title": "Seed Rates monitoring update - Southeast Asia #210",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 8.42,
+          "lng": 107.42
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4436a25cc145a9fa",
+      "title": "Seed Sanctions monitoring update - South Asia #209",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 20.04,
+          "lng": 74.04
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_eb1fd86a3b626cc6",
+      "title": "Seed Energy monitoring update - East Asia #208",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.66,
+          "lng": 106.66
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4cb7140249d7f8b6",
+      "title": "Seed Conflict monitoring update - MENA #207",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 21.28,
+          "lng": 40.28
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_41291d61fe1872c7",
+      "title": "Seed Rates monitoring update - Europe #206",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 54.9,
+          "lng": 10.9
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_c5a3b1a346c13125",
+      "title": "Seed Sanctions monitoring update - North America #205",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 43.52,
+          "lng": -107.48
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_7c0de6e08b26aa7b",
+      "title": "Seed Energy monitoring update - Southeast Asia #204",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 8.14,
+          "lng": 113.14
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_8dcb3d7ddcc518eb",
+      "title": "Seed Conflict monitoring update - South Asia #203",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 19.76,
+          "lng": 79.76
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_aed5994309ad9db5",
+      "title": "Seed Rates monitoring update - East Asia #202",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.380000000000003,
+          "lng": 112.38
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4815c6c31342a113",
+      "title": "Seed Sanctions monitoring update - MENA #201",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 21,
+          "lng": 24
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2d5bfb309c750a83",
+      "title": "Seed Energy monitoring update - Europe #200",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 54.62,
+          "lng": 16.619999999999997
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_f5d0f2487c934586",
+      "title": "Seed Conflict monitoring update - North America #199",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 43.24,
+          "lng": -101.76
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_7ba175da32d1cef8",
+      "title": "Seed Rates monitoring update - Southeast Asia #198",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 7.859999999999999,
+          "lng": 96.86
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e185635a522f8b84",
+      "title": "Seed Sanctions monitoring update - South Asia #197",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 19.48,
+          "lng": 85.48
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_32e47b260ded94bc",
+      "title": "Seed Energy monitoring update - East Asia #196",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.1,
+          "lng": 118.1
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:08Z",
+      "updatedAt": "2026-03-02T16:50:08Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_79707ddb6d28e191",
+      "title": "Seed Conflict monitoring update - MENA #195",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 34.72,
+          "lng": 29.72
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4a80e53839ff1dba",
+      "title": "Seed Rates monitoring update - Europe #194",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 54.34,
+          "lng": 22.34
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_ea5b17ffa22c3ecf",
+      "title": "Seed Sanctions monitoring update - North America #193",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.96,
+          "lng": -96.03999999999999
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_11173c5eb7025e09",
+      "title": "Seed Energy monitoring update - Southeast Asia #192",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 7.58,
+          "lng": 102.58
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2faad023d66764be",
+      "title": "Seed Conflict monitoring update - South Asia #191",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 19.2,
+          "lng": 69.2
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_6c3dbde306e6bbb8",
+      "title": "Seed Rates monitoring update - East Asia #190",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 30.82,
+          "lng": 123.82000000000001
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5e3637286328776c",
+      "title": "Seed Sanctions monitoring update - MENA #189",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 34.44,
+          "lng": 35.44
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_63260c6c344edc13",
+      "title": "Seed Energy monitoring update - Europe #188",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 54.06,
+          "lng": 6.06
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e469daafd5df6ac3",
+      "title": "Seed Conflict monitoring update - North America #187",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.68,
+          "lng": -90.32
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_6cef98b5e07b5db4",
+      "title": "Seed Rates monitoring update - Southeast Asia #186",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 7.3,
+          "lng": 108.3
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_65fe48c32004c3c5",
+      "title": "Seed Sanctions monitoring update - South Asia #185",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 18.92,
+          "lng": 74.92
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_fb55066638532275",
+      "title": "Seed Energy monitoring update - East Asia #184",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 30.54,
+          "lng": 107.54
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_1fbf40f63a9769c3",
+      "title": "Seed Conflict monitoring update - MENA #183",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 34.16,
+          "lng": 41.16
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_897415e33249d98d",
+      "title": "Seed Rates monitoring update - Europe #182",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 53.78,
+          "lng": 11.78
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_98eb0f940eb75ee6",
+      "title": "Seed Sanctions monitoring update - North America #181",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.4,
+          "lng": -106.6
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_39fd297ccc4333e6",
+      "title": "Seed Energy monitoring update - Southeast Asia #180",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 7.02,
+          "lng": 114.02
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:07Z",
+      "updatedAt": "2026-03-02T16:50:07Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_00fa329f345bcdaf",
+      "title": "Seed Conflict monitoring update - South Asia #179",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 18.64,
+          "lng": 80.64
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_9637376a5f98c0c5",
+      "title": "Seed Rates monitoring update - East Asia #178",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 30.259999999999998,
+          "lng": 113.26
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_7e8c4c03d9e3688b",
+      "title": "Seed Sanctions monitoring update - MENA #177",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 33.88,
+          "lng": 24.88
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_eaa112951e91f629",
+      "title": "Seed Energy monitoring update - Europe #176",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 53.5,
+          "lng": 17.5
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_6c3e659e68856b35",
+      "title": "Seed Conflict monitoring update - North America #175",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.12,
+          "lng": -100.88
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_3a2049b340379d59",
+      "title": "Seed Rates monitoring update - Southeast Asia #174",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 6.74,
+          "lng": 97.74
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_1c0196beadaf6cc3",
+      "title": "Seed Sanctions monitoring update - South Asia #173",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 18.36,
+          "lng": 86.36
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_b5981f5a8ce9acb3",
+      "title": "Seed Energy monitoring update - East Asia #172",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.98,
+          "lng": 118.98
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_064a85db5d98e3c5",
+      "title": "Seed Conflict monitoring update - MENA #171",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 33.6,
+          "lng": 30.6
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_8355b706b73e266d",
+      "title": "Seed Rates monitoring update - Europe #170",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 53.22,
+          "lng": 1.2200000000000006
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_61f5488e9931ae43",
+      "title": "Seed Sanctions monitoring update - North America #169",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 41.84,
+          "lng": -95.16
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_cf5edcf012556abf",
+      "title": "Seed Energy monitoring update - Southeast Asia #168",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 6.46,
+          "lng": 103.46
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_89eb9eac2babb35a",
+      "title": "Seed Conflict monitoring update - South Asia #167",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 18.08,
+          "lng": 70.08
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_ffbd0d0d2ef6bcf6",
+      "title": "Seed Rates monitoring update - East Asia #166",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.7,
+          "lng": 124.7
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_dd0e0336c4d58b03",
+      "title": "Seed Sanctions monitoring update - MENA #165",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 33.32,
+          "lng": 36.32
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_a5771c331fad338e",
+      "title": "Seed Energy monitoring update - Europe #164",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 52.94,
+          "lng": 6.94
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_c18bdb4ef11c7ff6",
+      "title": "Seed Conflict monitoring update - North America #163",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 41.56,
+          "lng": -89.44
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2d913260097f7889",
+      "title": "Seed Rates monitoring update - Southeast Asia #162",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 6.18,
+          "lng": 109.17999999999999
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_0954c7a1304b8ef4",
+      "title": "Seed Sanctions monitoring update - South Asia #161",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 17.8,
+          "lng": 75.8
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_72296305cb9009ac",
+      "title": "Seed Energy monitoring update - East Asia #160",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.42,
+          "lng": 108.42
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e3ec388b2337d521",
+      "title": "Seed Conflict monitoring update - MENA #159",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 33.04,
+          "lng": 42.04
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:06Z",
+      "updatedAt": "2026-03-02T16:50:06Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_0c7049362dce6149",
+      "title": "Seed Rates monitoring update - Europe #158",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 52.66,
+          "lng": 12.66
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_8b50bcccf35ecbb8",
+      "title": "Seed Sanctions monitoring update - North America #157",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 41.28,
+          "lng": -105.72
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_3a5073fbc94276a8",
+      "title": "Seed Energy monitoring update - Southeast Asia #156",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 5.8999999999999995,
+          "lng": 114.9
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4c992b85c821533a",
+      "title": "Seed Conflict monitoring update - South Asia #155",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 17.52,
+          "lng": 81.52
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_9685c6e5e99304b6",
+      "title": "Seed Rates monitoring update - East Asia #154",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.14,
+          "lng": 114.14
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_31c0b92d12b94603",
+      "title": "Seed Sanctions monitoring update - MENA #153",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 32.76,
+          "lng": 25.759999999999998
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_b70f6929e1f38930",
+      "title": "Seed Energy monitoring update - Europe #152",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 52.38,
+          "lng": 18.380000000000003
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_17488ae0e0f14585",
+      "title": "Seed Conflict monitoring update - North America #151",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 41,
+          "lng": -100
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_0205cf87ed161d25",
+      "title": "Seed Rates monitoring update - Southeast Asia #150",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 5.62,
+          "lng": 98.62
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5a2ba8a32f605557",
+      "title": "Seed Sanctions monitoring update - South Asia #149",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 17.240000000000002,
+          "lng": 87.24
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_724b1d0b7f7ffdc6",
+      "title": "Seed Energy monitoring update - East Asia #148",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.86,
+          "lng": 119.86
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_577bf19eaa1e5773",
+      "title": "Seed Conflict monitoring update - MENA #147",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 32.48,
+          "lng": 31.48
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_309a8c6e44eb71a1",
+      "title": "Seed Rates monitoring update - Europe #146",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 52.1,
+          "lng": 2.0999999999999996
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e36420c232d1d045",
+      "title": "Seed Sanctions monitoring update - North America #145",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 40.72,
+          "lng": -94.28
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_78acc055e42f0ffa",
+      "title": "Seed Energy monitoring update - Southeast Asia #144",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 5.34,
+          "lng": 104.34
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_108c236458c152d2",
+      "title": "Seed Conflict monitoring update - South Asia #143",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 16.96,
+          "lng": 70.96
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_ab02da957e5a8b2b",
+      "title": "Seed Rates monitoring update - East Asia #142",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.58,
+          "lng": 125.58
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2bc97ca45697ea00",
+      "title": "Seed Sanctions monitoring update - MENA #141",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 32.2,
+          "lng": 37.2
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_61b920cbb238fb9e",
+      "title": "Seed Energy monitoring update - Europe #140",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 51.82,
+          "lng": 7.82
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_9db05cd894fcf068",
+      "title": "Seed Conflict monitoring update - North America #139",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 40.44,
+          "lng": -110.56
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_1da4495c7363d226",
+      "title": "Seed Rates monitoring update - Southeast Asia #138",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 5.06,
+          "lng": 110.06
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_cdeb2821368b241c",
+      "title": "Seed Sanctions monitoring update - South Asia #137",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 16.68,
+          "lng": 76.68
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2ae92f0482915bd1",
+      "title": "Seed Energy monitoring update - East Asia #136",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.3,
+          "lng": 109.3
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_1df47a73faba1362",
+      "title": "Seed Conflict monitoring update - MENA #135",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.92,
+          "lng": 42.92
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_f5c8e51911defd97",
+      "title": "Seed Rates monitoring update - Europe #134",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 51.54,
+          "lng": 13.54
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_ba49e6de988e8f22",
+      "title": "Seed Sanctions monitoring update - North America #133",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 40.16,
+          "lng": -104.84
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:05Z",
+      "updatedAt": "2026-03-02T16:50:05Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_7d47bd95af4bcd2a",
+      "title": "Seed Energy monitoring update - Southeast Asia #132",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 4.78,
+          "lng": 115.78
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_abe6041a2f16fda6",
+      "title": "Seed Conflict monitoring update - South Asia #131",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 16.4,
+          "lng": 82.4
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_f4ee383562d52d44",
+      "title": "Seed Rates monitoring update - East Asia #130",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 42.02,
+          "lng": 115.02
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_25522cd77db1c0f2",
+      "title": "Seed Sanctions monitoring update - MENA #129",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.64,
+          "lng": 26.64
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_b88ab8bbb25c0fbf",
+      "title": "Seed Energy monitoring update - Europe #128",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 51.26,
+          "lng": 19.259999999999998
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_ceafcf12957702ce",
+      "title": "Seed Conflict monitoring update - North America #127",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 39.88,
+          "lng": -99.12
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_05e6202b5d920bd8",
+      "title": "Seed Rates monitoring update - Southeast Asia #126",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 4.5,
+          "lng": 99.5
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_905b84ea58e38d54",
+      "title": "Seed Sanctions monitoring update - South Asia #125",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 16.12,
+          "lng": 88.12
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_c551c7e8390f5102",
+      "title": "Seed Energy monitoring update - East Asia #124",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 41.74,
+          "lng": 120.74
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_bdfc719e7a9d4fc1",
+      "title": "Seed Conflict monitoring update - MENA #123",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.36,
+          "lng": 32.36
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_952feb0dd47a4ed3",
+      "title": "Seed Rates monitoring update - Europe #122",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 50.98,
+          "lng": 2.9799999999999986
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_7efd4dfdc7f6e861",
+      "title": "Seed Sanctions monitoring update - North America #121",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 39.6,
+          "lng": -93.4
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_a8a0cbe8a3af1266",
+      "title": "Seed Energy monitoring update - Southeast Asia #120",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 4.22,
+          "lng": 105.22
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2dc4e86089cc3fa6",
+      "title": "Seed Conflict monitoring update - South Asia #119",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 15.84,
+          "lng": 71.84
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_62595e606f717d85",
+      "title": "Seed Rates monitoring update - East Asia #118",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 41.46,
+          "lng": 126.46000000000001
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_553b7b3ff832e10e",
+      "title": "Seed Sanctions monitoring update - MENA #117",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 31.08,
+          "lng": 38.08
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:04Z",
+      "updatedAt": "2026-03-02T16:50:04Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_0e48a3a3d54d3397",
+      "title": "Seed Energy monitoring update - Europe #116",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 50.7,
+          "lng": 8.7
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_3699429bc2168d43",
+      "title": "Seed Conflict monitoring update - North America #115",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 39.32,
+          "lng": -109.68
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_b9ed7d6c2f6053b9",
+      "title": "Seed Rates monitoring update - Southeast Asia #114",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 3.9399999999999995,
+          "lng": 110.94
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_d75a6fce4b2e6c63",
+      "title": "Seed Sanctions monitoring update - South Asia #113",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 15.559999999999999,
+          "lng": 77.56
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_023be35b5160daed",
+      "title": "Seed Energy monitoring update - East Asia #112",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 41.18,
+          "lng": 110.18
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_573f3d3bf33b2717",
+      "title": "Seed Conflict monitoring update - MENA #111",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 30.8,
+          "lng": 43.8
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_6c68447c608bb66a",
+      "title": "Seed Rates monitoring update - Europe #110",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 50.42,
+          "lng": 14.42
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_ec30d1dc38855c2c",
+      "title": "Seed Sanctions monitoring update - North America #109",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 39.04,
+          "lng": -103.96
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_46bf1b5aaea21dc1",
+      "title": "Seed Energy monitoring update - Southeast Asia #108",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 3.66,
+          "lng": 94.66
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:03Z",
+      "updatedAt": "2026-03-02T16:50:03Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5bed6272b63053ab",
+      "title": "Seed Conflict monitoring update - South Asia #107",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 15.280000000000001,
+          "lng": 83.28
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4ec3d6fb149113b8",
+      "title": "Seed Rates monitoring update - East Asia #106",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 40.9,
+          "lng": 115.9
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_a67d4bf59b56336e",
+      "title": "Seed Sanctions monitoring update - MENA #105",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 30.52,
+          "lng": 27.52
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_696c573306f5d2aa",
+      "title": "Seed Energy monitoring update - Europe #104",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 50.14,
+          "lng": 20.14
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_f46b128f11417a3a",
+      "title": "Seed Conflict monitoring update - North America #103",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 38.76,
+          "lng": -98.24
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5957b180491c15ba",
+      "title": "Seed Rates monitoring update - Southeast Asia #102",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 3.380000000000001,
+          "lng": 100.38
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_053e79b2f961c124",
+      "title": "Seed Sanctions monitoring update - South Asia #101",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 15,
+          "lng": 67
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_24cec3c47c9ad1aa",
+      "title": "Seed Energy monitoring update - East Asia #100",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 40.62,
+          "lng": 121.62
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4e52be52dd6a9621",
+      "title": "Seed Conflict monitoring update - MENA #99",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 30.240000000000002,
+          "lng": 33.24
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_608aafb2c8869403",
+      "title": "Seed Rates monitoring update - Europe #98",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 49.86,
+          "lng": 3.8599999999999994
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e1744f4895e16f7a",
+      "title": "Seed Sanctions monitoring update - North America #97",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 38.48,
+          "lng": -92.52
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_900489e006245e7b",
+      "title": "Seed Energy monitoring update - Southeast Asia #96",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 3.1000000000000005,
+          "lng": 106.1
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_18876260eaff7926",
+      "title": "Seed Conflict monitoring update - South Asia #95",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 28.72,
+          "lng": 72.72
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_f2cbb6a2073823e4",
+      "title": "Seed Rates monitoring update - East Asia #94",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 40.34,
+          "lng": 127.34
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e978c6e21f32ee0d",
+      "title": "Seed Sanctions monitoring update - MENA #93",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.96,
+          "lng": 38.96
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:02Z",
+      "updatedAt": "2026-03-02T16:50:02Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2d563732db14902a",
+      "title": "Seed Energy monitoring update - Europe #92",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 49.58,
+          "lng": 9.58
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_0a3be20416e5226e",
+      "title": "Seed Conflict monitoring update - North America #91",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 38.2,
+          "lng": -108.8
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5d3b47b4ef859fdb",
+      "title": "Seed Rates monitoring update - Southeast Asia #90",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 2.8200000000000003,
+          "lng": 111.82000000000001
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e8bfd8df15842ab6",
+      "title": "Seed Sanctions monitoring update - South Asia #89",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 28.439999999999998,
+          "lng": 78.44
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2b628b14dd5ec643",
+      "title": "Seed Energy monitoring update - East Asia #88",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 40.06,
+          "lng": 111.06
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_b1ab07618fc5af63",
+      "title": "Seed Conflict monitoring update - MENA #87",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.68,
+          "lng": 44.68
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_e95636a9e7af0f48",
+      "title": "Seed Rates monitoring update - Europe #86",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 49.3,
+          "lng": 15.3
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_ee80736701fedcf8",
+      "title": "Seed Sanctions monitoring update - North America #85",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 37.92,
+          "lng": -103.08
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_7c335c3e3ba11335",
+      "title": "Seed Energy monitoring update - Southeast Asia #84",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 2.54,
+          "lng": 95.54
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5ab7180d2da4befe",
+      "title": "Seed Conflict monitoring update - South Asia #83",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 28.16,
+          "lng": 84.16
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_8e8f511df45b71bc",
+      "title": "Seed Rates monitoring update - East Asia #82",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 39.78,
+          "lng": 116.78
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_bff9d2c4b2e66887",
+      "title": "Seed Sanctions monitoring update - MENA #81",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.4,
+          "lng": 28.4
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_3fab40acf3f2f9c0",
+      "title": "Seed Energy monitoring update - Europe #80",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 49.02,
+          "lng": 21.020000000000003
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_15ccf8bd31654449",
+      "title": "Seed Conflict monitoring update - North America #79",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 37.64,
+          "lng": -97.36
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_f567339714e4b765",
+      "title": "Seed Rates monitoring update - Southeast Asia #78",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 2.26,
+          "lng": 101.26
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_afdcc381840b547d",
+      "title": "Seed Sanctions monitoring update - South Asia #77",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 27.880000000000003,
+          "lng": 67.88
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_f771006761cf5d6f",
+      "title": "Seed Energy monitoring update - East Asia #76",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 39.5,
+          "lng": 122.5
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_c69b225d43199b2d",
+      "title": "Seed Conflict monitoring update - MENA #75",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 29.12,
+          "lng": 34.12
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:01Z",
+      "updatedAt": "2026-03-02T16:50:01Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_347ca2d4163c3eb1",
+      "title": "Seed Rates monitoring update - Europe #74",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 48.74,
+          "lng": 4.740000000000001
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_c59e26417f9a9915",
+      "title": "Seed Sanctions monitoring update - North America #73",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 37.36,
+          "lng": -91.64
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_70b2a4caaa014d2c",
+      "title": "Seed Energy monitoring update - Southeast Asia #72",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 1.9800000000000004,
+          "lng": 106.98
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_dcd041e5a79c3007",
+      "title": "Seed Conflict monitoring update - South Asia #71",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 27.6,
+          "lng": 73.6
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_bb13760ee3f43e36",
+      "title": "Seed Rates monitoring update - East Asia #70",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 39.22,
+          "lng": 106.22
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_feab40431d3c69e2",
+      "title": "Seed Sanctions monitoring update - MENA #69",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 28.84,
+          "lng": 39.84
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_aee3591cef010097",
+      "title": "Seed Energy monitoring update - Europe #68",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 48.46,
+          "lng": 10.46
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_4881bd1d054c7d79",
+      "title": "Seed Conflict monitoring update - North America #67",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 37.08,
+          "lng": -107.92
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5fabc06e8cb6416e",
+      "title": "Seed Rates monitoring update - Southeast Asia #66",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 1.7000000000000002,
+          "lng": 112.7
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_56cdae72c1f3241c",
+      "title": "Seed Sanctions monitoring update - South Asia #65",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 27.32,
+          "lng": 79.32000000000001
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_06bc225ba8d99b5b",
+      "title": "Seed Energy monitoring update - East Asia #64",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 38.94,
+          "lng": 111.94
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_2e1a9e2a156e85ab",
+      "title": "Seed Conflict monitoring update - MENA #63",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 28.560000000000002,
+          "lng": 45.56
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_35c2cbbae2cd6a15",
+      "title": "Seed Rates monitoring update - Europe #62",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "confirmed",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 48.18,
+          "lng": 16.18
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_b539d4a786e67cf3",
+      "title": "Seed Sanctions monitoring update - North America #61",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "candidate",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 36.8,
+          "lng": -102.2
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_c47d6c768acd74a3",
+      "title": "Seed Energy monitoring update - Southeast Asia #60",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "persistent",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 1.42,
+          "lng": 96.42
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_79c294f39afe5bd8",
+      "title": "Seed Conflict monitoring update - South Asia #59",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "confirmed",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 27.04,
+          "lng": 85.03999999999999
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_bd5c9e8ee463e0d2",
+      "title": "Seed Rates monitoring update - East Asia #58",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "candidate",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 38.66,
+          "lng": 117.66
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_73fb9deaca218b7e",
+      "title": "Seed Sanctions monitoring update - MENA #57",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "persistent",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 28.28,
+          "lng": 29.28
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_087ec379704cf7a5",
+      "title": "Seed Energy monitoring update - Europe #56",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "confirmed",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "DE"
+      ],
+      "regionIds": [
+        "europe"
+      ],
+      "coordinates": [
+        {
+          "lat": 47.9,
+          "lng": 21.9
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_b8eeb14deb466328",
+      "title": "Seed Conflict monitoring update - North America #55",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "candidate",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "US"
+      ],
+      "regionIds": [
+        "north-america"
+      ],
+      "coordinates": [
+        {
+          "lat": 36.519999999999996,
+          "lng": -96.48
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_5eae57fbc15b8b8c",
+      "title": "Seed Rates monitoring update - Southeast Asia #54",
+      "symbol": "percent",
+      "category": "monetary_policy_rates",
+      "status": "persistent",
+      "severity": 3,
+      "confidence": 2,
+      "countryCodes": [
+        "SG"
+      ],
+      "regionIds": [
+        "southeast-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 1.1400000000000006,
+          "lng": 102.14
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_753becc1c88de54d",
+      "title": "Seed Sanctions monitoring update - South Asia #53",
+      "symbol": "gavel",
+      "category": "sanctions_export_controls",
+      "status": "confirmed",
+      "severity": 2,
+      "confidence": 1,
+      "countryCodes": [
+        "IN"
+      ],
+      "regionIds": [
+        "south-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 26.759999999999998,
+          "lng": 68.76
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:50:00Z",
+      "updatedAt": "2026-03-02T16:50:00Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_863286f0f586e6f7",
+      "title": "Seed Energy monitoring update - East Asia #52",
+      "symbol": "fuel",
+      "category": "energy_supply_shock",
+      "status": "candidate",
+      "severity": 5,
+      "confidence": 4,
+      "countryCodes": [
+        "CN"
+      ],
+      "regionIds": [
+        "east-asia"
+      ],
+      "coordinates": [
+        {
+          "lat": 38.38,
+          "lng": 123.38
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:49:59Z",
+      "updatedAt": "2026-03-02T16:49:59Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
+      "id": "ge_00a225c59390b60d",
+      "title": "Seed Conflict monitoring update - MENA #51",
+      "symbol": "shield-alert",
+      "category": "conflict_security",
+      "status": "persistent",
+      "severity": 4,
+      "confidence": 3,
+      "countryCodes": [
+        "SA"
+      ],
+      "regionIds": [
+        "mena"
+      ],
+      "coordinates": [
+        {
+          "lat": 28,
+          "lng": 35
+        }
+      ],
+      "summary": "Go-owned seed event for GeoMap phase 9 cutover testing.",
+      "analystNote": "seed:go-gateway",
+      "sources": [],
+      "assets": [],
+      "createdAt": "2026-03-02T16:49:59Z",
+      "updatedAt": "2026-03-02T16:49:59Z",
+      "createdBy": "local-analyst",
+      "updatedBy": "local-analyst"
+    },
+    {
       "id": "ge_fc28b85a17ded4a0",
       "title": "Seed Rates monitoring update - Europe #50",
       "symbol": "percent",

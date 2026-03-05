@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { AlertCondition, PriceAlert } from "@/lib/alerts";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 interface PriceAlertsStoreFile {
@@ -23,49 +24,30 @@ type DbClient = NonNullable<ReturnType<typeof getPrismaClient>>;
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_PATH = path.join(DATA_DIR, "price-alerts.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<PriceAlertsStoreFile>({
+	storeName: "price-alerts-store",
+	filePath: STORE_PATH,
+	defaultValue: { alerts: [] },
+	isValid: (value: unknown): value is PriceAlertsStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as PriceAlertsStoreFile).alerts),
+});
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
+	return localStore.withWriteLock(task);
 }
 
 function getDbClient(): DbClient | null {
 	return getPrismaClient();
 }
 
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
-}
-
 async function readStore(): Promise<PriceAlertsStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as PriceAlertsStoreFile;
-		if (!parsed || !Array.isArray(parsed.alerts)) return { alerts: [] };
-		return { alerts: parsed.alerts };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) return { alerts: [] };
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(store: PriceAlertsStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+	await localStore.write(store);
 }
 
 function toPriceAlert(record: {
@@ -109,9 +91,12 @@ export async function listPriceAlerts(profileKey: string, symbol?: string): Prom
 				orderBy: { createdAt: "desc" },
 			});
 			return rows.map(toPriceAlert);
-		} catch {
-			// fall through to file
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Price alerts DB read failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Price alerts DB client unavailable");
 	}
 
 	const store = await readStore();
@@ -158,9 +143,12 @@ export async function createPriceAlert(input: CreatePriceAlertInput): Promise<Pr
 				},
 			});
 			return toPriceAlert(created);
-		} catch {
-			// fall through to file
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Price alerts DB write failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Price alerts DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -223,9 +211,12 @@ export async function updatePriceAlert(
 				},
 			});
 			return toPriceAlert(updated);
-		} catch {
-			// fall through to file
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Price alerts DB update failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Price alerts DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -269,9 +260,12 @@ export async function deletePriceAlert(profileKey: string, alertId: string): Pro
 			if (!existing) return false;
 			await db.priceAlertRecord.delete({ where: { id: alertId } });
 			return true;
-		} catch {
-			// fall through to file
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Price alerts DB delete failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Price alerts DB client unavailable");
 	}
 
 	return withWriteLock(async () => {

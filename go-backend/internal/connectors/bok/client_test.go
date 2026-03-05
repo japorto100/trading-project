@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 func TestGetSeries_ParsesECOSPayloadLatestFirst(t *testing.T) {
@@ -18,7 +20,7 @@ func TestGetSeries_ParsesECOSPayloadLatestFirst(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL, APIKey: "sample"})
-	points, err := client.GetSeries(context.Background(), gct.Pair{Base: "BOK_ECOS_722Y001_M_0101000", Quote: "USD"}, "macro", 2)
+	points, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("BOK_ECOS_722Y001_M_0101000"), currency.NewCode("USD")), asset.Empty, 2)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -40,7 +42,7 @@ func TestGetSeries_MapsECOSInfo100ToUnauthorized(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL, APIKey: "invalid"})
-	_, err := client.GetSeries(context.Background(), gct.Pair{Base: "BOK_ECOS_722Y001_M_0101000", Quote: "USD"}, "macro", 1)
+	_, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("BOK_ECOS_722Y001_M_0101000"), currency.NewCode("USD")), asset.Empty, 1)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -56,7 +58,7 @@ func TestGetTicker_UsesPrefixedCurrency(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(Config{BaseURL: server.URL, APIKey: "sample"})
-	ticker, err := client.GetTicker(context.Background(), gct.Pair{Base: "722Y001_M_0101000", Quote: "USD"}, "macro")
+	ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("722Y001_M_0101000"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

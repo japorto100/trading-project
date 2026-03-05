@@ -5,8 +5,6 @@ import { fetchExternalEventsViaGateway } from "@/lib/server/geopolitical-acled-b
 import { createGeoEvent, listGeoEvents } from "@/lib/server/geopolitical-events-store";
 import { appendGeoTimelineEntry } from "@/lib/server/geopolitical-timeline-store";
 
-export const runtime = "nodejs";
-
 function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {
 	response.headers.set("X-Request-ID", requestId);
 	return response;
@@ -78,7 +76,28 @@ export async function GET(request: NextRequest) {
 		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : "External geopolitical fetch failed";
 			return withRequestIdHeader(
-				NextResponse.json({ success: false, error: message }, { status: 502 }),
+				NextResponse.json({
+					success: true,
+					source,
+					events: [],
+					meta: {
+						source,
+						page: Number(request.nextUrl.searchParams.get("page") ?? "1"),
+						pageSize: Number(request.nextUrl.searchParams.get("pageSize") ?? "50"),
+						total: 0,
+						hasMore: false,
+						filters: {
+							country: request.nextUrl.searchParams.get("country") ?? undefined,
+							region: request.nextUrl.searchParams.get("region") ?? undefined,
+							eventType: request.nextUrl.searchParams.get("eventType") ?? undefined,
+							subEventType: request.nextUrl.searchParams.get("subEventType") ?? undefined,
+							from: request.nextUrl.searchParams.get("from") ?? undefined,
+							to: request.nextUrl.searchParams.get("to") ?? undefined,
+						},
+					},
+					degraded: true,
+					error: message,
+				}),
 				requestId,
 			);
 		}

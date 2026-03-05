@@ -6,11 +6,13 @@ import (
 	"strings"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 type routedMacroClient interface {
-	GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error)
-	GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error)
+	GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error)
+	GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error)
 }
 
 type RoutedMacroClient struct {
@@ -43,7 +45,7 @@ func (c *RoutedMacroClient) RegisterPrefixClient(prefix string, client routedMac
 	c.prefixClients[normalizedPrefix] = client
 }
 
-func (c *RoutedMacroClient) GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error) {
+func (c *RoutedMacroClient) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
 	client, err := c.selectClient(pair)
 	if err != nil {
 		return gct.Ticker{}, err
@@ -51,7 +53,7 @@ func (c *RoutedMacroClient) GetTicker(ctx context.Context, pair gct.Pair, assetT
 	return client.GetTicker(ctx, pair, assetType)
 }
 
-func (c *RoutedMacroClient) GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
+func (c *RoutedMacroClient) GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
 	client, err := c.selectClient(pair)
 	if err != nil {
 		return nil, err
@@ -59,8 +61,8 @@ func (c *RoutedMacroClient) GetSeries(ctx context.Context, pair gct.Pair, assetT
 	return client.GetSeries(ctx, pair, assetType, limit)
 }
 
-func (c *RoutedMacroClient) selectClient(pair gct.Pair) (routedMacroClient, error) {
-	base := strings.ToUpper(strings.TrimSpace(pair.Base))
+func (c *RoutedMacroClient) selectClient(pair currency.Pair) (routedMacroClient, error) {
+	base := strings.ToUpper(strings.TrimSpace(pair.Base.String()))
 	for prefix, client := range c.prefixClients {
 		if strings.HasPrefix(base, prefix) {
 			if client == nil {

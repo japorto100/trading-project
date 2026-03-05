@@ -5,18 +5,20 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 type fakeMacroHistoryClient struct {
 	points    []gct.SeriesPoint
 	err       error
 	lastPair  gct.Pair
-	lastAsset string
+	lastAsset asset.Item
 }
 
-func (f *fakeMacroHistoryClient) GetSeries(_ context.Context, pair gct.Pair, asset string, _ int) ([]gct.SeriesPoint, error) {
+func (f *fakeMacroHistoryClient) GetSeries(_ context.Context, pair currency.Pair, assetType asset.Item, _ int) ([]gct.SeriesPoint, error) {
 	f.lastPair = pair
-	f.lastAsset = asset
+	f.lastAsset = assetType
 	return f.points, f.err
 }
 
@@ -25,7 +27,7 @@ type fakeForexHistoryClient struct {
 	err    error
 }
 
-func (f *fakeForexHistoryClient) GetSeries(_ context.Context, _ gct.Pair, _ int) ([]gct.SeriesPoint, error) {
+func (f *fakeForexHistoryClient) GetSeries(_ context.Context, _ currency.Pair, _ int) ([]gct.SeriesPoint, error) {
 	return f.points, f.err
 }
 
@@ -35,7 +37,7 @@ func TestMacroService_History_Fred(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "FRED", gct.Pair{Base: "CPIAUCSL", Quote: "USD"}, "macro", 30)
+	points, err := service.History(context.Background(), "FRED", currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), asset.Empty, 30)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -50,7 +52,7 @@ func TestMacroService_History_ECB(t *testing.T) {
 		&fakeForexHistoryClient{points: []gct.SeriesPoint{{Timestamp: 1, Value: 1.1}}},
 	)
 
-	points, err := service.History(context.Background(), "ECB", gct.Pair{Base: "EUR", Quote: "USD"}, "forex", 10)
+	points, err := service.History(context.Background(), "ECB", currency.NewPair(currency.NewCode("EUR"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -66,14 +68,14 @@ func TestMacroService_History_BojPolicyAlias(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "BOJ", gct.Pair{Base: "POLICY_RATE", Quote: "USD"}, "macro", 10)
+	points, err := service.History(context.Background(), "BOJ", currency.NewPair(currency.NewCode("POLICY_RATE"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(points) != 1 {
 		t.Fatalf("expected 1 point, got %d", len(points))
 	}
-	if macro.lastPair.Base != DefaultBojPolicySeries {
+	if macro.lastPair.Base.String() != DefaultBojPolicySeries {
 		t.Fatalf("expected BOJ policy alias %s, got %s", DefaultBojPolicySeries, macro.lastPair.Base)
 	}
 }
@@ -85,14 +87,14 @@ func TestMacroService_History_BcbPolicyAlias(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "BCB", gct.Pair{Base: "POLICY_RATE", Quote: "USD"}, "macro", 10)
+	points, err := service.History(context.Background(), "BCB", currency.NewPair(currency.NewCode("POLICY_RATE"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(points) != 1 {
 		t.Fatalf("expected 1 point, got %d", len(points))
 	}
-	if macro.lastPair.Base != DefaultBcbPolicySeries {
+	if macro.lastPair.Base.String() != DefaultBcbPolicySeries {
 		t.Fatalf("expected BCB policy alias %s, got %s", DefaultBcbPolicySeries, macro.lastPair.Base)
 	}
 }
@@ -104,14 +106,14 @@ func TestMacroService_History_BanxicoSeriesPrefix(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "BANXICO", gct.Pair{Base: "SF43718", Quote: "USD"}, "macro", 10)
+	points, err := service.History(context.Background(), "BANXICO", currency.NewPair(currency.NewCode("SF43718"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(points) != 1 {
 		t.Fatalf("expected 1 point, got %d", len(points))
 	}
-	if macro.lastPair.Base != "BANXICO_SF43718" {
+	if macro.lastPair.Base.String() != "BANXICO_SF43718" {
 		t.Fatalf("expected Banxico series prefix, got %s", macro.lastPair.Base)
 	}
 }
@@ -123,14 +125,14 @@ func TestMacroService_History_BokPolicyAlias(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "BOK", gct.Pair{Base: "POLICY_RATE", Quote: "USD"}, "macro", 10)
+	points, err := service.History(context.Background(), "BOK", currency.NewPair(currency.NewCode("POLICY_RATE"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(points) != 1 {
 		t.Fatalf("expected 1 point, got %d", len(points))
 	}
-	if macro.lastPair.Base != DefaultBokPolicySeries {
+	if macro.lastPair.Base.String() != DefaultBokPolicySeries {
 		t.Fatalf("expected BOK policy alias %s, got %s", DefaultBokPolicySeries, macro.lastPair.Base)
 	}
 }
@@ -142,14 +144,14 @@ func TestMacroService_History_BcraPolicyAlias(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "BCRA", gct.Pair{Base: "POLICY_RATE", Quote: "USD"}, "macro", 10)
+	points, err := service.History(context.Background(), "BCRA", currency.NewPair(currency.NewCode("POLICY_RATE"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(points) != 1 {
 		t.Fatalf("expected 1 point, got %d", len(points))
 	}
-	if macro.lastPair.Base != DefaultBcraPolicySeries {
+	if macro.lastPair.Base.String() != DefaultBcraPolicySeries {
 		t.Fatalf("expected BCRA policy alias %s, got %s", DefaultBcraPolicySeries, macro.lastPair.Base)
 	}
 }
@@ -161,14 +163,14 @@ func TestMacroService_History_TcmbSeriesPrefix(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "TCMB", gct.Pair{Base: "TP_AB_TOPLAM", Quote: "USD"}, "macro", 10)
+	points, err := service.History(context.Background(), "TCMB", currency.NewPair(currency.NewCode("TP_AB_TOPLAM"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(points) != 1 {
 		t.Fatalf("expected 1 point, got %d", len(points))
 	}
-	if macro.lastPair.Base != "TCMB_EVDS_TP_AB_TOPLAM" {
+	if macro.lastPair.Base.String() != "TCMB_EVDS_TP_AB_TOPLAM" {
 		t.Fatalf("expected TCMB series prefix, got %s", macro.lastPair.Base)
 	}
 }
@@ -180,14 +182,14 @@ func TestMacroService_History_RbiSeriesPrefix(t *testing.T) {
 		&fakeForexHistoryClient{},
 	)
 
-	points, err := service.History(context.Background(), "RBI", gct.Pair{Base: "FXRES_TR_USD_W", Quote: "USD"}, "macro", 10)
+	points, err := service.History(context.Background(), "RBI", currency.NewPair(currency.NewCode("FXRES_TR_USD_W"), currency.NewCode("USD")), asset.Empty, 10)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if len(points) != 1 {
 		t.Fatalf("expected 1 point, got %d", len(points))
 	}
-	if macro.lastPair.Base != "RBI_DBIE_FXRES_TR_USD_WEEKLY" {
+	if macro.lastPair.Base.String() != "RBI_DBIE_FXRES_TR_USD_WEEKLY" {
 		t.Fatalf("expected RBI series prefix, got %s", macro.lastPair.Base)
 	}
 }

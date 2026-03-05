@@ -13,6 +13,7 @@ import (
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
 )
 
 const DefaultRatesURL = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
@@ -67,7 +68,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, pair gct.Pair) (gct.Ticker, error) {
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair) (gct.Ticker, error) {
 	series, err := c.GetSeries(ctx, pair, 1)
 	if err != nil {
 		return gct.Ticker{}, err
@@ -80,8 +81,8 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair) (gct.Ticker, erro
 		}
 	}
 
-	base := strings.ToUpper(strings.TrimSpace(pair.Base))
-	quote := strings.ToUpper(strings.TrimSpace(pair.Quote))
+	base := strings.ToUpper(strings.TrimSpace(pair.Base.String()))
+	quote := strings.ToUpper(strings.TrimSpace(pair.Quote.String()))
 	rate := series[0].Value
 	lastUpdated := series[0].Timestamp
 	if lastUpdated <= 0 {
@@ -89,7 +90,7 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair) (gct.Ticker, erro
 	}
 
 	return gct.Ticker{
-		Pair:        gct.Pair{Base: base, Quote: quote},
+		Pair:        currency.NewPair(currency.NewCode(base), currency.NewCode(quote)),
 		Currency:    base + "/" + quote,
 		LastUpdated: lastUpdated,
 		Last:        rate,
@@ -101,9 +102,9 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair) (gct.Ticker, erro
 	}, nil
 }
 
-func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, limit int) ([]gct.SeriesPoint, error) {
-	base := strings.ToUpper(strings.TrimSpace(pair.Base))
-	quote := strings.ToUpper(strings.TrimSpace(pair.Quote))
+func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, limit int) ([]gct.SeriesPoint, error) {
+	base := strings.ToUpper(strings.TrimSpace(pair.Base.String()))
+	quote := strings.ToUpper(strings.TrimSpace(pair.Quote.String()))
 	if base == "" || quote == "" {
 		return nil, &gct.RequestError{
 			Path:       c.defaultPath,

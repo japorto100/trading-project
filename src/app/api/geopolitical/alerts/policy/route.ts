@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import type { GeoAlertPolicyConfig } from "@/lib/geopolitical/phase12-types";
 import {
@@ -14,11 +15,20 @@ function getActor(request: NextRequest): string {
 }
 
 export async function GET() {
+	const requestId = randomUUID();
 	const policy = await getGeoAlertPolicyConfig();
-	return NextResponse.json({ success: true, policy });
+	return NextResponse.json({
+		success: true,
+		policy,
+		requestId,
+		degraded: false,
+		degraded_reasons: [],
+		contract_version: "phase12-alerts-policy-v1",
+	});
 }
 
 export async function PATCH(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	try {
 		const payload = (await request.json()) as Partial<GeoAlertPolicyConfig>;
 		const next = await updateGeoAlertPolicyConfig({
@@ -29,10 +39,24 @@ export async function PATCH(request: NextRequest) {
 			usePlaybackWindowPreview: payload.usePlaybackWindowPreview,
 			actor: getActor(request),
 		});
-		return NextResponse.json({ success: true, policy: next });
+		return NextResponse.json({
+			success: true,
+			policy: next,
+			requestId,
+			degraded: false,
+			degraded_reasons: [],
+			contract_version: "phase12-alerts-policy-v1",
+		});
 	} catch (error: unknown) {
 		return NextResponse.json(
-			{ success: false, error: error instanceof Error ? error.message : "policy update failed" },
+			{
+				success: false,
+				error: error instanceof Error ? error.message : "policy update failed",
+				requestId,
+				degraded: true,
+				degraded_reasons: ["POLICY_UPDATE_FAILED"],
+				contract_version: "phase12-alerts-policy-v1",
+			},
 			{ status: 400 },
 		);
 	}

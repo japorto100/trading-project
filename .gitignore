@@ -62,6 +62,9 @@ coverage.out
 .coverprofile
 go.work.sum
 
+# protoc (downloaded by tools/setup-protoc.ps1)
+go-backend/tools/protoc/
+
 # Go backend local artifacts
 go-backend/.env
 go-backend/.env.development
@@ -88,3 +91,14 @@ go-backend/vendor-forks/gocryptotrader/.cache/
 python-backend/=1,
 
 python-backend/.env
+
+# Phase 6: Memory Architecture — local KG and vector store data
+python-backend/data/kuzu/
+python-backend/data/chroma/
+python-backend/data/episodic.db
+python-backend/data/kg_fallback.db
+python-backend/data/memory-episodic.json
+
+# Phase 0e: OpenObserve (exe + data — downloaded by dev-stack.ps1 -Observability)
+tools/openobserve/
+openobserve_data/

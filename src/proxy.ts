@@ -16,7 +16,8 @@ const ROLE_LEVEL: Record<AppRole, number> = {
 	admin: 4,
 };
 
-const PUBLIC_API_PREFIXES = ["/api/auth", "/api/market/stream", "/api/geopolitical/stream"];
+const PUBLIC_API_PREFIXES = ["/api/auth"];
+const PUBLIC_PAGE_PATHS = new Set(["/auth/sign-in", "/auth/register"]);
 const REQUEST_ID_HEADER = "x-request-id";
 
 const PROTECTED_ROLE_RULES: Array<{
@@ -24,6 +25,8 @@ const PROTECTED_ROLE_RULES: Array<{
 	minRole: AppRole;
 	methods?: HTTPMethod[];
 }> = [
+	{ prefix: "/api/admin/users", minRole: "admin" },
+	{ prefix: "/api/v1/auth/revocations", minRole: "admin" },
 	// Next.js API routes (user-facing)
 	{ prefix: "/api/fusion/orders", minRole: "trader", methods: ["POST", "PUT", "PATCH", "DELETE"] },
 	{
@@ -182,6 +185,10 @@ function isPublicApiPath(pathname: string): boolean {
 	return PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+function isPublicPagePath(pathname: string): boolean {
+	return PUBLIC_PAGE_PATHS.has(pathname);
+}
+
 function methodMatches(method: string, methods?: HTTPMethod[]): boolean {
 	if (!methods || methods.length === 0) return true;
 	return methods.includes(method as HTTPMethod);
@@ -213,6 +220,18 @@ export async function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl;
 	const requestId = getOrCreateRequestId(request);
 	if (!pathname.startsWith("/api")) {
+		if (!isPublicPagePath(pathname) && !isAuthStackBypassEnabled() && isAuthEnabled()) {
+			const token = await getToken({
+				req: request,
+				secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+			});
+			if (!token) {
+				const signInUrl = new URL("/auth/sign-in", request.url);
+				const relativePath = `${pathname}${request.nextUrl.search}`;
+				signInUrl.searchParams.set("next", relativePath || "/");
+				return applyPageResponseHeaders(NextResponse.redirect(signInUrl), request, requestId);
+			}
+		}
 		return applyPageResponseHeaders(NextResponse.next(), request, requestId);
 	}
 

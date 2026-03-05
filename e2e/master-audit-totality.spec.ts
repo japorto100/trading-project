@@ -33,9 +33,9 @@ test.describe("TradeView Fusion – Master Audit Totality", () => {
 		record("Testing Header Controls...");
 		// Replay button
 		await expect(page.getByRole("button", { name: /Replay/i })).toBeVisible();
-		// Timeframe selector renders buttons (not radio) – look for "1H" button
-		const timeframe1H = page.getByRole("button").filter({ hasText: /^1H$/i }).first();
-		await expect(timeframe1H).toBeVisible();
+		// Timeframe selector uses ToggleGroupItem with data-testid
+		const timeframe1H = page.getByTestId("timeframe-1H");
+		await expect(timeframe1H).toBeVisible({ timeout: 8000 });
 		record("Header: Replay and 1H timeframe present.");
 
 		// 4. GeoMap navigation

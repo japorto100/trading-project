@@ -42,6 +42,21 @@ type geoSoftSignalRequestPayload struct {
 	MaxCandidates int                         `json:"maxCandidates"`
 }
 
+type geoIngestClassifyItem struct {
+	Source      string `json:"source"`
+	Title       string `json:"title"`
+	URL         string `json:"url"`
+	Content     string `json:"content,omitempty"`
+	PublishedAt string `json:"publishedAt,omitempty"`
+	Lang        string `json:"lang,omitempty"`
+}
+
+type geoIngestClassifyPayload struct {
+	Source        string                  `json:"source"`
+	Items         []geoIngestClassifyItem `json:"items"`
+	MaxCandidates int                     `json:"maxCandidates"`
+}
+
 type geoSoftSignalSourceRef struct {
 	Provider    string  `json:"provider"`
 	URL         string  `json:"url"`
@@ -61,6 +76,9 @@ type geoSoftSignalCandidate struct {
 	Symbol       string                   `json:"symbol"`
 	Category     string                   `json:"category"`
 	HotspotIDs   []string                 `json:"hotspotIds"`
+	RouteTarget  string                   `json:"routeTarget"`
+	ReviewAction string                   `json:"reviewAction"`
+	DedupHash    string                   `json:"dedupHash"`
 }
 
 type geoSoftSignalResponse struct {
@@ -96,6 +114,13 @@ var geoSoftIngestAdapters = []geoSoftIngestAdapterSpec{
 		Query:        "narrative shift policy escalation sanctions rhetoric central bank messaging",
 		TriggerType:  "narrative_shift",
 		DefaultLimit: 36,
+	},
+	{
+		ID:           "youtube_transcript",
+		Path:         "/api/v1/ingest/classify",
+		Query:        "youtube transcript interview central bank sanctions geopolitics",
+		TriggerType:  "youtube_transcript",
+		DefaultLimit: 24,
 	},
 }
 
@@ -164,12 +189,7 @@ func GeopoliticalSoftIngestHandler(
 				continue
 			}
 
-			payload, _ := json.Marshal(geoSoftSignalRequestPayload{
-				AdapterID:     adapter.ID,
-				GeneratedAt:   timeNowRFC3339(),
-				Articles:      articles,
-				MaxCandidates: 6,
-			})
+			payload, _ := json.Marshal(buildSoftSignalPayload(adapter, articles))
 			status, body, err := signals.PostJSON(r.Context(), adapter.Path, payload)
 			if err != nil || status < 200 || status >= 300 {
 				adapterStats = append(adapterStats, map[string]any{
@@ -266,6 +286,33 @@ func GeopoliticalSoftIngestHandler(
 	}
 }
 
+func buildSoftSignalPayload(adapter geoSoftIngestAdapterSpec, articles []geoSoftSignalArticleInput) any {
+	if adapter.ID == "youtube_transcript" {
+		items := make([]geoIngestClassifyItem, 0, len(articles))
+		for _, article := range articles {
+			items = append(items, geoIngestClassifyItem{
+				Source:      trimmedStringOr(article.Source, "youtube"),
+				Title:       article.Title,
+				URL:         article.URL,
+				Content:     article.Summary,
+				PublishedAt: article.PublishedAt,
+				Lang:        "en",
+			})
+		}
+		return geoIngestClassifyPayload{
+			Source:        "youtube_transcript",
+			Items:         items,
+			MaxCandidates: 6,
+		}
+	}
+	return geoSoftSignalRequestPayload{
+		AdapterID:     adapter.ID,
+		GeneratedAt:   timeNowRFC3339(),
+		Articles:      articles,
+		MaxCandidates: 6,
+	}
+}
+
 func selectGeoSoftIngestAdapters(req geoSoftIngestRequest) []geoSoftIngestAdapterSpec {
 	allowed := map[string]struct{}{}
 	for _, item := range req.Adapters {
@@ -281,6 +328,8 @@ func selectGeoSoftIngestAdapters(req geoSoftIngestRequest) []geoSoftIngestAdapte
 			allowed["narrative_shift"] = struct{}{}
 		case "reddit", "social", "x", "x.com":
 			allowed["social_surge"] = struct{}{}
+		case "youtube", "youtube_transcript", "yt":
+			allowed["youtube_transcript"] = struct{}{}
 		}
 	}
 	if len(allowed) == 0 {
@@ -415,6 +464,9 @@ func geoSoftCandidateToMap(
 		"symbol":       trimmedStringOr(item.Symbol, "newspaper"),
 		"category":     trimmedStringOr(item.Category, "news_narrative"),
 		"hotspotIds":   item.HotspotIDs,
+		"routeTarget":  trimmedStringOr(item.RouteTarget, routeTargetFromCategory(item.Category)),
+		"reviewAction": trimmedStringOr(item.ReviewAction, reviewActionFromConfidence(confidence)),
+		"dedupHash":    normalizeDedupHash(item.DedupHash),
 	}
 }
 
@@ -489,4 +541,29 @@ func softIngestNotes(req geoSoftIngestRequest, adapters []geoSoftIngestAdapterSp
 		notes = append(notes, "adapter:"+adapter.ID)
 	}
 	return notes
+}
+
+func reviewActionFromConfidence(confidence float64) string {
+	switch {
+	case confidence >= 0.85:
+		return "auto_route"
+	case confidence >= 0.40:
+		return "human_review"
+	default:
+		return "auto_reject"
+	}
+}
+
+func routeTargetFromCategory(category string) string {
+	value := strings.ToLower(strings.TrimSpace(category))
+	switch {
+	case strings.Contains(value, "monetary"), strings.Contains(value, "macro"), strings.Contains(value, "inflation"), strings.Contains(value, "rates"):
+		return "macro"
+	case strings.Contains(value, "trading"), strings.Contains(value, "market_microstructure"), strings.Contains(value, "signal"):
+		return "trading"
+	case strings.Contains(value, "research"), strings.Contains(value, "knowledge"):
+		return "research"
+	default:
+		return "geo"
+	}
 }

@@ -11,6 +11,8 @@ import (
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 const DefaultBaseURL = "https://ecos.bok.or.kr"
@@ -53,7 +55,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error) {
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
 	series, err := c.GetSeries(ctx, pair, assetType, 1)
 	if err != nil {
 		return gct.Ticker{}, err
@@ -61,16 +63,16 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	if len(series) == 0 {
 		return gct.Ticker{}, &gct.RequestError{Path: defaultStatisticPath, StatusCode: http.StatusNotFound, Cause: fmt.Errorf("no observations")}
 	}
-	spec, _ := parseSeriesSpec(pair.Base)
-	currency := buildSeriesID(spec)
+	spec, _ := parseSeriesSpec(pair.Base.String())
+	currencyCode := buildSeriesID(spec)
 	value := series[0].Value
 	lastUpdated := series[0].Timestamp
 	if lastUpdated <= 0 {
 		lastUpdated = time.Now().Unix()
 	}
 	return gct.Ticker{
-		Pair:        gct.Pair{Base: currency, Quote: "USD"},
-		Currency:    currency,
+		Pair:        currency.NewPair(currency.NewCode(currencyCode), currency.NewCode("USD")),
+		Currency:    currencyCode,
 		LastUpdated: lastUpdated,
 		Last:        value,
 		Bid:         value,
@@ -81,8 +83,8 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	}, nil
 }
 
-func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
-	if strings.ToLower(strings.TrimSpace(assetType)) != "macro" {
+func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+	if !gct.IsSemanticAssetType(assetType, "macro") {
 		return nil, &gct.RequestError{Path: defaultStatisticPath, StatusCode: http.StatusBadRequest, Cause: fmt.Errorf("unsupported bok assetType")}
 	}
 	if c == nil || c.baseClient == nil {
@@ -91,7 +93,7 @@ func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string,
 	if strings.TrimSpace(c.apiKey) == "" {
 		return nil, &gct.RequestError{Path: defaultStatisticPath, StatusCode: http.StatusUnauthorized, Cause: fmt.Errorf("missing BOK_ECOS_API_KEY")}
 	}
-	spec, ok := parseSeriesSpec(pair.Base)
+	spec, ok := parseSeriesSpec(pair.Base.String())
 	if !ok {
 		return nil, &gct.RequestError{Path: defaultStatisticPath, StatusCode: http.StatusBadRequest, Cause: fmt.Errorf("invalid BOK ECOS series id")}
 	}

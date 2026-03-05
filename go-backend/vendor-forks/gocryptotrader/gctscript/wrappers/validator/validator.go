@@ -111,7 +111,7 @@ func (w Wrapper) Pairs(exch string, _ bool, _ asset.Item) (*currency.Pairs, erro
 }
 
 // QueryOrder validator for test execution/scripts
-func (w Wrapper) QueryOrder(_ context.Context, exch, _ string, _ currency.Pair, _ asset.Item) (*order.Detail, error) {
+func (w Wrapper) QueryOrder(_ context.Context, exch, _ string, _ currency.Pair, _ string) (*order.Detail, error) {
 	if exch == exchError.String() {
 		return nil, errTestFailed
 	}
@@ -185,7 +185,7 @@ func (w Wrapper) CancelOrder(_ context.Context, exch, orderid string, cp currenc
 }
 
 // AccountBalances validator for test execution/scripts
-func (w Wrapper) AccountBalances(_ context.Context, exch string, assetType asset.Item) (accounts.SubAccounts, error) {
+func (w Wrapper) AccountBalances(_ context.Context, exch string, assetType string) (accounts.SubAccounts, error) {
 	if exch == exchError.String() {
 		return nil, errTestFailed
 	}
@@ -198,10 +198,14 @@ func (w Wrapper) AccountBalances(_ context.Context, exch string, assetType asset
 			AssocChain: "",
 		},
 	}
+	parsedAsset, err := asset.New(assetType)
+	if err != nil {
+		parsedAsset = asset.Spot
+	}
 	return accounts.SubAccounts{
 		{
 			ID:        "subacct1",
-			AssetType: assetType,
+			AssetType: parsedAsset,
 			Balances: accounts.CurrencyBalances{
 				c: accounts.Balance{
 					Currency: c,

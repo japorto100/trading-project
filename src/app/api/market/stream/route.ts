@@ -7,9 +7,6 @@ import { evaluateTriggeredOrdersForSymbol } from "@/lib/server/orders-store";
 import { listPriceAlerts, updatePriceAlert } from "@/lib/server/price-alerts-store";
 import { isLegacyCandleStreamFallbackEnabled } from "@/lib/server/stream-runtime-flags";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
 const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
@@ -98,13 +95,10 @@ function inferGoStreamRoute(symbol: string): GoStreamRoute | null {
 
 	switch (resolved.type) {
 		case "crypto": {
-			const upstreamSymbol = resolved.symbol.endsWith("/USD")
-				? `${resolved.symbol.slice(0, -4)}/USDT`
-				: resolved.symbol;
-			return { symbol: upstreamSymbol, exchange: "binance", assetType: "spot" };
+			return { symbol: resolved.symbol, exchange: "auto", assetType: "spot" };
 		}
 		case "stock":
-			return { symbol: resolved.symbol, exchange: "finnhub", assetType: "equity" };
+			return { symbol: resolved.symbol, exchange: "auto", assetType: "equity" };
 		default:
 			return null;
 	}
@@ -299,6 +293,9 @@ async function createGoBackedMarketStreamResponse(
 							sseEvent("stream_status", {
 								state: "degraded",
 								message: "Go stream proxy interrupted",
+								degraded: true,
+								degraded_reasons: ["GO_STREAM_PROXY_INTERRUPTED"],
+								requestId,
 								ts: new Date().toISOString(),
 							}),
 						);
@@ -408,6 +405,9 @@ function createLegacyPollingStreamResponse(
 								sseEvent("stream_status", {
 									state: "live",
 									message: "candle stream recovered",
+									degraded: false,
+									degraded_reasons: [],
+									requestId,
 									ts: new Date().toISOString(),
 								}),
 							);
@@ -421,6 +421,9 @@ function createLegacyPollingStreamResponse(
 								sseEvent("stream_status", {
 									state: "degraded",
 									message: error instanceof Error ? error.message : "stream fetch failed",
+									degraded: true,
+									degraded_reasons: ["LEGACY_STREAM_FETCH_FAILED"],
+									requestId,
 									ts: new Date().toISOString(),
 								}),
 							);
@@ -441,6 +444,9 @@ function createLegacyPollingStreamResponse(
 						pollMs,
 						backend: "legacy-polling",
 						fallbackReason,
+						degraded: true,
+						degraded_reasons: ["LEGACY_STREAM_FALLBACK_ACTIVE"],
+						requestId,
 					}),
 				);
 				controller.enqueue(
@@ -448,6 +454,9 @@ function createLegacyPollingStreamResponse(
 						state: "live",
 						message: "candle stream connected (legacy polling fallback)",
 						fallbackReason,
+						degraded: true,
+						degraded_reasons: ["LEGACY_STREAM_FALLBACK_ACTIVE"],
+						requestId,
 						ts: new Date().toISOString(),
 					}),
 				);
@@ -518,6 +527,9 @@ export async function GET(request: NextRequest) {
 					success: false,
 					error: "Go stream unavailable and legacy fallback disabled",
 					code: "stream_fallback_disabled",
+					requestId,
+					degraded: true,
+					degraded_reasons: ["GO_STREAM_UNAVAILABLE", "LEGACY_FALLBACK_DISABLED"],
 				}),
 				{
 					status: 502,
@@ -545,6 +557,9 @@ export async function GET(request: NextRequest) {
 				success: false,
 				error: "Symbol not streamable via Go and legacy fallback disabled",
 				code: "unsupported_stream_symbol",
+				requestId,
+				degraded: true,
+				degraded_reasons: ["UNSUPPORTED_STREAM_SYMBOL", "LEGACY_FALLBACK_DISABLED"],
 			}),
 			{
 				status: 400,

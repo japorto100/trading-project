@@ -47,6 +47,11 @@ interface MapFiltersToolbarProps {
 	activeFilterChips: ActiveFilterChip[];
 	acledRegionSuggestions: string[];
 	acledSubEventSuggestions: string[];
+	statsSummary: {
+		totalEvents: number;
+		avgSeverityLabel: string;
+		maxSeverityLabel: string;
+	};
 	onApply: () => void;
 }
 
@@ -84,12 +89,14 @@ export function MapFiltersToolbar({
 	activeFilterChips,
 	acledRegionSuggestions,
 	acledSubEventSuggestions,
+	statsSummary,
 	onApply,
 }: MapFiltersToolbarProps) {
 	return (
 		<>
-			<div className="flex items-center gap-2 border-b border-border px-3 py-2">
+			<div className="flex items-center gap-2 rounded-lg border border-border/70 bg-card/92 px-3 py-2 shadow-xl backdrop-blur">
 				<select
+					name="eventsSource"
 					className="h-9 rounded-md border border-input bg-background px-2 text-sm"
 					value={eventsSource}
 					onChange={(event) => {
@@ -105,6 +112,7 @@ export function MapFiltersToolbar({
 				<MapBodyToggle value={mapBody} onChange={setMapBody} />
 				{eventsSource === "local" ? (
 					<select
+						name="activeRegionId"
 						className="h-9 rounded-md border border-input bg-background px-2 text-sm"
 						value={activeRegionId}
 						onChange={(event) => setActiveRegionId(event.target.value)}
@@ -119,6 +127,7 @@ export function MapFiltersToolbar({
 					</select>
 				) : (
 					<Input
+						name="acledCountryFilter"
 						value={acledCountryFilter}
 						onChange={(event) => {
 							setAcledCountryFilter(event.target.value);
@@ -129,6 +138,7 @@ export function MapFiltersToolbar({
 					/>
 				)}
 				<select
+					name="minSeverityFilter"
 					className="h-9 rounded-md border border-input bg-background px-2 text-sm"
 					value={minSeverityFilter}
 					onChange={(event) => setMinSeverityFilter(Number(event.target.value))}
@@ -142,6 +152,7 @@ export function MapFiltersToolbar({
 					))}
 				</select>
 				<Input
+					name="searchQuery"
 					value={searchQuery}
 					onChange={(event) => setSearchQuery(event.target.value)}
 					placeholder="Search events"
@@ -150,6 +161,7 @@ export function MapFiltersToolbar({
 				{isExternalSource && (
 					<>
 						<Input
+							name="acledRegionFilter"
 							value={acledRegionFilter}
 							onChange={(event) => {
 								setAcledRegionFilter(event.target.value);
@@ -159,6 +171,7 @@ export function MapFiltersToolbar({
 							aria-label={`${externalSourceLabel} region filter`}
 						/>
 						<Input
+							name="acledEventTypeFilter"
 							value={acledEventTypeFilter}
 							onChange={(event) => {
 								setAcledEventTypeFilter(event.target.value);
@@ -168,6 +181,7 @@ export function MapFiltersToolbar({
 							aria-label={`${externalSourceLabel} event type filter`}
 						/>
 						<Input
+							name="acledSubEventTypeFilter"
 							value={acledSubEventTypeFilter}
 							onChange={(event) => {
 								setAcledSubEventTypeFilter(event.target.value);
@@ -177,6 +191,7 @@ export function MapFiltersToolbar({
 							aria-label={`${externalSourceLabel} sub-event type filter`}
 						/>
 						<Input
+							name="acledFromFilter"
 							value={acledFromFilter}
 							onChange={(event) => {
 								setAcledFromFilter(event.target.value);
@@ -186,6 +201,7 @@ export function MapFiltersToolbar({
 							aria-label={`${externalSourceLabel} from date`}
 						/>
 						<Input
+							name="acledToFilter"
 							value={acledToFilter}
 							onChange={(event) => {
 								setAcledToFilter(event.target.value);
@@ -209,7 +225,18 @@ export function MapFiltersToolbar({
 			</div>
 			<div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-3 py-2">
 				{activeFilterChips.length === 0 ? (
-					<span className="text-xs text-muted-foreground">No active filters.</span>
+					<>
+						<span className="text-xs text-muted-foreground">No active filters</span>
+						<span className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+							events: {statsSummary.totalEvents}
+						</span>
+						<span className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+							avg severity: {statsSummary.avgSeverityLabel}
+						</span>
+						<span className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+							max severity: {statsSummary.maxSeverityLabel}
+						</span>
+					</>
 				) : (
 					activeFilterChips.map((chip) => (
 						<button

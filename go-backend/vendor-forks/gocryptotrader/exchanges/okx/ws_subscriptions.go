@@ -18,7 +18,7 @@ type spotMarginEvaluator map[channelPairKey]bool
 
 // NeedsOutboundSubscription checks if a subscription is needed based on existing spot/margin subscriptions. If asset
 // is not spot or margin, it always returns true.
-func (s spotMarginEvaluator) NeedsOutboundSubscription(pair currency.Pair, channel string, assetType asset.Item) (bool, error) {
+func (s spotMarginEvaluator) NeedsOutboundSubscription(pair currency.Pair, channel string, assetType string) (bool, error) {
 	if assetType != asset.Spot && assetType != asset.Margin {
 		return true, nil
 	}
@@ -29,16 +29,16 @@ func (s spotMarginEvaluator) NeedsOutboundSubscription(pair currency.Pair, chann
 	return need, nil
 }
 
-func (s *spotMarginEvaluator) add(pair currency.Pair, channel string, assetType asset.Item, need bool) {
+func (s *spotMarginEvaluator) add(pair currency.Pair, channel string, assetType string, need bool) {
 	(*s)[getChannelKey(pair, channel, assetType)] = need
 }
 
-func (s *spotMarginEvaluator) exists(pair currency.Pair, channel string, assetType asset.Item) bool {
+func (s *spotMarginEvaluator) exists(pair currency.Pair, channel string, assetType string) bool {
 	_, ok := (*s)[getChannelKey(pair, channel, assetType)]
 	return ok
 }
 
-func getChannelKey(pair currency.Pair, channel string, assetType asset.Item) channelPairKey {
+func getChannelKey(pair currency.Pair, channel string, assetType string) channelPairKey {
 	return channelPairKey{
 		PairAsset: key.PairAsset{Base: pair.Base.Item, Quote: pair.Quote.Item, Asset: assetType},
 		Channel:   channel,

@@ -64,7 +64,7 @@ func (f omfExchange) GetCachedTicker(p currency.Pair, a asset.Item) (*ticker.Pri
 
 // GetOrderInfo overrides testExchange's get order function
 // to do the bare minimum required with no API calls or credentials required
-func (f omfExchange) GetOrderInfo(_ context.Context, orderID string, pair currency.Pair, assetType asset.Item) (*order.Detail, error) {
+func (f omfExchange) GetOrderInfo(_ context.Context, orderID string, pair currency.Pair, assetType string) (*order.Detail, error) {
 	switch orderID {
 	case "":
 		return nil, errors.New("")

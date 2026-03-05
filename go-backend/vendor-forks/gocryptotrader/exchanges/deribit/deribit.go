@@ -2544,7 +2544,7 @@ func (e *Exchange) ForkToken(ctx context.Context, refreshToken, sessionName stri
 }
 
 // GetAssetKind returns the asset type (kind) string representation.
-func (e *Exchange) GetAssetKind(assetType asset.Item) string {
+func (e *Exchange) GetAssetKind(assetType string) string {
 	switch assetType {
 	case asset.Options:
 		return "option"

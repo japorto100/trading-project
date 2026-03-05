@@ -1,13 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { getPrismaClient } from "@/lib/server/prisma";
 
-const globalForPrisma = globalThis as unknown as {
-	prisma: PrismaClient | undefined;
-};
-
-export const db =
-	globalForPrisma.prisma ??
-	new PrismaClient({
-		log: ["query"],
-	});
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+/**
+ * Transitional compatibility export.
+ * Use getPrismaClient() for nullable-safe access in all new code.
+ */
+export const db = getPrismaClient();

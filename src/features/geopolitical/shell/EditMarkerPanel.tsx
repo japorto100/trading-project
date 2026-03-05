@@ -36,6 +36,8 @@ export function EditMarkerPanel({
 						{selectedEvent.symbol} | {formatPoint(selectedEvent)}
 					</div>
 					<Input
+						id="edit-marker-title"
+						name="editMarkerTitle"
 						value={editForm.title}
 						onChange={(event) => onEditFormChange({ ...editForm, title: event.target.value })}
 						placeholder="Marker title"
@@ -44,10 +46,15 @@ export function EditMarkerPanel({
 
 					<div className="grid grid-cols-3 gap-2">
 						<div>
-							<label className="mb-1 block text-xs font-medium text-muted-foreground">
+							<label
+								className="mb-1 block text-xs font-medium text-muted-foreground"
+								htmlFor="edit-marker-severity"
+							>
 								Severity
 							</label>
 							<select
+								id="edit-marker-severity"
+								name="editMarkerSeverity"
 								className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
 								value={editForm.severity}
 								onChange={(event) =>
@@ -66,10 +73,15 @@ export function EditMarkerPanel({
 							</select>
 						</div>
 						<div>
-							<label className="mb-1 block text-xs font-medium text-muted-foreground">
+							<label
+								className="mb-1 block text-xs font-medium text-muted-foreground"
+								htmlFor="edit-marker-confidence"
+							>
 								Confidence
 							</label>
 							<select
+								id="edit-marker-confidence"
+								name="editMarkerConfidence"
 								className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
 								value={editForm.confidence}
 								onChange={(event) =>
@@ -88,8 +100,15 @@ export function EditMarkerPanel({
 							</select>
 						</div>
 						<div>
-							<label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+							<label
+								className="mb-1 block text-xs font-medium text-muted-foreground"
+								htmlFor="edit-marker-status"
+							>
+								Status
+							</label>
 							<select
+								id="edit-marker-status"
+								name="editMarkerStatus"
 								className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
 								value={editForm.status}
 								onChange={(event) =>
@@ -108,8 +127,15 @@ export function EditMarkerPanel({
 						</div>
 					</div>
 
-					<label className="block text-xs font-medium text-muted-foreground">Summary</label>
+					<label
+						className="block text-xs font-medium text-muted-foreground"
+						htmlFor="edit-marker-summary"
+					>
+						Summary
+					</label>
 					<Textarea
+						id="edit-marker-summary"
+						name="editMarkerSummary"
 						value={editForm.summary}
 						onChange={(event) => onEditFormChange({ ...editForm, summary: event.target.value })}
 						rows={3}
@@ -117,8 +143,15 @@ export function EditMarkerPanel({
 						aria-label="Edit marker summary"
 					/>
 
-					<label className="block text-xs font-medium text-muted-foreground">Analyst note</label>
+					<label
+						className="block text-xs font-medium text-muted-foreground"
+						htmlFor="edit-marker-analyst-note"
+					>
+						Analyst note
+					</label>
 					<Textarea
+						id="edit-marker-analyst-note"
+						name="editMarkerAnalystNote"
 						value={editForm.analystNote}
 						onChange={(event) => onEditFormChange({ ...editForm, analystNote: event.target.value })}
 						rows={3}

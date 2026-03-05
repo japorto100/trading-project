@@ -1,8 +1,6 @@
 import type { NextRequest } from "next/server";
 import { proxyGeopoliticalGatewayRequest } from "@/lib/server/geopolitical-gateway-proxy";
 
-export const runtime = "nodejs";
-
 interface ParamsShape {
 	params: Promise<{ contradictionId: string }>;
 }

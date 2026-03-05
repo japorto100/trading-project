@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -16,11 +18,11 @@ type fakeMacroHistoryService struct {
 	err          error
 	lastExchange string
 	lastPair     gct.Pair
-	lastAsset    string
+	lastAsset    asset.Item
 	lastLimit    int
 }
 
-func (f *fakeMacroHistoryService) History(_ context.Context, exchange string, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
+func (f *fakeMacroHistoryService) History(_ context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
 	f.lastExchange = exchange
 	f.lastPair = pair
 	f.lastAsset = assetType
@@ -46,7 +48,7 @@ func TestMacroHistoryHandler_ReturnsFredSeries(t *testing.T) {
 	if service.lastExchange != "FRED" {
 		t.Fatalf("expected FRED exchange, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != "CPIAUCSL" {
+	if service.lastPair.Base.String() != "CPIAUCSL" {
 		t.Fatalf("expected CPIAUCSL base, got %s", service.lastPair.Base)
 	}
 
@@ -93,7 +95,7 @@ func TestMacroHistoryHandler_MapsBojPolicyAlias(t *testing.T) {
 	if service.lastExchange != "BOJ" {
 		t.Fatalf("expected exchange BOJ, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != marketServices.DefaultBojPolicySeries {
+	if service.lastPair.Base.String() != marketServices.DefaultBojPolicySeries {
 		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBojPolicySeries, service.lastPair.Base)
 	}
 }
@@ -113,7 +115,7 @@ func TestMacroHistoryHandler_MapsBcbPolicyAlias(t *testing.T) {
 	if service.lastExchange != "BCB" {
 		t.Fatalf("expected exchange BCB, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != marketServices.DefaultBcbPolicySeries {
+	if service.lastPair.Base.String() != marketServices.DefaultBcbPolicySeries {
 		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBcbPolicySeries, service.lastPair.Base)
 	}
 }
@@ -133,7 +135,7 @@ func TestMacroHistoryHandler_MapsBanxicoSeriesPrefix(t *testing.T) {
 	if service.lastExchange != "BANXICO" {
 		t.Fatalf("expected exchange BANXICO, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != "BANXICO_SF43718" {
+	if service.lastPair.Base.String() != "BANXICO_SF43718" {
 		t.Fatalf("expected Banxico prefix alias, got %s", service.lastPair.Base)
 	}
 }
@@ -153,7 +155,7 @@ func TestMacroHistoryHandler_MapsBokPolicyAlias(t *testing.T) {
 	if service.lastExchange != "BOK" {
 		t.Fatalf("expected exchange BOK, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != marketServices.DefaultBokPolicySeries {
+	if service.lastPair.Base.String() != marketServices.DefaultBokPolicySeries {
 		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBokPolicySeries, service.lastPair.Base)
 	}
 }
@@ -173,7 +175,7 @@ func TestMacroHistoryHandler_MapsBcraPolicyAlias(t *testing.T) {
 	if service.lastExchange != "BCRA" {
 		t.Fatalf("expected exchange BCRA, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != marketServices.DefaultBcraPolicySeries {
+	if service.lastPair.Base.String() != marketServices.DefaultBcraPolicySeries {
 		t.Fatalf("expected alias %s, got %s", marketServices.DefaultBcraPolicySeries, service.lastPair.Base)
 	}
 }
@@ -193,7 +195,7 @@ func TestMacroHistoryHandler_MapsTcmbSeriesPrefix(t *testing.T) {
 	if service.lastExchange != "TCMB" {
 		t.Fatalf("expected exchange TCMB, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != "TCMB_EVDS_TP_AB_TOPLAM" {
+	if service.lastPair.Base.String() != "TCMB_EVDS_TP_AB_TOPLAM" {
 		t.Fatalf("expected alias TCMB_EVDS_TP_AB_TOPLAM, got %s", service.lastPair.Base)
 	}
 }
@@ -213,7 +215,7 @@ func TestMacroHistoryHandler_MapsRbiSeriesPrefix(t *testing.T) {
 	if service.lastExchange != "RBI" {
 		t.Fatalf("expected exchange RBI, got %s", service.lastExchange)
 	}
-	if service.lastPair.Base != "RBI_DBIE_FXRES_TR_USD_WEEKLY" {
+	if service.lastPair.Base.String() != "RBI_DBIE_FXRES_TR_USD_WEEKLY" {
 		t.Fatalf("expected alias RBI_DBIE_FXRES_TR_USD_WEEKLY, got %s", service.lastPair.Base)
 	}
 }

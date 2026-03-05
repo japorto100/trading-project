@@ -81,7 +81,7 @@ func (e Exchange) Pairs(exch string, enabledOnly bool, item asset.Item) (*curren
 }
 
 // QueryOrder returns details of a valid exchange order
-func (e Exchange) QueryOrder(ctx context.Context, exch, orderID string, pair currency.Pair, assetType asset.Item) (*order.Detail, error) {
+func (e Exchange) QueryOrder(ctx context.Context, exch, orderID string, pair currency.Pair, assetType string) (*order.Detail, error) {
 	o, err := engine.Bot.OrderManager.GetOrderInfo(ctx, exch, orderID, pair, assetType)
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (e Exchange) CancelOrder(ctx context.Context, exch, orderID string, cp curr
 }
 
 // AccountBalances returns account balances for requested exchange
-func (e Exchange) AccountBalances(ctx context.Context, exch string, assetType asset.Item) (accounts.SubAccounts, error) {
+func (e Exchange) AccountBalances(ctx context.Context, exch string, assetType string) (accounts.SubAccounts, error) {
 	ex, err := e.GetExchange(exch)
 	if err != nil {
 		return accounts.SubAccounts{}, err

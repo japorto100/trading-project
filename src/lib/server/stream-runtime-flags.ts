@@ -10,12 +10,24 @@ function parseBoolEnv(value: string | undefined): boolean | null {
 	return null;
 }
 
+function isProductionLikeRuntime(): boolean {
+	const appEnv = (process.env.APP_ENV ?? "").trim().toLowerCase();
+	const vercelEnv = (process.env.VERCEL_ENV ?? "").trim().toLowerCase();
+	return (
+		process.env.NODE_ENV === "production" ||
+		appEnv === "staging" ||
+		appEnv === "prod" ||
+		vercelEnv === "preview" ||
+		vercelEnv === "production"
+	);
+}
+
 function assertProdLegacyStreamFallbackAllowed(scope: "candle" | "quotes") {
-	if (process.env.NODE_ENV !== "production") return;
+	if (!isProductionLikeRuntime()) return;
 	const override = parseBoolEnv(process.env.ALLOW_PROD_MARKET_STREAM_LEGACY_FALLBACK);
 	if (override === true) return;
 	throw new Error(
-		`Legacy market stream fallback (${scope}) must remain disabled by default in production. Set ALLOW_PROD_MARKET_STREAM_LEGACY_FALLBACK=true only for an explicit emergency override.`,
+		`Legacy market stream fallback (${scope}) must remain disabled by default in staging/production. Set ALLOW_PROD_MARKET_STREAM_LEGACY_FALLBACK=true only for an explicit emergency override.`,
 	);
 }
 

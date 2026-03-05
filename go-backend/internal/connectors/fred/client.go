@@ -14,6 +14,8 @@ import (
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 const DefaultBaseURL = "https://api.stlouisfed.org/fred"
@@ -50,7 +52,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string) (gct.Ticker, error) {
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
 	series, err := c.GetSeries(ctx, pair, assetType, 1)
 	if err != nil {
 		return gct.Ticker{}, err
@@ -63,7 +65,7 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 		}
 	}
 
-	seriesID := strings.ToUpper(strings.TrimSpace(pair.Base))
+	seriesID := strings.ToUpper(strings.TrimSpace(pair.Base.String()))
 	value := series[0].Value
 	lastUpdated := series[0].Timestamp
 	if lastUpdated <= 0 {
@@ -71,7 +73,7 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	}
 
 	return gct.Ticker{
-		Pair:        gct.Pair{Base: seriesID, Quote: "USD"},
+		Pair:        currency.NewPair(currency.NewCode(seriesID), currency.NewCode("USD")),
 		Currency:    seriesID,
 		LastUpdated: lastUpdated,
 		Last:        value,
@@ -83,8 +85,8 @@ func (c *Client) GetTicker(ctx context.Context, pair gct.Pair, assetType string)
 	}, nil
 }
 
-func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
-	if strings.ToLower(strings.TrimSpace(assetType)) != "macro" {
+func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+	if !gct.IsSemanticAssetType(assetType, "macro") {
 		return nil, &gct.RequestError{
 			Path:       "/series/observations",
 			StatusCode: http.StatusBadRequest,
@@ -99,7 +101,7 @@ func (c *Client) GetSeries(ctx context.Context, pair gct.Pair, assetType string,
 		}
 	}
 
-	seriesID := strings.ToUpper(strings.TrimSpace(pair.Base))
+	seriesID := strings.ToUpper(strings.TrimSpace(pair.Base.String()))
 	if seriesID == "" {
 		return nil, &gct.RequestError{
 			Path:       "/series/observations",

@@ -11,6 +11,8 @@ package gct
 import (
 	"context"
 	"fmt"
+
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 // CurrencyBalance holds balance data for a single currency on an exchange.
@@ -41,10 +43,10 @@ type ExchangeInfo struct {
 }
 
 // GetAccountInfo fetches live balance data for the given exchange via GCT JSON-RPC.
-func (c *Client) GetAccountInfo(ctx context.Context, exchange, assetType string) (AccountInfo, error) {
+func (c *Client) GetAccountInfo(ctx context.Context, exchange string, assetType asset.Item) (AccountInfo, error) {
 	body := map[string]any{
 		"exchange":  exchange,
-		"assetType": assetType,
+		"assetType": assetType.String(),
 	}
 
 	var raw struct {

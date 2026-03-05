@@ -3,7 +3,7 @@
 > **Stand:** 22. Februar 2026
 > **Zweck:** Definiert die Context-Strategie fuer alle Consumer im System: Welche Memory-Schichten werden fuer welchen Query-Typ angezapft, wie wird Relevanz bewertet, wie werden Multi-Source-Ergebnisse gemerged, und wie wird das Token-Budget fuer LLM-Agents verwaltet.
 > **Abgrenzung zu MEMORY_ARCHITECTURE.md:** Memory definiert *was wo gespeichert wird* (Infrastruktur, Schemas, Persistenz). Context Engineering definiert *was wann fuer wen zusammengestellt wird* (Policies, Scoring, Budgets). Memory ist die Bibliothek. Context Engineering ist der Bibliothekar.
-> **Referenz-Dokumente:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) (M1-M5, Zwei-Schichten-KG), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) (Vier Agent-Rollen, Guards), [`GAME_THEORY.md`](./GAME_THEORY.md) (Krisenlogik, Strategeme), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (RAG/Reasoning Patterns), [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) (CE 2.0 Research: DyCP, LLMLingua-2, RAG-Debatte, Self-Baking)
+> **Referenz-Dokumente:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) (M1-M5, Zwei-Schichten-KG, Fast/Slow Lane), [`KG_ONTOLOGY.md`](./KG_ONTOLOGY.md) (Ontologie-Quellen), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) (Vier Agent-Rollen, Guards), [`GAME_THEORY.md`](./GAME_THEORY.md) (Krisenlogik, Strategeme), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (RAG/Reasoning Patterns), [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) (CE 2.0 Research: DyCP, LLMLingua-2, RAG-Debatte, Self-Baking)
 > **Primaer betroffen:** Python-Backend (Agent-Pipeline, Context Assembler), Frontend (User-KG Queries, Merge-Layer), Go Gateway (SSE Context-Updates)
 
 ---
@@ -135,6 +135,11 @@ MERGE-LAYER QUERIES (< 200ms Budget):
   3. Backend liefert angereicherte Antwort zurueck
   4. Frontend merged mit User-KG Ergebnis
 ```
+
+**Review-Ergaenzung (SOTA 2026, Empfehlung):**
+- Fuer interaktive UI-Subfeatures kann optional ein **reactive client store layer** (z. B. TanStack-DB-Pilot) vor M1 gesetzt werden.
+- Dieser Layer ist **additiv** und ersetzt weder M1 (shared cache) noch M2a/M3/M4 als backendseitige Kontextebenen.
+- Production-Regel: Kein stiller Local-Fallback bei Kontext-Queries; degradierte Antworten muessen Flags tragen.
 
 ---
 
@@ -322,6 +327,17 @@ Wenn nach Phase 1 der verfuegbare Kontext das Budget immer noch ueberschreitet, 
 - Guard-Definitionen (DRS-Schwellwerte, Regeln)
 - Reserve (Output-Budget)
 
+### 5.3a Context Compaction (ReMe, OpenClaw, Self-Hosted)
+
+**Compaction ≠ Kompression:** Compaction ist Summarisieren *plus* Rehydration – nach dem Summary werden aktuelle Dateien neu gelesen, Todos wiederhergestellt, eine Fortsetzungs-Anweisung injiziert. Claude Code/Codex nutzen drei Ebenen: Microcompaction (Tool-Outputs auf Disk), Auto-Compaction (bei Headroom-Unterschreitung), Manual Compaction (`/compact`).
+
+**Open Source, ohne Cloud-API:**
+- **ReMe** ([agentscope-ai/ReMe](https://github.com/agentscope-ai/ReMe), Apache 2.0): `compact_memory`, `compact_tool_result`, `memory_search`. `LLM_BASE_URL` auf Ollama = self-hosted.
+- **OpenClaw** ([openclaw/openclaw](https://github.com/openclaw/openclaw), MIT): Built-in Compaction, `/compact` Befehl, Session-JSONL-Persistenz.
+- **Context Gateway** ([Compresr-ai/Context-Gateway](https://github.com/Compresr-ai/Context-Gateway), Apache 2.0): Agentic Proxy mit History-Compaction.
+
+**Self-Hosted:** ReMe/OpenClaw brauchen ein LLM für Summarization – kein Cloud-API nötig, Ollama/vLLM/SGLang reicht. Siehe `MEMORY_ARCHITECTURE.md` Sek. 5.5.
+
 ### 5.4 Priority-Stack bei Ueberlauf
 
 ```
@@ -420,11 +436,17 @@ UI Rendering (Impact Panel)
 | Vector Store offline | M1, M2a, M2b, M3 (kein M4) | Keine semantische Suche, nur strukturierte KG-Queries | "Aehnliche Events nicht verfuegbar" |
 | User-KG korrupt/leer | M1, M2a, M3, M4 (kein M2b) | Kein personalisierter Kontext, generische Impact-Analyse | "Dein lokaler Graph wird neu aufgebaut..." |
 
+**Review-Ergaenzung (Phase-21 Hardening):**
+- Dev/Test: lokale degradierbare Modi erlaubt.
+- Staging/Prod: fail-fast fuer kritische Context-Pfade + klare Telemetrie (`fallback_active`, `degraded_context_flags`).
+
 ---
 
 ## 7. Context Freshness und Staleness
 
 Kontext kann veralten. Ein Event von vor 2 Stunden ist anders relevant als eines von vor 2 Wochen. Das System braucht definierte Freshness-Policies.
+
+**Fast Lane vs. Slow Lane:** Domain C (Live Events) nutzt TTL und Temporal Weight Decay; Domain A+B (Strategeme, BTE) sind statisch mit Confidence Decay. Details: [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 5.2 (Fast Lane vs. Slow Lane), Sek. 9.9 (Confidence Dampening).
 
 ### 7.1 TTL-Policies pro Context-Typ
 

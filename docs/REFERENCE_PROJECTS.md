@@ -139,6 +139,14 @@ Gezielte Suche nach **Frontend-**, **Python-**, **Go-** und **Rust-**Referenzen.
 | **goexchange (evdnx)** | **Sekundaer** | Einheitliche Clients Binance/Coinbase/Swyftx, REST+WS, Retry/Backoff; Pattern-Referenz fuer weitere Exchange-Adapter. | [GitHub](https://github.com/evdnx/goexchange) |
 | **CCXT (Go-Variante)** | **Offen** | Multi-Exchange in Go; TS-Fallback existiert, Go-Variante erst bei messbarem Bedarf. | [CCXT](https://github.com/ccxt/ccxt) |
 
+### KG-Distillation (Knowledge Graph aus Text)
+
+| Projekt / Ressource | Kategorie | Kontext | Link / Hinweis |
+|---------------------|-----------|---------|-----------------|
+| **GraphMERT** | Sekundaer | KG-Distillation aus unstrukturiertem Text. 80M Encoder, FActScore/ValidityScore. Fuer Slow-Lane-Refinement (Domain A+B). TMLR 2026. | [jha-lab/graphmert_umls](https://github.com/jha-lab/graphmert_umls), [OpenReview](https://openreview.net/forum?id=tnXSdDhvqc) |
+
+Siehe [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 6.3, [`KG_ONTOLOGY.md`](./KG_ONTOLOGY.md).
+
 ### Rust (Indicator Core / WASM / Backtesting)
 
 > Vollstaendige Analyse: [`docs/RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md)
@@ -173,6 +181,7 @@ Gezielte Suche nach **Frontend-**, **Python-**, **Go-** und **Rust-**Referenzen.
 | **EquiCharts** | Sekundaer | TS + Canvas | TS | Sektion 2 |
 | **CCXT** | Sekundaer | JS/TS | TS | Sektion 4 |
 | **Chronicle / Scout / FinGPT / FinBERT** | Sekundaer | Python / API | Python | Sektion 8 |
+| **GraphMERT** | Sekundaer | Python | Python | KG-Distillation, [MEMORY_ARCH](./MEMORY_ARCHITECTURE.md) Sek. 6.3 |
 | **GeoPulse / GameTheory / GeoInsight** | Sekundaer | Next.js + Python | TS+Python | Sektion 3 |
 | **StockTraderPro / react-next-tradingview** | Sekundaer | Next.js | TS | Sektion 1 |
 | **gocharts / FirChart / Backtest-Kit** | Sekundaer | Go/TS | Go/TS | Sektion 2, 6 |
@@ -208,7 +217,7 @@ Gezielte Suche nach **Frontend-**, **Python-**, **Go-** und **Rust-**Referenzen.
 | **FSA Japan / MAS Singapore** | Offen | HTML | Go | Legal & Reg |
 | **CanLII (Kanada)** | Offen | HTML | Go | Legal & Reg |
 | **BAILII (UK+Irland)** | Offen | HTML | Go | Legal & Reg |
-| **IMF IFS (Erweiterung)** | Offen | SDMX/JSON | Go | Global Macro |
+| **IMF IFS (Erweiterung)** | Done (27. Feb 2026) | SDMX/JSON | Go | Global Macro — `internal/connectors/imf`, exchange=imf |
 | **IMF WEO** | Offen | JSON | Go | Global Macro |
 | **World Bank WDI (Erweiterung)** | Offen | JSON | Go | Global Macro |
 | **OECD Data Explorer** | Offen | SDMX/JSON | Go | Global Macro |
@@ -241,6 +250,33 @@ Gezielte Suche nach **Frontend-**, **Python-**, **Go-** und **Rust-**Referenzen.
 > **Hintergrund-Recherche:** Web, Reddit (r/algotrading, r/Commodities, r/quant), YouTube, API-Dokumentationen, Community-Vergleiche.
 >
 > **Bewertete und verworfene Meta-Projekte:** OpenBB Platform (Python-only, passt nicht in Go-Data-Layer), AKShare (China-lastig, Scraping), pandas-datareader (veraltet, <20 Quellen), OpenAlgo (Indien-Broker, kein Daten-Aggregator). Diese Projekte sind als **Research-Referenz** nuetzlich (z.B. OpenBB im Jupyter-Notebook zum Testen von Endpoints), aber nicht als Produktions-Dependency.
+
+### Quellen zu Phasen-Mapping
+
+Alle in diesem Dokument gelisteten 40+ Quellen fließen gemäß dem [Execution Plan](./specs/EXECUTION_PLAN.md) in spezifische Erweiterungsphasen ein. Den aktuellen Status jeder Quelle tracken wir in [`REFERENCE_SOURCE_STATUS.md`](./REFERENCE_SOURCE_STATUS.md).
+
+| Gruppe | Phasen-Mapping im Execution Plan |
+|--------|-----------------------------------|
+| **G1 (REST-API)** | Phase 14 (Global Provider Expansion) / tlw. 0b |
+| **G2 (WebSocket)**| Phase 14 (Global Provider Expansion) / tlw. 3 |
+| **G3 (SDMX)** | Phase 14a (SDMXClient) |
+| **G4 (Zeitreihen)**| Phase 14b (TimeSeriesClient: EM Central Banks) |
+| **G5 (Bulk)** | Phase 14c (BulkFetcher: CFTC, LBMA) / Phase 18 (FINRA) |
+| **G6 (RSS)** | Phase 14g (GeoMap Official Source Connector Pack) |
+| **G7 (Diff)** | Phase 14d (DiffWatcher: Sanctions, OFAC) |
+| **G8 (Non-English)**| Phase 14e (TranslationBridge) |
+| **G9 (Inoffiziell)**| Phase 14f (Symbol Catalog Service) |
+| **G10 (Oracle)** | Phase 14h (G10 Scaffold) & Phase 18f (Oracle Cross-Check Produktiv) |
+
+### Standard Intake Checklist für neue Quellen
+
+Für jeden neuen Provider, der aus diesem Dokument in den Go-Layer integriert wird, gilt dieser standardisierte Intake-Prozess:
+
+1. [ ] **Live-Probe**: Request und Response per cURL / Network-Tab validieren.
+2. [ ] **API-Contract**: Symbol-Format und erwarteten Pfad in `API_CONTRACTS.md` dokumentieren.
+3. [ ] **Config-Template**: Metadaten (`group`, `kind`, `capabilities`) in `provider-router.yaml` und Token in `.env` eintragen.
+4. [ ] **Connector Parser**: Provider-spezifische Parse-Logik in `internal/connectors/...` implementieren.
+5. [ ] **Status-Tracking**: Eintrag in `REFERENCE_SOURCE_STATUS.md` auf "Done" setzen.
 
 ### Implementierungsprinzip fuer viele Quellen (Go Data Layer)
 
@@ -306,7 +342,7 @@ Was wir vermeiden sollten:
 
 | Provider | Schicht | Asset-Klassen | Besonderheit |
 |---|---|---|---|
-| **GoCryptoTrader (GCT)** | **Go** | Crypto (30+ Exchanges) | gRPC + JSON-RPC; Order/Backtest/Portfolio; WebSocket nativ |
+| **GoCryptoTrader (GCT)** | **Go** | Crypto (30+ CEX) | gRPC + JSON-RPC; Order/Backtest/Portfolio; WebSocket nativ. **Nur CEX** – keine DEX-Unterstützung. |
 | **Finnhub** | **Go + TS** | Stocks, FX, Crypto | Go: REST Quote + WebSocket Stream; TS: REST Fallback |
 | **FRED** | **Go + TS** | Macro (Zinsen, Inflation, BIP) | Go: Observations + Scheduled Ingest; TS: Fallback |
 | **ECB** | **Go + TS** | Forex (30+ Paare) | Go: XML-Feed daily; TS: Fallback |
@@ -329,6 +365,10 @@ Was wir vermeiden sollten:
 > - **Options:** CCXT: partiell (Deribit, OKX). Kein breites Options-Ecosystem.
 > - **Liquidations:** Weder CCXT noch GCT haben unified API. Exchange-spezifische WebSocket-Streams moeglich.
 > - **Fazit:** Fuer Crypto-Spot + Perps + Funding sind wir mit GCT + CCXT **gut abgedeckt**. Crypto-Options und Liquidations bleiben Nischen-Features.
+>
+> **GCT: Nur CEX, keine DEX.** GoCryptoTrader unterstützt ausschließlich zentrale Börsen (Binance, Kraken, Bybit, etc.). Dezentrale Exchanges (Uniswap, dYdX, etc.) sind nicht integriert. **DEX-Daten** (Subgraphs, RPC, Aggregatoren wie The Graph, Covalent, Moralis) gehören als **eigene Go-Gateway-Connectors** – nicht in GCT. GCT bleibt die optimale Quelle für alles CEX-Crypto; DEX ist eine separate Connector-Kategorie im Unified Data Layer.
+>
+> **Entscheidung DEX-Platzierung:** DEX **nicht** ins GCT reinpluggen, sondern im **Go Gateway** als eigene Connectors. GCT liefert CEX-Crypto optimal; DEX-Quellen (The Graph, Covalent, RPC) haben andere APIs und gehören in die Go-Gateway-Abstraktionsschicht. Siehe auch `REFERENCE_SOURCE_STATUS.md` G11.
 
 ### Bestandsaufnahme: Was wir HABEN (Commodity-/Futures-relevant)
 
@@ -1021,13 +1061,29 @@ Was wir vermeiden sollten:
 | **S5** | **BIS Early Warning Indicators** | Globale Krisenfrueherkennung (Credit-to-GDP Gap, DSR) | Klein (~80 LoC, BIS API) | Empirisch bewiesenene 1-3 Jahre Vorlauf vor Finanzkrisen |
 | **S6** | **ISDA SwapsInfo** | CDS + IRS Volumes, woechentlich | Klein (~80 LoC, REST) | CDS-Volumen-Aenderungen = Shadow-Credit-Stress-Proxy |
 | **S7** | **BIS RCAP Dashboard** (Basel-Regime) | Regulierungs-Stringenz pro Land | Klein (~60 LoC, periodischer HTML/Excel-Parse) | Statischer Layer, seltene Updates. Basis fuer GeoMap-Heatmap |
+| **S8** | **Private-Credit Proxy Pack (FRED + OFR + NYFed)** | Credit-Cycle-/Funding-Stress-Proxies fuer eine asset-agnostische Regime-Map | Trivial bis klein (hauptsaechlich Series-IDs + 1-2 neue REST-Connectoren) | Direkte Private-Credit-Daten bleiben opak; Proxy-Set ist fuer operative Signal-Entscheidung ausreichend robust |
 
 > **Sofort ohne neuen Adapter (S1):** FRED Series-IDs fuer Liquiditaet, Stress und Credit-Cycle ergaenzen:
 > - Liquiditaet: `RRPONTSYD` (ON RRP), `WTREGEN` (TGA), `TOTRESNS` (Reserves), `WRESBAL` (Reserve Balances)
 > - Repo/Rates: `SOFR`, `SOFR30`, `SOFR90`, `EFFR` (Fed Funds)
 > - Stress: `NFCI`, `ANFCI` (Adjusted NFCI), `STLFSI4`
 > - Credit Cycle: `DRTSCILM` (SLOOS Tightening), `DRTSCLCC` (Consumer Credit Tightening), `BOGZ1FL664090005Q` (Shadow Banking Credit)
+> - Credit Spreads (HY/IG Proxy): `BAMLH0A0HYM2` (US HY OAS), `BAMLC0A0CM` (US IG OAS), `BAA10Y` (BAA minus 10Y Treasury)
 > - Margin: Nicht direkt in FRED -- FINRA Margin als separater Klein-Adapter (~40 LoC, monatlicher CSV-Download)
+
+#### Private Credit Proxy Pack (operativ, fuer Regime-Signale)
+
+> **Ziel:** Obwohl direkte Private-Credit-Books nicht transparent sind, laesst sich der Zyklus ueber liquide Proxies ausreichend frueh erkennen. Diese Reihe ist die bevorzugte Basis fuer die Frage „Private Credit Boom: welches Regime fuer meine Ziel-Assets?“.
+
+| Komponente | Primaerquelle | Serie/API | Frequenz | Regime-Interpretation |
+|---|---|---|---|---|
+| High-Yield Stress | FRED | `BAMLH0A0HYM2` | Taeglich | Rising fast = Risk-off/Kreditstress |
+| IG Funding Stress | FRED | `BAMLC0A0CM` | Taeglich | Steigend = Finanzierung verteuert |
+| Corp-vs-Gov Spread | FRED | `BAA10Y` | Taeglich | Steigend = Credit-Risk-Premium hoch |
+| Broad Financial Conditions | FRED (Chicago Fed) | `NFCI`, `ANFCI` | Woechentlich | >0 und steigend = tighter conditions |
+| Systemic Stress | FRED (STL) / OFR | `STLFSI4` + OFR FSI REST | Woechentlich/taeglich | Stressregime-Bestaetigung |
+| Kreditstandards | FRED (SLOOS) | `DRTSCILM`, `DRTSCLCC` | Quartal | Tightening hoch = spaeter Zyklus |
+| Shadow/NBFI Proxy | FRED Z.1 | `BOGZ1FL664090005Q` | Quartal | Beschleunigung + Spread-Widening = fragiles Regime |
 
 ---
 
@@ -1302,6 +1358,11 @@ Was wir vermeiden sollten:
 | **Band Protocol** | Crypto, FX, Commodities | Validatoren-Netzwerk, 80+ Nodes | 200+ Feeds | Kostenlos (REST-Gateway) | Cross-Chain, REST-freundlicher als Chainlink. Cosmos-basiert | [bandprotocol.com](https://www.bandprotocol.com/) |
 | **Redstone Finance** | Crypto, FX, Commodities, RWA (Real World Assets) | 10+ Publisher | 1000+ Feeds | Kostenlos (REST oder On-Chain) | Modulares Push/Pull-Modell. Guenstiger als Chainlink fuer Custom Feeds. LST/LRT-Pricing | [redstone.finance](https://redstone.finance/) |
 | **API3** | Crypto, FX, Commodities (via dAPIs) | First-Party Oracles (Daten direkt von Quelle, kein Mittelsmann) | 100+ | Kostenlos (via dAPIs) | **Kein Mittelsmann:** Daten kommen direkt von CoinGecko, Finage, Twelve Data etc. als signierte Feeds. Eliminiert Oracle-Layer-Risiko | [api3.org](https://api3.org/), [market.api3.org](https://market.api3.org/) |
+| **Stork** | Low-latency Preis-/Marktdaten (crypto-first, off-chain/on-chain nutzbar) | Publisher-basiert | Produktabhaengig | Kostenlos/produktabhaengig | Sehr niedrige Latenz, geeignet als schnelle Referenz fuer Disagreement-Checks | [docs.stork.network](https://docs.stork.network/) |
+| **Chronicle Protocol** | DeFi-/RWA-nahe Preisfeeds | Oracle-Node Netzwerk | Produktabhaengig | Kostenlos/produktabhaengig | Zusaetzliche unabhaengige Referenzquelle fuer Verifikations-Layer | [docs.chroniclelabs.org](https://docs.chroniclelabs.org/) |
+| **SEDA** | Programmierbare Oracle-Infrastruktur (custom data requests) | Netzwerk mit programmierbaren request flows | Produktabhaengig | Produktabhaengig | Stark fuer spaetere Custom-Validatoren/Claim-Checks | [docs.seda.xyz](https://docs.seda.xyz/home) |
+| **Switchboard** | Custom Feeds + VRF + oracle jobs | Permissionless Oracle-Netzwerk | Produktabhaengig | Produktabhaengig | Gut fuer projektspezifische Datenjobs und Feed-Experimente | [docs.switchboard.xyz](https://docs.switchboard.xyz/) |
+| **DIA** | Open-data Oracle Feeds (multi-chain) | Data-/Oracle-Netzwerk | Produktabhaengig | Produktabhaengig | Transparentere/custom Feed-Pipelines als Ergaenzung zu Standardfeeds | [diadata.org/docs](https://www.diadata.org/docs/home) |
 
 > **Web2 vs Web3 Vergleich fuer unseren Use Case:**
 >
@@ -1325,13 +1386,50 @@ Was wir vermeiden sollten:
 > - Persistente Divergenz → Provider-Health-Score runter
 > - Historische Divergenz-Daten als neuer Indikator: "Oracle Spread Index"
 
-#### Empfohlene Go-Adapter-Prioritaet (Oracle Networks)
+#### Empfohlene Go-Adapter-Prioritaet (Oracle Networks, phasenbasiert)
 
 | Prio | Adapter | Was | Aufwand | Begruendung |
 |---|---|---|---|---|
 | **O1** | **Chainlink REST Gateway** | FX-Feeds (CHF/USD, SGD/USD, EUR/USD, GBP/USD, JPY/USD), XAU/USD, BTC/USD | Klein (~120 LoC, REST/JSON via Public RPC oder data.chain.link) | Hoechste Operator-Diversitaet, FX + Commodities + Crypto |
 | **O2** | **Pyth Network REST** | Crypto + FX + Equity Feeds, Sub-Sekunde Latenz | Klein (~100 LoC, REST via Hermes API) | Institutional Publisher (Jane Street, Jump), niedrigste Latenz |
 | **O3** | **Oracle Disagreement Detector** | Cross-Check Chainlink vs. Web2-Provider, Divergenz-Alerts | Mittel (~200 LoC, Integration in Router Health-Scoring) | Eigenes Stress-Signal, erhoeht Datenqualitaet des gesamten Systems |
+| **O4** | **Stork Adapter (Scaffold)** | Fast-Reference Feeds fuer niedrige Latenz | Klein-Mittel (~120-180 LoC) | Ergaenzt Cross-Check um schnellere Referenzquelle |
+| **O5** | **Chronicle Adapter (Scaffold)** | Zus. DeFi-/RWA-nahe Referenzfeeds | Klein-Mittel (~120-180 LoC) | Erhoeht Quellen-Diversitaet im G10-Layer |
+| **O6** | **SEDA Adapter (Scaffold)** | Programmierbare custom requests | Mittel (~180-240 LoC) | Basis fuer spaetere Claim-/Custom-Validator-Flows |
+| **O7** | **Switchboard Adapter (Scaffold)** | Custom oracle jobs / Feeds | Mittel (~180-240 LoC) | Flexibilitaet fuer projektspezifische Feed-Logik |
+| **O8** | **DIA Adapter (Scaffold)** | Open-data/custom Feed Referenzen | Klein-Mittel (~120-180 LoC) | Zusaetzliche unabhaengige Datenmethodik fuer Vergleich |
+
+> **Phasenregel (wichtig):**
+> - **Phase 14:** O1/O2 + O4/O5/O6/O7/O8 als Connector-Scaffold, Feed-/Pair-Mapping, Staleness-Metadaten.
+> - **Phase 18:** O3 produktiv scharf schalten (Alerting, Provider-Health-Impact, Oracle Spread Index).
+> - **UMA-Hinweis:** UMA ist fuer uns primaer ein Claim-/Dispute-Muster (Geo/News/Event-Validierung), nicht der erste Preisfeed-Adapter.
+
+#### 3. Konkrete Beispiele fuer Tradeview Fusion (Oracle-Kontext)
+
+> **Wichtig:** Oracle-Daten sind bei uns ein Verifikations-Layer. Die primaere Execution-/Chart-Quelle bleibt der Web2-Feed aus dem Go-Data-Layer.
+
+| Beispiel | Input | Regel | Output im Produkt |
+|---|---|---|---|
+| **FX Quote Guard (CHF/USD)** | `price_web2_median` (Finnhub/Polygon/weitere) + `price_oracle_ref` (Chainlink/Pyth) | `abs(diff) > threshold_bps` ODER `oracle_stale=true` | Quote bekommt `quality=degraded`, Alert im Risk-Panel, optional no-auto-action |
+| **Commodities Shock Check (XAU/USD, Oel)** | CEX/Broker-Preis + Oracle-Referenz + Volatilitaetsfenster | Divergenz + hoher Spread + niedrige Liquiditaet = hohes Risiko | Event-Flag auf GeoMap ("data dislocation"), Confidence im Tooltip runter |
+| **Prediction-Market Event Cross-Check** | Polymarket/Kalshi Probability Shift + Preisbewegung + Oracle-Spread | Wahrscheinlichkeit steigt stark, aber Preisfeeds divergieren | "Signal conflict" markieren statt blindes Follow-Signal |
+| **Provider Health Scoring** | Historische Web2-vs-Oracle-Divergenz pro Provider | Persistente Abweichung senkt Provider-Score | Router priorisiert gesuendere Quelle; Monitoring/Incident Trigger |
+
+> **Startwerte (MVP, spaeter kalibrieren):**
+> - `threshold_bps`: FX 15-25 bps, BTC 40-80 bps, Oel/Gold 30-60 bps
+> - `stale_limit`: Pyth 5-15s, Chainlink feed-abhaengig via heartbeat + deviation
+> - `min_confidence_for_alert`: 0.65 (liquidity/latency/source quality gewichtet)
+
+#### 4. Ergaenzender Web3-Kontext (nicht Oracle, aber angrenzend)
+
+| Baustein | Rolle fuer uns | Status |
+|---|---|---|
+| **CCIP / Cross-chain Messaging** | Erst relevant bei echten Multi-Chain-Flows (nicht Phase 1) | Offen |
+| **LayerZero / Omnichain Messaging** | Alternative fuer spaetere Chain-zu-Chain-Events | Offen |
+| **zkTLS / Web-Proofs** | Verifizierbare Web2-Fakten fuer High-Value-Events/Audit | Sekundaer |
+| **Smart Accounts (AA)** | UX-Schicht fuer optionale On-Chain-User-Flows | Sekundaer |
+
+> Details und Rollout-Logik: [`docs/web3/overview.md`](./web3/overview.md), [`docs/web3/smart-accounts.md`](./web3/smart-accounts.md), [`docs/web3/prediction-markets.md`](./web3/prediction-markets.md)
 
 ---
 
@@ -1514,6 +1612,45 @@ Was wir vermeiden sollten:
 | **Trade Corridors** | Fehlt | **Gut** (+UN Comtrade bilateral, +WTO Disputes) | GeoMap Corridor Lines + Events |
 | **Country Attractiveness** | Fehlt | **Gut** (+Heritage EFI, +WGI, +FSI, +CPI, +Henley) | Synthetischer Index fuer GeoMap Heatmap |
 | **CBDC Policy Parameters** | Fehlt | **Mittel** (+Chinn-Ito KAOPEN, +OECD Tax) | Sovereign Parameter Tracking Ansatz |
+
+---
+
+### NEUE Quellen: Prediction Markets + Smart Accounts (NEU 2026-02-26)
+
+> **Kontext:** Fuer die Geopolitical-Map und Event-getriebene Trading-Analysen sind Prediction-Market-Quoten ein zusaetzlicher "Crowd Probability Layer" (nicht Wahrheit, sondern Signal). Smart Accounts bleiben vorerst optional und kommen erst bei echten On-Chain-User-Flows ins Spiel.
+> **Architektur-Fit:** Prediction Markets in den Go Unified Data Layer als neue Gruppe `G11 Prediction Markets`; Smart Accounts als spaetere Erweiterung in einem optionalen Wallet-Service.
+> **Doku-Verweise:** [`docs/web3/overview.md`](./web3/overview.md), [`docs/web3/smart-accounts.md`](./web3/smart-accounts.md)
+
+#### 1. Prediction Markets / Forecasting als Event-Probability-Layer
+
+| Quelle | Kategorie | Was sie liefert | Zugang | Relevanz fuer uns | Link |
+|---|---|---|---|---|---|
+| **Polymarket** | Baseline (Phase 1) | Event-Maerkte, Wahrscheinlichkeiten, Volumen, Orderbook/Trades | Public REST + WS (ohne Key fuer Marktdaten) | Schnellstes Crowd-Signal fuer geopolitische Event-Wahrscheinlichkeiten | [docs.polymarket.com](https://docs.polymarket.com/) |
+| **Kalshi** | Baseline (Phase 1) | Event-Maerkte, Market Data, strukturierte Contracts | Public Market-Data + API | Regulierter Referenzfeed als Gegenpol zu crypto-nativen Maerkten | [docs.kalshi.com](https://docs.kalshi.com/) |
+| **Metaculus** | Sekundaer (Phase 1/2) | Aggregierte Forecasts, eher langlaufende Fragen | API (Auth) | "Slow intelligence" fuer makro-/policy-lastige Themen | [metaculus.com/api](https://www.metaculus.com/api/) |
+| **Manifold** | Sekundaer (Phase 2) | Social Forecasting, breite Themenabdeckung | Public API | Narrative-/Sentiment-Layer, nicht als primaerer Trading-Feed | [docs.manifold.markets](https://docs.manifold.markets/) |
+| **Omen (Gnosis)** | Offen (Phase 2/3) | Dezentraler Prediction-Market-Stack | On-Chain + Doku | Spaeterer On-Chain-Check fuer source-diversity | [dxdocs.eth.limo/docs/Products/omen](https://dxdocs.eth.limo/docs/Products/omen/) |
+| **Azuro** | Offen (Phase 2/3) | Dezentrales Prediction-Market-Protokoll | API/SDK/Docs | Optional fuer protokollseitige Erweiterung | [gem.azuro.org](https://gem.azuro.org/) |
+| **Zeitgeist** | Offen (Phase 2/3) | Prediction-Market-Netzwerk (Polkadot-Umfeld) | API/Docs | Optional als weiterer dezentraler Feed | [docs.zeitgeist.pm](https://docs.zeitgeist.pm/) |
+
+#### 2. Smart Accounts / Account Abstraction als optionale UX-Schicht
+
+| Quelle | Kategorie | Was sie liefert | Zugang | Relevanz fuer uns | Link |
+|---|---|---|---|---|---|
+| **Ethereum Account Abstraction (ERC-4337 Kontext)** | Sekundaer (Phase 2) | Grundmodell fuer UserOps, Paymaster, Bundler | Doku | Grundlage fuer optionales gasless UX und Session-Modelle | [ethereum.org/roadmap/account-abstraction](https://ethereum.org/roadmap/account-abstraction/) |
+| **Safe Smart Accounts** | Sekundaer (Phase 2) | Production-Patterns fuer Smart Accounts, Module, Guards | Doku/SDK | Kandidat fuer Power-User-Flows (Limits, Recovery, Multi-Owner) | [docs.safe.global](https://docs.safe.global/) |
+
+#### Empfohlene Integrations-Prioritaet (Prediction + Smart Accounts)
+
+| Prio | Baustein | Was | Aufwand | Begruendung |
+|---|---|---|---|---|
+| **PM1** | **Polymarket Connector** | Event-Liste + probability + liquidity + 24h delta | Mittel (~180 LoC inkl. Mapping) | Hohe Signal-Dichte, schnell fuer GeoMap-Overlay |
+| **PM2** | **Kalshi Connector** | Event-Liste + probability + volume + resolution meta | Mittel (~180 LoC inkl. Mapping) | Zweiter Referenzfeed fuer Bias-/Divergenz-Checks |
+| **PM3** | **Canonical Event Mapper** | Plattformuebergreifendes Event-Matching + dedup | Mittel-Hoch (~250 LoC + Tests) | Kritischer Mehrwert: semantische Vergleichbarkeit |
+| **PM4** | **Divergence Index** | Prediction vs News vs Price Disagreement | Mittel (~160 LoC + scoring) | Direktes Produktfeature fuer Alerts/Map |
+| **SA1** | **Smart-Account Readiness Doc + Interface** | Architektur-Schnittstelle, noch ohne Rollout | Klein (~1 ADR + 1 interface contract) | Kein Vendor-Lock-in, spaeter aktivierbar |
+
+> **Wichtige Produktregel:** Prediction Markets als **Signal-Layer** nutzen (confidence-gewichtet), nicht als alleinige Wahrheit. Smart Accounts nur aktivieren, wenn es echte On-Chain-User-Flows gibt.
 
 ---
 

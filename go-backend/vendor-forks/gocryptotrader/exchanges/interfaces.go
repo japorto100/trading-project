@@ -131,7 +131,7 @@ type OrderManagement interface {
 	CancelOrder(ctx context.Context, o *order.Cancel) error
 	CancelBatchOrders(ctx context.Context, o []order.Cancel) (*order.CancelBatchResponse, error)
 	CancelAllOrders(ctx context.Context, orders *order.Cancel) (order.CancelAllResponse, error)
-	GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType asset.Item) (*order.Detail, error)
+	GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType string) (*order.Detail, error)
 	GetActiveOrders(ctx context.Context, getOrdersRequest *order.MultiOrderRequest) (order.FilteredOrders, error)
 	GetOrderHistory(ctx context.Context, getOrdersRequest *order.MultiOrderRequest) (order.FilteredOrders, error)
 	WebsocketSubmitOrder(ctx context.Context, s *order.Submit) (*order.SubmitResponse, error)
@@ -164,7 +164,7 @@ type AccountManagement interface {
 type FunctionalityChecker interface {
 	IsEnabled() bool
 	IsAssetWebsocketSupported(a asset.Item) bool
-	SupportsAsset(assetType asset.Item) bool
+	SupportsAsset(assetType string) bool
 	SupportsREST() bool
 	SupportsWithdrawPermissions(permissions uint32) bool
 	SupportsRESTTickerBatchUpdates() bool

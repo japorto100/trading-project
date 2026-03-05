@@ -25,6 +25,9 @@ func TestResolveMacroSeries_DefaultAliases(t *testing.T) {
 		{exchange: "TCMB", symbol: "TCMB_EVDS_TP.AB.TOPLAM", want: "TCMB_EVDS_TP_AB_TOPLAM"},
 		{exchange: "RBI", symbol: "FXRES_TR_USD_W", want: "RBI_DBIE_FXRES_TR_USD_WEEKLY"},
 		{exchange: "RBI", symbol: "RBI_DBIE_FXRES_TR_USD_MONTHLY", want: "RBI_DBIE_FXRES_TR_USD_MONTHLY"},
+		{exchange: "IMF", symbol: "POLICY_RATE", want: DefaultImfPolicySeries},
+		{exchange: "IMF", symbol: "M_111_FITB", want: "IMF_IFS_M_111_FITB"},
+		{exchange: "IMF", symbol: "IMF_IFS_M_111_FITB", want: "IMF_IFS_M_111_FITB"},
 		{exchange: "BOJ", symbol: "JPNCPI", want: "JPNCPI"},
 	}
 

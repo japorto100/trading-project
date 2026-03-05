@@ -2,7 +2,7 @@
 
 > **Stand:** 22. Februar 2026
 > **Zweck:** Definiert das Gesamtbild fuer Caching, Persistenz, Wissensrepraesentation und Agent-Memory in TradeView Fusion. Von kurzfristigen TTL-Caches bis zu langfristigem Knowledge-Graph-basiertem Agentenwissen.
-> **Referenz-Dokumente:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md) (Sek. 8: Knowledge Graph), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) (Sek. 0.3-0.7: Cache-Strategie), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (Sek. 7: RAG/Reasoning), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 8: KG Domain D Seed-Schema -- Oekonomische Paradigmen, Transmissionskanäle, Institutionen als KG-Nodes)
+> **Referenz-Dokumente:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md) (Sek. 8: Knowledge Graph), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) (Sek. 0.3-0.7: Cache-Strategie), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (Sek. 7: RAG/Reasoning), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 8: KG Domain D Seed-Schema), [`KG_ONTOLOGY.md`](./KG_ONTOLOGY.md) (formales Schema, Ontologie-Quellen)
 > **Referenz-Buecher:**
 > - "The Behavior Ops Manual" (Chase Hughes, 2022) -- BTE/DRS als strukturiertes Wissen im Knowledge Graph
 > - "Die 36 Strategeme" (Prof. Rieck) -- Krisenlogik als relationales Wissen im Knowledge Graph
@@ -106,6 +106,25 @@ Inspiriert von menschlichem Gedaechtnis und gaengigen Agent-Memory-Frameworks:
 ---
 
 ## 3. Ist-Zustand: Was existiert
+
+### 3.0 Cache-Adapter-Minimalvertrag (Python + Go)
+
+**Implementierung:** `python-backend/services/_shared/cache_adapter.py`, `go-backend/internal/cache/adapter.go`
+
+| Methode | Python | Go | Beschreibung |
+|---------|--------|-----|--------------|
+| `get(key)` | `async get(key: str) -> Optional[Any]` | `Get(ctx, key) ([]byte, bool)` | Wert abrufen, `None`/`false` bei Miss |
+| `set(key, value, ttl)` | `async set(key, value, ttl_seconds=300)` | `Set(ctx, key, value, ttl)` | Wert mit TTL speichern |
+| `delete(key)` | `async delete(key: str)` | `Delete(ctx, key)` | Key loeschen |
+| `ping()` | `async ping() -> bool` | `Ping(ctx) error` | Health-Check |
+
+**TTL-Konstanten:** `TTL_LIVE=300`, `TTL_INDICATOR=900`, `TTL_SNAPSHOT=3600` (Sekunden).
+
+**Key-Namespace:** `tradeview:memory:kg:nodes:{type}:{limit}`, `tradeview:memory:kg:sync`, `tradeview:m1:{indicator}:{symbol}:{tf}`.
+
+**Telemetrie (geplant):** `cache.provider`, `cache.hit_rate`, `cache.fallback_active`, `cache.errors` — noch nicht verbindlich in allen Handlern.
+
+**Hinweis:** `scan-prefix`/`ttl` als separate Methode sind optional; LRU/Redis nutzen TTL beim `set`.
 
 ### 3.1 Working Memory (Kurzfristig)
 
@@ -244,6 +263,15 @@ Das KG-System ist zweistufig aufgebaut: ein **shared Backend-KG** (Domain-Wissen
 │  + Vector Index (FalkorDB built-in) fuer semantische Suche       │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+#### Fast Lane vs. Slow Lane (KG-Wachstum)
+
+| Lane | Inhalt | Quelle | GraphMERT | TTL/Decay |
+|------|--------|--------|-----------|-----------|
+| **Fast Lane** | Domain C: Geo_Event, Actor, Commodity (Live) | ACLED, GDELT, CrisisWatch (Go) | Nein | TTL, probabilistisch, Temporal Weight Decay |
+| **Slow Lane** | Domain A+B: Strategeme, BTE, Krisenphasen | Seed-Dateien, Buch-Extrakte | Ja (Batch-Refinement) | Kein TTL, Confidence Decay (Sek. 9.9) |
+
+**User-KG (M2b):** Kein zweiter „Wahrheits-KG“, sondern **Overlay** ueber Backend. Enthaelt persoenliche Daten (Position, Alert, Overrides). Merge-Layer kombiniert beides; Backend bleibt Source of Truth fuer Domain-Fakten.
 
 #### M2a: Backend Domain-KG (Shared, alle User)
 
@@ -401,7 +429,7 @@ LOGOUT / TAB-CLOSE:
 - Laeuft komplett im Browser, kein Server noetig
 - Cypher-Query-Language (gleiche Sprache wie FalkorDB Backend → Code-Sharing moeglich)
 - Persistent ueber IndexedDB (mit AES-256-GCM Encryption Layer, siehe [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 13)
-- Inspiriert von GitNexus-Architektur (KuzuDB native CLI + KuzuDB WASM Web UI)
+- Inspiriert von [GitNexus](https://github.com/abhigyanpatwari/GitNexus)-Architektur (KuzuDB native CLI + KuzuDB WASM Web UI). Architektur-Referenz fuer Frontend User-KG; Schema anpassen (Trading/Geo statt Code)
 
 **Empfehlung:** NetworkX-Prototyp in Python fuer Backend (laden aus YAML/JSON-Seed-Dateien). Parallel KuzuDB WASM im Frontend fuer User-KG. Backend-Migration zu FalkorDB wenn NetworkX-Prototyp validiert ist.
 
@@ -501,6 +529,9 @@ evaluation_log:
 | BIS Zentralbank-Reden | BIS API | Wochentlich (Bulk-Archiv) | Gleich |
 | Earnings Call Transcripts | EarningsCall.biz / SEC | Quartalsweise | Domain-spezifisch: `FinBERT` Embedding |
 | Buch-Extrakte (Referenzwissen) | Lokale Markdown-Files | Einmalig + Updates | Gleich |
+| News, Papers, OSINT (optional) | Diverse | Variabel | **MrBERT** (MRL: 128/512/1024 dims je nach Latenz-Budget) |
+
+**MrBERT ([arXiv:2602.21379](https://arxiv.org/abs/2602.21379)):** Multilingual Encoder mit Matryoshka Representation Learning (MRL). Ermoeglicht dynamische Embedding-Dimensionen (z.B. 128 fuer schnelle Suche, 1024 fuer Re-Ranking) ohne Retraining. Domain-adaptiert fuer Legal/Biomed; fuer Finance/Geo eigener CPT-Schritt sinnvoll. HuggingFace: [BSC-LT/MrBERT](https://huggingface.co/BSC-LT/MrBERT) (Modellfamilie: MrBERT, MrBERT-biomed, MrBERT-legal, MrBERT-es, MrBERT-ca).
 
 **RAG-Pipeline:**
 
@@ -534,6 +565,13 @@ Die leere ChromaDB-Datei (`chroma_data/chroma.sqlite3`) wird nicht weiter verfol
 | Produktion | FalkorDB | FalkorDB Vector Index | 1 unified |
 
 Kein Pinecone/Weaviate (Cloud-Lock-in vermeiden).
+
+#### Dokumenten-Import für RAG (MarkItDown)
+
+**MarkItDown** (Microsoft, Apache 2.0) konvertiert PDF, DOCX, PPTX, XLSX, Bilder (OCR), Audio (Transkription) zu Markdown – token-effizient für LLMs. MCP-Server verfügbar.
+
+- **Einsatz:** Research-Reports, PDF-Analysen, Excel-Daten vor Embedding
+- **Quelle:** [microsoft/markitdown](https://github.com/microsoft/markitdown)
 
 **Abhaengigkeit:** M2a (Backend-KG) sollte vorher oder parallel stehen, damit RAG Fakten-Retrieval und Semantik-Retrieval trennen kann. LLM-Integration (M5) muss zumindest prototypisch vorhanden sein.
 
@@ -584,6 +622,8 @@ Kein Pinecone/Weaviate (Cloud-Lock-in vermeiden).
 | Episodic Context | 500 | Nur letztes Matching-Event |
 | Current Input | 5000 | Chunking + Zusammenfassung bei laengeren Texten |
 | **Gesamt** | **9000** | Passt in 16K-128K Context Windows |
+
+**Context Compaction (ReMe, OpenClaw):** Bei langen Agent-Sessions naehert sich der Kontext dem Limit. *Compaction* (nicht nur Kompression) = Summarisieren + Rehydration (Dateien neu lesen, Todos wiederherstellen, Fortsetzungs-Anweisung). **ReMe** ([agentscope-ai/ReMe](https://github.com/agentscope-ai/ReMe), Apache 2.0) bietet file-based (ReMeLight) und vector-based Memory mit `compact_memory`, `compact_tool_result`, `memory_search`. **Self-hosted:** ReMe/OpenClaw nutzen LLM fuer Summarization – `LLM_BASE_URL` auf Ollama (`http://localhost:11434`) = kein Cloud-API. Siehe `CONTEXT_ENGINEERING.md` Sek. 5.3a.
 
 **Abhaengigkeit:** M2 + M3 + M4 muessen existieren. Das ist die letzte Stufe.
 
@@ -738,6 +778,12 @@ edges:
 | **Commodities** | Manuell + Symbol-Mapping | ~15 | Gelegentlich |
 
 **Gesamt Backend:** ~300-500 Nodes (statisch) + ~50-200 Live-Nodes. Klein genug fuer NetworkX-Prototyp, skalierbar in FalkorDB.
+
+**GraphMERT (Phase 2):** Nach initialem KG-Aufbau (IE-Pipeline: Entity Linking + Relation Extraction) kann GraphMERT als Batch-Job den Slow-Lane-KG refinieren: Tail-Prediction, strukturelle Validierung, FActScore-Verbesserung. Code: [jha-lab/graphmert_umls](https://github.com/jha-lab/graphmert_umls). Siehe `REFERENCE_PROJECTS.md`.
+
+**IE-Pipeline (Entity Linking, Relation Extraction):** Fuer spaetere Erweiterung: ReLiK (Entity Linking + Relation Extraction), SapBERT (biomed/UMLS), Fin-E5 (Finance-Embeddings, FinMTEB). Bei Konkretisierung der IE-Pipeline in REFERENCE_PROJECTS ergaenzen.
+
+**Ontologie-Quellen:** Formales Schema (Klassen, IDs, Relationen) aus FIBO, Wikidata, GLEIF LEI, OpenFIGI, OpenSanctions. Domain-Docs (`GAME_THEORY.md`, `POLITICAL_ECONOMY_KNOWLEDGE.md`) liefern Semantik, nicht das Schema. Details: [`KG_ONTOLOGY.md`](./KG_ONTOLOGY.md).
 
 ### 6.4 Frontend: User-KG Node- und Edge-Schema
 
@@ -922,6 +968,7 @@ Aktuell: Prisma/SQLite reicht fuer Single-User. PostgreSQL wird noetig sobald:
 - Full-Text-Search auf Events/Transcripts
 
 **Empfehlung:** Bei M3 (Episodic Store) auf PostgreSQL wechseln. Prisma unterstuetzt beide -- Migration ist Schema-Change + Connection-String.
+**Review-Ergaenzung:** PostgreSQL als zentrales SoR (tenanting via `user_id`/`profile_key`) priorisieren; "pro User eigene DB" nur bei harten Isolationsanforderungen.
 
 ### 9.2 KG-Technologie: NetworkX → FalkorDB (Backend) + KuzuDB WASM (Frontend) ✅ Entschieden
 
@@ -942,6 +989,14 @@ Separate Vector DB (ChromaDB/Qdrant) wird langfristig nicht benoetigt. FalkorDB 
 ### 9.4 Redis: Managed vs. Self-Hosted
 
 Entwicklung: Docker Redis (kein Overhead). Produktion: Abhaengig von Deployment-Strategie (noch nicht definiert).
+
+**Review-Ergaenzung (SOTA 2026, Empfehlung):**
+- Primärpfad: Redis oder Valkey als shared hot cache.
+- No-Docker Dev-Fallback zulassen:
+  1. nativer lokaler Service (Redis/Valkey Binary), oder
+  2. in-process Cache + optional persistenter local Adapter (SQLite/redb).
+- Staging/Prod: externer Cache verpflichtend, in-process nur kontrollierte Notfall-Degradation.
+- Konfigurationsziel: `CACHE_PROVIDER=redis|valkey|local`.
 
 ### 9.5 Stufenplan-Reihenfolge
 
@@ -1011,6 +1066,13 @@ Ein Hintergrund-Job der periodisch Episodic-Eintraege aggregiert und als neue KG
 └─────────────────────────────────────────────────────────┘
 ```
 
+### 9.9 Rollenabgrenzung der Speicherschichten (Review-Klarstellung)
+
+- **Postgres:** System of Record fuer persistente Kerndaten + episodic memory.
+- **Redis/Valkey:** shared hot cache / short-lived working memory.
+- **redb (Rust):** spezialisierter OHLCV/read-through cache im Python-Rust Pfad.
+- **Nicht-Ziel:** redb oder Local-Fallbacks als allgemeiner SoR-Ersatz.
+
 **Baking-Regeln:**
 
 | Aggregation | Trigger | KG-Output | Beispiel |
@@ -1040,6 +1102,8 @@ Ein Hintergrund-Job der periodisch Episodic-Eintraege aggregiert und als neue KG
 | **Baseline Decay (monatlich)** | Nicht definiert | **-0.02/Monat auf alle Edges** | Erzwingt periodische Re-Validierung. Edge mit 0.90 ohne neue Predictions sinkt in 5 Monaten auf 0.80. Strukturelle Edges (z.B. "Oel→Energie") koennen via `is_structural: true` Flag vom Decay ausgenommen werden |
 | **Minimum Confidence** | Nicht definiert | **0.10** | Edges unter 0.10 werden nicht geloescht, aber aus Context-Assembly ausgeschlossen (koennen durch neue Validierung wieder steigen) |
 
+**SOTA-Prinzip:** Kanten werden nicht geloescht, sondern per Decay heruntergewichtet. Queries filtern dynamisch nach `confidence` und `timestamp`. Ermoeglicht historische Abfragen („Was war 2024 relevant?“) und vermeidet Informationsverlust.
+
 **Implementation:**
 ```python
 def update_confidence(edge, prediction_correct: bool):
@@ -1060,3 +1124,67 @@ def monthly_confidence_decay(kg):
 - **Strategem-Edges** (z.B. `typisches_strategem`, `anwendbar_in`): Halber Decay (-0.01/Monat, da Strategeme langlebiger sind als Events)
 
 **Prioritaet:** HOCH. ~30 LoC, drei einfache Regeln die den KG vor Selbstverstaerkung schuetzen.
+
+---
+
+## 10. Phase-6 Entscheidungen (verbindlich)
+
+### 10.1 ADR: DB-Topologie
+
+**Entscheidung:** Zentrales PostgreSQL mit Tenanting ist der Standardpfad.
+
+- Tenant-Schnitt ueber `user_id` und `profile_key`
+- Kein "Postgres pro User" als Default
+- SQLite bleibt lokaler Dev-/Bootstrap-Pfad
+
+### 10.2 Verbindliche Speicherrollen
+
+| Speicher | Rolle | Nicht-Ziel |
+|---|---|---|
+| **Postgres** | System of Record fuer persistente Domaindaten + episodic memory | Kein hot-cache Ersatz |
+| **Redis/Valkey** | shared hot cache / working memory mit TTL | Kein langfristiger SoR |
+| **redb** | spezialisierter OHLCV/read-through cache im Python-Rust Pfad | Kein allgemeiner Domain-Store |
+
+### 10.3 Cache Provider Strategie (No-Docker kompatibel)
+
+Verbindliche Provider-Auswahl:
+
+```bash
+CACHE_PROVIDER=redis|valkey|local
+```
+
+- `redis` / `valkey`: Standard in staging/prod
+- `local`: nur Dev/Test (explizit degradierter Modus)
+
+### 10.4 Memory-Ownership-Matrix
+
+| Datentyp | Read-Owner | Write-Owner | Source of Truth |
+|---|---|---|---|
+| Portfolio/Orders/Journal Domaindaten | Go + Next read models | Go mutating APIs | Postgres (prod) / SQLite (local dev) |
+| Geo Candidate/Review/Contradiction | Go/UIL APIs | Go/UIL | Go-owned stores + DB |
+| Market hot snapshots | Go/Python services | Go/Python cache writers | Redis/Valkey (ephemeral) |
+| OHLCV cache artifacts | Python-Rust bridge | Python-Rust bridge | redb (cache only) |
+| Agent episodes / workflow logs | Agent services | Agent services | Postgres |
+| KG domain facts | Memory services | Memory services | FalkorDB (target) |
+| User KG local graph | Frontend (per user) | Frontend (per user) | IndexedDB (encrypted) + optional backup |
+
+### 10.5 CacheAdapter Minimalvertrag
+
+Verbindliches Adapter-Interface (provider-unabhaengig):
+
+```ts
+interface CacheAdapter {
+  get<T>(key: string): Promise<T | null>;
+  set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>;
+  del(key: string): Promise<void>;
+  ttl(key: string): Promise<number | null>;
+  scanPrefix?(prefix: string): Promise<string[]>;
+}
+```
+
+Pflicht-Telemetrie:
+
+- `cache.provider`
+- `cache.hit_rate`
+- `cache.fallback_active`
+- `cache.errors`

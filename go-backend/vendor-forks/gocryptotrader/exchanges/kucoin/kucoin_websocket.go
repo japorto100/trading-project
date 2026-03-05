@@ -879,7 +879,7 @@ func (e *Exchange) processOrderbookWithDepth(respData []byte, instrument, topic 
 
 // updateLocalBuffer updates orderbook buffer and checks status if the book is Initial Sync being via the REST
 // protocol.
-func (e *Exchange) updateLocalBuffer(wsdp *WsOrderbook, assetType asset.Item) (bool, error) {
+func (e *Exchange) updateLocalBuffer(wsdp *WsOrderbook, assetType string) (bool, error) {
 	enabledPairs, err := e.GetEnabledPairs(assetType)
 	if err != nil {
 		return false, err
@@ -1148,7 +1148,7 @@ func (e *Exchange) processOrderbookUpdate(cp currency.Pair, a asset.Item, ws *Ws
 
 // applyBufferUpdate applies the buffer to the orderbook or initiates a new
 // orderbook sync by the REST protocol which is off handed to go routine.
-func (e *Exchange) applyBufferUpdate(pair currency.Pair, assetType asset.Item) error {
+func (e *Exchange) applyBufferUpdate(pair currency.Pair, assetType string) error {
 	fetching, needsFetching, err := e.obm.HandleFetchingBook(pair, assetType)
 	if err != nil {
 		return err
@@ -1191,7 +1191,7 @@ func (e *Exchange) applyBufferUpdate(pair currency.Pair, assetType asset.Item) e
 }
 
 // setNeedsFetchingBook completes the book fetching initiation.
-func (o *orderbookManager) setNeedsFetchingBook(pair currency.Pair, assetType asset.Item) error {
+func (o *orderbookManager) setNeedsFetchingBook(pair currency.Pair, assetType string) error {
 	o.Lock()
 	defer o.Unlock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]
@@ -1228,7 +1228,7 @@ func (e *Exchange) SynchroniseWebsocketOrderbook(ctx context.Context) {
 }
 
 // SeedLocalCache seeds depth data
-func (e *Exchange) SeedLocalCache(ctx context.Context, p currency.Pair, assetType asset.Item) error {
+func (e *Exchange) SeedLocalCache(ctx context.Context, p currency.Pair, assetType string) error {
 	ob, err := e.GetPartOrderbook100(ctx, p.String())
 	if err != nil {
 		return err
@@ -1240,7 +1240,7 @@ func (e *Exchange) SeedLocalCache(ctx context.Context, p currency.Pair, assetTyp
 }
 
 // SeedLocalCacheWithBook seeds the local orderbook cache
-func (e *Exchange) SeedLocalCacheWithBook(p currency.Pair, orderbookNew *Orderbook, assetType asset.Item) error {
+func (e *Exchange) SeedLocalCacheWithBook(p currency.Pair, orderbookNew *Orderbook, assetType string) error {
 	return e.Websocket.Orderbook.LoadSnapshot(&orderbook.Book{
 		Pair:              p,
 		Asset:             assetType,
@@ -1254,7 +1254,7 @@ func (e *Exchange) SeedLocalCacheWithBook(p currency.Pair, orderbookNew *Orderbo
 }
 
 // processJob fetches and processes orderbook updates
-func (e *Exchange) processJob(ctx context.Context, p currency.Pair, assetType asset.Item) error {
+func (e *Exchange) processJob(ctx context.Context, p currency.Pair, assetType string) error {
 	err := e.SeedLocalCache(ctx, p, assetType)
 	if err != nil {
 		err = e.obm.StopFetchingBook(p, assetType)
@@ -1281,7 +1281,7 @@ func (e *Exchange) processJob(ctx context.Context, p currency.Pair, assetType as
 }
 
 // invalidateAndCleanupOrderbook invalidates orderbook and cleans local cache
-func (e *Exchange) invalidateAndCleanupOrderbook(p currency.Pair, assetType asset.Item) {
+func (e *Exchange) invalidateAndCleanupOrderbook(p currency.Pair, assetType string) {
 	if err := e.Websocket.Orderbook.InvalidateOrderbook(p, assetType); err != nil {
 		log.Errorf(log.WebsocketMgr, "%s invalidate websocket error: %v", e.Name, err)
 	}
@@ -1339,7 +1339,7 @@ func (o *orderbookManager) StageWsUpdate(u *WsOrderbook, pair currency.Pair, a a
 
 // HandleFetchingBook checks if a full book is being fetched or needs to be
 // fetched
-func (o *orderbookManager) HandleFetchingBook(pair currency.Pair, assetType asset.Item) (fetching, needsFetching bool, err error) {
+func (o *orderbookManager) HandleFetchingBook(pair currency.Pair, assetType string) (fetching, needsFetching bool, err error) {
 	o.Lock()
 	defer o.Unlock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]
@@ -1364,7 +1364,7 @@ func (o *orderbookManager) HandleFetchingBook(pair currency.Pair, assetType asse
 }
 
 // StopFetchingBook completes the book fetching.
-func (o *orderbookManager) StopFetchingBook(pair currency.Pair, assetType asset.Item) error {
+func (o *orderbookManager) StopFetchingBook(pair currency.Pair, assetType string) error {
 	o.Lock()
 	defer o.Unlock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]
@@ -1383,7 +1383,7 @@ func (o *orderbookManager) StopFetchingBook(pair currency.Pair, assetType asset.
 }
 
 // CompleteInitialSync sets if an asset type has completed its initial sync
-func (o *orderbookManager) CompleteInitialSync(pair currency.Pair, assetType asset.Item) error {
+func (o *orderbookManager) CompleteInitialSync(pair currency.Pair, assetType string) error {
 	o.Lock()
 	defer o.Unlock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]
@@ -1403,7 +1403,7 @@ func (o *orderbookManager) CompleteInitialSync(pair currency.Pair, assetType ass
 
 // CheckIsInitialSync checks status if the book is Initial Sync being via the REST
 // protocol.
-func (o *orderbookManager) CheckIsInitialSync(pair currency.Pair, assetType asset.Item) (bool, error) {
+func (o *orderbookManager) CheckIsInitialSync(pair currency.Pair, assetType string) (bool, error) {
 	o.Lock()
 	defer o.Unlock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]
@@ -1418,7 +1418,7 @@ func (o *orderbookManager) CheckIsInitialSync(pair currency.Pair, assetType asse
 
 // FetchBookViaREST pushes a job of fetching the orderbook via the REST protocol
 // to get an initial full book that we can apply our buffered updates too.
-func (o *orderbookManager) FetchBookViaREST(pair currency.Pair, assetType asset.Item) error {
+func (o *orderbookManager) FetchBookViaREST(pair currency.Pair, assetType string) error {
 	o.Lock()
 	defer o.Unlock()
 
@@ -1442,7 +1442,7 @@ func (o *orderbookManager) FetchBookViaREST(pair currency.Pair, assetType asset.
 	}
 }
 
-func (o *orderbookManager) checkAndProcessOrderbookUpdate(processor func(currency.Pair, asset.Item, *WsOrderbook) error, pair currency.Pair, assetType asset.Item, recent *orderbook.Book) error {
+func (o *orderbookManager) checkAndProcessOrderbookUpdate(processor func(currency.Pair, asset.Item, *WsOrderbook) error, pair currency.Pair, assetType string, recent *orderbook.Book) error {
 	o.Lock()
 	defer o.Unlock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]
@@ -1497,7 +1497,7 @@ func (u *update) Validate(updt *WsOrderbook, recent *orderbook.Book) (bool, erro
 }
 
 // Cleanup cleans up buffer and reset fetch and init
-func (o *orderbookManager) Cleanup(pair currency.Pair, assetType asset.Item) error {
+func (o *orderbookManager) Cleanup(pair currency.Pair, assetType string) error {
 	o.Lock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]
 	if !ok {
@@ -1525,7 +1525,7 @@ bufferEmpty:
 }
 
 // StopNeedsFetchingBook completes the book fetching initiation.
-func (o *orderbookManager) StopNeedsFetchingBook(pair currency.Pair, assetType asset.Item) error {
+func (o *orderbookManager) StopNeedsFetchingBook(pair currency.Pair, assetType string) error {
 	o.Lock()
 	defer o.Unlock()
 	state, ok := o.state[pair.Base][pair.Quote][assetType]

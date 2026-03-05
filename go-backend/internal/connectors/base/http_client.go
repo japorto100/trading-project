@@ -2,12 +2,17 @@ package base
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/failsafe-go/failsafe-go/circuitbreaker"
+	"github.com/failsafe-go/failsafe-go/failsafehttp"
+	"github.com/failsafe-go/failsafe-go/retrypolicy"
 )
 
 type Client struct {
@@ -40,11 +45,38 @@ func NewClient(cfg Config) *Client {
 		}
 	}
 
+	retryPolicy := failsafehttp.NewRetryPolicyBuilder().
+		WithMaxRetries(retryCount).
+		WithBackoff(100*time.Millisecond, 1500*time.Millisecond).
+		AbortIf(func(resp *http.Response, err error) bool {
+			if resp != nil && resp.Request != nil && !isIdempotentMethod(resp.Request.Method) {
+				return true
+			}
+			return false
+		}).
+		Build()
+
+	cb := circuitbreaker.NewBuilder[*http.Response]().
+		HandleIf(func(resp *http.Response, err error) bool {
+			if err != nil {
+				return true
+			}
+			if resp != nil && (resp.StatusCode == 429 || resp.StatusCode >= 500) {
+				return true
+			}
+			return false
+		}).
+		WithFailureThreshold(3).
+		WithDelay(10 * time.Second).
+		Build()
+
+	roundTripper := failsafehttp.NewRoundTripper(transport, retryPolicy, cb)
+
 	return &Client{
 		baseURL:    baseURL,
 		timeout:    timeout,
 		retryCount: retryCount,
-		httpClient: &http.Client{Timeout: timeout, Transport: transport},
+		httpClient: &http.Client{Timeout: timeout, Transport: roundTripper},
 		limiter:    newSimpleRateLimiter(cfg.RateLimitPerSecond),
 	}
 }
@@ -127,75 +159,18 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("request required")
 	}
 
-	maxAttempts := c.retryCount + 1
-	if maxAttempts < 1 {
-		maxAttempts = 1
+	if waitErr := c.limiter.Wait(req.Context()); waitErr != nil {
+		return nil, waitErr
 	}
 
-	var lastErr error
-	for attempt := 0; attempt < maxAttempts; attempt++ {
-		clonedReq, cloneErr := cloneRequest(req)
-		if cloneErr != nil {
-			return nil, cloneErr
-		}
-
-		if waitErr := c.limiter.Wait(clonedReq.Context()); waitErr != nil {
-			return nil, waitErr
-		}
-
-		resp, err := c.httpClient.Do(clonedReq)
-		if !shouldRetry(clonedReq.Method, resp, err) || attempt == maxAttempts-1 {
-			return resp, err
-		}
-
-		if resp != nil && resp.Body != nil {
-			_ = resp.Body.Close()
-		}
-		lastErr = err
-
-		timer := time.NewTimer(retryBackoff(attempt))
-		select {
-		case <-clonedReq.Context().Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
-			if clonedReq.Context().Err() != nil {
-				return nil, clonedReq.Context().Err()
-			}
-			if lastErr != nil {
-				return nil, lastErr
-			}
-			return nil, context.Canceled
-		case <-timer.C:
-		}
-	}
-
-	if lastErr != nil {
-		return nil, lastErr
-	}
-	return nil, fmt.Errorf("request failed after retries")
-}
-
-func cloneRequest(req *http.Request) (*http.Request, error) {
-	cloned := req.Clone(req.Context())
-	if req.Body == nil {
-		cloned.Body = nil
-		return cloned, nil
-	}
-	if req.GetBody == nil {
-		if isIdempotentMethod(req.Method) {
-			// For safety we do not retry non-replayable bodies.
-			if cloned != nil {
-				cloned = req
-			}
-			return cloned, nil
-		}
-		return nil, fmt.Errorf("request body is not replayable")
-	}
-	body, err := req.GetBody()
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("clone request body: %w", err)
+		var exceededErr retrypolicy.ExceededError
+		if errors.As(err, &exceededErr) {
+			if lastResp, ok := exceededErr.LastResult.(*http.Response); ok && lastResp != nil {
+				return lastResp, exceededErr.LastError
+			}
+		}
 	}
-	cloned.Body = body
-	return cloned, nil
+	return resp, err
 }

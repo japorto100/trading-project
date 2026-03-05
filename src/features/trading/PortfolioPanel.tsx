@@ -4,13 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { getClientProfileKey } from "@/lib/storage/profile-key";
+import { KellyAllocationPanel } from "./KellyAllocationPanel";
 import { LiveBalancesPanel } from "./LiveBalancesPanel";
+import { MonteCarloVarPanel } from "./MonteCarloVarPanel";
 import { PortfolioAnalyticsPanel } from "./PortfolioAnalyticsPanel";
 import { PortfolioOptimizePanel } from "./PortfolioOptimizePanel";
+import { RegimeSizingPanel } from "./RegimeSizingPanel";
 
 interface PortfolioPosition {
 	symbol: string;
@@ -49,7 +53,7 @@ interface PortfolioSnapshot {
 	equityCurve: EquityPoint[];
 }
 
-type PortfolioTab = "paper" | "live" | "analytics" | "optimize";
+type PortfolioTab = "paper" | "live" | "analytics" | "optimize" | "kelly" | "regime" | "var";
 
 function formatNum(value: number, decimals = 2): string {
 	return value.toLocaleString(undefined, {
@@ -212,6 +216,16 @@ export function PortfolioPanel() {
 		() => [...positions].sort((left, right) => right.totalPnl - left.totalPnl),
 		[positions],
 	);
+	const openPositions = useMemo(
+		() => positions.filter((p) => p.side !== "flat" && (p.marketValue ?? 0) > 0),
+		[positions],
+	);
+	const openSymbols = useMemo(() => openPositions.map((p) => p.symbol), [openPositions]);
+	const varWeights = useMemo(() => {
+		const total = openPositions.reduce((sum, p) => sum + (p.marketValue ?? 0), 0);
+		if (total <= 0) return {} as Record<string, number>;
+		return Object.fromEntries(openPositions.map((p) => [p.symbol, (p.marketValue ?? 0) / total]));
+	}, [openPositions]);
 	const topWinner = sortedByPnl[0] ?? null;
 	const topLoser = sortedByPnl.at(-1) ?? null;
 	const snapshotGeneratedAt = snapshot?.generatedAt ?? null;
@@ -283,136 +297,151 @@ export function PortfolioPanel() {
 						<TabsTrigger value="live">Live</TabsTrigger>
 						<TabsTrigger value="analytics">Analytics</TabsTrigger>
 						<TabsTrigger value="optimize">Optimize</TabsTrigger>
+						<TabsTrigger value="kelly">Kelly</TabsTrigger>
+						<TabsTrigger value="regime">Regime</TabsTrigger>
+						<TabsTrigger value="var">VaR</TabsTrigger>
 					</TabsList>
 				</div>
 
-				<TabsContent value="paper" className="min-h-0 flex-1 overflow-y-auto p-3">
-					{isInitialLoading && snapshot === null ? (
-						<PortfolioLoadingState />
-					) : !metrics ? (
-						<div className="space-y-3">
-							<Alert>
-								<AlertTitle>No portfolio data yet</AlertTitle>
-								<AlertDescription>
-									<p>No filled paper orders were found for the active profile.</p>
-									<p>Place a paper trade or trigger seed/test activity, then refresh this panel.</p>
-								</AlertDescription>
-							</Alert>
-						</div>
-					) : (
-						<div className="space-y-3">
-							<div className="grid grid-cols-2 gap-2">
-								<MetricCard label="Equity" value={formatNum(latestEquity)} />
-								<MetricCard
-									label="Total P&L"
-									value={formatNum(metrics.totalPnl)}
-									valueClassName={pnlClass(metrics.totalPnl)}
-								/>
-								<MetricCard
-									label="Return %"
-									value={portfolioReturnPct === null ? "-" : formatPct(portfolioReturnPct)}
-									valueClassName={
-										portfolioReturnPct === null ? undefined : pnlClass(portfolioReturnPct)
-									}
-								/>
-								<MetricCard
-									label="Unrealized"
-									value={formatNum(metrics.unrealizedPnl)}
-									valueClassName={pnlClass(metrics.unrealizedPnl)}
-								/>
-								<MetricCard
-									label="Max DD"
-									value={formatPct(metrics.maxDrawdown)}
-									valueClassName="text-amber-500"
-								/>
-								<MetricCard label="Open Positions" value={`${metrics.openPositions}`} />
-								<MetricCard
-									label="Win Rate"
-									value={metrics.winRate === null ? "-" : formatPct(metrics.winRate)}
-								/>
-								<MetricCard label="Open Exposure" value={formatNum(metrics.openExposure)} />
-								<MetricCard
-									label="Top Winner"
-									value={topWinner ? `${topWinner.symbol} (${formatNum(topWinner.totalPnl)})` : "-"}
-									valueClassName={topWinner ? pnlClass(topWinner.totalPnl) : undefined}
-								/>
-								<MetricCard
-									label="Top Loser"
-									value={topLoser ? `${topLoser.symbol} (${formatNum(topLoser.totalPnl)})` : "-"}
-									valueClassName={topLoser ? pnlClass(topLoser.totalPnl) : undefined}
-								/>
-							</div>
-
-							<div className="space-y-2">
-								<p className="text-muted-foreground text-xs font-semibold uppercase">Positions</p>
-								{positions.length === 0 ? (
-									<div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-										No filled orders yet.
+				<TabsContent value="paper" className="min-h-0 flex-1 overflow-hidden">
+					<ScrollArea className="h-full">
+						<div className="p-3">
+							{isInitialLoading && snapshot === null ? (
+								<PortfolioLoadingState />
+							) : !metrics ? (
+								<div className="space-y-3">
+									<Alert>
+										<AlertTitle>No portfolio data yet</AlertTitle>
+										<AlertDescription>
+											<p>No filled paper orders were found for the active profile.</p>
+											<p>
+												Place a paper trade or trigger seed/test activity, then refresh this panel.
+											</p>
+										</AlertDescription>
+									</Alert>
+								</div>
+							) : (
+								<div className="space-y-3">
+									<div className="grid grid-cols-2 gap-2">
+										<MetricCard label="Equity" value={formatNum(latestEquity)} />
+										<MetricCard
+											label="Total P&L"
+											value={formatNum(metrics.totalPnl)}
+											valueClassName={pnlClass(metrics.totalPnl)}
+										/>
+										<MetricCard
+											label="Return %"
+											value={portfolioReturnPct === null ? "-" : formatPct(portfolioReturnPct)}
+											valueClassName={
+												portfolioReturnPct === null ? undefined : pnlClass(portfolioReturnPct)
+											}
+										/>
+										<MetricCard
+											label="Unrealized"
+											value={formatNum(metrics.unrealizedPnl)}
+											valueClassName={pnlClass(metrics.unrealizedPnl)}
+										/>
+										<MetricCard
+											label="Max DD"
+											value={formatPct(metrics.maxDrawdown)}
+											valueClassName="text-amber-500"
+										/>
+										<MetricCard label="Open Positions" value={`${metrics.openPositions}`} />
+										<MetricCard
+											label="Win Rate"
+											value={metrics.winRate === null ? "-" : formatPct(metrics.winRate)}
+										/>
+										<MetricCard label="Open Exposure" value={formatNum(metrics.openExposure)} />
+										<MetricCard
+											label="Top Winner"
+											value={
+												topWinner ? `${topWinner.symbol} (${formatNum(topWinner.totalPnl)})` : "-"
+											}
+											valueClassName={topWinner ? pnlClass(topWinner.totalPnl) : undefined}
+										/>
+										<MetricCard
+											label="Top Loser"
+											value={
+												topLoser ? `${topLoser.symbol} (${formatNum(topLoser.totalPnl)})` : "-"
+											}
+											valueClassName={topLoser ? pnlClass(topLoser.totalPnl) : undefined}
+										/>
 									</div>
-								) : (
-									positions.map((position) => (
-										<div
-											key={position.symbol}
-											className="space-y-2 rounded-md border border-border p-3"
-										>
-											<div className="flex items-center justify-between gap-2">
-												<p className="text-sm font-medium">{position.symbol}</p>
-												<Badge variant="outline" className="text-[10px] uppercase">
-													{position.side}
-												</Badge>
+
+									<div className="space-y-2">
+										<p className="text-muted-foreground text-xs font-semibold uppercase">
+											Positions
+										</p>
+										{positions.length === 0 ? (
+											<div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
+												No filled orders yet.
 											</div>
-											<div className="grid grid-cols-2 gap-2 text-xs">
-												<div>
-													<p className="text-muted-foreground">Qty</p>
-													<p>{formatNum(position.quantity, 4)}</p>
+										) : (
+											positions.map((position) => (
+												<div
+													key={position.symbol}
+													className="space-y-2 rounded-md border border-border p-3"
+												>
+													<div className="flex items-center justify-between gap-2">
+														<p className="text-sm font-medium">{position.symbol}</p>
+														<Badge variant="outline" className="text-[10px] uppercase">
+															{position.side}
+														</Badge>
+													</div>
+													<div className="grid grid-cols-2 gap-2 text-xs">
+														<div>
+															<p className="text-muted-foreground">Qty</p>
+															<p>{formatNum(position.quantity, 4)}</p>
+														</div>
+														<div>
+															<p className="text-muted-foreground">Avg</p>
+															<p>{formatNum(position.averagePrice, 4)}</p>
+														</div>
+														<div>
+															<p className="text-muted-foreground">Last</p>
+															<p>
+																{position.currentPrice === undefined
+																	? "-"
+																	: formatNum(position.currentPrice, 4)}
+															</p>
+														</div>
+														<div>
+															<p className="text-muted-foreground">Exposure</p>
+															<p>
+																{position.marketValue === undefined
+																	? "-"
+																	: formatNum(position.marketValue)}
+															</p>
+														</div>
+													</div>
+													<div className="grid grid-cols-3 gap-2 text-xs">
+														<div>
+															<p className="text-muted-foreground">Realized</p>
+															<p className={pnlClass(position.realizedPnl)}>
+																{formatNum(position.realizedPnl)}
+															</p>
+														</div>
+														<div>
+															<p className="text-muted-foreground">Unrealized</p>
+															<p className={pnlClass(position.unrealizedPnl)}>
+																{formatNum(position.unrealizedPnl)}
+															</p>
+														</div>
+														<div>
+															<p className="text-muted-foreground">Total</p>
+															<p className={pnlClass(position.totalPnl)}>
+																{formatNum(position.totalPnl)}
+															</p>
+														</div>
+													</div>
 												</div>
-												<div>
-													<p className="text-muted-foreground">Avg</p>
-													<p>{formatNum(position.averagePrice, 4)}</p>
-												</div>
-												<div>
-													<p className="text-muted-foreground">Last</p>
-													<p>
-														{position.currentPrice === undefined
-															? "-"
-															: formatNum(position.currentPrice, 4)}
-													</p>
-												</div>
-												<div>
-													<p className="text-muted-foreground">Exposure</p>
-													<p>
-														{position.marketValue === undefined
-															? "-"
-															: formatNum(position.marketValue)}
-													</p>
-												</div>
-											</div>
-											<div className="grid grid-cols-3 gap-2 text-xs">
-												<div>
-													<p className="text-muted-foreground">Realized</p>
-													<p className={pnlClass(position.realizedPnl)}>
-														{formatNum(position.realizedPnl)}
-													</p>
-												</div>
-												<div>
-													<p className="text-muted-foreground">Unrealized</p>
-													<p className={pnlClass(position.unrealizedPnl)}>
-														{formatNum(position.unrealizedPnl)}
-													</p>
-												</div>
-												<div>
-													<p className="text-muted-foreground">Total</p>
-													<p className={pnlClass(position.totalPnl)}>
-														{formatNum(position.totalPnl)}
-													</p>
-												</div>
-											</div>
-										</div>
-									))
-								)}
-							</div>
+											))
+										)}
+									</div>
+								</div>
+							)}
 						</div>
-					)}
+					</ScrollArea>
 				</TabsContent>
 
 				<TabsContent value="live" className="min-h-0 flex-1">
@@ -423,6 +452,23 @@ export function PortfolioPanel() {
 				</TabsContent>
 				<TabsContent value="optimize" className="min-h-0 flex-1">
 					<PortfolioOptimizePanel snapshot={snapshot} loading={isInitialLoading || isRefreshing} />
+				</TabsContent>
+				<TabsContent value="kelly" className="flex min-h-0 flex-1 flex-col">
+					<KellyAllocationPanel
+						symbols={
+							snapshot?.positions.filter((p) => p.side !== "flat").map((p) => p.symbol) ?? []
+						}
+					/>
+				</TabsContent>
+				<TabsContent value="regime" className="flex min-h-0 flex-1 flex-col">
+					<RegimeSizingPanel
+						symbols={
+							snapshot?.positions.filter((p) => p.side !== "flat").map((p) => p.symbol) ?? []
+						}
+					/>
+				</TabsContent>
+				<TabsContent value="var" className="flex min-h-0 flex-1 flex-col">
+					<MonteCarloVarPanel symbols={openSymbols} weights={varWeights} />
 				</TabsContent>
 			</Tabs>
 		</div>

@@ -291,7 +291,7 @@ func (e *Exchange) generateFuturesPayload(ctx context.Context, event string, cha
 	return outbound, nil
 }
 
-func (e *Exchange) processFuturesTickers(ctx context.Context, data []byte, assetType asset.Item) error {
+func (e *Exchange) processFuturesTickers(ctx context.Context, data []byte, assetType string) error {
 	resp := struct {
 		Time    types.Time       `json:"time"`
 		Channel string           `json:"channel"`
@@ -319,7 +319,7 @@ func (e *Exchange) processFuturesTickers(ctx context.Context, data []byte, asset
 	return e.Websocket.DataHandler.Send(ctx, tickerPriceDatas)
 }
 
-func (e *Exchange) processFuturesTrades(data []byte, assetType asset.Item) error {
+func (e *Exchange) processFuturesTrades(data []byte, assetType string) error {
 	saveTradeData := e.IsSaveTradeDataEnabled()
 	if !saveTradeData && !e.IsTradeFeedEnabled() {
 		return nil
@@ -351,7 +351,7 @@ func (e *Exchange) processFuturesTrades(data []byte, assetType asset.Item) error
 	return e.Websocket.Trade.Update(saveTradeData, trades...)
 }
 
-func (e *Exchange) processFuturesCandlesticks(ctx context.Context, data []byte, assetType asset.Item) error {
+func (e *Exchange) processFuturesCandlesticks(ctx context.Context, data []byte, assetType string) error {
 	resp := struct {
 		Time    types.Time           `json:"time"`
 		Channel string               `json:"channel"`
@@ -425,7 +425,7 @@ func (e *Exchange) processFuturesOrderbookUpdate(ctx context.Context, incoming [
 	})
 }
 
-func (e *Exchange) processFuturesOrderbookSnapshot(event string, incoming []byte, assetType asset.Item, lastPushed time.Time) error {
+func (e *Exchange) processFuturesOrderbookSnapshot(event string, incoming []byte, assetType string, lastPushed time.Time) error {
 	if event == "all" {
 		var data WsFuturesOrderbookSnapshot
 		err := json.Unmarshal(incoming, &data)
@@ -503,7 +503,7 @@ func (e *Exchange) processFuturesOrderbookSnapshot(event string, incoming []byte
 	return nil
 }
 
-func (e *Exchange) processFuturesOrdersPushData(data []byte, assetType asset.Item) ([]order.Detail, error) {
+func (e *Exchange) processFuturesOrdersPushData(data []byte, assetType string) ([]order.Detail, error) {
 	resp := struct {
 		Time    types.Time       `json:"time"`
 		Channel string           `json:"channel"`
@@ -548,7 +548,7 @@ func (e *Exchange) processFuturesOrdersPushData(data []byte, assetType asset.Ite
 	return orderDetails, nil
 }
 
-func (e *Exchange) procesFuturesUserTrades(data []byte, assetType asset.Item) error {
+func (e *Exchange) procesFuturesUserTrades(data []byte, assetType string) error {
 	if !e.IsFillsFeedEnabled() {
 		return nil
 	}
@@ -621,7 +621,7 @@ func (e *Exchange) processPositionCloseData(ctx context.Context, data []byte) er
 	return e.Websocket.DataHandler.Send(ctx, &resp)
 }
 
-func (e *Exchange) processBalancePushData(ctx context.Context, data []byte, assetType asset.Item) error {
+func (e *Exchange) processBalancePushData(ctx context.Context, data []byte, assetType string) error {
 	var resp []*WsBalance
 	if err := json.Unmarshal(data, &resp); err != nil {
 		return err

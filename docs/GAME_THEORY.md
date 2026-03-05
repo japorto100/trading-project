@@ -871,6 +871,35 @@ Das ist kein abstraktes Philosophieren. Es bestimmt konkrete Design-Entscheidung
 
 ---
 
+## 10. Phase-17 Scope und Abhaengigkeiten (verbindlich)
+
+### 10.1 Scope-Split
+
+| Scope | Inhalt | Reifeziel |
+|---|---|---|
+| **Impact-Kernpfad** | Event -> Impact-Score -> betroffene Symbole/Regionen -> Overlay im UI | zuerst produktiv |
+| **Simulation/Planner-Stack** | Nash/Bayesian Solver, Spielbaum, Monte-Carlo, Planner-Agent, Strategeme-KG Traversal | iterativ/erweitert |
+
+Der Kernpfad darf unabhaengig vom vollen Planner-Stack shipped werden, solange Contracts stabil bleiben.
+
+### 10.2 Abhaengigkeiten zu Phase 6 und 10
+
+- **Phase 6 (Memory):**
+  - KG-/Episodic-Lesezugriff nur ueber definierte Memory-API Contracts
+  - Cache-Layer (`redis|valkey|local`) beeinflusst nur Latenz, nicht Semantik
+- **Phase 10 (Agent):**
+  - Planner-/Research-Agenten greifen nicht direkt auf lokale Stores zu
+  - Agent-Outputs muessen `requestId`, Confidence und Quellenmix dokumentieren
+
+### 10.3 Go/Memory Contract-Regel
+
+Game-Theory-UI und Next-Routes bleiben thin clients:
+
+- Mutierende oder persistente Entscheidungen laufen ueber Go-/Memory APIs
+- Kein versteckter lokaler Truth-Path fuer Simulationsergebnisse
+
+---
+
 ## Zusammenfassung: Reifegradstufen
 
 | Version | Name | Paradigma | Formale GT? | Keen-kompatibel? | Status |

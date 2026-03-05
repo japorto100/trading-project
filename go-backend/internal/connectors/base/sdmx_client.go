@@ -33,6 +33,7 @@ type SDMXConfig struct {
 	DataPathPrefix          string
 	DataflowPathPrefix      string
 	StructurePathPrefix     string
+	PathSuffix              string // e.g. "OECD" for OECD REST API agency segment
 	AdditionalDefaultParams map[string]string
 }
 
@@ -46,6 +47,7 @@ type SDMXClient struct {
 	dataPathPrefix         string
 	dataflowPathPrefix     string
 	structurePathPrefix    string
+	pathSuffix             string
 	defaultParams          map[string]string
 }
 
@@ -84,6 +86,7 @@ func NewSDMXClient(cfg SDMXConfig) *SDMXClient {
 		dataPathPrefix:         dataPathPrefix,
 		dataflowPathPrefix:     dataflowPathPrefix,
 		structurePathPrefix:    structurePathPrefix,
+		pathSuffix:             strings.TrimSpace(cfg.PathSuffix),
 		defaultParams:          defaultParams,
 	}
 }
@@ -131,6 +134,9 @@ func (c *SDMXClient) BuildSeriesPathWithOptions(dimensions map[string]string, st
 	path := strings.TrimRight(c.dataPathPrefix, "/") + "/" + url.PathEscape(c.dataflowID)
 	if key != "" {
 		path += "/" + key
+	}
+	if c.pathSuffix != "" {
+		path += "/" + url.PathEscape(c.pathSuffix)
 	}
 	return path, q, nil
 }

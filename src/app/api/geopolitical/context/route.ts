@@ -2,8 +2,6 @@ import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { fetchGeopoliticalContextViaGateway } from "@/lib/server/geopolitical-context-bridge";
 
-export const runtime = "nodejs";
-
 function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {
 	response.headers.set("X-Request-ID", requestId);
 	return response;

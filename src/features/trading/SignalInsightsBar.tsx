@@ -1,6 +1,16 @@
 "use client";
 
+import {
+	Activity,
+	BrainCircuit,
+	Minus,
+	TrendingDown,
+	TrendingUp,
+	Volume2,
+	Waves,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MemoryStatusBadge } from "@/features/memory/MemoryStatusBadge";
 import type { CompositeSignalInsights } from "@/features/trading/types";
 
 interface SignalInsightsBarProps {
@@ -17,153 +27,120 @@ interface SignalInsightsBarProps {
 }
 
 function metricBadgeTone(value: number): string {
-	if (value > 0) return "text-emerald-500 border-emerald-500/40";
-	if (value < 0) return "text-red-500 border-red-500/40";
-	return "text-muted-foreground border-border";
+	if (value > 0) return "text-success bg-success/10 border-success/20";
+	if (value < 0) return "text-error bg-error/10 border-error/20";
+	return "text-muted-foreground bg-muted/20 border-border/50";
 }
 
 export function SignalInsightsBar({
 	lineState,
-	sma50,
+	sma50: _sma50,
 	lastCrossLabel,
 	rvol,
 	cmf,
-	obv,
+	obv: _obv,
 	heartbeatScore,
-	heartbeatCycleBars,
+	heartbeatCycleBars: _heartbeatCycleBars,
 	atr,
 	compositeSignal,
 }: SignalInsightsBarProps) {
 	return (
-		<div className="mx-3 mt-2 rounded-md border border-border bg-card/30 px-3 py-2">
-			<div className="mb-2 flex items-center justify-between gap-2">
-				<div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-					Market Context
+		<div className="mx-3 mt-2 rounded-xl border border-border/50 bg-background/40 backdrop-blur-md px-4 py-3 flex flex-wrap gap-6 items-center shadow-sm">
+			{/* Trend Regime */}
+			<div className="flex flex-col gap-1.5 min-w-[200px]">
+				<div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+					<Activity className="h-3 w-3" /> Trend Regime
 				</div>
-				<div className="text-[10px] text-muted-foreground">Signal + regime snapshots</div>
+				<div className="flex items-center gap-2">
+					<Badge
+						variant="outline"
+						className={`h-6 px-2 gap-1 rounded-md border ${
+							lineState === "above"
+								? "bg-success/10 text-success border-success/20 shadow-[0_0_10px_oklch(0.696_0.17_162.48/0.2)]"
+								: lineState === "below"
+									? "bg-error/10 text-error border-error/20"
+									: "bg-muted/20 text-muted-foreground border-border/50"
+						}`}
+					>
+						{lineState === "above" ? (
+							<TrendingUp className="h-3 w-3" />
+						) : lineState === "below" ? (
+							<TrendingDown className="h-3 w-3" />
+						) : (
+							<Minus className="h-3 w-3" />
+						)}
+						SMA50 {lineState}
+					</Badge>
+					<span className="text-[11px] text-muted-foreground font-mono">
+						Cross: {lastCrossLabel.split(" ")[0]}
+					</span>
+				</div>
 			</div>
-			<div className="flex flex-wrap items-center gap-1.5 text-xs">
-				<Badge
-					variant="outline"
-					className={
-						lineState === "above"
-							? "text-emerald-500 border-emerald-500/40"
-							: lineState === "below"
-								? "text-red-500 border-red-500/40"
-								: "text-muted-foreground border-border"
-					}
-				>
-					Line (Daily SMA50): {lineState}
-				</Badge>
-				<Badge variant="outline" className="border-border text-muted-foreground">
-					SMA50: {sma50 === null ? "n/a" : sma50.toFixed(2)}
-				</Badge>
-				<Badge variant="outline" className="border-border text-muted-foreground">
-					Last Cross: {lastCrossLabel}
-				</Badge>
-				<Badge
-					variant="outline"
-					className={
-						rvol === null ? "border-border text-muted-foreground" : metricBadgeTone(rvol - 1)
-					}
-				>
-					RVOL: {rvol === null ? "n/a" : rvol.toFixed(2)}x
-				</Badge>
-				<Badge
-					variant="outline"
-					className={cmf === null ? "border-border text-muted-foreground" : metricBadgeTone(cmf)}
-				>
-					CMF: {cmf === null ? "n/a" : cmf.toFixed(3)}
-				</Badge>
-				<Badge
-					variant="outline"
-					className={obv === null ? "border-border text-muted-foreground" : metricBadgeTone(obv)}
-				>
-					OBV: {obv === null ? "n/a" : Math.round(obv).toLocaleString()}
-				</Badge>
-				<Badge
-					variant="outline"
-					className={
-						heartbeatScore >= 0.7
-							? "text-emerald-500 border-emerald-500/40"
-							: heartbeatScore >= 0.4
-								? "text-amber-500 border-amber-500/40"
-								: "text-muted-foreground border-border"
-					}
-				>
-					Rhythm: {(heartbeatScore * 100).toFixed(0)}%
-					{heartbeatCycleBars ? ` (~${heartbeatCycleBars.toFixed(1)} bars)` : ""}
-				</Badge>
-				<Badge
-					variant="outline"
-					className={
-						atr === null
-							? "border-border text-muted-foreground"
-							: "border-orange-500/40 text-orange-500"
-					}
-				>
-					ATR: {atr === null ? "n/a" : atr.toFixed(3)}
-				</Badge>
-				{compositeSignal ? (
-					<>
-						<Badge
-							variant="outline"
-							className={
+
+			<div className="w-[1px] h-8 bg-border/40 hidden md:block" />
+
+			{/* Momentum & Volume */}
+			<div className="flex flex-col gap-1.5 min-w-[200px]">
+				<div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+					<Volume2 className="h-3 w-3" /> Volume Flow
+				</div>
+				<div className="flex items-center gap-2 text-[11px]">
+					<div
+						className={`flex items-center gap-1 px-2 py-0.5 rounded-md border ${rvol === null ? "bg-muted/20 border-border/50 text-muted-foreground" : metricBadgeTone(rvol - 1)}`}
+					>
+						<span className="opacity-70">RVOL</span>
+						<span className="font-mono font-bold">{rvol === null ? "n/a" : rvol.toFixed(2)}x</span>
+					</div>
+					<div
+						className={`flex items-center gap-1 px-2 py-0.5 rounded-md border ${cmf === null ? "bg-muted/20 border-border/50 text-muted-foreground" : metricBadgeTone(cmf)}`}
+					>
+						<span className="opacity-70">CMF</span>
+						<span className="font-mono font-bold">{cmf === null ? "n/a" : cmf.toFixed(2)}</span>
+					</div>
+					<div className="flex items-center gap-1 px-2 py-0.5 rounded-md border bg-muted/20 border-border/50 text-muted-foreground">
+						<span className="opacity-70">ATR</span>
+						<span className="font-mono">{atr === null ? "n/a" : atr.toFixed(2)}</span>
+					</div>
+				</div>
+			</div>
+
+			<div className="w-[1px] h-8 bg-border/40 hidden lg:block" />
+
+			{/* Market Rhythm / AI */}
+			<div className="flex flex-col gap-1.5 flex-1">
+				<div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+					<BrainCircuit className="h-3 w-3" /> AI & Rhythm
+				</div>
+				<div className="flex items-center gap-2 text-[11px]">
+					<div
+						className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${
+							heartbeatScore >= 0.7
+								? "bg-success/10 text-success border-success/20"
+								: heartbeatScore >= 0.4
+									? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+									: "bg-muted/20 text-muted-foreground border-border/50"
+						}`}
+					>
+						<Waves className="h-3 w-3" />
+						<span>Rhythm: {(heartbeatScore * 100).toFixed(0)}%</span>
+					</div>
+
+					{compositeSignal && (
+						<div
+							className={`flex items-center gap-1 px-2 py-0.5 rounded-md border font-bold uppercase tracking-wider ${
 								compositeSignal.signal === "buy"
-									? "text-emerald-500 border-emerald-500/40"
+									? "bg-success/10 text-success border-success/30 shadow-[0_0_15px_oklch(0.696_0.17_162.48/0.3)]"
 									: compositeSignal.signal === "sell"
-										? "text-red-500 border-red-500/40"
-										: "text-muted-foreground border-border"
-							}
-							title="Go -> Python -> Rust composite signal (Phase 2 slice)"
+										? "bg-error/10 text-error border-error/30"
+										: "bg-muted/20 text-muted-foreground border-border/50"
+							}`}
 						>
-							Composite: {compositeSignal.signal} ({(compositeSignal.confidence * 100).toFixed(0)}%)
-						</Badge>
-						<Badge
-							variant="outline"
-							className={
-								compositeSignal.sma50SlopeScore === null
-									? "border-border text-muted-foreground"
-									: metricBadgeTone(compositeSignal.sma50SlopeScore - 0.5)
-							}
-							title="Composite SMA50 slope subscore"
-						>
-							SMA50 Slope*:{" "}
-							{compositeSignal.sma50SlopeScore === null
-								? "n/a"
-								: `${(compositeSignal.sma50SlopeScore * 100).toFixed(0)}%`}
-							{compositeSignal.sma50SlopeEngine ? ` (${compositeSignal.sma50SlopeEngine})` : ""}
-						</Badge>
-						<Badge
-							variant="outline"
-							className={
-								compositeSignal.heartbeatScore === null
-									? "border-border text-muted-foreground"
-									: metricBadgeTone(compositeSignal.heartbeatScore - 0.5)
-							}
-							title="Composite heartbeat subscore"
-						>
-							Heartbeat*:{" "}
-							{compositeSignal.heartbeatScore === null
-								? "n/a"
-								: `${(compositeSignal.heartbeatScore * 100).toFixed(0)}%`}
-						</Badge>
-						<Badge
-							variant="outline"
-							className={
-								compositeSignal.volumePowerScore === null
-									? "border-border text-muted-foreground"
-									: metricBadgeTone(compositeSignal.volumePowerScore - 0.5)
-							}
-							title="Composite smart-money / volume power subscore"
-						>
-							Smart Money*:{" "}
-							{compositeSignal.volumePowerScore === null
-								? "n/a"
-								: `${(compositeSignal.volumePowerScore * 100).toFixed(0)}%`}
-						</Badge>
-					</>
-				) : null}
+							{compositeSignal.signal} {(compositeSignal.confidence * 100).toFixed(0)}%
+						</div>
+					)}
+
+					<MemoryStatusBadge />
+				</div>
 			</div>
 		</div>
 	);

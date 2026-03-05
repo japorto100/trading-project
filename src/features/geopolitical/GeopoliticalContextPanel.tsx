@@ -35,6 +35,8 @@ export function GeopoliticalContextPanel({
 			<div className="flex items-center justify-between gap-2">
 				<h2 className="text-sm font-semibold">Conflict Context</h2>
 				<select
+					id="geo-context-source-filter"
+					name="geo_context_source_filter"
 					className="h-8 rounded-md border border-input bg-background px-2 text-xs"
 					value={source}
 					onChange={(event) => onSourceChange(event.target.value as ContextSource)}

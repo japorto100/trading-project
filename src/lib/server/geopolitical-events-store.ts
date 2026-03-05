@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import { Prisma } from "@prisma/client";
 import type {
@@ -9,21 +8,22 @@ import type {
 	GeoSourceRef,
 } from "@/lib/geopolitical/types";
 import type { CreateGeoEventInput, UpdateGeoEventInput } from "@/lib/geopolitical/validation";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 const DATA_DIR = path.join(process.cwd(), "data", "geopolitical");
 const EVENTS_STORE_PATH = path.join(DATA_DIR, "events.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<GeoEventsStoreFile>({
+	storeName: "geopolitical-events-store",
+	filePath: EVENTS_STORE_PATH,
+	defaultValue: { events: [] },
+	isValid: (value: unknown): value is GeoEventsStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as GeoEventsStoreFile).events),
+});
 
 type DbClient = NonNullable<ReturnType<typeof getPrismaClient>>;
 
@@ -56,17 +56,8 @@ function getDbClient(): DbClient | null {
 	return getPrismaClient();
 }
 
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
-}
-
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
+	return localStore.withWriteLock(task);
 }
 
 function sortNewestFirst(events: GeoEvent[]): GeoEvent[] {
@@ -103,24 +94,11 @@ function toGeoEvent(record: GeoEventDbRecord): GeoEvent {
 }
 
 async function readStore(): Promise<GeoEventsStoreFile> {
-	try {
-		const raw = await fs.readFile(EVENTS_STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as GeoEventsStoreFile;
-		if (!parsed || !Array.isArray(parsed.events)) {
-			return { events: [] };
-		}
-		return { events: parsed.events };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) {
-			return { events: [] };
-		}
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(store: GeoEventsStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(EVENTS_STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+	await localStore.write(store);
 }
 
 export async function listGeoEvents(filters?: {
@@ -160,9 +138,12 @@ export async function listGeoEvents(filters?: {
 				);
 			}
 			return mapped;
-		} catch {
-			// fall through to file storage
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo events DB list failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo events DB client unavailable");
 	}
 
 	const store = await readStore();
@@ -192,9 +173,12 @@ export async function getGeoEvent(eventId: string): Promise<GeoEvent | null> {
 		try {
 			const row = await db.geoEventRecord.findUnique({ where: { id: eventId } });
 			return row ? toGeoEvent(row) : null;
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo events DB get failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo events DB client unavailable");
 	}
 
 	const store = await readStore();
@@ -226,9 +210,12 @@ export async function createGeoEvent(input: CreateGeoEventInput, actor: string):
 				},
 			});
 			return toGeoEvent(created);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo events DB create failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo events DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -298,9 +285,12 @@ export async function updateGeoEvent(
 			});
 
 			return toGeoEvent(updated);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo events DB update failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo events DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -359,9 +349,12 @@ export async function addGeoEventSource(
 				},
 			});
 			return toGeoEvent(updated);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo events DB source-link update failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo events DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -399,9 +392,12 @@ export async function addGeoEventAsset(
 				},
 			});
 			return toGeoEvent(updated);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo events DB asset-link update failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo events DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -429,9 +425,12 @@ export async function deleteGeoEvent(eventId: string): Promise<boolean> {
 		try {
 			await db.geoEventRecord.delete({ where: { id: eventId } });
 			return true;
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo events DB delete failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo events DB client unavailable");
 	}
 
 	return withWriteLock(async () => {

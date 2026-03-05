@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
@@ -7,6 +8,31 @@ import { createPaperOrder, listPaperOrders } from "@/lib/server/orders-store";
 function asNumber(value: unknown): number {
 	const num = Number(value);
 	return Number.isFinite(num) ? num : 0;
+}
+
+function withRequestId(response: NextResponse, requestId: string): NextResponse {
+	response.headers.set("X-Request-ID", requestId);
+	return response;
+}
+
+function errorResponse(requestId: string, error: unknown): NextResponse {
+	const message = error instanceof Error ? error.message : "orders request failed";
+	const persistenceError =
+		message.includes("fallback is disabled") ||
+		message.toLowerCase().includes("db client unavailable");
+	return withRequestId(
+		NextResponse.json(
+			{
+				success: false,
+				error: message,
+				requestId,
+				degraded: true,
+				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
+			},
+			{ status: persistenceError ? 503 : 500 },
+		),
+		requestId,
+	);
 }
 
 const createOrderSchema = z.object({
@@ -21,33 +47,79 @@ const createOrderSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	const profileKey = request.nextUrl.searchParams.get("profileKey");
 	if (!profileKey) {
-		return NextResponse.json({ error: "profileKey is required" }, { status: 400 });
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "profileKey is required",
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
+		);
 	}
 
 	const symbolParam = request.nextUrl.searchParams.get("symbol");
 	const symbol = symbolParam ? canonicalizeFusionSymbol(symbolParam) : undefined;
-	const orders = await listPaperOrders(profileKey, symbol);
-	return NextResponse.json({ success: true, orders });
+	try {
+		const orders = await listPaperOrders(profileKey, symbol);
+		return withRequestId(
+			NextResponse.json({
+				success: true,
+				orders,
+				requestId,
+				degraded: false,
+				degraded_reasons: [],
+			}),
+			requestId,
+		);
+	} catch (error: unknown) {
+		return errorResponse(requestId, error);
+	}
 }
 
 export async function POST(request: NextRequest) {
+	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	let payload: unknown;
 	try {
 		payload = await request.json();
 	} catch {
-		return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "invalid JSON body",
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
+		);
 	}
 
 	const parsed = createOrderSchema.safeParse(payload);
 	if (!parsed.success) {
-		return NextResponse.json(
-			{
-				error: "invalid order payload",
-				details: parsed.error.flatten(),
-			},
-			{ status: 400 },
+		return withRequestId(
+			NextResponse.json(
+				{
+					success: false,
+					error: "invalid order payload",
+					details: parsed.error.flatten(),
+					requestId,
+					degraded: false,
+					degraded_reasons: [],
+				},
+				{ status: 400 },
+			),
+			requestId,
 		);
 	}
 
@@ -60,16 +132,25 @@ export async function POST(request: NextRequest) {
 	const stopLoss = asNumber(parsed.data.stopLoss);
 	const takeProfit = asNumber(parsed.data.takeProfit);
 
-	const order = await createPaperOrder({
-		profileKey,
-		symbol,
-		side,
-		type,
-		quantity,
-		entryPrice,
-		stopLoss: stopLoss > 0 ? stopLoss : undefined,
-		takeProfit: takeProfit > 0 ? takeProfit : undefined,
-	});
-
-	return NextResponse.json({ success: true, order }, { status: 201 });
+	try {
+		const order = await createPaperOrder({
+			profileKey,
+			symbol,
+			side,
+			type,
+			quantity,
+			entryPrice,
+			stopLoss: stopLoss > 0 ? stopLoss : undefined,
+			takeProfit: takeProfit > 0 ? takeProfit : undefined,
+		});
+		return withRequestId(
+			NextResponse.json(
+				{ success: true, order, requestId, degraded: false, degraded_reasons: [] },
+				{ status: 201 },
+			),
+			requestId,
+		);
+	} catch (error: unknown) {
+		return errorResponse(requestId, error);
+	}
 }

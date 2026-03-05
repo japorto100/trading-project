@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
@@ -153,6 +155,69 @@ func TestClientFetchEvents_RequiresAuthentication(t *testing.T) {
 	}
 	if requestErr.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", requestErr.StatusCode)
+	}
+}
+
+func TestClientFetchEvents_UsesMockWithoutCredentialsWhenEnabled(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient(Config{
+		BaseURL:     "http://127.0.0.1:1",
+		MockEnabled: true,
+	})
+
+	events, err := client.FetchEvents(context.Background(), Query{
+		Country:      "USA",
+		Region:       "Americas",
+		EventType:    "Battles",
+		SubEventType: "Armed clash",
+		Limit:        5,
+	})
+	if err != nil {
+		t.Fatalf("expected no error with mock enabled, got %v", err)
+	}
+	if len(events) == 0 {
+		t.Fatal("expected mocked events, got none")
+	}
+	if events[0].Source != "mock:acled" {
+		t.Fatalf("expected mock source, got %q", events[0].Source)
+	}
+	if events[0].Country != "USA" {
+		t.Fatalf("expected query country in mock payload, got %q", events[0].Country)
+	}
+}
+
+func TestClientFetchEvents_UsesMockFixtureFileWhenConfigured(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	fixture := filepath.Join(dir, "acled-events.json")
+	if err := os.WriteFile(
+		fixture,
+		[]byte(`{"events":[{"id":"fixture-1","eventDate":"2026-03-02","country":"Germany","region":"Europe","eventType":"Strategic developments","subEventType":"Policy signal","fatalities":0,"location":"Berlin","latitude":52.52,"longitude":13.405,"source":"mock:acled:file","notes":"fixture event"}]}`),
+		0o600,
+	); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+
+	client := NewClient(Config{
+		BaseURL:      "http://127.0.0.1:1",
+		MockEnabled:  true,
+		MockDataPath: fixture,
+	})
+
+	events, err := client.FetchEvents(context.Background(), Query{Limit: 5})
+	if err != nil {
+		t.Fatalf("expected no error with fixture mock, got %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected one fixture event, got %d", len(events))
+	}
+	if events[0].ID != "fixture-1" {
+		t.Fatalf("expected fixture id, got %q", events[0].ID)
+	}
+	if events[0].Source != "mock:acled:file" {
+		t.Fatalf("expected fixture source, got %q", events[0].Source)
 	}
 }
 

@@ -366,6 +366,7 @@ export async function handlePasskeyRegistrationVerify(
 		where: { credentialID: info.credentialID },
 		create: {
 			userId: challenge.userId,
+			providerAccountId: info.credentialID,
 			credentialID: info.credentialID,
 			credentialPublicKey: encodeUint8ArrayBase64URL(info.credentialPublicKey),
 			counter: info.counter,
@@ -377,6 +378,7 @@ export async function handlePasskeyRegistrationVerify(
 		},
 		update: {
 			userId: challenge.userId,
+			providerAccountId: info.credentialID,
 			credentialPublicKey: encodeUint8ArrayBase64URL(info.credentialPublicKey),
 			counter: info.counter,
 			credentialDeviceType: info.credentialDeviceType,

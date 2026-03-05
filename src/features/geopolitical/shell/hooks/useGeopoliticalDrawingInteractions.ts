@@ -14,6 +14,7 @@ interface UseGeopoliticalDrawingInteractionsParams {
 	drawings: GeoDrawing[];
 	drawingMode: DrawingMode;
 	drawingTextLabel: string;
+	drawingColor: string;
 	pendingLineStart: GeoCoordinate | null;
 	pendingPolygonPoints: GeoCoordinate[];
 	selectedDrawingId: string | null;
@@ -52,6 +53,7 @@ export function useGeopoliticalDrawingInteractions({
 	drawings,
 	drawingMode,
 	drawingTextLabel,
+	drawingColor,
 	pendingLineStart,
 	pendingPolygonPoints,
 	selectedDrawingId,
@@ -84,7 +86,7 @@ export function useGeopoliticalDrawingInteractions({
 				const payload = {
 					type: "line" as const,
 					points: [pendingLineStart, coords],
-					color: "#22d3ee",
+					color: drawingColor,
 					label: "Line",
 				};
 				let currentId: string | null = null;
@@ -117,7 +119,7 @@ export function useGeopoliticalDrawingInteractions({
 					type: "text" as const,
 					points: [coords],
 					label: drawingTextLabel || "Text",
-					color: "#f8fafc",
+					color: drawingColor,
 				};
 				let currentId: string | null = null;
 				await executeDrawingCommand({
@@ -154,6 +156,7 @@ export function useGeopoliticalDrawingInteractions({
 			deleteDrawingById,
 			draftTitle,
 			drawingMode,
+			drawingColor,
 			drawingTextLabel,
 			eventsEditable,
 			executeDrawingCommand,
@@ -178,7 +181,7 @@ export function useGeopoliticalDrawingInteractions({
 		const payload = {
 			type: "polygon" as const,
 			points: pendingPolygonPoints,
-			color: "#f59e0b",
+			color: drawingColor,
 			label: "Polygon",
 		};
 		let currentId: string | null = null;
@@ -202,6 +205,7 @@ export function useGeopoliticalDrawingInteractions({
 		createDrawingRecord,
 		deleteDrawingById,
 		executeDrawingCommand,
+		drawingColor,
 		pendingPolygonPoints,
 		setError,
 		setPendingPolygonPoints,

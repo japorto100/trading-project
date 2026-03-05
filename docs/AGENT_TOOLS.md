@@ -405,6 +405,12 @@ Direkte arXiv API fuer Full-Text-Zugriff (Emergent Mind hat nur Metadaten).
 
 **Unser Equivalent:** Der Verifier Agent (`AGENT_ARCHITECTURE.md` Sek. 2) macht genau das -- er prueft ob Extraktionen durch den Kontext gedeckt sind. Wir koennen dasselbe Pattern fuer Research-Agenten nutzen: "Analysiere NUR basierend auf diesen 3 Papers + KG-Kontext."
 
+### 7.4 claude-scientific-skills (Skill-Templates für Trading)
+
+**Quelle:** [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills)
+
+Skill-Templates für Trading-relevante Daten: `alpha-vantage`, `fred-economic-data`, `exploratory-data-analysis`, `market-research-reports`, `hedgefundmonitor`. Als Referenz für eigene Tool-Skills nutzbar.
+
 ---
 
 ## 8. Communication Channels

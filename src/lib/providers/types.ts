@@ -1,7 +1,7 @@
 // Market Data Provider Types
 // Based on research: Alpha Vantage, Finnhub, Twelve Data, ECB
 
-export type AssetType = "stock" | "crypto" | "fx" | "index" | "etf" | "commodity";
+export type AssetType = "stock" | "crypto" | "fx" | "index" | "etf" | "commodity" | "macro";
 export type TimeframeValue =
 	| "1m"
 	| "3m"
@@ -208,6 +208,16 @@ export const PROVIDER_REGISTRY: Record<string, ProviderInfo> = {
 		rateLimit: { requests: 100, period: "day" },
 		freePlan: true,
 		documentation: "https://data-api.ecb.europa.eu/help",
+	},
+	imf: {
+		name: "imf",
+		displayName: "IMF IFS (International Financial Statistics)",
+		supportedAssets: ["macro"],
+		requiresAuth: false,
+		rateLimit: { requests: 10, period: "5 seconds" },
+		freePlan: true,
+		documentation:
+			"https://datahelp.imf.org/knowledgebase/articles/667681-json-restful-web-service",
 	},
 	demo: {
 		name: "demo",

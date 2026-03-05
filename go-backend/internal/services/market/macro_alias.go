@@ -9,6 +9,7 @@ const (
 	DefaultBcbPolicySeries  = "BCB_SGS_432"
 	DefaultBokPolicySeries  = "BOK_ECOS_722Y001_M_0101000"
 	DefaultBcraPolicySeries = "BCRA_160"
+	DefaultImfPolicySeries  = "IMF_IFS_M_111_FITB"
 	// TCMB policy alias intentionally deferred until a fixed EVDS3 series ID is standardized for this project.
 	// Banxico policy alias intentionally deferred until a fixed series ID is standardized for this project.
 	// RBI policy alias intentionally deferred; first DBIE connector slice starts with FX reserve time series.
@@ -158,6 +159,58 @@ func ResolveMacroSeries(exchange, symbol string) string {
 			frequency = "DAILY"
 		}
 		return "RBI_DBIE_FXRES_" + reserveCode + "_" + currencyCode + "_" + frequency
+	case "IMF":
+		if normalizedSymbol == "" || normalizedSymbol == "POLICY_RATE" || normalizedSymbol == "DEFAULT" {
+			return DefaultImfPolicySeries
+		}
+		if strings.HasPrefix(normalizedSymbol, "IMF_IFS_") {
+			return normalizedSymbol
+		}
+		normalizedSymbol = strings.TrimPrefix(normalizedSymbol, "IMF_IFS_")
+		normalizedSymbol = strings.ReplaceAll(normalizedSymbol, ".", "_")
+		valid := normalizedSymbol != ""
+		for _, r := range normalizedSymbol {
+			if (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' {
+				valid = false
+				break
+			}
+		}
+		if valid {
+			return "IMF_IFS_" + normalizedSymbol
+		}
+		return normalizedSymbol
+	case "OECD":
+		if normalizedSymbol == "" || normalizedSymbol == "GDP" || normalizedSymbol == "DEFAULT" || normalizedSymbol == "POLICY_RATE" {
+			return "OECD_USA_GDP_IDX_Q"
+		}
+		if strings.HasPrefix(normalizedSymbol, "OECD_") {
+			return normalizedSymbol
+		}
+		return "OECD_" + normalizedSymbol
+	case "WORLDBANK", "WB":
+		if normalizedSymbol == "" || normalizedSymbol == "POPULATION" || normalizedSymbol == "DEFAULT" || normalizedSymbol == "GDP" {
+			return "WB_WDI_A_SP_POP_TOTL_USA"
+		}
+		if strings.HasPrefix(normalizedSymbol, "WB_WDI_") {
+			return normalizedSymbol
+		}
+		return "WB_WDI_" + normalizedSymbol
+	case "UN":
+		if normalizedSymbol == "" {
+			return normalizedSymbol
+		}
+		if strings.HasPrefix(normalizedSymbol, "UN_") {
+			return normalizedSymbol
+		}
+		return "UN_" + normalizedSymbol
+	case "ADB":
+		if normalizedSymbol == "" {
+			return normalizedSymbol
+		}
+		if strings.HasPrefix(normalizedSymbol, "ADB_") {
+			return normalizedSymbol
+		}
+		return "ADB_" + normalizedSymbol
 	default:
 		return normalizedSymbol
 	}

@@ -9,7 +9,11 @@ from typing import Any
 import sys
 
 from fastapi import HTTPException, Query
-import yfinance as yf
+
+try:
+    import yfinance as yf
+except Exception:  # noqa: BLE001
+    yf = None
 
 try:
     import polars as pl
@@ -31,7 +35,7 @@ else:
     _rust_core_import_error = None
 
 
-app = create_service_app("finance-bridge")
+app = create_service_app("finance-bridge", http_port=8081)
 
 
 RUST_OHLCV_CACHE_ENABLED = os.getenv("RUST_OHLCV_CACHE_ENABLED", "true").strip().lower() in {
@@ -69,7 +73,8 @@ def to_yahoo_symbol(symbol: str) -> str:
 
     if "/" in value:
         base, quote = value.split("/", 1)
-        if len(base) == 3 and len(quote) == 3:
+        fiat_bases = {"EUR", "GBP", "USD", "AUD", "CAD", "CHF", "JPY", "NZD"}
+        if base in fiat_bases and len(quote) == 3:
             return f"{base}{quote}=X"
         return f"{base}-{quote}"
 
@@ -219,8 +224,9 @@ def rust_cache_set_json(key: str, rows: list[dict[str, Any]], ttl_ms: int) -> No
 def normalize_ohlcv_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], str]:
     if not rows:
         return rows, "python"
+    fallback_rows = sorted(rows, key=lambda row: int(as_float(row.get("time"), 0)))
     if pl is None:
-        return rows, "python"
+        return fallback_rows, "python"
     try:
         frame = pl.DataFrame(rows).sort("time")
         normalized = frame.select(
@@ -235,7 +241,7 @@ def normalize_ohlcv_rows(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any
         )
         return [dict(row) for row in normalized.iter_rows(named=True)], "polars"
     except Exception:  # noqa: BLE001
-        return rows, "python"
+        return fallback_rows, "python"
 
 
 @app.get("/health")
@@ -245,6 +251,8 @@ def health() -> dict[str, Any]:
 
 @app.get("/quote")
 def quote(symbol: str = Query(..., min_length=1)) -> dict[str, Any]:
+    if yf is None:
+        raise HTTPException(status_code=503, detail="yfinance not installed")
     yahoo_symbol = to_yahoo_symbol(symbol)
     ticker = yf.Ticker(yahoo_symbol)
     info = ticker.fast_info or {}
@@ -293,6 +301,9 @@ def ohlcv(
             "cache": {"hit": True, "engine": "redb", "lookupMs": cache_lookup_ms},
             "dataframe": {"engine": dataframe_engine},
         }
+
+    if yf is None:
+        raise HTTPException(status_code=503, detail="yfinance not installed")
 
     yahoo_symbol = to_yahoo_symbol(symbol)
     interval, period = map_timeframe(timeframe)

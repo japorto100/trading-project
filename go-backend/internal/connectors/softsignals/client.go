@@ -1,14 +1,12 @@
 package softsignals
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/ipc"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -16,11 +14,12 @@ const DefaultBaseURL = "http://127.0.0.1:8091"
 
 type Config struct {
 	BaseURL        string
+	GrpcAddress    string // optional; derived from BaseURL (port+1000) if empty
 	RequestTimeout time.Duration
 }
 
 type Client struct {
-	baseClient *base.Client
+	ipcClient *ipc.Client
 }
 
 func NewClient(cfg Config) *Client {
@@ -34,10 +33,10 @@ func NewClient(cfg Config) *Client {
 	}
 
 	return &Client{
-		baseClient: base.NewClient(base.Config{
-			BaseURL:    baseURL,
-			Timeout:    timeout,
-			RetryCount: 0,
+		ipcClient: ipc.NewClient(ipc.Config{
+			GrpcAddress:  strings.TrimSpace(cfg.GrpcAddress),
+			HTTPBaseURL:  baseURL,
+			Timeout:      timeout,
 		}),
 	}
 }
@@ -46,29 +45,16 @@ func (c *Client) PostJSON(ctx context.Context, path string, payload []byte) (int
 	if c == nil {
 		return 0, nil, fmt.Errorf("softsignals client unavailable")
 	}
-	if !strings.HasPrefix(path, "/") {
-		path = "/" + path
+	headers := map[string]string{
+		"Content-Type": "application/json",
+		"Accept":       "application/json",
 	}
-
-	req, err := c.baseClient.NewRequest(ctx, "POST", path, nil, bytes.NewReader(payload))
-	if err != nil {
-		return 0, nil, fmt.Errorf("build softsignals request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
 	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
-		req.Header.Set("X-Request-ID", requestID)
+		headers["X-Request-ID"] = requestID
 	}
-
-	resp, err := c.baseClient.Do(req)
+	status, body, err := c.ipcClient.Do(ctx, "POST", path, payload, headers)
 	if err != nil {
 		return 0, nil, fmt.Errorf("softsignals request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return 0, nil, fmt.Errorf("read softsignals response: %w", err)
-	}
-	return resp.StatusCode, body, nil
+	return status, body, nil
 }

@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -15,7 +17,7 @@ var macroSymbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
 var macroSeriesPattern = regexp.MustCompile(`^[A-Z0-9_]{2,40}$`)
 
 type macroHistoryClient interface {
-	History(ctx context.Context, exchange string, pair gct.Pair, assetType string, limit int) ([]gct.SeriesPoint, error)
+	History(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error)
 }
 
 func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
@@ -43,7 +45,7 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid symbol format"})
 			return
 		}
-		if (exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi") && assetType != "macro" {
+		if (exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi" || exchange == "imf") && assetType != "macro" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unsupported assetType"})
 			return
 		}
@@ -52,7 +54,8 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 			return
 		}
 
-		points, err := client.History(r.Context(), strings.ToUpper(exchange), pair, assetType, limit)
+		assetItem, _ := asset.New(assetType)
+		points, err := client.History(r.Context(), strings.ToUpper(exchange), pair, assetItem, limit)
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "macro history request failed"})
 			return
@@ -78,31 +81,31 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 	}
 }
 
-func parseMacroSymbol(symbol, exchange string) (gct.Pair, string, bool) {
+func parseMacroSymbol(symbol, exchange string) (currency.Pair, string, bool) {
 	normalized := strings.TrimSpace(strings.ToUpper(symbol))
 	normalized = strings.ReplaceAll(normalized, "-", "/")
 
-	if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi" {
+		if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi" || exchange == "imf" {
 		trimmed := strings.ReplaceAll(normalized, "/", "")
 		trimmed = strings.ReplaceAll(trimmed, "-", "_")
 		trimmed = strings.ReplaceAll(trimmed, ".", "_")
 		trimmed = strings.ReplaceAll(trimmed, " ", "_")
 		if !macroSeriesPattern.MatchString(trimmed) {
-			return gct.Pair{}, "", false
+			return currency.EMPTYPAIR, "", false
 		}
 		seriesID := marketServices.ResolveMacroSeries(strings.ToUpper(exchange), trimmed)
 		if seriesID == "" {
-			return gct.Pair{}, "", false
+			return currency.EMPTYPAIR, "", false
 		}
-		return gct.Pair{Base: seriesID, Quote: "USD"}, seriesID, true
+		return currency.NewPair(currency.NewCode(seriesID), currency.NewCode("USD")), seriesID, true
 	}
 
 	parts := strings.Split(normalized, "/")
 	if len(parts) != 2 {
-		return gct.Pair{}, "", false
+		return currency.EMPTYPAIR, "", false
 	}
 	if !macroSymbolPartPattern.MatchString(parts[0]) || !macroSymbolPartPattern.MatchString(parts[1]) {
-		return gct.Pair{}, "", false
+		return currency.EMPTYPAIR, "", false
 	}
-	return gct.Pair{Base: parts[0], Quote: parts[1]}, parts[0] + "/" + parts[1], true
+	return currency.NewPair(currency.NewCode(parts[0]), currency.NewCode(parts[1])), parts[0] + "/" + parts[1], true
 }

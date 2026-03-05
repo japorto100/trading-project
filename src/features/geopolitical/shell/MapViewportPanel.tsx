@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { getBodyPointLayerLegendEntries } from "@/features/geopolitical/layers/bodyPointLayerCatalog";
 import { MapCanvas } from "@/features/geopolitical/MapCanvas";
 import { MapBodyLayerLegendOverlay } from "@/features/geopolitical/shell/MapBodyLayerLegendOverlay";
@@ -24,9 +25,13 @@ interface MapViewportPanelProps {
 	onToggleBodyPointLayerVisibility: (layerId: string) => void;
 	onResetBodyPointLayerVisibility: () => void;
 	onChangeEarthChoroplethMode: (mode: GeoEarthChoroplethMode) => void;
+	drawingMode: string | null;
+	pendingLineStart: { lat: number; lng: number } | null;
+	pendingPolygonPoints: Array<{ lat: number; lng: number }>;
+	drawingColor: string;
 }
 
-export function MapViewportPanel({
+export const MapViewportPanel = memo(function MapViewportPanel({
 	mapBody,
 	loading,
 	events,
@@ -46,11 +51,19 @@ export function MapViewportPanel({
 	onToggleBodyPointLayerVisibility,
 	onResetBodyPointLayerVisibility,
 	onChangeEarthChoroplethMode,
+	drawingMode,
+	pendingLineStart,
+	pendingPolygonPoints,
+	drawingColor,
 }: MapViewportPanelProps) {
 	const bodyPointLayerLegends = getBodyPointLayerLegendEntries(mapBody);
+	const viewportEvents = mapBody === "earth" ? events : [];
+	const viewportCandidates = mapBody === "earth" ? candidates : [];
+	const viewportDrawings = mapBody === "earth" ? drawings : [];
+	const viewportShowSoftSignals = mapBody === "earth" ? showSoftSignals : false;
 
 	return (
-		<div className="flex min-h-0 flex-1 overflow-hidden p-3">
+		<div className="h-full w-full">
 			{loading ? (
 				<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
 					Loading geopolitical workspace...
@@ -59,12 +72,12 @@ export function MapViewportPanel({
 				<div className="relative h-full w-full">
 					<MapCanvas
 						mapBody={mapBody}
-						events={events}
-						candidates={candidates}
-						drawings={drawings}
+						events={viewportEvents}
+						candidates={viewportCandidates}
+						drawings={viewportDrawings}
 						showRegionLayer={showRegionLayer}
 						showHeatmap={mapBody === "earth" ? showHeatmap : false}
-						showSoftSignals={showSoftSignals}
+						showSoftSignals={viewportShowSoftSignals}
 						bodyPointLayerVisibility={bodyPointLayerVisibility}
 						earthChoroplethMode={earthChoroplethMode}
 						onChangeEarthChoroplethMode={onChangeEarthChoroplethMode}
@@ -74,6 +87,10 @@ export function MapViewportPanel({
 						onSelectDrawing={onSelectDrawing}
 						onMapClick={onMapClick}
 						onCountryClick={onCountryClick}
+						drawingMode={drawingMode}
+						pendingLineStart={pendingLineStart}
+						pendingPolygonPoints={pendingPolygonPoints}
+						drawingColor={drawingColor}
 					/>
 					<MapBodyLayerLegendOverlay
 						mapBody={mapBody}
@@ -86,4 +103,4 @@ export function MapViewportPanel({
 			)}
 		</div>
 	);
-}
+});

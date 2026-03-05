@@ -1,52 +1,34 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
 import path from "node:path";
 import type { Prisma } from "@prisma/client";
 import type { GeoDrawing, GeoDrawingsStoreFile } from "@/lib/geopolitical/types";
+import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
+import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
 import { getPrismaClient } from "@/lib/server/prisma";
 
 const DATA_DIR = path.join(process.cwd(), "data", "geopolitical");
 const STORE_PATH = path.join(DATA_DIR, "drawings.json");
 
-let writeChain: Promise<void> = Promise.resolve();
-
-function isNodeErrorWithCode(error: unknown, code: string): boolean {
-	return (
-		typeof error === "object" &&
-		error !== null &&
-		"code" in error &&
-		(error as { code?: unknown }).code === code
-	);
-}
+const localStore = createLocalStoreAdapter<GeoDrawingsStoreFile>({
+	storeName: "geopolitical-drawings-store",
+	filePath: STORE_PATH,
+	defaultValue: { drawings: [] },
+	isValid: (value: unknown): value is GeoDrawingsStoreFile =>
+		typeof value === "object" &&
+		value !== null &&
+		Array.isArray((value as GeoDrawingsStoreFile).drawings),
+});
 
 function withWriteLock<T>(task: () => Promise<T>): Promise<T> {
-	const chained = writeChain.then(task, task);
-	writeChain = chained.then(
-		() => undefined,
-		() => undefined,
-	);
-	return chained;
-}
-
-async function ensureStoreDir(): Promise<void> {
-	await fs.mkdir(DATA_DIR, { recursive: true });
+	return localStore.withWriteLock(task);
 }
 
 async function readStore(): Promise<GeoDrawingsStoreFile> {
-	try {
-		const raw = await fs.readFile(STORE_PATH, "utf-8");
-		const parsed = JSON.parse(raw) as GeoDrawingsStoreFile;
-		if (!parsed || !Array.isArray(parsed.drawings)) return { drawings: [] };
-		return { drawings: parsed.drawings };
-	} catch (error: unknown) {
-		if (isNodeErrorWithCode(error, "ENOENT")) return { drawings: [] };
-		throw error;
-	}
+	return localStore.read();
 }
 
 async function writeStore(store: GeoDrawingsStoreFile): Promise<void> {
-	await ensureStoreDir();
-	await fs.writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf-8");
+	await localStore.write(store);
 }
 
 type DbClient = NonNullable<ReturnType<typeof getPrismaClient>>;
@@ -89,9 +71,12 @@ export async function listGeoDrawings(): Promise<GeoDrawing[]> {
 		try {
 			const rows = await db.geoDrawingRecord.findMany({ orderBy: { updatedAt: "desc" } });
 			return rows.map(toDrawing);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo drawings DB list failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo drawings DB client unavailable");
 	}
 
 	const store = await readStore();
@@ -118,9 +103,12 @@ export async function createGeoDrawing(
 				},
 			});
 			return toDrawing(created);
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo drawings DB create failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo drawings DB client unavailable");
 	}
 
 	return withWriteLock(async () => {
@@ -144,9 +132,12 @@ export async function deleteGeoDrawing(drawingId: string): Promise<boolean> {
 		try {
 			await db.geoDrawingRecord.delete({ where: { id: drawingId } });
 			return true;
-		} catch {
-			// fall through
+		} catch (error) {
+			assertPersistenceFallbackAllowed("Geo drawings DB delete failed");
+			void error;
 		}
+	} else {
+		assertPersistenceFallbackAllowed("Geo drawings DB client unavailable");
 	}
 
 	return withWriteLock(async () => {

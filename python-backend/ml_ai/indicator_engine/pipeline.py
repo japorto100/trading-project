@@ -1831,3 +1831,1157 @@ def build_fibonacci_confluence(payload: FibonacciConfluenceRequest) -> Fibonacci
             "totalLevels": len(all_levels),
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Phase 15b: Volatility Suite
+# ---------------------------------------------------------------------------
+import math as _math  # noqa: E402
+
+
+class VolatilitySuiteRequest(BaseModel):
+    closes: list[float] = Field(min_length=10)
+    lookback: int = Field(default=20, ge=5, le=500)
+
+
+class VolatilitySuiteResponse(BaseModel):
+    spike_weighted_vol: float
+    volatility_index: float
+    exp_weighted_stddev: float
+    volatility_regime: str  # "elevated" | "normal" | "compressed"
+
+
+def calculate_volatility_suite(req: VolatilitySuiteRequest) -> VolatilitySuiteResponse:
+    """Compute spike-weighted vol, historical vol, EW stddev, and regime label."""
+    c = req.closes
+    returns = [
+        _math.log(c[i] / c[i - 1])
+        for i in range(1, len(c))
+        if c[i - 1] > 0 and c[i] > 0
+    ]
+    if not returns:
+        return VolatilitySuiteResponse(
+            spike_weighted_vol=0.0,
+            volatility_index=0.0,
+            exp_weighted_stddev=0.0,
+            volatility_regime="normal",
+        )
+
+    lb = min(req.lookback, len(returns))
+    recent = returns[-lb:]
+
+    # Historical volatility (annualised)
+    mean_r = sum(recent) / len(recent)
+    variance = sum((r - mean_r) ** 2 for r in recent) / max(len(recent) - 1, 1)
+    hv = _math.sqrt(variance) * _math.sqrt(252)
+
+    # EWMA stddev
+    alpha = 2.0 / (req.lookback + 1)
+    ewm_var = returns[0] ** 2
+    for r in returns[1:]:
+        ewm_var = alpha * r ** 2 + (1 - alpha) * ewm_var
+    ewm_std = _math.sqrt(max(ewm_var, 0.0))
+
+    # Spike-weighted vol (spikes counted double)
+    overall_rms = _math.sqrt(sum(r ** 2 for r in returns) / len(returns))
+    weights = [2.0 if abs(r) > 2 * overall_rms else 1.0 for r in recent]
+    total_w = sum(weights)
+    spike_vol = (
+        _math.sqrt(sum(w * r ** 2 for w, r in zip(weights, recent)) / total_w) * _math.sqrt(252)
+        if total_w > 0
+        else 0.0
+    )
+
+    # Historical median of rolling HV for regime classification
+    roll_hvs: list[float] = []
+    for i in range(lb, len(returns) + 1):
+        window = returns[max(0, i - lb): i]
+        if len(window) < 2:
+            continue
+        m = sum(window) / len(window)
+        v = sum((r - m) ** 2 for r in window) / max(len(window) - 1, 1)
+        roll_hvs.append(_math.sqrt(v) * _math.sqrt(252))
+
+    # Absolute thresholds (primary): catches uniformly high/low-vol series
+    # Relative comparison (fallback): catches intra-series regime changes
+    ELEVATED_ABS = 0.40   # > 40 % annualised HV → clearly elevated
+    COMPRESSED_ABS = 0.05  # < 5 % annualised HV → clearly compressed
+    hist_median = sorted(roll_hvs)[len(roll_hvs) // 2] if roll_hvs else hv
+    if hv > ELEVATED_ABS:
+        regime = "elevated"
+    elif hv < COMPRESSED_ABS:
+        regime = "compressed"
+    elif hv > hist_median * 1.3:
+        regime = "elevated"
+    elif hv < hist_median * 0.7:
+        regime = "compressed"
+    else:
+        regime = "normal"
+
+    return VolatilitySuiteResponse(
+        spike_weighted_vol=round(spike_vol, 6),
+        volatility_index=round(hv, 6),
+        exp_weighted_stddev=round(ewm_std, 6),
+        volatility_regime=regime,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 15c: Regime Detection — 3-tier (Rule-Based / Markov / HMM)
+# ---------------------------------------------------------------------------
+
+
+class RegimeDetectRequest(BaseModel):
+    closes: list[float] = Field(min_length=20)
+    lookback: int = Field(default=100, ge=20, le=1000)
+    n_components: int = Field(default=3, ge=2, le=6)
+
+
+class RegimeDetectResponse(BaseModel):
+    current_regime: str  # "bullish" | "bearish" | "ranging"
+    sma_slope: float
+    adx: float
+    confidence: float
+
+
+class MarkovRegimeResponse(BaseModel):
+    current_regime: str
+    transition_probs: dict[str, float]
+    expected_duration: float
+    shift_probability: float
+    stationary_distribution: dict[str, float]
+    warning: str | None
+
+
+class HMMRegimeResponse(BaseModel):
+    n_components: int
+    hidden_state: int
+    state_labels: list[str]
+    means: list[float]
+    bic_score: float
+
+
+def _compute_sma_simple(values: list[float], period: int) -> list[float]:
+    out: list[float] = []
+    running = 0.0
+    for i, v in enumerate(values):
+        running += v
+        if i >= period:
+            running -= values[i - period]
+        out.append(running / min(period, i + 1))
+    return out
+
+
+def _compute_adx_from_closes(closes: list[float], period: int = 14) -> float:
+    """ADX proxy using close prices as both high and low."""
+    if len(closes) < period * 2 + 2:
+        return 0.0
+
+    tr_values: list[float] = []
+    plus_dm: list[float] = []
+    minus_dm: list[float] = []
+    for i in range(1, len(closes)):
+        tr = abs(closes[i] - closes[i - 1])
+        pdm = max(closes[i] - closes[i - 1], 0.0)
+        mdm = max(closes[i - 1] - closes[i], 0.0)
+        if pdm > mdm:
+            mdm = 0.0
+        elif mdm > pdm:
+            pdm = 0.0
+        else:
+            pdm = mdm = 0.0
+        tr_values.append(tr)
+        plus_dm.append(pdm)
+        minus_dm.append(mdm)
+
+    def _smooth(vals: list[float], p: int) -> list[float]:
+        if not vals:
+            return []
+        result = [sum(vals[:p]) / p]
+        for v in vals[p:]:
+            result.append(result[-1] - result[-1] / p + v)
+        return result
+
+    atr_s = _smooth(tr_values, period)
+    pdi_s = _smooth(plus_dm, period)
+    mdi_s = _smooth(minus_dm, period)
+
+    dx_vals: list[float] = []
+    for a, p, m in zip(atr_s, pdi_s, mdi_s):
+        if a == 0:
+            dx_vals.append(0.0)
+            continue
+        pdi = 100 * p / a
+        mdi = 100 * m / a
+        denom = pdi + mdi
+        dx_vals.append(100 * abs(pdi - mdi) / denom if denom else 0.0)
+
+    adx_s = _smooth(dx_vals, period)
+    return adx_s[-1] if adx_s else 0.0
+
+
+def calculate_regime(req: RegimeDetectRequest) -> RegimeDetectResponse:
+    """Tier-1: Rule-based regime using SMA slope + ADX proxy."""
+    closes = req.closes
+    n = len(closes)
+    period = min(50, n - 1)
+    sma_vals = _compute_sma_simple(closes, period)
+
+    slope = 0.0
+    if len(sma_vals) >= 6:
+        ref = sma_vals[-6]
+        if ref != 0:
+            slope = (sma_vals[-1] - ref) / abs(ref)
+
+    adx_val = _compute_adx_from_closes(closes[-min(200, n):], 14)
+
+    if slope > 0.001 and adx_val > 25:
+        regime = "bullish"
+        confidence = min(1.0, 0.5 + slope * 50 + (adx_val - 25) / 100)
+    elif slope < -0.001 and adx_val > 25:
+        regime = "bearish"
+        confidence = min(1.0, 0.5 + abs(slope) * 50 + (adx_val - 25) / 100)
+    else:
+        regime = "ranging"
+        confidence = max(0.3, 1.0 - adx_val / 100)
+
+    return RegimeDetectResponse(
+        current_regime=regime,
+        sma_slope=round(slope, 6),
+        adx=round(adx_val, 4),
+        confidence=round(clamp(confidence, 0.0, 1.0), 4),
+    )
+
+
+def calculate_markov_regime(req: RegimeDetectRequest) -> MarkovRegimeResponse:
+    """Tier-2: Markov transition matrix from rolling rule-based regimes."""
+    closes = req.closes
+    step = max(1, len(closes) // req.lookback)
+    segments = [closes[i: i + step + 1] for i in range(0, len(closes) - step, step)]
+
+    labels: list[str] = []
+    for seg in segments:
+        if len(seg) < 20:
+            continue
+        mini = RegimeDetectRequest(closes=seg, lookback=max(20, len(seg)), n_components=req.n_components)
+        labels.append(calculate_regime(mini).current_regime)
+
+    states = ["bullish", "bearish", "ranging"]
+
+    if not labels:
+        uniform = {s: round(1.0 / 3, 4) for s in states}
+        return MarkovRegimeResponse(
+            current_regime="ranging",
+            transition_probs=uniform,
+            expected_duration=1.0,
+            shift_probability=0.5,
+            stationary_distribution=uniform,
+            warning="insufficient data for Markov estimation",
+        )
+
+    counts: dict[str, dict[str, int]] = {s: {t: 0 for t in states} for s in states}
+    for i in range(len(labels) - 1):
+        from_s, to_s = labels[i], labels[i + 1]
+        if from_s in counts and to_s in counts[from_s]:
+            counts[from_s][to_s] += 1
+
+    trans: dict[str, dict[str, float]] = {}
+    for s in states:
+        total = sum(counts[s].values())
+        trans[s] = {t: counts[s][t] / total if total else 1.0 / 3 for t in states}
+
+    current = labels[-1]
+    p_same = trans[current].get(current, 1.0 / 3)
+    expected_dur = 1.0 / (1.0 - p_same) if p_same < 1.0 else 999.0
+    shift_prob = 1.0 - p_same
+
+    # Stationary distribution via power iteration
+    dist: dict[str, float] = {s: 1.0 / 3 for s in states}
+    for _ in range(200):
+        new_dist: dict[str, float] = {s: 0.0 for s in states}
+        for s in states:
+            for t in states:
+                new_dist[t] += dist[s] * trans[s].get(t, 0.0)
+        dist = new_dist
+
+    return MarkovRegimeResponse(
+        current_regime=current,
+        transition_probs={t: round(trans[current].get(t, 0.0), 4) for t in states},
+        expected_duration=round(expected_dur, 2),
+        shift_probability=round(shift_prob, 4),
+        stationary_distribution={s: round(dist[s], 4) for s in states},
+        warning=None,
+    )
+
+
+def calculate_hmm_regime(req: RegimeDetectRequest) -> HMMRegimeResponse:
+    """Tier-3: Gaussian HMM with BIC-optimal n_components."""
+    try:
+        from hmmlearn import hmm as _hmm  # noqa: PLC0415
+    except ImportError:
+        return HMMRegimeResponse(
+            n_components=0,
+            hidden_state=-1,
+            state_labels=[],
+            means=[],
+            bic_score=float("inf"),
+        )
+
+    closes = req.closes
+    returns_raw = [
+        _math.log(closes[i] / closes[i - 1])
+        for i in range(1, len(closes))
+        if closes[i - 1] > 0
+    ]
+    if len(returns_raw) < 20:
+        return HMMRegimeResponse(
+            n_components=0,
+            hidden_state=-1,
+            state_labels=[],
+            means=[],
+            bic_score=float("inf"),
+        )
+
+    obs = [[r] for r in returns_raw]
+    best_bic = float("inf")
+    best_model = None
+    best_n = 2
+    max_n = min(req.n_components, max(2, len(returns_raw) // 20))
+
+    for n in range(2, max_n + 1):
+        try:
+            model = _hmm.GaussianHMM(
+                n_components=n, covariance_type="full", n_iter=100, random_state=42
+            )
+            model.fit(obs)
+            log_lik = model.score(obs)
+            n_params = n * n + n + n
+            bic = -2 * log_lik + n_params * _math.log(len(returns_raw))
+            if bic < best_bic:
+                best_bic, best_model, best_n = bic, model, n
+        except Exception:  # noqa: BLE001
+            continue
+
+    if best_model is None:
+        return HMMRegimeResponse(
+            n_components=0,
+            hidden_state=-1,
+            state_labels=[],
+            means=[],
+            bic_score=float("inf"),
+        )
+
+    current_state = int(best_model.predict(obs)[-1])
+    raw_means = [float(best_model.means_[i][0]) for i in range(best_n)]
+    label_pool = ["low_vol", "medium_vol", "high_vol", "very_high_vol", "extreme_vol", "ultra_vol"]
+    state_labels = label_pool[:best_n]
+
+    return HMMRegimeResponse(
+        n_components=best_n,
+        hidden_state=current_state,
+        state_labels=state_labels,
+        means=[round(m, 6) for m in raw_means],
+        bic_score=round(best_bic, 4),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 15d-15h + Phase 16 + Phase 20
+# ---------------------------------------------------------------------------
+
+
+class AlternativeBarsRequest(IndicatorServiceRequest):
+    bucketSize: int = Field(default=20, ge=2, le=500)
+
+
+class AlternativeBarsResponse(BaseModel):
+    volume_bar_closes: list[float]
+    dollar_bar_closes: list[float]
+    tick_bar_closes: list[float]
+    metadata: dict[str, Any]
+
+
+class CUSUMRequest(BaseModel):
+    closes: list[float] = Field(min_length=10)
+    threshold: float = Field(default=0.02, ge=0.001, le=1.0)
+
+
+class CUSUMResponse(BaseModel):
+    break_indices: list[int]
+    break_signals: list[str]
+    cumulative_pos: float
+    cumulative_neg: float
+
+
+class MeanRevMomentumRequest(BaseModel):
+    closes: list[float] = Field(min_length=30)
+
+
+class MeanRevMomentumResponse(BaseModel):
+    hurst: float
+    adf_proxy_stat: float
+    half_life: float
+    classification: Literal["mean_reverting", "momentum", "random_walk"]
+
+
+class PerformanceMetricsRequest(BaseModel):
+    returns: list[float] = Field(min_length=2)
+    riskFreeRate: float = 0.0
+
+
+class PerformanceMetricsResponse(BaseModel):
+    net_return: float
+    hit_ratio: float
+    profit_factor: float
+    sharpe: float
+    sortino: float
+    max_drawdown: float
+
+
+class SignalQualityChainRequest(BaseModel):
+    labels: list[Literal["strong", "weak", "invalid"]] = Field(min_length=2)
+
+
+class SignalQualityChainResponse(BaseModel):
+    transition: dict[str, dict[str, float]]
+    quality_score: float
+
+
+class OrderFlowStateRequest(BaseModel):
+    buy_volumes: list[float] = Field(min_length=3)
+    sell_volumes: list[float] = Field(min_length=3)
+    squeeze_threshold: float = Field(default=0.1, ge=0.01, le=1.0)
+
+
+class OrderFlowStateResponse(BaseModel):
+    states: list[Literal["accumulation", "distribution", "squeeze"]]
+    dominant_state: Literal["accumulation", "distribution", "squeeze"]
+
+
+class EvalBaselineRequest(BaseModel):
+    closes: list[float] = Field(min_length=40)
+    horizon: int = Field(default=10, ge=2, le=100)
+    take_profit: float = Field(default=0.03, ge=0.005, le=0.5)
+    stop_loss: float = Field(default=0.02, ge=0.005, le=0.5)
+
+
+class EvalBaselineResponse(BaseModel):
+    labels: list[Literal["tp", "sl", "timeout"]]
+    hit_ratio: float
+    expectancy: float
+    regime: str
+    precision_proxy: float
+    recall_proxy: float
+    f1_proxy: float
+
+
+class BacktestRequest(BaseModel):
+    closes: list[float] = Field(min_length=10)
+    lookback: int = Field(default=10, ge=2, le=200)
+    slippage_bps: float = Field(default=0.0, ge=0.0, le=500.0)
+    commission_bps: float = Field(default=0.0, ge=0.0, le=500.0)
+
+
+class BacktestResponse(BaseModel):
+    strategy_returns: list[float]
+    cumulative_return: float
+    trade_count: int
+
+
+class TripleBarrierRequest(BaseModel):
+    closes: list[float] = Field(min_length=20)
+    horizon: int = Field(default=10, ge=2, le=100)
+    take_profit: float = Field(default=0.03, ge=0.005, le=0.5)
+    stop_loss: float = Field(default=0.02, ge=0.005, le=0.5)
+
+
+class TripleBarrierResponse(BaseModel):
+    labels: list[Literal["tp", "sl", "timeout"]]
+    tp_count: int
+    sl_count: int
+    timeout_count: int
+
+
+class ParameterSensitivityRequest(BaseModel):
+    closes: list[float] = Field(min_length=40)
+    lookbacks: list[int] = Field(min_length=2)
+
+
+class ParameterSensitivityResponse(BaseModel):
+    by_lookback: dict[str, float]
+    stability_score: float
+
+
+class WalkForwardRequest(BaseModel):
+    closes: list[float] = Field(min_length=60)
+    train_window: int = Field(default=40, ge=20, le=1000)
+    test_window: int = Field(default=10, ge=5, le=200)
+
+
+class WalkForwardResponse(BaseModel):
+    oos_scores: list[float]
+    mean_oos_score: float
+    stability_score: float
+
+
+class DeflatedSharpeRequest(BaseModel):
+    sharpe: float
+    trials: int = Field(default=10, ge=1, le=10000)
+    sample_length: int = Field(default=252, ge=20, le=100000)
+
+
+class DeflatedSharpeResponse(BaseModel):
+    deflated_sharpe: float
+    pass_gate: bool
+
+
+class EvalIndicatorRequest(BaseModel):
+    closes: list[float] = Field(min_length=80)
+
+
+class EvalIndicatorResponse(BaseModel):
+    walk_forward: WalkForwardResponse
+    baseline: EvalBaselineResponse
+    deflated_sharpe: DeflatedSharpeResponse
+    execution_realism_pass: bool
+    gate_pass: bool
+
+
+class FeatureEngineeringRequest(IndicatorServiceRequest):
+    period: int = Field(default=14, ge=2, le=200)
+
+
+class FeatureEngineeringResponse(BaseModel):
+    features: list[dict[str, float]]
+    feature_names: list[str]
+
+
+class MLClassifySignalRequest(BaseModel):
+    features: dict[str, float]
+
+
+class MLClassifySignalResponse(BaseModel):
+    label: Literal["buy", "sell", "hold"]
+    score: float
+
+
+class HybridFusionRequest(BaseModel):
+    ml_score: float = Field(ge=0.0, le=1.0)
+    rule_score: float = Field(ge=0.0, le=1.0)
+    ml_weight: float = Field(default=0.6, ge=0.0, le=1.0)
+
+
+class HybridFusionResponse(BaseModel):
+    fused_score: float
+    action: Literal["buy", "sell", "hold"]
+
+
+class BiasMonitoringRequest(BaseModel):
+    geographic_distribution: dict[str, int]
+    regime_distribution: dict[str, int]
+    agreement_rate: float = Field(ge=0.0, le=1.0)
+
+
+class BiasMonitoringResponse(BaseModel):
+    geographic_imbalance: float
+    regime_imbalance: float
+    agreement_rate: float
+    alert: bool
+
+
+class DarkPoolSignalRequest(BaseModel):
+    lit_volume: float = Field(gt=0)
+    dark_pool_volume: float = Field(ge=0)
+
+
+class DarkPoolSignalResponse(BaseModel):
+    dark_pool_ratio: float
+    signal: Literal["accumulation", "distribution", "neutral"]
+    confidence: float
+
+
+class GEXProfileRequest(BaseModel):
+    strikes: list[float] = Field(min_length=1)
+    call_gamma: list[float] = Field(min_length=1)
+    put_gamma: list[float] = Field(min_length=1)
+
+
+class GEXProfileResponse(BaseModel):
+    net_gex: list[float]
+    call_wall: float
+    put_wall: float
+
+
+class ExpectedMoveRequest(BaseModel):
+    spot: float = Field(gt=0)
+    iv_annual: float = Field(ge=0.0, le=5.0)
+    days: int = Field(default=7, ge=1, le=365)
+
+
+class ExpectedMoveResponse(BaseModel):
+    move_abs: float
+    upper: float
+    lower: float
+
+
+class OptionLeg(BaseModel):
+    kind: Literal["call", "put"]
+    strike: float = Field(gt=0)
+    premium: float = Field(ge=0)
+    quantity: int = Field(default=1)
+
+
+class OptionsCalculatorRequest(BaseModel):
+    spot: float = Field(gt=0)
+    legs: list[OptionLeg] = Field(min_length=1)
+    underlying_qty: int = 100
+
+
+class OptionsCalculatorResponse(BaseModel):
+    max_profit: float
+    max_loss: float
+    breakevens: list[float]
+
+
+class DeFiStressRequest(BaseModel):
+    tvl_change_pct: float
+    funding_rate: float
+    open_interest_change_pct: float
+
+
+class DeFiStressResponse(BaseModel):
+    stress_score: float
+    level: Literal["low", "medium", "high"]
+
+
+class OracleCrossCheckRequest(BaseModel):
+    web2_price: float = Field(gt=0)
+    oracle_price: float = Field(gt=0)
+    threshold_pct: float = Field(default=0.01, ge=0.001, le=0.2)
+
+
+class OracleCrossCheckResponse(BaseModel):
+    divergence_pct: float
+    disagreement: bool
+    severity: Literal["low", "medium", "high"]
+
+
+def calculate_alternative_bars(req: AlternativeBarsRequest) -> AlternativeBarsResponse:
+    bs = req.bucketSize
+    pts = req.ohlcv
+    if not pts:
+        return AlternativeBarsResponse(volume_bar_closes=[], dollar_bar_closes=[], tick_bar_closes=[], metadata={"bucketSize": bs})
+
+    vol_bars: list[float] = []
+    dol_bars: list[float] = []
+    tick_bars: list[float] = []
+
+    vol_acc = 0.0
+    dol_acc = 0.0
+    vol_target = sum(p.volume for p in pts) / max(len(pts) / bs, 1.0)
+    dol_target = sum(p.close * p.volume for p in pts) / max(len(pts) / bs, 1.0)
+
+    for i, p in enumerate(pts):
+        vol_acc += p.volume
+        dol_acc += p.close * p.volume
+        if vol_acc >= vol_target:
+            vol_bars.append(p.close)
+            vol_acc = 0.0
+        if dol_acc >= dol_target:
+            dol_bars.append(p.close)
+            dol_acc = 0.0
+        if (i + 1) % bs == 0:
+            tick_bars.append(p.close)
+
+    return AlternativeBarsResponse(
+        volume_bar_closes=vol_bars,
+        dollar_bar_closes=dol_bars,
+        tick_bar_closes=tick_bars,
+        metadata={"bucketSize": bs, "points": len(pts)},
+    )
+
+
+def calculate_cusum(req: CUSUMRequest) -> CUSUMResponse:
+    closes = req.closes
+    rets = [(closes[i] - closes[i - 1]) / closes[i - 1] for i in range(1, len(closes)) if closes[i - 1] != 0]
+    if not rets:
+        return CUSUMResponse(break_indices=[], break_signals=[], cumulative_pos=0.0, cumulative_neg=0.0)
+    mean_r = sum(rets) / len(rets)
+    s_pos = 0.0
+    s_neg = 0.0
+    idx: list[int] = []
+    sig: list[str] = []
+    for i, r in enumerate(rets, start=1):
+        d = r - mean_r
+        s_pos = max(0.0, s_pos + d)
+        s_neg = min(0.0, s_neg + d)
+        if s_pos > req.threshold:
+            idx.append(i)
+            sig.append("up_break")
+            s_pos = 0.0
+        if abs(s_neg) > req.threshold:
+            idx.append(i)
+            sig.append("down_break")
+            s_neg = 0.0
+    return CUSUMResponse(
+        break_indices=idx,
+        break_signals=sig,
+        cumulative_pos=round(s_pos, 6),
+        cumulative_neg=round(s_neg, 6),
+    )
+
+
+def _hurst_exponent(values: list[float]) -> float:
+    if len(values) < 40:
+        return 0.5
+    lags = [2, 4, 8, 16]
+    tau: list[float] = []
+    x_log: list[float] = []
+    for lag in lags:
+        if lag >= len(values):
+            continue
+        diffs = [values[i] - values[i - lag] for i in range(lag, len(values))]
+        sd = pstdev(diffs) if len(diffs) > 1 else 0.0
+        if sd > 0:
+            tau.append(sd)
+            x_log.append(_math.log(lag))
+    if len(tau) < 2:
+        return 0.5
+    y_log = [_math.log(t) for t in tau]
+    x_mean = sum(x_log) / len(x_log)
+    y_mean = sum(y_log) / len(y_log)
+    denom = sum((x - x_mean) ** 2 for x in x_log)
+    if denom == 0:
+        return 0.5
+    slope = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_log, y_log)) / denom
+    return float(clamp(slope, 0.0, 1.0))
+
+
+def calculate_meanrev_momentum(req: MeanRevMomentumRequest) -> MeanRevMomentumResponse:
+    c = req.closes
+    x = c[:-1]
+    y = c[1:]
+    n = len(x)
+    x_mean = sum(x) / n
+    y_mean = sum(y) / n
+    denom = sum((xi - x_mean) ** 2 for xi in x)
+    phi = (sum((xi - x_mean) * (yi - y_mean) for xi, yi in zip(x, y)) / denom) if denom else 1.0
+    adf_proxy = (phi - 1.0) * 100.0
+    half_life = float(-_math.log(2) / _math.log(phi)) if 0 < phi < 1 else float("inf")
+    hurst = _hurst_exponent(c)
+    if hurst < 0.45 and phi < 0.99:
+        cls: Literal["mean_reverting", "momentum", "random_walk"] = "mean_reverting"
+    elif hurst > 0.55 and phi >= 0.99:
+        cls = "momentum"
+    else:
+        cls = "random_walk"
+    return MeanRevMomentumResponse(
+        hurst=round(hurst, 6),
+        adf_proxy_stat=round(adf_proxy, 6),
+        half_life=round(half_life, 6) if _math.isfinite(half_life) else float("inf"),
+        classification=cls,
+    )
+
+
+def calculate_performance_metrics(req: PerformanceMetricsRequest) -> PerformanceMetricsResponse:
+    r = req.returns
+    if not r:
+        return PerformanceMetricsResponse(
+            net_return=0.0,
+            hit_ratio=0.0,
+            profit_factor=0.0,
+            sharpe=0.0,
+            sortino=0.0,
+            max_drawdown=0.0,
+        )
+    net = _math.prod(1.0 + x for x in r) - 1.0
+    wins = [x for x in r if x > 0]
+    losses = [x for x in r if x < 0]
+    hit = len(wins) / len(r)
+    gain = sum(wins) if wins else 0.0
+    loss = abs(sum(losses)) if losses else 0.0
+    pf = (gain / loss) if loss > 0 else float("inf")
+    mean_r = sum(r) / len(r)
+    stdev = pstdev(r) if len(r) > 1 else 0.0
+    down = [x for x in r if x < 0]
+    down_std = pstdev(down) if len(down) > 1 else 0.0
+    rf_daily = req.riskFreeRate / 252.0
+    sharpe = ((mean_r - rf_daily) / stdev * _math.sqrt(252.0)) if stdev > 0 else 0.0
+    sortino = ((mean_r - rf_daily) / down_std * _math.sqrt(252.0)) if down_std > 0 else 0.0
+    eq = 1.0
+    peak = 1.0
+    max_dd = 0.0
+    for x in r:
+        eq *= 1.0 + x
+        peak = max(peak, eq)
+        dd = (eq - peak) / peak if peak > 0 else 0.0
+        max_dd = min(max_dd, dd)
+    return PerformanceMetricsResponse(
+        net_return=round(net, 6),
+        hit_ratio=round(hit, 6),
+        profit_factor=round(pf, 6) if _math.isfinite(pf) else float("inf"),
+        sharpe=round(sharpe, 6),
+        sortino=round(sortino, 6),
+        max_drawdown=round(max_dd, 6),
+    )
+
+
+def calculate_signal_quality_chain(req: SignalQualityChainRequest) -> SignalQualityChainResponse:
+    states = ["strong", "weak", "invalid"]
+    counts: dict[str, dict[str, int]] = {s: {t: 0 for t in states} for s in states}
+    for i in range(len(req.labels) - 1):
+        counts[req.labels[i]][req.labels[i + 1]] += 1
+    trans: dict[str, dict[str, float]] = {}
+    for s in states:
+        total = sum(counts[s].values())
+        trans[s] = {t: (counts[s][t] / total if total else 1.0 / 3.0) for t in states}
+    quality = trans["strong"]["strong"] - trans["strong"]["invalid"]
+    return SignalQualityChainResponse(transition=trans, quality_score=round(quality, 6))
+
+
+def calculate_order_flow_state(req: OrderFlowStateRequest) -> OrderFlowStateResponse:
+    n = min(len(req.buy_volumes), len(req.sell_volumes))
+    states: list[Literal["accumulation", "distribution", "squeeze"]] = []
+    for i in range(n):
+        buy = req.buy_volumes[i]
+        sell = req.sell_volumes[i]
+        total = buy + sell
+        if total <= 0:
+            states.append("squeeze")
+            continue
+        imbalance = (buy - sell) / total
+        if abs(imbalance) < req.squeeze_threshold:
+            states.append("squeeze")
+        elif imbalance > 0:
+            states.append("accumulation")
+        else:
+            states.append("distribution")
+    dominant = max(("accumulation", "distribution", "squeeze"), key=states.count) if states else "squeeze"
+    return OrderFlowStateResponse(states=states, dominant_state=dominant)
+
+
+def _triple_barrier_labels(closes: list[float], horizon: int, tp: float, sl: float) -> list[Literal["tp", "sl", "timeout"]]:
+    labels: list[Literal["tp", "sl", "timeout"]] = []
+    for i in range(0, len(closes) - horizon):
+        entry = closes[i]
+        up = entry * (1.0 + tp)
+        dn = entry * (1.0 - sl)
+        label: Literal["tp", "sl", "timeout"] = "timeout"
+        for j in range(i + 1, i + horizon + 1):
+            px = closes[j]
+            if px >= up:
+                label = "tp"
+                break
+            if px <= dn:
+                label = "sl"
+                break
+        labels.append(label)
+    return labels
+
+
+def calculate_eval_baseline(req: EvalBaselineRequest) -> EvalBaselineResponse:
+    labels = _triple_barrier_labels(req.closes, req.horizon, req.take_profit, req.stop_loss)
+    if not labels:
+        return EvalBaselineResponse(
+            labels=[],
+            hit_ratio=0.0,
+            expectancy=0.0,
+            regime="ranging",
+            precision_proxy=0.0,
+            recall_proxy=0.0,
+            f1_proxy=0.0,
+        )
+    tp = sum(1 for x in labels if x == "tp")
+    sl = sum(1 for x in labels if x == "sl")
+    timeout = len(labels) - tp - sl
+    hit = tp / len(labels)
+    expectancy = (tp * req.take_profit - sl * req.stop_loss) / len(labels)
+    precision = tp / max(tp + sl, 1)
+    recall = tp / max(tp + timeout, 1)
+    f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+    regime = calculate_regime(RegimeDetectRequest(closes=req.closes, lookback=min(100, len(req.closes)))).current_regime
+    return EvalBaselineResponse(
+        labels=labels,
+        hit_ratio=round(hit, 6),
+        expectancy=round(expectancy, 6),
+        regime=regime,
+        precision_proxy=round(precision, 6),
+        recall_proxy=round(recall, 6),
+        f1_proxy=round(f1, 6),
+    )
+
+
+def run_backtest(req: BacktestRequest) -> BacktestResponse:
+    c = req.closes
+    ma = sma(c, req.lookback)
+    rets: list[float] = []
+    in_pos = False
+    cost = (req.slippage_bps + req.commission_bps) / 10_000.0
+    for i in range(1, len(c)):
+        if c[i - 1] > ma[i - 1]:
+            in_pos = True
+        elif c[i - 1] < ma[i - 1]:
+            in_pos = False
+        if in_pos and c[i - 1] != 0:
+            gross = (c[i] - c[i - 1]) / c[i - 1]
+            rets.append(gross - cost)
+        else:
+            rets.append(0.0)
+    cum = _math.prod(1.0 + r for r in rets) - 1.0 if rets else 0.0
+    trades = sum(1 for i in range(1, len(c)) if (c[i - 1] > ma[i - 1]) != (c[i - 2] > ma[i - 2])) if len(c) > 2 else 0
+    return BacktestResponse(strategy_returns=rets, cumulative_return=round(cum, 6), trade_count=trades)
+
+
+def calculate_triple_barrier(req: TripleBarrierRequest) -> TripleBarrierResponse:
+    labels = _triple_barrier_labels(req.closes, req.horizon, req.take_profit, req.stop_loss)
+    tp = sum(1 for x in labels if x == "tp")
+    sl = sum(1 for x in labels if x == "sl")
+    timeout = len(labels) - tp - sl
+    return TripleBarrierResponse(labels=labels, tp_count=tp, sl_count=sl, timeout_count=timeout)
+
+
+def run_parameter_sensitivity(req: ParameterSensitivityRequest) -> ParameterSensitivityResponse:
+    results: dict[str, float] = {}
+    vals: list[float] = []
+    for lb in req.lookbacks:
+        if lb < 2:
+            continue
+        bt = run_backtest(BacktestRequest(closes=req.closes, lookback=lb))
+        results[str(lb)] = bt.cumulative_return
+        vals.append(bt.cumulative_return)
+    if not vals:
+        return ParameterSensitivityResponse(by_lookback={}, stability_score=0.0)
+    st = pstdev(vals) if len(vals) > 1 else 0.0
+    stability = 1.0 / (1.0 + st)
+    return ParameterSensitivityResponse(
+        by_lookback={k: round(v, 6) for k, v in results.items()},
+        stability_score=round(stability, 6),
+    )
+
+
+def run_walk_forward(req: WalkForwardRequest) -> WalkForwardResponse:
+    c = req.closes
+    tw = req.train_window
+    vw = req.test_window
+    scores: list[float] = []
+    i = 0
+    while i + tw + vw <= len(c):
+        train = c[i : i + tw]
+        test = c[i + tw : i + tw + vw]
+        train_bt = run_backtest(BacktestRequest(closes=train, lookback=min(10, max(2, tw // 4))))
+        test_bt = run_backtest(BacktestRequest(closes=test, lookback=min(10, max(2, vw // 3))))
+        base = abs(train_bt.cumulative_return) + 1e-9
+        scores.append(test_bt.cumulative_return / base)
+        i += vw
+    if not scores:
+        return WalkForwardResponse(oos_scores=[], mean_oos_score=0.0, stability_score=0.0)
+    mean_score = sum(scores) / len(scores)
+    st = pstdev(scores) if len(scores) > 1 else 0.0
+    stability = 1.0 / (1.0 + st)
+    return WalkForwardResponse(
+        oos_scores=[round(s, 6) for s in scores],
+        mean_oos_score=round(mean_score, 6),
+        stability_score=round(stability, 6),
+    )
+
+
+def calculate_deflated_sharpe(req: DeflatedSharpeRequest) -> DeflatedSharpeResponse:
+    penalty = _math.sqrt(2.0 * _math.log(max(req.trials, 1)) / max(req.sample_length, 1))
+    ds = req.sharpe - penalty
+    return DeflatedSharpeResponse(deflated_sharpe=round(ds, 6), pass_gate=ds > 0.0)
+
+
+def evaluate_indicator(req: EvalIndicatorRequest) -> EvalIndicatorResponse:
+    wf = run_walk_forward(
+        WalkForwardRequest(
+            closes=req.closes,
+            train_window=min(60, max(20, len(req.closes) // 2)),
+            test_window=min(20, max(5, len(req.closes) // 6)),
+        )
+    )
+    baseline = calculate_eval_baseline(EvalBaselineRequest(closes=req.closes))
+    bt = run_backtest(BacktestRequest(closes=req.closes, lookback=10))
+    pm = calculate_performance_metrics(PerformanceMetricsRequest(returns=bt.strategy_returns))
+    ds = calculate_deflated_sharpe(DeflatedSharpeRequest(sharpe=pm.sharpe, trials=20, sample_length=len(bt.strategy_returns)))
+    execution_realism_pass = pm.max_drawdown > -0.6 and pm.profit_factor >= 0.8
+    gate_pass = ds.pass_gate and execution_realism_pass and wf.stability_score > 0.3
+    return EvalIndicatorResponse(
+        walk_forward=wf,
+        baseline=baseline,
+        deflated_sharpe=ds,
+        execution_realism_pass=execution_realism_pass,
+        gate_pass=gate_pass,
+    )
+
+
+def build_features(req: FeatureEngineeringRequest) -> FeatureEngineeringResponse:
+    cs = closes(req.ohlcv)
+    vs = volumes(req.ohlcv)
+    if not cs:
+        return FeatureEngineeringResponse(features=[], feature_names=["ret", "sma_dev", "rsi", "vol_ratio"])
+    sma_vals = sma(cs, req.period)
+    rsi_vals = rsi(cs, req.period)
+    vol_sma = sma(vs, req.period) if vs else [1.0 for _ in cs]
+    feats: list[dict[str, float]] = []
+    for i in range(1, len(cs)):
+        prev = cs[i - 1]
+        ret = (cs[i] - prev) / prev if prev != 0 else 0.0
+        sma_dev = (cs[i] - sma_vals[i]) / sma_vals[i] if sma_vals[i] != 0 else 0.0
+        vol_ratio = (vs[i] / vol_sma[i]) if vol_sma[i] != 0 else 1.0
+        feats.append(
+            {
+                "ret": round(ret, 8),
+                "sma_dev": round(sma_dev, 8),
+                "rsi": round(rsi_vals[i], 8),
+                "vol_ratio": round(vol_ratio, 8),
+            }
+        )
+    return FeatureEngineeringResponse(features=feats, feature_names=["ret", "sma_dev", "rsi", "vol_ratio"])
+
+
+def classify_signal(req: MLClassifySignalRequest) -> MLClassifySignalResponse:
+    x = req.features
+    score = (
+        0.35 * x.get("ret", 0.0)
+        + 0.25 * x.get("sma_dev", 0.0)
+        + 0.20 * ((x.get("rsi", 50.0) - 50.0) / 50.0)
+        + 0.20 * (x.get("vol_ratio", 1.0) - 1.0)
+    )
+    prob = 1.0 / (1.0 + _math.exp(-5.0 * score))
+    if prob > 0.58:
+        label: Literal["buy", "sell", "hold"] = "buy"
+    elif prob < 0.42:
+        label = "sell"
+    else:
+        label = "hold"
+    return MLClassifySignalResponse(label=label, score=round(prob, 6))
+
+
+def fuse_hybrid(req: HybridFusionRequest) -> HybridFusionResponse:
+    fused = req.ml_weight * req.ml_score + (1.0 - req.ml_weight) * req.rule_score
+    if fused > 0.58:
+        action: Literal["buy", "sell", "hold"] = "buy"
+    elif fused < 0.42:
+        action = "sell"
+    else:
+        action = "hold"
+    return HybridFusionResponse(fused_score=round(fused, 6), action=action)
+
+
+def monitor_bias(req: BiasMonitoringRequest) -> BiasMonitoringResponse:
+    def _imbalance(d: dict[str, int]) -> float:
+        vals = [v for v in d.values() if v >= 0]
+        if not vals:
+            return 0.0
+        total = sum(vals)
+        if total == 0:
+            return 0.0
+        shares = [v / total for v in vals]
+        return max(shares) - min(shares) if len(shares) > 1 else shares[0]
+
+    geo = _imbalance(req.geographic_distribution)
+    reg = _imbalance(req.regime_distribution)
+    alert = geo > 0.45 or reg > 0.45 or req.agreement_rate < 0.35
+    return BiasMonitoringResponse(
+        geographic_imbalance=round(geo, 6),
+        regime_imbalance=round(reg, 6),
+        agreement_rate=round(req.agreement_rate, 6),
+        alert=alert,
+    )
+
+
+def calculate_dark_pool_signal(req: DarkPoolSignalRequest) -> DarkPoolSignalResponse:
+    total = req.lit_volume + req.dark_pool_volume
+    ratio = req.dark_pool_volume / total if total > 0 else 0.0
+    if ratio > 0.45:
+        signal: Literal["accumulation", "distribution", "neutral"] = "accumulation"
+    elif ratio < 0.15:
+        signal = "distribution"
+    else:
+        signal = "neutral"
+    conf = min(1.0, abs(ratio - 0.30) / 0.30)
+    return DarkPoolSignalResponse(dark_pool_ratio=round(ratio, 6), signal=signal, confidence=round(conf, 6))
+
+
+def calculate_gex_profile(req: GEXProfileRequest) -> GEXProfileResponse:
+    n = min(len(req.strikes), len(req.call_gamma), len(req.put_gamma))
+    strikes = req.strikes[:n]
+    net = [req.call_gamma[i] - req.put_gamma[i] for i in range(n)]
+    call_idx = max(range(n), key=lambda i: req.call_gamma[i])
+    put_idx = max(range(n), key=lambda i: req.put_gamma[i])
+    return GEXProfileResponse(
+        net_gex=[round(x, 6) for x in net],
+        call_wall=round(strikes[call_idx], 6),
+        put_wall=round(strikes[put_idx], 6),
+    )
+
+
+def calculate_expected_move(req: ExpectedMoveRequest) -> ExpectedMoveResponse:
+    t = req.days / 365.0
+    move = req.spot * req.iv_annual * _math.sqrt(t)
+    return ExpectedMoveResponse(
+        move_abs=round(move, 6),
+        upper=round(req.spot + move, 6),
+        lower=round(max(0.0, req.spot - move), 6),
+    )
+
+
+def calculate_options_payoff(req: OptionsCalculatorRequest) -> OptionsCalculatorResponse:
+    # Evaluate payoff on coarse grid to estimate max profit/loss and breakevens.
+    min_s = min(leg.strike for leg in req.legs) * 0.2
+    max_s = max(leg.strike for leg in req.legs) * 2.0
+    grid = [min_s + i * (max_s - min_s) / 200 for i in range(201)]
+    payoffs: list[float] = []
+    for s in grid:
+        total = 0.0
+        for leg in req.legs:
+            if leg.kind == "call":
+                intrinsic = max(0.0, s - leg.strike)
+            else:
+                intrinsic = max(0.0, leg.strike - s)
+            total += (intrinsic - leg.premium) * leg.quantity * req.underlying_qty
+        payoffs.append(total)
+    max_profit = max(payoffs)
+    max_loss = min(payoffs)
+    breakevens: list[float] = []
+    for i in range(1, len(grid)):
+        if payoffs[i - 1] == 0:
+            breakevens.append(grid[i - 1])
+        elif payoffs[i] == 0 or (payoffs[i - 1] < 0 < payoffs[i]) or (payoffs[i - 1] > 0 > payoffs[i]):
+            breakevens.append(grid[i])
+    return OptionsCalculatorResponse(
+        max_profit=round(max_profit, 6),
+        max_loss=round(max_loss, 6),
+        breakevens=[round(x, 6) for x in breakevens[:4]],
+    )
+
+
+def calculate_defi_stress(req: DeFiStressRequest) -> DeFiStressResponse:
+    score = (
+        0.4 * abs(req.tvl_change_pct)
+        + 0.3 * abs(req.funding_rate) * 100.0
+        + 0.3 * abs(req.open_interest_change_pct)
+    )
+    if score > 25:
+        level: Literal["low", "medium", "high"] = "high"
+    elif score > 10:
+        level = "medium"
+    else:
+        level = "low"
+    return DeFiStressResponse(stress_score=round(score, 6), level=level)
+
+
+def calculate_oracle_crosscheck(req: OracleCrossCheckRequest) -> OracleCrossCheckResponse:
+    div = abs(req.web2_price - req.oracle_price) / req.oracle_price
+    disagreement = div > req.threshold_pct
+    if div > req.threshold_pct * 3:
+        sev: Literal["low", "medium", "high"] = "high"
+    elif div > req.threshold_pct * 1.5:
+        sev = "medium"
+    else:
+        sev = "low"
+    return OracleCrossCheckResponse(
+        divergence_pct=round(div, 6),
+        disagreement=disagreement,
+        severity=sev,
+    )

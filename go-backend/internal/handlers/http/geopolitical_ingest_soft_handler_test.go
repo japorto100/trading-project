@@ -94,11 +94,51 @@ func TestGeopoliticalSoftIngestHandler_CreatesCandidatesLocally(t *testing.T) {
 	if got := store.upsertedOne["state"]; got != "open" {
 		t.Fatalf("expected state open, got %v", got)
 	}
+	if got := store.upsertedOne["routeTarget"]; got == nil {
+		t.Fatalf("expected routeTarget enrichment, got %v", got)
+	}
+	if got := store.upsertedOne["reviewAction"]; got == nil {
+		t.Fatalf("expected reviewAction enrichment, got %v", got)
+	}
 	if len(runs.runs) != 1 || runs.runs[0].Kind != "soft" || runs.runs[0].Mode != "go-owned-gateway-v1" {
 		t.Fatalf("expected soft ingest run record, got %+v", runs.runs)
 	}
 	if !strings.Contains(res.Body.String(), `"mode":"go-owned-gateway-v1"`) {
 		t.Fatalf("unexpected response body: %s", res.Body.String())
+	}
+}
+
+func TestGeopoliticalSoftIngestHandler_YoutubeSourceMapsToIngestClassifier(t *testing.T) {
+	news := &fakeGeopoliticalSoftIngestNewsClient{
+		items: []marketServices.Headline{{
+			Title:       "YouTube interview flags policy rate divergence",
+			URL:         "https://youtube.test/watch?v=abc",
+			Source:      "youtube",
+			PublishedAt: time.Now().UTC(),
+		}},
+	}
+	signals := &fakeGeopoliticalSoftIngestSignalClient{
+		status: http.StatusOK,
+		body:   []byte(`{"candidates":[{"headline":"YouTube macro signal","confidence":0.87,"severityHint":2,"regionHint":"global","countryHints":["US"],"routeTarget":"macro","reviewAction":"auto_route","dedupHash":"2222222222222222222222222222222222222222222222222222222222222222","sourceRefs":[{"provider":"youtube","url":"https://youtube.test/watch?v=abc","title":"YouTube interview flags policy rate divergence","publishedAt":"2026-02-23T12:00:00Z","sourceTier":"B","reliability":0.7}]}]}`),
+	}
+	store := &fakeGeopoliticalCandidateQueueStore{}
+	handler := GeopoliticalSoftIngestHandler(news, signals, store, nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/geopolitical/ingest/soft", strings.NewReader(`{"sources":["youtube"]}`))
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", res.Code)
+	}
+	if signals.lastPath != "/api/v1/ingest/classify" {
+		t.Fatalf("expected ingest classifier path, got %q", signals.lastPath)
+	}
+	if store.upsertedOne == nil || store.upsertedOne["triggerType"] != "youtube_transcript" {
+		t.Fatalf("expected youtube_transcript candidate, got %+v", store.upsertedOne)
+	}
+	if got := store.upsertedOne["dedupHash"]; got != "2222222222222222222222222222222222222222222222222222222222222222" {
+		t.Fatalf("expected dedupHash propagated from classifier, got %v", got)
 	}
 }
 

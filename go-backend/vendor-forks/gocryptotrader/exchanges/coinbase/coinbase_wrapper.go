@@ -212,7 +212,7 @@ func (e *Exchange) UpdateTradablePairs(ctx context.Context) error {
 }
 
 // UpdateAccountBalances retrieves currency balances
-func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType asset.Item) (subAccts accounts.SubAccounts, err error) {
+func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType string) (subAccts accounts.SubAccounts, err error) {
 	for cursor := int64(0); ; {
 		resp, err := e.ListAccounts(ctx, 250, cursor)
 		if err != nil {
@@ -254,7 +254,7 @@ func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, a asset.It
 }
 
 // UpdateOrderbook updates and returns the orderbook for a currency pair
-func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType asset.Item) (*orderbook.Book, error) {
+func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType string) (*orderbook.Book, error) {
 	if p.IsEmpty() {
 		return nil, currency.ErrCurrencyPairEmpty
 	}
@@ -811,7 +811,7 @@ func (e *Exchange) GetHistoricCandlesExtended(ctx context.Context, pair currency
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper functionality
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }
@@ -1132,7 +1132,7 @@ func (e *Exchange) getOrderRespToOrderDetail(genOrderDetail *GetOrderResponse, p
 }
 
 // tickerHelper fetches the ticker for a given currency pair, used by UpdateTicker
-func (e *Exchange) tickerHelper(ctx context.Context, name currency.Pair, assetType asset.Item) error {
+func (e *Exchange) tickerHelper(ctx context.Context, name currency.Pair, assetType string) error {
 	newTick := &ticker.Price{
 		Pair:         name,
 		ExchangeName: e.Name,

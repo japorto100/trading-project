@@ -508,7 +508,7 @@ func (e *Exchange) UpdateTradablePairs(ctx context.Context) error {
 }
 
 // UpdateTickers updates the ticker for all currency pairs of a given asset type
-func (e *Exchange) UpdateTickers(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) UpdateTickers(ctx context.Context, assetType string) error {
 	enabled, err := e.GetEnabledPairs(assetType)
 	if err != nil {
 		return err
@@ -592,7 +592,7 @@ func (e *Exchange) UpdateTickers(ctx context.Context, assetType asset.Item) erro
 }
 
 // UpdateTicker updates and returns the ticker for a currency pair
-func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType asset.Item) (*ticker.Price, error) {
+func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType string) (*ticker.Price, error) {
 	if err := e.UpdateTickers(ctx, assetType); err != nil {
 		return nil, err
 	}
@@ -600,7 +600,7 @@ func (e *Exchange) UpdateTicker(ctx context.Context, p currency.Pair, assetType 
 }
 
 // UpdateOrderbook updates and returns the orderbook for a currency pair
-func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType asset.Item) (*orderbook.Book, error) {
+func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetType string) (*orderbook.Book, error) {
 	if p.IsEmpty() {
 		return nil, currency.ErrCurrencyPairEmpty
 	}
@@ -654,7 +654,7 @@ func (e *Exchange) UpdateOrderbook(ctx context.Context, p currency.Pair, assetTy
 }
 
 // UpdateAccountBalances retrieves currency balances
-func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType asset.Item) (accounts.SubAccounts, error) {
+func (e *Exchange) UpdateAccountBalances(ctx context.Context, assetType string) (accounts.SubAccounts, error) {
 	at, err := e.FetchAccountType(ctx)
 	if err != nil {
 		return nil, err
@@ -744,7 +744,7 @@ func (e *Exchange) GetWithdrawalsHistory(ctx context.Context, c currency.Code, a
 }
 
 // GetRecentTrades returns the most recent trades for a currency and asset
-func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType asset.Item) ([]trade.Data, error) {
+func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetType string) ([]trade.Data, error) {
 	formattedPair, err := e.FormatExchangeCurrency(p, assetType)
 	if err != nil {
 		return nil, err
@@ -798,7 +798,7 @@ func (e *Exchange) GetRecentTrades(ctx context.Context, p currency.Pair, assetTy
 }
 
 // GetHistoricTrades returns historic trade data within the timeframe provided
-func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType asset.Item, _, _ time.Time) ([]trade.Data, error) {
+func (e *Exchange) GetHistoricTrades(ctx context.Context, p currency.Pair, assetType string, _, _ time.Time) ([]trade.Data, error) {
 	var err error
 	p, err = e.FormatExchangeCurrency(p, assetType)
 	if err != nil {
@@ -1058,7 +1058,7 @@ func (e *Exchange) CancelAllOrders(ctx context.Context, orderCancellation *order
 }
 
 // GetOrderInfo returns order information based on order ID
-func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType asset.Item) (*order.Detail, error) {
+func (e *Exchange) GetOrderInfo(ctx context.Context, orderID string, pair currency.Pair, assetType string) (*order.Detail, error) {
 	if pair.IsEmpty() {
 		return nil, currency.ErrCurrencyPairEmpty
 	} else if err := e.CurrencyPairs.IsAssetEnabled(assetType); err != nil {
@@ -1241,7 +1241,7 @@ func (e *Exchange) GetActiveOrders(ctx context.Context, req *order.MultiOrderReq
 }
 
 // ConstructOrderDetails constructs list of order.Detail instances given list of TradeOrder and other filtering information
-func (e *Exchange) ConstructOrderDetails(tradeOrders []TradeOrder, assetType asset.Item, pair currency.Pair, filterPairs currency.Pairs) (order.FilteredOrders, error) {
+func (e *Exchange) ConstructOrderDetails(tradeOrders []TradeOrder, assetType string, pair currency.Pair, filterPairs currency.Pairs) (order.FilteredOrders, error) {
 	orders := make([]order.Detail, 0, len(tradeOrders))
 	var err error
 	var ePair currency.Pair
@@ -1458,7 +1458,7 @@ func (e *Exchange) getCategoryFromPair(pair currency.Pair) []asset.Item {
 }
 
 // ValidateAPICredentials validates current credentials used for wrapper
-func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType asset.Item) error {
+func (e *Exchange) ValidateAPICredentials(ctx context.Context, assetType string) error {
 	_, err := e.UpdateAccountBalances(ctx, assetType)
 	return e.CheckTransientError(err)
 }

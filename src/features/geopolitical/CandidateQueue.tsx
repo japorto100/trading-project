@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { GeoCandidate } from "@/lib/geopolitical/types";
 
@@ -9,6 +10,8 @@ interface CandidateQueueProps {
 	onAccept: (candidateId: string) => void;
 	onReject: (candidateId: string) => void;
 	onSnooze: (candidateId: string) => void;
+	onReclassify: (candidateId: string) => void;
+	onQuickImport: (rawText: string) => void;
 }
 
 export function CandidateQueue({
@@ -17,7 +20,11 @@ export function CandidateQueue({
 	onAccept,
 	onReject,
 	onSnooze,
+	onReclassify,
+	onQuickImport,
 }: CandidateQueueProps) {
+	const [quickImportText, setQuickImportText] = useState("");
+
 	return (
 		<section className="rounded-md border border-border bg-card p-3">
 			<h2 className="text-sm font-semibold">Candidate Queue</h2>
@@ -39,7 +46,8 @@ export function CandidateQueue({
 									{candidate.triggerType}
 								</span>
 								<span className="text-[11px] text-muted-foreground">
-									conf {candidate.confidence.toFixed(2)} | S{candidate.severityHint}
+									conf {candidate.confidence.toFixed(2)} | S{candidate.severityHint} |{" "}
+									{candidate.routeTarget ?? "geo"} | {candidate.reviewAction ?? "human_review"}
 								</span>
 							</div>
 							<p className="mt-1 text-sm">{candidate.headline}</p>
@@ -55,7 +63,7 @@ export function CandidateQueue({
 									onClick={() => onAccept(candidate.id)}
 									aria-label={`Accept candidate ${candidate.headline}`}
 								>
-									Accept
+									Signal
 								</Button>
 								<Button
 									size="sm"
@@ -64,7 +72,7 @@ export function CandidateQueue({
 									onClick={() => onSnooze(candidate.id)}
 									aria-label={`Snooze candidate ${candidate.headline}`}
 								>
-									Snooze
+									Uncertain
 								</Button>
 								<Button
 									size="sm"
@@ -73,12 +81,46 @@ export function CandidateQueue({
 									onClick={() => onReject(candidate.id)}
 									aria-label={`Reject candidate ${candidate.headline}`}
 								>
-									Reject
+									Noise
+								</Button>
+								<Button
+									size="sm"
+									variant="ghost"
+									disabled={busy}
+									onClick={() => onReclassify(candidate.id)}
+									aria-label={`Reclassify candidate ${candidate.headline}`}
+								>
+									Reclassify
 								</Button>
 							</div>
 						</div>
 					))
 				)}
+			</div>
+			<div className="mt-3 rounded-md border border-border bg-background p-2">
+				<label htmlFor="candidate-quick-import" className="text-[11px] text-muted-foreground">
+					Quick Import (Ctrl+V / paste text)
+				</label>
+				<textarea
+					id="candidate-quick-import"
+					name="candidate_quick_import"
+					className="mt-1 min-h-[64px] w-full rounded border border-border bg-background px-2 py-1 text-xs"
+					value={quickImportText}
+					onChange={(event) => setQuickImportText(event.target.value)}
+					placeholder="Paste headline, note, URL, or transcript snippet"
+				/>
+				<div className="mt-2">
+					<Button
+						size="sm"
+						disabled={busy || quickImportText.trim().length < 6}
+						onClick={() => {
+							onQuickImport(quickImportText.trim());
+							setQuickImportText("");
+						}}
+					>
+						Import & Classify
+					</Button>
+				</div>
 			</div>
 		</section>
 	);

@@ -194,7 +194,7 @@ export function PasskeyDevicesPanel() {
 				<CardHeader>
 					<CardTitle>Passkey Devices</CardTitle>
 					<CardDescription>
-						Transitional passkey device management (Phase 1a scaffold) for the signed-in user.
+						Manage passkeys linked to your account for passwordless sign in.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
@@ -206,7 +206,7 @@ export function PasskeyDevicesPanel() {
 							<Link href="/auth/sign-in">Open Sign In</Link>
 						</Button>
 						<Button asChild type="button" variant="secondary">
-							<Link href="/auth/passkeys-lab">Open Passkey Lab</Link>
+							<Link href="/">Back To Trading</Link>
 						</Button>
 						<Button asChild type="button" variant="secondary">
 							<Link href="/auth/security">Security Hub</Link>
@@ -272,7 +272,7 @@ export function PasskeyDevicesPanel() {
 							Loading passkey devices...
 						</div>
 					) : state.kind === "error" ? (
-						<div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+						<div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">
 							<div>{state.message}</div>
 							{state.details ? <div className="mt-1 text-xs">{state.details}</div> : null}
 							{state.status === 401 ? (
@@ -280,11 +280,17 @@ export function PasskeyDevicesPanel() {
 									Sign in first at <code>/auth/sign-in</code>.
 								</div>
 							) : null}
+							{state.status === 404 && state.message.toLowerCase() === "user not found" ? (
+								<div className="mt-2 text-xs">
+									Your current session is not linked to a local account record. Sign out, then sign
+									in with credentials or create an account before managing passkeys.
+								</div>
+							) : null}
 						</div>
 					) : state.data.items.length === 0 ? (
 						<div className="rounded-md border p-4 text-sm text-muted-foreground">
-							No passkeys registered for this account yet. Use the passkey lab to register the first
-							device.
+							No passkeys registered for this account yet. Register your first passkey to enable
+							passwordless sign in.
 						</div>
 					) : (
 						<div className="space-y-3">

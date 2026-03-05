@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,8 @@ type Config struct {
 	Email          string
 	AccessKey      string
 	RequestTimeout time.Duration
+	MockEnabled    bool
+	MockDataPath   string
 }
 
 type Query struct {
@@ -59,10 +62,12 @@ type Event struct {
 }
 
 type Client struct {
-	baseClient *base.Client
-	apiToken   string
-	email      string
-	accessKey  string
+	baseClient   *base.Client
+	apiToken     string
+	email        string
+	accessKey    string
+	mockEnabled  bool
+	mockDataPath string
 }
 
 func NewClient(cfg Config) *Client {
@@ -82,14 +87,19 @@ func NewClient(cfg Config) *Client {
 			Timeout:    timeout,
 			RetryCount: 1,
 		}),
-		apiToken:  strings.TrimSpace(cfg.APIToken),
-		email:     strings.TrimSpace(cfg.Email),
-		accessKey: strings.TrimSpace(cfg.AccessKey),
+		apiToken:     strings.TrimSpace(cfg.APIToken),
+		email:        strings.TrimSpace(cfg.Email),
+		accessKey:    strings.TrimSpace(cfg.AccessKey),
+		mockEnabled:  cfg.MockEnabled,
+		mockDataPath: strings.TrimSpace(cfg.MockDataPath),
 	}
 }
 
 func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) {
-	if c.apiToken == "" && (c.email == "" || c.accessKey == "") {
+	if !c.hasCredentials() {
+		if c.mockEnabled {
+			return c.mockEvents(query), nil
+		}
 		return nil, &gct.RequestError{
 			Path:       defaultPath,
 			StatusCode: http.StatusUnauthorized,
@@ -216,6 +226,71 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 		})
 	}
 	return events, nil
+}
+
+func (c *Client) hasCredentials() bool {
+	return c.apiToken != "" || (c.email != "" && c.accessKey != "")
+}
+
+func (c *Client) mockEvents(query Query) []Event {
+	if fromFile, err := c.readMockEventsFromFile(); err == nil && len(fromFile) > 0 {
+		return fromFile
+	}
+
+	country := strings.TrimSpace(query.Country)
+	if country == "" {
+		country = "United States"
+	}
+	region := strings.TrimSpace(query.Region)
+	if region == "" {
+		region = "Americas"
+	}
+	eventType := strings.TrimSpace(query.EventType)
+	if eventType == "" {
+		eventType = "Strategic developments"
+	}
+	subEventType := strings.TrimSpace(query.SubEventType)
+	if subEventType == "" {
+		subEventType = "Policy signal"
+	}
+	return []Event{
+		{
+			ID:           "mock-acled-1",
+			EventDate:    time.Now().UTC().Format("2006-01-02"),
+			Country:      country,
+			Region:       region,
+			EventType:    eventType,
+			SubEventType: subEventType,
+			Actor1:       "Mock Actor A",
+			Actor2:       "Mock Actor B",
+			Fatalities:   0,
+			Location:     "Mock City",
+			Latitude:     38.9072,
+			Longitude:    -77.0369,
+			Source:       "mock:acled",
+			Notes:        "Mocked ACLED event for local live verification.",
+		},
+	}
+}
+
+func (c *Client) readMockEventsFromFile() ([]Event, error) {
+	if c.mockDataPath == "" {
+		return nil, fmt.Errorf("mock data path is empty")
+	}
+	raw, err := os.ReadFile(c.mockDataPath)
+	if err != nil {
+		return nil, err
+	}
+	var payload struct {
+		Events []Event `json:"events"`
+	}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	if len(payload.Events) == 0 {
+		return nil, fmt.Errorf("mock data contains no events")
+	}
+	return payload.Events, nil
 }
 
 func normalizeLimit(limit int) int {

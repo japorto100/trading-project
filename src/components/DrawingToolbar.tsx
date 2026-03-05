@@ -16,9 +16,11 @@ import {
 	Square,
 	Trash2,
 	TrendingUp,
+	Triangle,
 	Type,
 	Undo2,
 	Unlock,
+	Waves,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { DrawingType } from "@/chart/types";
@@ -37,6 +39,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 type MagnetMode = "normal" | "weak" | "strong";
 
+export type PatternOverlayState = {
+	elliottWave: boolean;
+	harmonic: boolean;
+	pricePatterns: boolean;
+};
+
 interface DrawingToolbarProps {
 	activeTool?: DrawingType;
 	onToolChange?: (tool: DrawingType | null) => void;
@@ -52,6 +60,8 @@ interface DrawingToolbarProps {
 	onRedo?: () => void;
 	onDeleteAll?: () => void;
 	persistKey?: string;
+	patternOverlay?: PatternOverlayState;
+	onPatternToggle?: (state: PatternOverlayState) => void;
 }
 
 const QUICK_TOOLS: DrawingType[] = ["trendline", "horizontalline", "rectangle", "fibonacci"];
@@ -125,11 +135,27 @@ export function DrawingToolbar({
 	onRedo,
 	onDeleteAll,
 	persistKey = DEFAULT_PERSIST_KEY,
+	patternOverlay,
+	onPatternToggle,
 }: DrawingToolbarProps) {
 	const [tool, setTool] = useState<DrawingType | null>(activeTool ?? null);
 	const [isLocked, setIsLocked] = useState(locked ?? false);
 	const [isVisible, setIsVisible] = useState(visible ?? true);
 	const [mode, setMode] = useState<MagnetMode>(magnetMode ?? "normal");
+	const [patterns, setPatterns] = useState<PatternOverlayState>(
+		patternOverlay ?? { elliottWave: false, harmonic: false, pricePatterns: false },
+	);
+
+	const togglePattern = useCallback(
+		(key: keyof PatternOverlayState) => {
+			setPatterns((prev) => {
+				const next = { ...prev, [key]: !prev[key] };
+				onPatternToggle?.(next);
+				return next;
+			});
+		},
+		[onPatternToggle],
+	);
 
 	useEffect(() => {
 		if (activeTool !== undefined) {
@@ -284,7 +310,10 @@ export function DrawingToolbar({
 
 	return (
 		<TooltipProvider>
-			<div className="flex flex-col items-center gap-2 p-1.5 border-r border-border bg-card/40 backdrop-blur-md h-full w-[42px] py-4">
+			<div
+				data-testid="drawing-toolbar"
+				className="flex flex-col items-center gap-2 p-1.5 border-r border-border bg-card/40 backdrop-blur-md h-full w-[42px] py-4"
+			>
 				<div className="flex flex-col items-center gap-1.5 w-full">
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -442,6 +471,58 @@ export function DrawingToolbar({
 						</TooltipTrigger>
 						<TooltipContent side="right">
 							<p>{isLocked ? "Unlock drawings" : "Lock drawings"}</p>
+						</TooltipContent>
+					</Tooltip>
+				</div>
+
+				<Separator className="w-6 my-1" />
+
+				<div className="flex flex-col items-center gap-1.5 w-full">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant={patterns.elliottWave ? "secondary" : "ghost"}
+								size="icon"
+								className={`h-8 w-8 rounded-md transition-all ${patterns.elliottWave ? "text-blue-400" : "hover:bg-accent/80"}`}
+								onClick={() => togglePattern("elliottWave")}
+							>
+								<Waves className="h-4 w-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="right">
+							<p>{patterns.elliottWave ? "Hide Elliott Waves" : "Show Elliott Waves"}</p>
+						</TooltipContent>
+					</Tooltip>
+
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant={patterns.harmonic ? "secondary" : "ghost"}
+								size="icon"
+								className={`h-8 w-8 rounded-md transition-all ${patterns.harmonic ? "text-purple-400" : "hover:bg-accent/80"}`}
+								onClick={() => togglePattern("harmonic")}
+							>
+								<Hexagon className="h-3 w-3" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="right">
+							<p>{patterns.harmonic ? "Hide Harmonics" : "Show Harmonics"}</p>
+						</TooltipContent>
+					</Tooltip>
+
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant={patterns.pricePatterns ? "secondary" : "ghost"}
+								size="icon"
+								className={`h-8 w-8 rounded-md transition-all ${patterns.pricePatterns ? "text-amber-400" : "hover:bg-accent/80"}`}
+								onClick={() => togglePattern("pricePatterns")}
+							>
+								<Triangle className="h-4 w-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="right">
+							<p>{patterns.pricePatterns ? "Hide Price Patterns" : "Show Price Patterns"}</p>
 						</TooltipContent>
 					</Tooltip>
 				</div>

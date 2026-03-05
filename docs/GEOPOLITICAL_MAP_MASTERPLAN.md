@@ -1,10 +1,10 @@
 # Geopolitical Map Blueprint 2026
 
-Version: 1.0-beta  
-Status: v1 core implemented, v2 partially started  
+Version: 1.1-beta  
+Status: Phase 4 baseline implemented (hybrid renderer + multi-body foundation), closeout and follow-up gates active  
 Owner: Fusion project  
-Last updated: 2026-02-18  
-Previous: 2026-02-14
+Last updated: 2026-02-26  
+Previous: 2026-02-18
 
 ---
 
@@ -1951,6 +1951,51 @@ Wenn Event-Volumen auf 10k+ waechst und Backend-Queries "alle Events in 500km Ra
 **Rust-Verbindung:** [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek. 13 wird von "Kein Rust noetig" auf "Rust fuer Backend Spatial Queries (h3o) ab v3" aktualisiert. Frontend-Rendering bleibt JS/TS.
 
 **D3-Module-Roadmap:** [`GEOPOLITICAL_OPTIONS.md`](./GEOPOLITICAL_OPTIONS.md) definiert welche d3-Packages in jeder Rendering-Stufe installiert werden (v1.1: 8 Packages fuer Scales/Animation/Globe-UX, v1.5: 10 fuer Spielbaum/Timeline, v2: 12+ fuer Entity Graph/deck.gl). Feature→Module Matrix in Sek. 10.
+
+#### 35.4a Reality-Update (Stand 26.02.2026)
+
+Phase 4 hat die zentrale Stufe-1-Entscheidung bereits umgesetzt:
+- d3-geo Hybrid (Canvas fuer Basemap/Country/Heatmap + SVG fuer Interaktion),
+- Multi-Body Foundation (`Earth | Moon`) mit Layer-Registry,
+- Inertia, Voronoi-basiertes Nearest-Lookup, Zoom-Out Clustering (`supercluster`),
+- Candidate/Contradiction-Basisflows in produktiver Nutzbarkeit (transitional Runtime teilweise noch Next-local/Proxy).
+
+Damit gilt: Die Frage ist nicht mehr "ob Hybrid", sondern "wie sauber der Closeout + die Folgegates" ausfallen.
+
+#### 35.4b Gate-basierte Folgeentscheidung (statt Library-Hopping)
+
+**Gate A -- Phase-4-Closeout (Pflicht vor neuer Geo-Engine-Arbeit):**
+- finaler Browser-/E2E-Abnahmelauf fuer Earth/Moon, Layer-Toggles, Draw-Workflow, Cluster-Drilldown,
+- reproduzierbare Performance-Baseline (FPS, Frame-Time p50/p95, Marker/Candidate-Szenarien),
+- offene Punkte aus Verify-Gate abgeschlossen oder bewusst deferred mit Owner/Datum.
+
+**Gate B -- deck.gl Entry (nur wenn Lastgrenzen real gerissen werden):**
+- bei realen Lastprofilen sinkt die Bedienbarkeit unter Zielwerte (z. B. <=45 FPS in Kernflows oder zu hohe Interaktionslatenz),
+- mindestens ein konkreter Overlay-Use-Case mit GPU-Mehrwert (z. B. Path/Heat/Scatter in hoher Dichte) ist fachlich priorisiert,
+- Flat/Regional-Mode ist als zweiter View akzeptiert (kein stiller Ersatz des Globe-Core).
+
+**Gate C -- Rust Spatial Entry (Backend-only):**
+- Radius-/Nachbarschaftsqueries sind im Go/TS-Stack nicht mehr in Ziel-Latenz,
+- H3-basierte Voraggregation bringt messbaren Mehrwert fuer Candidate/Alert/Region-Analysen,
+- Integration laeuft als Service/Module hinter stabilen Contracts (kein Frontend-Rust-Renderer).
+
+#### 35.4c Basemap-/Tile-/Policy-Entscheidung
+
+**Trennung der Rollen (verbindlich):**
+- OSM = Daten-/Lizenzoekosystem (nicht gleichbedeutend mit kostenfreiem Produktiv-Tile-/Geocoding-Service),
+- PMTiles/Vector Tiles = statische oder selten geaenderte Kartengrundlagen,
+- Live-Events/Candidates/User-Layer = API-/Stream-Overlays mit Delta-Updates.
+
+**Betriebsregeln:**
+- OSM Attributions-/Lizenzpflichten muessen im UI sichtbar bleiben,
+- oeffentliche OSM-Tile/Nominatim-Instanzen nur begrenzt (Dev/Low-Volume), nicht als skalierbares Produktions-Rueckgrat,
+- Geocoding/Place-Resolution ueber abstrahierten Provider-Layer + Caching/Fallback planen.
+
+#### 35.4d Globe vs Flat Analyst View
+
+- **Globe bleibt Core-View** (strategischer Weltueberblick, narrative Zusammenhaenge, Differentiator).
+- **Flat Analyst View ist optionaler Zweitmodus** (Labels, dichter Regionalkontext, ggf. spaeter MapLibre+deck.gl).
+- Kein Big-Bang-Replace des Globe-Stacks; Erweiterung nur modular und gate-gesteuert.
 
 ### 35.5 Policy-as-Code fuer Noise-Kontrolle
 

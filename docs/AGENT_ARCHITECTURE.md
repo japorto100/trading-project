@@ -1461,6 +1461,8 @@ class MemoryAccessPolicy:
     can_write_m3_episodic: bool        # Nur bestimmte Agents
 ```
 
+**Skill-Templates für Finanzdaten:** [claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) bietet Skills für Alpha Vantage, FRED, Exploratory Data Analysis, Market Research, Hedgefund Monitor – als Vorlage für eigene Agent-Skills.
+
 ### 15.2 Tool Registry
 
 | Tool-ID | Beschreibung | Destruktiv? | RBAC |
@@ -1558,6 +1560,7 @@ Plugin-System fuer externe Datenquellen. Entspricht dem UIL-Adapter-Konzept (UNI
 | **Sek. 12 (Orchestration)** | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 2 | M/A/O/E Pattern: vom Referenz-Status zum Design befoerdert |
 | **Sek. 12.5 (Orchestrator)** | Sek. 10.3 (Celery+Redis) | Orchestrator nutzt bestehendes Job-Management |
 | **Sek. 13.1 (Research Agent)** | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 3 | Research Agent nutzt UIL-Adapter als Tool Connectors |
+| **Sek. 13 (Decomposer/Claim)** | [`CLAIM_VERIFICATION_ARCHITECTURE.md`](./CLAIM_VERIFICATION_ARCHITECTURE.md) | Claim→Subclaim-Pipeline, Verifier-Alignment, Belief-State fuer Geo/Trading |
 | **Sek. 13.2 (K. Synthesizer)** | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) Sek. 8 | Erweiterung der Role-Context Matrix |
 | **Sek. 13.3 (Evaluator)** | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4 | Automatische Vorstufe des Human-in-the-Loop |
 | **Sek. 13.4 (Monitor)** | [`ENTROPY_NOVELTY.md`](./ENTROPY_NOVELTY.md) Sek. 5-6 | Fuehrt Dual-Entropy-Metrik operativ aus |

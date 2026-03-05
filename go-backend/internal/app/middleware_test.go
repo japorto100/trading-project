@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+type flusherRecorder struct {
+	*httptest.ResponseRecorder
+	flushCalled bool
+}
+
+func (f *flusherRecorder) Flush() {
+	f.flushCalled = true
+	f.ResponseRecorder.Flush()
+}
+
 func TestWithSecurityHeaders_SetsBaselineHeaders(t *testing.T) {
 	handler := withSecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -61,5 +71,53 @@ func TestWithRequestIDAndLogging_SetsResponseHeader(t *testing.T) {
 
 	if got := res.Header().Get("X-Request-ID"); got == "" {
 		t.Fatal("expected X-Request-ID response header")
+	}
+}
+
+func TestWithRequestIDAndLogging_PreservesFlusher(t *testing.T) {
+	handler := withRequestIDAndLogging(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if _, ok := w.(http.Flusher); !ok {
+			t.Fatal("expected wrapped writer to implement http.Flusher")
+		}
+		w.(http.Flusher).Flush()
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/stream/market", nil)
+	recorder := &flusherRecorder{ResponseRecorder: httptest.NewRecorder()}
+	handler.ServeHTTP(recorder, req)
+
+	if !recorder.flushCalled {
+		t.Fatal("expected flush to be delegated to underlying writer")
+	}
+}
+
+func TestWithRBACEnforcement_MissingToken_Returns401(t *testing.T) {
+	handler := withRBAC(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}), rbacConfig{enabled: true})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/quote", nil)
+	// No X-User-Role header — should be treated as anonymous → 401
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for missing token, got %d", res.Code)
+	}
+}
+
+func TestWithRBACEnforcement_InsufficientRole_Returns403(t *testing.T) {
+	handler := withRBAC(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}), rbacConfig{enabled: true})
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/portfolio/order", nil)
+	req.Header.Set("X-User-Role", "viewer") // viewer cannot access trader endpoints
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for insufficient role, got %d", res.Code)
 	}
 }
