@@ -15,6 +15,7 @@ import (
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"tradeviewfusion/go-backend/internal/contracts"
+	"tradeviewfusion/go-backend/internal/messaging"
 	marketstreaming "tradeviewfusion/go-backend/internal/services/market/streaming"
 )
 
@@ -125,7 +126,7 @@ type streamParams struct {
 	AlertRules       []marketstreaming.AlertRule
 }
 
-func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
+func MarketStreamHandler(client streamTickerClient, natsPub messaging.Publisher) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params, err := resolveStreamParams(r)
 		if err != nil {
@@ -227,7 +228,7 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 				if res.Changed && !res.Dropped {
 					history := candleBuilder.Snapshot(8)
 					marketStreamSnapshotStore.UpsertCandle(snapshotKey, res.Candle, history)
-					_ = writeSSEEvent(w, "candle", map[string]any{
+					candlePayload := map[string]any{
 						"symbol":       params.Symbol,
 						"exchange":     params.Exchange,
 						"assetType":    params.AssetType,
@@ -236,7 +237,13 @@ func MarketStreamHandler(client streamTickerClient) http.HandlerFunc {
 						"outOfOrder":   res.OutOfOrder,
 						"wasNewCandle": res.WasNewCandle,
 						"emittedAt":    time.Now().UTC().Format(time.RFC3339Nano),
-					})
+					}
+					_ = writeSSEEvent(w, "candle", candlePayload)
+					if natsPub != nil {
+						if b, err := json.Marshal(candlePayload); err == nil {
+							go func() { _ = natsPub.PublishCandle(context.Background(), b) }()
+						}
+					}
 				}
 			}
 			if alertEngine != nil {

@@ -1,10 +1,18 @@
 import { randomUUID } from "node:crypto";
+import { cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import type { GeoAlertPolicyConfig } from "@/lib/geopolitical/phase12-types";
 import {
 	getGeoAlertPolicyConfig,
 	updateGeoAlertPolicyConfig,
 } from "@/lib/server/geopolitical-phase12-alert-policy-store";
+
+async function getAlertPolicy() {
+	"use cache";
+	cacheTag("geo-alert-policy");
+	cacheLife("minutes");
+	return getGeoAlertPolicyConfig();
+}
 
 function getActor(request: NextRequest): string {
 	return (
@@ -16,7 +24,7 @@ function getActor(request: NextRequest): string {
 
 export async function GET() {
 	const requestId = randomUUID();
-	const policy = await getGeoAlertPolicyConfig();
+	const policy = await getAlertPolicy();
 	return NextResponse.json({
 		success: true,
 		policy,
@@ -39,6 +47,7 @@ export async function PATCH(request: NextRequest) {
 			usePlaybackWindowPreview: payload.usePlaybackWindowPreview,
 			actor: getActor(request),
 		});
+		revalidateTag("geo-alert-policy", "minutes");
 		return NextResponse.json({
 			success: true,
 			policy: next,

@@ -1,7 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { Check, Database, ExternalLink, Globe, Key, Loader2, Settings, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,14 +38,26 @@ const STORAGE_KEY = "tradeview_api_keys";
 
 export function SettingsPanel() {
 	const [open, setOpen] = useState(false);
-	const [providers, setProviders] = useState<ProviderStatus[]>([]);
-	const [loading, setLoading] = useState(false);
 	const [apiKeys, setApiKeys] = useState<ApiKeyConfig>({
 		alphavantage: "",
 		finnhub: "",
 		twelvedata: "",
 	});
 	const [providerPriority, setProviderPriority] = useState("twelvedata,alphavantage,finnhub,demo");
+
+	const { data: providersData, isFetching: loading } = useQuery<ProviderStatus[]>({
+		queryKey: ["market-providers"],
+		queryFn: async () => {
+			const response = await fetch("/api/market/providers");
+			const data = (await response.json()) as { success: boolean; providers: ProviderStatus[] };
+			if (!data.success) throw new Error("provider status unavailable");
+			return data.providers;
+		},
+		enabled: open,
+		staleTime: 30_000,
+	});
+
+	const providers = providersData ?? [];
 
 	// Load saved API keys from localStorage
 	useEffect(() => {
@@ -65,28 +78,6 @@ export function SettingsPanel() {
 			}
 		}
 	}, []);
-
-	const fetchProviderStatus = useCallback(async () => {
-		setLoading(true);
-		try {
-			const response = await fetch("/api/market/providers");
-			const data = await response.json();
-			if (data.success) {
-				setProviders(data.providers);
-			}
-		} catch (error) {
-			console.error("Failed to fetch provider status:", error);
-		} finally {
-			setLoading(false);
-		}
-	}, []);
-
-	// Fetch provider status when dialog opens
-	useEffect(() => {
-		if (open) {
-			fetchProviderStatus();
-		}
-	}, [open, fetchProviderStatus]);
 
 	const saveApiKeys = () => {
 		if (typeof window !== "undefined") {

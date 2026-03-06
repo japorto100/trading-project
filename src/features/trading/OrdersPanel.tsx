@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,6 @@ function num(value: string): number {
 }
 
 export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
-	const [orders, setOrders] = useState<PaperOrder[]>([]);
-	const [loadingOrders, setLoadingOrders] = useState(false);
-	const [ordersError, setOrdersError] = useState<string | null>(null);
-	const [lastOrdersLoadAt, setLastOrdersLoadAt] = useState<string | null>(null);
 	const [side, setSide] = useState<OrderSide>("buy");
 	const [orderType, setOrderType] = useState<OrderType>("market");
 	const [quantity, setQuantity] = useState("1");
@@ -40,62 +37,39 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 	const [stopLoss, setStopLoss] = useState("");
 	const [takeProfit, setTakeProfit] = useState("");
 	const profileKey = useMemo(() => getClientProfileKey(), []);
+	const queryClient = useQueryClient();
 
-	const loadOrders = useCallback(
-		async (options?: { manual?: boolean }) => {
-			const manual = options?.manual ?? false;
-			setLoadingOrders(true);
+	const {
+		data: ordersData,
+		isFetching: loadingOrders,
+		error: ordersQueryError,
+		dataUpdatedAt,
+		refetch: refetchOrders,
+	} = useQuery({
+		queryKey: ["orders", profileKey, symbol],
+		queryFn: async () => {
+			const params = new URLSearchParams({ profileKey, symbol });
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000);
 			try {
-				const params = new URLSearchParams({
-					profileKey,
-					symbol,
-				});
-				const controller = new AbortController();
-				const timeoutId = setTimeout(() => controller.abort(), 5000);
 				const response = await fetch(`/api/fusion/orders?${params.toString()}`, {
 					cache: "no-store",
 					signal: controller.signal,
 				});
-				clearTimeout(timeoutId);
-
-				if (!response.ok) {
-					throw new Error(`Orders fetch failed (${response.status})`);
-				}
-
+				if (!response.ok) throw new Error(`Orders fetch failed (${response.status})`);
 				const payload = (await response.json()) as { orders?: PaperOrder[] };
-				setOrders(Array.isArray(payload.orders) ? payload.orders : []);
-				setOrdersError(null);
-				setLastOrdersLoadAt(new Date().toISOString());
-			} catch (error) {
-				if (!(error instanceof DOMException && error.name === "AbortError")) {
-					const message = error instanceof Error ? error.message : "Could not load paper orders.";
-					setOrdersError(message);
-					if (manual) {
-						toast({
-							title: "Orders unavailable",
-							description: message,
-						});
-					}
-				}
+				return Array.isArray(payload.orders) ? payload.orders : [];
 			} finally {
-				setLoadingOrders(false);
+				clearTimeout(timeoutId);
 			}
 		},
-		[profileKey, symbol],
-	);
+		refetchInterval: 12_000,
+		staleTime: 10_000,
+	});
 
-	useEffect(() => {
-		void loadOrders();
-	}, [loadOrders]);
-
-	useEffect(() => {
-		const timer = window.setInterval(() => {
-			void loadOrders();
-		}, 12000);
-		return () => {
-			window.clearInterval(timer);
-		};
-	}, [loadOrders]);
+	const orders = ordersData ?? [];
+	const ordersError = ordersQueryError instanceof Error ? ordersQueryError.message : null;
+	const lastOrdersLoadAt = dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : null;
 
 	const entryPrice = useMemo(() => {
 		if (orderType === "market") return markPrice;
@@ -165,7 +139,10 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 
 			const payload = (await response.json()) as { order?: PaperOrder };
 			if (payload.order) {
-				setOrders((prev) => [payload.order as PaperOrder, ...prev]);
+				queryClient.setQueryData<PaperOrder[]>(["orders", profileKey, symbol], (prev) => [
+					payload.order as PaperOrder,
+					...(prev ?? []),
+				]);
 			}
 
 			toast({
@@ -195,7 +172,9 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 				throw new Error(`Update order failed (${response.status})`);
 			}
 
-			setOrders((prev) => prev.map((order) => (order.id === id ? { ...order, status } : order)));
+			queryClient.setQueryData<PaperOrder[]>(["orders", profileKey, symbol], (prev) =>
+				(prev ?? []).map((order) => (order.id === id ? { ...order, status } : order)),
+			);
 		} catch (error) {
 			toast({
 				title: "Order update failed",
@@ -224,7 +203,7 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 							size="sm"
 							variant="outline"
 							className="h-8"
-							onClick={() => void loadOrders({ manual: true })}
+							onClick={() => void refetchOrders()}
 							disabled={loadingOrders}
 						>
 							{loadingOrders ? "Refreshing..." : "Refresh"}

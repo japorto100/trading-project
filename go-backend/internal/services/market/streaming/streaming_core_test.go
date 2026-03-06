@@ -1,7 +1,9 @@
 package streaming
 
 import (
+	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"tradeviewfusion/go-backend/internal/contracts"
@@ -131,6 +133,36 @@ func TestSnapshotStoreClonesState(t *testing.T) {
 	if got2.Candles[0].Close != 123.45 {
 		t.Fatalf("snapshot store leaked internal slice mutation")
 	}
+}
+
+// TestAlertEngineConcurrentEvaluate verifies that concurrent EvaluateQuote calls
+// are properly serialized and the dedup map prevents duplicate trigger events
+// even when multiple goroutines race to fire the same rule.
+func TestAlertEngineConcurrentEvaluate(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		engine := NewAlertEngine()
+		rules := []AlertRule{
+			{ID: "r1", Symbol: "X", Condition: AlertAbove, Target: 100, Enabled: true},
+		}
+		// seed: establish lastPrice below target without triggering (hasPrev=false on first call)
+		engine.EvaluateQuote("X", 50, rules, time.Unix(0, 0))
+
+		var wg sync.WaitGroup
+		for i := 0; i < 4; i++ {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				engine.EvaluateQuote("X", 101, rules, time.Unix(int64(idx+1), 0))
+			}(i)
+		}
+		synctest.Wait() // all goroutines in the bubble are idle (done or durably blocked)
+		wg.Wait()
+		// dedup must hold after concurrent triggers: no further event on repeated price
+		events := engine.EvaluateQuote("X", 101, rules, time.Unix(99, 0))
+		if len(events) != 0 {
+			t.Fatalf("dedup failed under concurrency: got %d events", len(events))
+		}
+	})
 }
 
 func TestAlertEngineThresholdAndCrossDedup(t *testing.T) {

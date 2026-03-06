@@ -67,11 +67,12 @@ akzeptabel; der Median muss das Ziel erreichen.
 
 ### Szenario B < 45 FPS → Gate A ausgelöst
 - Migration auf `deck.gl` ScatterplotLayer (ADR-002 Gate A)
-- Canvas-Offscreen-Rendering via OffscreenCanvas
+- **OffscreenCanvas:** Globe-Rendering in Web Worker auslagern (`canvas.transferControlToOffscreen()` → Worker). Main-Thread bleibt frei für UI. Implementierungsreferenz: MDN OffscreenCanvas. Siehe auch [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.4 (OffscreenCanvas-Kontext).
 
 ### Szenario C < 30 FPS
 - Event-Clustering bei Zoom-Ebene < 3 (D3 force-cluster)
 - Level-of-Detail: Bei C nur Top-100 nach severity anzeigen, Rest aggregiert
+- **supercluster Worker (optional, v3+):** Bei 5.000+ Events: supercluster-Berechnung in Web Worker auslagern. Worker empfängt Punkte + Bounds + Zoom, postet Cluster-Ergebnis zurück. Main-Thread rendert nur. Siehe [`GEOPOLITICAL_OPTIONS.md`](./GEOPOLITICAL_OPTIONS.md) Sek. 7.3.
 
 ---
 

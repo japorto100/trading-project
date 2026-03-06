@@ -1997,6 +1997,16 @@ Damit gilt: Die Frage ist nicht mehr "ob Hybrid", sondern "wie sauber der Closeo
 - **Flat Analyst View ist optionaler Zweitmodus** (Labels, dichter Regionalkontext, ggf. spaeter MapLibre+deck.gl).
 - Kein Big-Bang-Replace des Globe-Stacks; Erweiterung nur modular und gate-gesteuert.
 
+#### 35.4e OffscreenCanvas und supercluster Worker (Performance-Optimierungen)
+
+**OffscreenCanvas (GeoMap Canvas-Rendering):**  
+Der GeoMap-Canvas zeichnet Basemap, Laender, Heatmap und Event-Punkte. Bei vielen Events (z. B. 200+) kann das den Main-Thread blockieren → UI ruckelt. **OffscreenCanvas** ermoeglicht: `canvas.transferControlToOffscreen()` erzeugt ein OffscreenCanvas, das an einen Web Worker uebergeben wird. Der Worker zeichnet Globe, Laender, Events; der Main-Thread bleibt frei fuer Drag, Zoom, Klicks, React-Updates. **Wann:** Wenn PERFORMANCE_BASELINE Szenario B (< 45 FPS) ausloest, vor dem deck.gl-Gate. Siehe [`PERFORMANCE_BASELINE.md`](./PERFORMANCE_BASELINE.md).
+
+**supercluster Worker (optional, v3+):**  
+Bei 5.000+ Events kann die supercluster-Berechnung (Zoom-abhaengiges Clustering) den Main-Thread belasten. Auslagerung in Web Worker: Worker empfängt Punkte + Bounds + Zoom, postet Cluster-Ergebnis zurueck. Main-Thread rendert nur. Siehe [`GEOPOLITICAL_OPTIONS.md`](./GEOPOLITICAL_OPTIONS.md) Sek. 7.3, [`PERFORMANCE_BASELINE.md`](./PERFORMANCE_BASELINE.md) Szenario C.
+
+**EXECUTION_PLAN:** Phase 4 (Szenario B), Phase 12 (supercluster Worker bei High-Density).
+
 ### 35.5 Policy-as-Code fuer Noise-Kontrolle
 
 **Ziel:** Regeln maschinenlesbar, debuggbar, tunable machen.

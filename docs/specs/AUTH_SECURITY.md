@@ -1,10 +1,10 @@
 # AUTH & SECURITY ARCHITECTURE
 
-> **Stand:** 22. Februar 2026 (Rev. 2 — kritisches Review eingearbeitet)  
+> **Stand:** 05. März 2026 (Rev. 5 — Session Timeout: 15min→8h + InactivityMonitor Soft Lock implementiert)
 > **Zweck:** Vollständige Sicherheitsarchitektur für das 3-Schichten-Modell: User Auth → Go Gateway → GCT → Exchanges. Dieses Dokument definiert wie echtes Geld geschützt wird.  
 > **Quellen:** GCT Fork (`vendor-forks/gocryptotrader/`), `go-backend/internal/connectors/gct/client.go`, `go-backend/internal/app/wiring.go`, RFC 9700 (OAuth2 Security BCP 2025), W3C WebAuthn Level 3 (2025), FIDO Alliance Passkey Best Practices (2026), Binance/Kraken API Security Docs  
 > **Lebendes Dokument:** Wird nach jeder Security-relevanten Phase aktualisiert. Referenziert in `SYSTEM_STATE.md` Sek. 9 und `EXECUTION_PLAN.md` Phase 0 + Phase 6.  
-> **Änderungshistorie:** Rev. 1 (20. Feb 2026) — Erstfassung. Rev. 2 (22. Feb 2026) — Kritische Items nach Phase 0 vorgezogen, Recovery Flows, JWT Revocation, Incident Response, Monitoring, Secrets Management ergänzt. Consent aus JWT entfernt (→ Server-Side Lookup). Rev. 3 (22. Feb 2026) — Sek. 13: Client-Side Data Encryption fuer Frontend User-KG (WebAuthn PRF + Server-Fallback). Sprint 6.1 erweitert. Rev. 4 (22. Feb 2026) — Sek. 8.1: WebMCP Security (W3C Draft, XSS-Risiko, Tool-Scoping, Audit, Haertungs-Massnahmen). Entscheidungsmatrix WebMCP vs. Chrome DevTools MCP in `AGENT_TOOLS.md`.
+> **Änderungshistorie:** Rev. 1 (20. Feb 2026) — Erstfassung. Rev. 2 (22. Feb 2026) — Kritische Items nach Phase 0 vorgezogen, Recovery Flows, JWT Revocation, Incident Response, Monitoring, Secrets Management ergänzt. Consent aus JWT entfernt (→ Server-Side Lookup). Rev. 3 (22. Feb 2026) — Sek. 13: Client-Side Data Encryption fuer Frontend User-KG (WebAuthn PRF + Server-Fallback). Sprint 6.1 erweitert. Rev. 4 (22. Feb 2026) — Sek. 8.1: WebMCP Security (W3C Draft, XSS-Risiko, Tool-Scoping, Audit, Haertungs-Massnahmen). Entscheidungsmatrix WebMCP vs. Chrome DevTools MCP in `AGENT_TOOLS.md`. Rev. 5 (05. Mär 2026) — Sek. 14: InactivityMonitor Soft Lock (1.v24). Session maxAge von 15min auf 8h angehoben; InactivityMonitor ist primäre Sicherheitsschicht für Idle-Sessions.
 
 ---
 
@@ -939,7 +939,44 @@ Logout / Tab-Close:
 
 ---
 
-## 14. Referenzen
+## 14. InactivityMonitor & Soft Lock (1.v24, 05. Mär 2026)
+
+### Rationale
+- Session `maxAge` war 15min — zu kurz für aktive Trader (dauerhaftes Re-Login unterbricht Workflow).
+- Soft Lock ist die primäre Sicherheitsschicht: UI wird bei 10min Idle gesperrt, Session bleibt gültig (8h maxAge).
+- RAM-State (TradingWorkspace, Chart, Portfolio) bleibt vollständig erhalten — LockScreen rendert über den React-Tree, ersetzt ihn nicht.
+
+### Konfiguration
+| Parameter | Wert | Datei |
+|:----------|:-----|:------|
+| `maxAge` | `8 * 60 * 60` (8h) | `src/lib/auth.ts` |
+| Idle-Timeout | `10 * 60 * 1000` (10min) | `src/components/InactivityMonitor.tsx` |
+| Max Re-Auth-Versuche | 5 → dann Hard signOut | `src/components/LockScreen.tsx` |
+| SessionStorage-Key | `TVP_LOCK_STATE` | beide Komponenten |
+
+### Architektur
+```
+SessionProvider
+  └── InactivityMonitor (dynamic, ssr:false)   ← react-idle-timer@5.7.2
+        ├── {children}                          ← React-Tree bleibt erhalten
+        └── <LockScreen> (conditional)          ← z-[9999] blur-Overlay bei idle
+```
+
+### Cross-Tab-Sync
+`useIdleTimer({ crossTab: true, syncTimers: 200 })` — BroadcastChannel sorgt dafür, dass alle Tabs gleichzeitig sperren, wenn einer idle wird.
+
+### Re-Auth-Flow
+1. User gibt Passwort ein → `signIn("credentials", { redirect: false })`.
+2. Erfolg → `onUnlock()` → sessionStorage löschen + idle-Timer reset.
+3. Fehler → Counter +1. Bei 5 Fehlversuchen → `signOut({ callbackUrl: "/auth/sign-in" })`.
+4. Explizit abmelden → "Abmelden"-Link im Overlay → direkter `signOut`.
+
+### SSR-Kompatibilität
+`InactivityMonitor` wird via `next/dynamic` mit `{ ssr: false }` geladen. Verhindert, dass `react-idle-timer`'s `Date.now()`-Aufrufe den Next.js 16 Prerender-Check ("`/_not-found` used `Date.now()` without Suspense") auslösen.
+
+---
+
+## 15. Referenzen
 
 | Quelle | Relevanz |
 |:---|:---|

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
 import { getGeopoliticalSourceHealth } from "@/lib/geopolitical/source-health";
 import {
@@ -6,16 +7,10 @@ import {
 	updateGeoCentralBankOverlayConfig,
 } from "@/lib/server/geopolitical-phase12-overlay-config-store";
 
-function getActor(request: NextRequest): string {
-	return (
-		request.headers.get("x-geo-actor")?.trim() ||
-		request.headers.get("x-auth-user")?.trim() ||
-		"phase12-ui"
-	);
-}
-
-export async function GET() {
-	const requestId = randomUUID();
+async function getCentralBankOverlay() {
+	"use cache";
+	cacheTag("geo-central-bank-overlay");
+	cacheLife("minutes");
 	const config = await getGeoCentralBankOverlayConfig();
 	const entries = getGeopoliticalSourceHealth();
 	const lower = (value: string) => value.toLowerCase();
@@ -36,13 +31,30 @@ export async function GET() {
 			lower(haystack).includes("uk")
 		);
 	});
-	return NextResponse.json({
-		success: true,
+	return {
 		config,
 		sourceSummary: {
 			centralBanks: centralBankSources.length,
 			sanctions: sanctionsSources.length,
 		},
+	};
+}
+
+function getActor(request: NextRequest): string {
+	return (
+		request.headers.get("x-geo-actor")?.trim() ||
+		request.headers.get("x-auth-user")?.trim() ||
+		"phase12-ui"
+	);
+}
+
+export async function GET() {
+	const requestId = randomUUID();
+	const { config, sourceSummary } = await getCentralBankOverlay();
+	return NextResponse.json({
+		success: true,
+		config,
+		sourceSummary,
 		requestId,
 		degraded: false,
 		degraded_reasons: [],
@@ -63,6 +75,7 @@ export async function PATCH(request: NextRequest) {
 			...payload,
 			actor: getActor(request),
 		});
+		revalidateTag("geo-central-bank-overlay", "minutes");
 		return NextResponse.json({
 			success: true,
 			config,

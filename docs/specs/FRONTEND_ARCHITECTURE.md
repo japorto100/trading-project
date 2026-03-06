@@ -1,14 +1,15 @@
 # FRONTEND ARCHITECTURE
 
-> **Stand:** 22. Februar 2026  
-> **Zweck:** Landkarte der Frontend-Architektur. IST-Zustand (wie der Code jetzt organisiert ist) und SOLL-Zustand (wohin wir wollen). Nicht als 100%-Detail-Plan, sondern als Orientierung: welche Ordner gibt es, wer owned welchen State, welche Dependencies sterben, welche kommen.  
-> **Arbeitsdokument für Bugs/Fixes:** [`webapp.md`](./webapp.md)  
-> **API-Contracts:** [`API_CONTRACTS.md`](./API_CONTRACTS.md)  
+> **Stand:** 05. März 2026
+> **Zweck:** Landkarte der Frontend-Architektur. IST-Zustand (wie der Code jetzt organisiert ist) und SOLL-Zustand (wohin wir wollen). Nicht als 100%-Detail-Plan, sondern als Orientierung: welche Ordner gibt es, wer owned welchen State, welche Dependencies sterben, welche kommen.
+> **Arbeitsdokument für Bugs/Fixes:** [`webapp.md`](./webapp.md)
+> **API-Contracts:** [`API_CONTRACTS.md`](./API_CONTRACTS.md)
 > **Execution Plan Frontend-Tasks:** [`EXECUTION_PLAN.md`](./EXECUTION_PLAN.md) Phase 0 (Foundation), Phase 21 (Frontend Refinement)
 >
 > **Aenderungshistorie:**
 > - Rev. 1 (20. Feb 2026) — Erstfassung mit Phasen 0-9
 > - Rev. 2 (22. Feb 2026) — Phasen-Referenzen auf EXECUTION_PLAN Rev. 3 Nummerierung (0-22) aktualisiert. Sek. 6 erweitert mit Memory/Agent/GT-Phasen.
+> - Rev. 3 (05. März 2026) — Phase 5 SOTA 2026: React Compiler stable, "use cache" Primitiv, TanStack Query QueryClientProvider wired, useEffect→useQuery Migration (8 Komponenten), SSE+setQueryData Pattern dokumentiert.
 
 ---
 
@@ -23,8 +24,10 @@
 | **GeoMap** | `d3-geo` (Orthographic Globe, SVG) | Canvas/SVG Hybrid | Performance-Upgrade in Phase 4 |
 | **Analytics Charts** | `recharts` | Bleibt | Portfolio-Charts, Analytics |
 | **Animation** | Framer Motion 12 | Bleibt | Transitions, Layout-Animationen |
+| **React Compiler** | `reactCompiler: true` (stable seit Next.js 16) | Bleibt aktiv | Kein manuelles `useMemo`/`useCallback` mehr nötig. Compiler optimiert automatisch. |
 | **State** | React Hooks (useState, useReducer) | **Zustand** für Domain-State | Siehe Sek. 4 |
-| **Server State** | TanStack Query 5.82 | Bleibt + ausbauen | Caching, Invalidation, Optimistic Updates |
+| **Server State** | TanStack Query 5.90 — QueryClientProvider AKTIV (Phase 5) | Bleibt + ausbauen | Caching, Invalidation, Optimistic Updates. `queryClient` in `src/lib/query-client.ts`. |
+| **Server Cache** | `"use cache"` Primitiv (cacheComponents: true) AKTIV (Phase 5) | Bleibt | `cacheTag()` + `cacheLife()` auf Helper-Funktionen. `revalidateTag()` in PATCH-Handlers. |
 | **Validation** | Keine Runtime-Validierung | **Zod** für alle API-Responses | Phase 21 |
 | **Auth** | next-auth 4.24 (inaktiv) | next-auth v5 + WebAuthn | Phase 1, siehe `AUTH_SECURITY.md` |
 
@@ -321,12 +324,61 @@ const { data, isLoading, error } = useQuery({
 
 ---
 
-### 6.1 Review-Ergaenzung (SOTA 2026, Empfehlung)
+### 6.1 SOTA 2026 Caching-Pyramide (Phase 5, implementiert)
 
-> Empfehlung aus `docs/review.md` — noch kein finaler Execution-Transfer.
+```
+Browser
+  └── React Compiler (automatisches Memoizing — kein manuelles useMemo/useCallback)
+        └── TanStack Query (Client-Side Server-State Cache)
+              ├── staleTime: 30_000ms default (query-client.ts)
+              ├── refetchInterval für Polling-Queries (Orders 12s, Memory 30s)
+              └── setQueryData für SSE-Push (WatchlistPanel quote_batch)
+                    └── "use cache" (Next.js Server-Side)
+                          ├── cacheTag("geo-regions") → cacheLife("hours")
+                          ├── cacheTag("geo-alert-policy") → cacheLife("minutes")
+                          ├── cacheTag("geo-central-bank-overlay") → cacheLife("minutes")
+                          └── cacheTag("geo-source-health") → cacheLife("minutes")
+```
 
-- **Query-first statt fetch-in-useEffect:** Datenabrufe fuer Server-State primär ueber TanStack Query.
-- **Effect-Reduktion:** `useEffect` nur fuer echte Side-Effects (DOM, subscriptions, imperative browser APIs), nicht fuer Standard-Data-Fetching.
+**Regeln (Phase 5+):**
+- `"use cache"` NUR auf Helper-Funktionen, NICHT auf Route Handler selbst (requestId/Headers bleiben außerhalb Cache-Scope)
+- `revalidateTag(tag, profile)` in PATCH-Handlers — Next.js 16 erfordert zweites Argument (Profil-String)
+- `useEffect` nur noch für SSE/EventSource Subscriptions und Browser-APIs — NICHT für Standard-Datenabrufe
+- Kein neues `useMemo`/`useCallback` in migrierten Komponenten (React Compiler übernimmt)
+- Go Gateway bleibt Source of Truth — `"use cache"` NICHT für Go-Proxy-Routes (Marktdaten, OHLCV, Quote)
+
+**SSE → React Query Pattern:**
+```typescript
+// SSE bleibt in useEffect (einzig legitimer useEffect-Einsatz für Datenstrom)
+// State-Update geht via queryClient.setQueryData statt lokalem setState
+source.addEventListener("quote_batch", (event) => {
+  const rows = JSON.parse(event.data).quotes;
+  queryClient.setQueryData(["quotes", symbolsKey], (prev) => ({ ...prev, ...rows }));
+});
+
+// Für Invalidierung (z.B. geo-events SSE → refetch):
+source.addEventListener("event.updated", () => {
+  queryClient.invalidateQueries({ queryKey: ["geo-events"] });
+});
+```
+
+**Migrierte Komponenten (Phase 5):**
+
+| Komponente | Query Key | Typ |
+|---|---|---|
+| `OrdersPanel` | `["orders", profileKey, symbol]` | `refetchInterval: 12_000` |
+| `MemoryStatusBadge` | `["memory-health"]` | `refetchInterval: 30_000` |
+| `MacroPanel` | `["macro-quote", symbol]` | `enabled: isMacroSymbol` |
+| `NewsPanel` | `["news", symbol]` | `staleTime: 60_000` |
+| `KellyAllocationPanel` | `["kelly-allocation", symbols]` | POST in queryFn |
+| `RegimeSizingPanel` | `["regime-sizing", symbols]` | POST in queryFn |
+| `MonteCarloVarPanel` | `["monte-carlo-var", symbols, weights]` | POST in queryFn |
+| `SettingsPanel` | `["market-providers"]` | `enabled: isOpen` |
+
+### 6.2 Review-Ergaenzung (SOTA 2026)
+
+- **Query-first statt fetch-in-useEffect:** Datenabrufe fuer Server-State primär ueber TanStack Query. ✅ Phase 5 implementiert.
+- **Effect-Reduktion:** `useEffect` nur fuer echte Side-Effects (DOM, subscriptions, imperative browser APIs). ✅ Phase 5 implementiert.
 - **Go-Boundary bleibt:** Kein Architekturwechsel weg von `Browser -> Next API -> Go`; keine Umgehung der Security-/Policy-Schicht.
 - **TanStack DB nur als Pilotpfad:** Optional fuer einzelne stark interaktive Features, nicht als globaler Ersatz von Query/SoR.
 

@@ -102,3 +102,7 @@ python-backend/data/memory-episodic.json
 # Phase 0e: OpenObserve (exe + data — downloaded by dev-stack.ps1 -Observability)
 tools/openobserve/
 openobserve_data/
+
+# Phase 3: NATS server binary — downloaded by dev-stack.ps1 -Nats
+tools/nats/nats-server.exe
+.gitnexus

@@ -1,16 +1,17 @@
 # Execution Mini-Plan (Checkliste)
 
-> **Stand:** 04 Mär 2026 (Rev. 19 — Elite Phase 1 Code-Complete; SOTA 2026 Auth Refactored; Cross-Stack Sync verified)
+> **Stand:** 05 Mär 2026 (Rev. 21 — Phase 5 SOTA 2026 Caching & Data Fetching CODE-COMPLETE)
 > **Archiv:** [`docs/archive/execution_mini_plan_rev5_2026-03-03.md`](../archive/execution_mini_plan_rev5_2026-03-03.md)
 
 Dieses Dokument dient als **dynamische Checkliste** für die finalen Meter vor dem Phase-4-Closeout und den Verify-Gates.
 
 ---
 
-## Offene Gates (EXECUTION_PLAN.md Rev. 3.25)
+## Offene Gates (EXECUTION_PLAN.md Rev. 3.28)
 
 | Gate | Phase | Status |
 |:-----|:------|:-------|
+| Phase 5 SOTA 2026 Caching & Data Fetching | 5 | **CODE-COMPLETE** ✅ (05.03.2026) — Live-Verify offen (Browser) |
 | Phase 0 X-Request-ID Propagation | 0 | **DONE** ✅ (Go, Python, Next.js Middleware) |
 | Phase 0e Live-Verify (OTel → OpenObserve) | 0e | **DONE** ✅ (Traces, Logs, Metrics verified) — 04.03.2026 |
 | Phase 0f Error Boundaries (ERRORS.md §1) | 0f | **DONE** ✅ (global, root, geomap granular) — 04.03.2026 |
@@ -95,10 +96,14 @@ Dieses Dokument dient als **dynamische Checkliste** für die finalen Meter vor d
 - [x] **1.v21 — User Revocation Verify:** Passwort ändern -> GLOBAL_USER_REVOCATION in Go Audit Log. ✅ 04.03.2026
 - [ ] **1.v22 — MFA "amr" Verify:** Login mit MFA -> JWT Claim `amr: ["pwd", "mfa"]` in OO.
 - [x] **1.v23 — Recovery Code "Burn" Verify:** Einmal-Code für Passwort-Reset nutzen -> Gelöscht. ✅ 04.03.2026
-- [ ] **1.v24 — Session Suspension (Soft Lock):** 
-    *   Implementierung `InactivityMonitor` (Client-side, 10m Idle).
-    *   SOTA 2026 Lock-Screen Overlay (Blur UI + Re-Auth Prompt).
-    *   Durable State Preservation: RAM-State bleibt bei Lock erhalten.
+- [x] **1.v24 — Session Suspension (Soft Lock):** ✅ 05.03.2026
+    *   `src/components/InactivityMonitor.tsx` — `useIdleTimer` (10min, crossTab, BroadcastChannel). `react-idle-timer@5.7.2`.
+    *   `src/components/LockScreen.tsx` — Blur-Overlay (z-[9999], backdrop-blur-xl), Re-Auth via `signIn("credentials")`, 5-Strike Hard-Logout.
+    *   `src/components/providers.tsx` — `dynamic(() => import InactivityMonitor, { ssr: false })` (verhindert Date.now()-Prerender-Fehler).
+    *   `src/lib/auth.ts` — `maxAge: 8 * 60 * 60` (8h statt 15min; Soft Lock ist primäre Sicherheitsschicht).
+    *   RAM-State (TradingWorkspace, Chart, Portfolio) bleibt erhalten — LockScreen rendert über bestehenden React-Tree.
+    *   `TVP_LOCK_STATE` sessionStorage-Key (Pattern aus `global-error.tsx:TVP_LAST_CRASH_MARKER`).
+    *   `bun run lint && bun run build` clean ✅
 
 ---
 
@@ -142,4 +147,64 @@ Ebenfalls entfernt wurde die redundante `runtime = "nodejs"` Direktive in folgen
 ---
 
 ## Phase 7 Verify Gates (Stack + Browser erforderlich)
-... [rest of file]
+
+*(Gates siehe EXECUTION_PLAN.md Phase 7)*
+
+---
+
+## Phase 5: SOTA 2026 Caching & Data Fetching (CODE-COMPLETE 05.03.2026)
+
+### 5.v1–5.v3: "use cache" Server-Primitive
+- [x] **5.v1** — `geopolitical/regions/route.ts`: `getRegions()` Helper + `cacheTag("geo-regions")` + `cacheLife("hours")` ✅
+- [x] **5.v2** — `geopolitical/alerts/policy/route.ts`: `getAlertPolicy()` Helper + `cacheTag("geo-alert-policy")` + `cacheLife("minutes")` + `revalidateTag("geo-alert-policy", "minutes")` in PATCH ✅
+- [x] **5.v3a** — `geopolitical/overlays/central-bank/route.ts`: `getCentralBankOverlay()` Helper + `cacheTag` + `cacheLife` + `revalidateTag` in PATCH ✅
+- [x] **5.v3b** — `geopolitical/sources/health/route.ts`: `getSourceHealth()` Helper + `cacheTag("geo-source-health")` + `cacheLife("minutes")` ✅
+- **Note:** Next.js 16 `revalidateTag(tag, profile)` erfordert zweites Argument — `"minutes"` als Profil-String. Wurde im Build entdeckt und gefixt.
+
+### 5.v4: QueryClientProvider
+- [x] **5.v4** — `src/lib/query-client.ts` NEU: `QueryClient` mit `staleTime: 30_000, retry: 2` ✅
+- [x] **5.v4** — `src/components/providers.tsx`: `QueryClientProvider` nach SessionProvider gewrappt ✅
+
+### 5.v5: useEffect → useQuery Migration (8 Komponenten)
+- [x] `OrdersPanel` — `useQuery({ queryKey: ["orders", profileKey, symbol], refetchInterval: 12_000 })` + `setQueryData` bei POST/PATCH ✅
+- [x] `MemoryStatusBadge` — `useQuery({ queryKey: ["memory-health"], refetchInterval: 30_000, throwOnError: false })` ✅
+- [x] `MacroPanel` — `useQuery({ queryKey: ["macro-quote", symbol], enabled: isMacroSymbol })` ✅
+- [x] `NewsPanel` — `useQuery({ queryKey: ["news", symbol], staleTime: 60_000 })` ✅
+- [x] `KellyAllocationPanel` — `useQuery({ queryKey: ["kelly-allocation", symbols], enabled: symbols.length > 0 })` (POST in queryFn) ✅
+- [x] `RegimeSizingPanel` — `useQuery({ queryKey: ["regime-sizing", symbols], enabled: symbols.length > 0 })` ✅
+- [x] `MonteCarloVarPanel` — `useQuery({ queryKey: ["monte-carlo-var", symbols, weights], enabled: symbols.length > 0 })` ✅
+- [x] `SettingsPanel` — `useQuery({ queryKey: ["market-providers"], enabled: isOpen })` ✅
+
+### 5.v6: SSE → setQueryData / invalidateQueries
+- [x] `WatchlistPanel`: `queryClient.setQueryData(["quotes", symbolsKey], updater)` bei `quote_batch` SSE-Event ✅
+- [x] `useGeopoliticalWorkspaceData`: `queryClient.invalidateQueries({ queryKey: ["geo-events"] })` bei SSE-Events statt `fetchAll({ silent: true })` ✅
+
+### 5.v7: Docs
+- [x] `FRONTEND_ARCHITECTURE.md` Rev. 3: Caching-Pyramide, useEffect-Regeln 2026, TanStack Query Setup, SSE+React Query Pattern ✅
+- [x] `execution_mini_plan.md` Rev. 21: Phase 5 eingetragen ✅
+
+### Verify Gates (Browser erforderlich)
+- [ ] `bun run build` ohne Date.now/randomUUID-Prerender-Fehler ✅ (bereits verifiziert)
+- [ ] regions GET: zweiter Request → Cache-Hit im Dev-Log
+- [ ] alerts/policy: PATCH → `revalidateTag` → nächster GET frische Daten
+- [ ] App startet ohne React Query Context-Error
+- [ ] OrdersPanel lädt Daten, pollt alle 12s
+- [ ] MemoryStatusBadge pollt alle 30s
+- [ ] Portfolio-Panels (Kelly, Regime, VaR) laden korrekte POST-Ergebnisse
+
+---
+
+## Phase 1 Verify Gate 1.v24 (Browser erforderlich)
+
+- [ ] `IDLE_SOFT_MS` auf 10_000 setzen → nach 10s LockScreen erscheint
+- [ ] RAM-State (Symbol, Watchlist) nach Lock unverändert
+- [ ] Falsches PW 5x → Hard signOut → `/auth/sign-in`
+- [ ] Richtiges PW → Overlay weg, State intakt
+- [ ] Tab B zeigt LockScreen wenn Tab A sperrt (BroadcastChannel)
+- [ ] Nach 8h Inaktivität → Hard signOut
+
+---
+
+## Evaluation: ChartGPU (Trading-Chart Performance)
+
+- [ ] **ChartGPU Evaluation** — WebGPU-basierte Chart-Rendering für Trading-Charts (Candlestick, 120+ FPS, Millionen Datenpunkte). **IST:** `lightweight-charts` 5.1.0. **SOLL:** Evaluation ob ChartGPU Performance-Gewinn ohne Rust-Komplexität bringt. Referenzen: [`REFERENCE_PROJECTS.md`](../REFERENCE_PROJECTS.md) (ChartGPU Eintrag), [`RUST_LANGUAGE_IMPLEMENTATION.md`](../RUST_LANGUAGE_IMPLEMENTATION.md) Sek. 6 (Alternative: ChartGPU). EXECUTION_PLAN Phase 22c.

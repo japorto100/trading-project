@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type {
@@ -89,6 +90,7 @@ export function useGeopoliticalWorkspaceData() {
 		})),
 	);
 
+	const queryClient = useQueryClient();
 	const isExternalSource = eventsSource !== "local";
 
 	const fetchDrawings = useCallback(async () => {
@@ -375,23 +377,22 @@ export function useGeopoliticalWorkspaceData() {
 	useEffect(() => {
 		if (typeof window === "undefined" || typeof window.EventSource === "undefined") return;
 		const source = new window.EventSource("/api/geopolitical/stream");
-		source.addEventListener("candidate.new", () => {
-			void fetchAll({ silent: true });
-		});
-		source.addEventListener("candidate.updated", () => {
-			void fetchAll({ silent: true });
-		});
-		source.addEventListener("event.updated", () => {
-			void fetchAll({ silent: true });
-		});
-		source.addEventListener("timeline.appended", () => {
-			void fetchAll({ silent: true });
-		});
+		const invalidateGeoEvents = () => {
+			void queryClient.invalidateQueries({ queryKey: ["geo-events"] });
+		};
+		source.addEventListener("candidate.new", invalidateGeoEvents);
+		source.addEventListener("candidate.updated", invalidateGeoEvents);
+		source.addEventListener("event.updated", invalidateGeoEvents);
+		source.addEventListener("timeline.appended", invalidateGeoEvents);
 
 		return () => {
+			source.removeEventListener("candidate.new", invalidateGeoEvents);
+			source.removeEventListener("candidate.updated", invalidateGeoEvents);
+			source.removeEventListener("event.updated", invalidateGeoEvents);
+			source.removeEventListener("timeline.appended", invalidateGeoEvents);
 			source.close();
 		};
-	}, [fetchAll]);
+	}, [fetchAll, queryClient]);
 
 	return {
 		fetchAll,

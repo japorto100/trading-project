@@ -218,7 +218,7 @@ const providers: NextAuthConfig["providers"] = [
 			// Only executed if DB lookup failed or Prisma is unavailable.
 			const expectedUser = process.env.NEXTAUTH_ADMIN_USER ?? DEFAULT_ADMIN_USER;
 			const expectedPassword = process.env.NEXTAUTH_ADMIN_PASSWORD ?? DEFAULT_ADMIN_PASSWORD;
-			
+
 			if (username === expectedUser && password === expectedPassword) {
 				return {
 					id: "local-admin",
@@ -274,8 +274,9 @@ export const authOptions: NextAuthConfig = {
 	...(prisma ? { adapter: createNormalizedPrismaAdapter() } : {}),
 	session: {
 		strategy: "jwt",
-		// SOTA 2026: Short-lived session (15 mins) with sliding window
-		maxAge: 15 * 60,
+		// Soft-Lock (InactivityMonitor) ist die primäre Sicherheitsschicht.
+		// 8h maxAge für aktive Trader — Idle wird via LockScreen abgesichert.
+		maxAge: 8 * 60 * 60,
 		updateAge: 5 * 60, // Refresh session every 5 mins if active
 	},
 	providers,

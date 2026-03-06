@@ -29,6 +29,8 @@ Multi-service trading platform: real-time charting, geopolitical risk map, portf
 | **Python Finance-Bridge** | Python 3.12+ (FastAPI) | 8092 | `python-backend/` | Aktiv |
 | **Rust Core** | Rust (PyO3) | -- (lib) | `python-backend/rust_core/` | Skeleton |
 | **GCT (Fork)** | Go | 9052 (gRPC), 9053 (JSON-RPC) | `go-backend/vendor-forks/gocryptotrader/` | Aktiv |
+| **pkg/duplex** | Go | -- (lib) | `go-backend/pkg/duplex/` | Stub (Pre-Phase 11) — ExchangeAdapter Interface + NoopAdapter |
+| **pkg/protocol** | Go | -- (lib) | `go-backend/pkg/protocol/` | Stub (Pre-Phase 11) — Tick, OHLCV, OrderRequest/Response |
 | **Redis** | -- | 6379 | Docker | Geplant (Phase 6) |
 | **Memory Service** | Python (FastAPI) | 8093 | `python-backend/` | Geplant (Phase 6) |
 | **Agent Service** | Python (FastAPI) | 8094 | `python-backend/` | Geplant (Phase 10) |
@@ -149,6 +151,7 @@ bun run db:generate            # Generate Prisma client
 - Error wrapping: `fmt.Errorf("scope: %w", err)`.
 - Config via `os.Getenv()`. No hardcoded secrets.
 - Tests: `go test -race ./...`
+- **Go Testing (synctest):** For goroutine-safety tests (concurrent handlers, state machines) use `testing/synctest.Run()` + `synctest.Wait()` as the preferred pattern (Go 1.24+, no time.Sleep). Applicable to: CandleBuilder, AlertEngine, future NATS subscriber goroutines (Phase B).
 
 ### Python (Services)
 - FastAPI + Pydantic v2. Async handlers.
@@ -203,3 +206,29 @@ bun run db:generate            # Generate Prisma client
 - Never trust all lifecycle scripts. Review before `bun pm trust`.
 - No secrets in logs, API responses, or frontend code.
 - See `docs/specs/AUTH_SECURITY.md` for full security architecture (incl. WebMCP hardening).
+
+<!-- gitnexus:start -->
+# GitNexus MCP
+
+This project is indexed by GitNexus as **tradeview-fusion** (29980 symbols, 87674 relationships, 300 execution flows).
+
+## Always Start Here
+
+1. **Read `gitnexus://repo/{name}/context`** — codebase overview + check index freshness
+2. **Match your task to a skill below** and **read that skill file**
+3. **Follow the skill's workflow and checklist**
+
+> If step 1 warns the index is stale, run `npx gitnexus analyze` in the terminal first.
+
+## Skills
+
+| Task | Read this skill file |
+|------|---------------------|
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
+| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
+| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
+| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
+| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+
+<!-- gitnexus:end -->

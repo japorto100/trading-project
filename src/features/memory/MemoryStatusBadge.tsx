@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface MemoryHealthData {
 	ok: boolean;
@@ -17,35 +17,19 @@ function statusColor(status: string): string {
 }
 
 export function MemoryStatusBadge() {
-	const [health, setHealth] = useState<MemoryHealthData | null>(null);
-	const [loading, setLoading] = useState(false);
+	const { data: health } = useQuery<MemoryHealthData>({
+		queryKey: ["memory-health"],
+		queryFn: async () => {
+			const res = await fetch("/api/memory/health", { cache: "no-store" });
+			if (!res.ok) throw new Error("memory health unavailable");
+			return res.json() as Promise<MemoryHealthData>;
+		},
+		refetchInterval: 30_000,
+		staleTime: 25_000,
+		// silent: don't throw to error boundary — memory service may be offline
+		throwOnError: false,
+	});
 
-	useEffect(() => {
-		let cancelled = false;
-		const fetchHealth = async () => {
-			setLoading(true);
-			try {
-				const res = await fetch("/api/memory/health", { cache: "no-store" });
-				if (res.ok && !cancelled) {
-					const data = (await res.json()) as MemoryHealthData;
-					setHealth(data);
-				}
-			} catch {
-				// memory service offline — silent fail
-			} finally {
-				if (!cancelled) setLoading(false);
-			}
-		};
-
-		void fetchHealth();
-		const interval = setInterval(() => void fetchHealth(), 30_000);
-		return () => {
-			cancelled = true;
-			clearInterval(interval);
-		};
-	}, []);
-
-	if (loading && !health) return null;
 	if (!health) return null;
 
 	const kgLabel = health.kg === "ready" ? `KG ${health.cache?.toUpperCase() ?? "LRU"}` : "KG —";

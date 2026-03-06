@@ -9,6 +9,7 @@ param(
     [switch]$InstallMl,
     [switch]$NoNext,
     [switch]$NoObservability,      # Skip OpenObserve OTel tracing (normally on :5080/5081)
+    [switch]$Nats,                 # Start NATS JetStream server (opt-in, port 4222)
     [int]$WaitSeconds = 0,
     [bool]$Watch = $true,
     [int]$RestartDelaySeconds = 2
@@ -302,6 +303,40 @@ try {
         $ready = Wait-ForPort -Port 5080 -Name "openobserve" -TimeoutSecs 60
         if ($ready) {
             Write-Host "[openobserve] UI: http://localhost:5080  ($($ooEnv['ZO_ROOT_USER_EMAIL']) / $($ooEnv['ZO_ROOT_USER_PASSWORD']))" -ForegroundColor Green
+        }
+    }
+
+    # 0c) NATS JetStream (opt-in via -Nats flag)
+    # Alternative: docker compose -f docker-compose.nats.yml up -d
+    if ($Nats) {
+        $natsDir = Join-Path $repoRoot "tools\nats"
+        $natsExe = Join-Path $natsDir "nats-server.exe"
+        if (-not (Test-Path $natsExe)) {
+            Write-Host "[nats] Downloading nats-server for Windows x86_64..." -ForegroundColor Cyan
+            New-Item -ItemType Directory -Path $natsDir -Force | Out-Null
+            $natsVersion = "v2.10.24"
+            $natsUrl = "https://github.com/nats-io/nats-server/releases/download/$natsVersion/nats-server-$natsVersion-windows-amd64.zip"
+            $natsZip = Join-Path $natsDir "nats-server.zip"
+            Invoke-WebRequest -Uri $natsUrl -OutFile $natsZip -UseBasicParsing
+            Expand-Archive -Path $natsZip -DestinationPath $natsDir -Force
+            Remove-Item $natsZip
+            # Binary is inside a subdirectory — move it up
+            $extracted = Get-ChildItem $natsDir -Recurse -Filter "nats-server.exe" | Select-Object -First 1
+            if ($extracted -and $extracted.FullName -ne $natsExe) {
+                Move-Item $extracted.FullName $natsExe -Force
+                Remove-Item (Split-Path $extracted.FullName -Parent) -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+        Stop-ListenerOnPort -Port 4222 -Name "nats"
+        Write-Host "[nats] Starting JetStream on :4222 (monitoring: :8222)..." -ForegroundColor Cyan
+        $natsProc = Start-LoggedProcess -Name "nats" -FilePath $natsExe `
+            -ArgumentList @("-js", "-m=8222", "--max_payload=8MB") `
+            -WorkingDirectory $natsDir
+        $processes += $natsProc
+        $ready = Wait-ForPort -Port 4222 -Name "nats" -TimeoutSecs 15
+        if ($ready) {
+            Write-Host "[nats] Ready on :4222 | Monitoring: http://localhost:8222" -ForegroundColor Green
+            Write-Host "[nats] Enable publisher: set NATS_ENABLED=true in go-backend/.env.development" -ForegroundColor DarkGray
         }
     }
 

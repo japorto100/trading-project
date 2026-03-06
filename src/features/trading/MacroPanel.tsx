@@ -1,7 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,55 +26,43 @@ interface MacroQuoteResponse {
 
 export function MacroPanel({ symbol }: MacroPanelProps) {
 	const [inputSymbol, setInputSymbol] = useState(symbol);
-	const [value, setValue] = useState<number | null>(null);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [source, setSource] = useState<string | null>(null);
 
 	const effectiveSymbol = symbol && isMacroSymbol(symbol) ? symbol : inputSymbol;
+	const enabled = Boolean(effectiveSymbol && isMacroSymbol(effectiveSymbol));
 
-	const fetchQuote = useCallback(async (sym: string) => {
-		if (!sym.trim()) return;
-		setLoading(true);
-		setError(null);
-		const url = `/api/geopolitical/macro-quote?symbol=${encodeURIComponent(sym)}`;
-		try {
-			const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+	const {
+		data,
+		isLoading: loading,
+		error: queryError,
+		refetch,
+	} = useQuery({
+		queryKey: ["macro-quote", effectiveSymbol],
+		queryFn: async () => {
+			const res = await fetch(
+				`/api/geopolitical/macro-quote?symbol=${encodeURIComponent(effectiveSymbol)}`,
+				{ cache: "no-store", signal: AbortSignal.timeout(8000) },
+			);
 			const payload = (await res.json()) as MacroQuoteResponse;
 			if (!res.ok || !payload.success || !payload.data) {
 				throw new Error(payload.error ?? `Quote failed (${res.status})`);
 			}
-			setValue(Number(payload.data.last));
-			setSource(payload.data.source || payload.data.exchange);
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Macro quote fetch failed");
-			setValue(null);
-			setSource(null);
-		} finally {
-			setLoading(false);
-		}
-	}, []);
+			return payload.data;
+		},
+		enabled,
+		staleTime: 60_000,
+	});
 
-	useEffect(() => {
-		if (effectiveSymbol && isMacroSymbol(effectiveSymbol)) {
-			void fetchQuote(effectiveSymbol);
-		} else {
-			setValue(null);
-			setSource(null);
-			setError(null);
-		}
-	}, [effectiveSymbol, fetchQuote]);
+	const value = data ? Number(data.last) : null;
+	const source = data ? data.source || data.exchange : null;
+	const error = queryError instanceof Error ? queryError.message : null;
 
 	const handleRefresh = () => {
-		void fetchQuote(effectiveSymbol);
+		void refetch();
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		setInputSymbol((prev) => prev.trim() || prev);
-		if (inputSymbol.trim() && isMacroSymbol(inputSymbol.trim())) {
-			void fetchQuote(inputSymbol.trim());
-		}
 	};
 
 	const showInput = !symbol || !isMacroSymbol(symbol);

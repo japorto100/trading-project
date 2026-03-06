@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -33,46 +33,34 @@ export function MonteCarloVarPanel({
 	symbols: string[];
 	weights: Record<string, number>;
 }) {
-	const [result, setResult] = useState<MonteCarloVarResponse | null>(null);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const {
+		data: result,
+		isLoading: loading,
+		error: queryError,
+	} = useQuery<MonteCarloVarResponse>({
+		queryKey: ["monte-carlo-var", symbols, weights],
+		queryFn: async () => {
+			const res = await fetch("/api/fusion/portfolio/analytics/monte-carlo-var", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					weights,
+					symbols,
+					timeframe: "1D",
+					limit: 252,
+					simulations: 10000,
+					horizon_days: 10,
+					confidence_levels: [0.95, 0.99],
+				}),
+			});
+			if (!res.ok) throw new Error(`Backend error ${res.status}`);
+			return res.json() as Promise<MonteCarloVarResponse>;
+		},
+		enabled: symbols.length > 0,
+		staleTime: 60_000,
+	});
 
-	useEffect(() => {
-		if (symbols.length === 0) return;
-		let mounted = true;
-		setLoading(true);
-		setError(null);
-
-		async function fetch_() {
-			try {
-				const res = await fetch("/api/fusion/portfolio/analytics/monte-carlo-var", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						weights,
-						symbols,
-						timeframe: "1D",
-						limit: 252,
-						simulations: 10000,
-						horizon_days: 10,
-						confidence_levels: [0.95, 0.99],
-					}),
-				});
-				if (!res.ok) throw new Error(`Backend error ${res.status}`);
-				const data = (await res.json()) as MonteCarloVarResponse;
-				if (mounted) setResult(data);
-			} catch (e) {
-				if (mounted) setError(e instanceof Error ? e.message : "Unknown error");
-			} finally {
-				if (mounted) setLoading(false);
-			}
-		}
-
-		void fetch_();
-		return () => {
-			mounted = false;
-		};
-	}, [symbols, weights]);
+	const error = queryError instanceof Error ? queryError.message : null;
 
 	if (symbols.length === 0) {
 		return (

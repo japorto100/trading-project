@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,6 +14,8 @@ import (
 
 	"tradeviewfusion/go-backend/internal/auditjsonl"
 	"tradeviewfusion/go-backend/internal/cache"
+	"tradeviewfusion/go-backend/internal/messaging"
+	"tradeviewfusion/go-backend/internal/observability"
 	"tradeviewfusion/go-backend/internal/capability"
 	"tradeviewfusion/go-backend/internal/connectors/acled"
 	"tradeviewfusion/go-backend/internal/connectors/adb"
@@ -231,6 +233,19 @@ func NewServerFromEnv() (*Server, error) {
 		RequestTimeout: durationMsOr("GEOPOLITICAL_GAMETHEORY_TIMEOUT_MS", 5000),
 	})
 	memCache := cache.NewAdapter(boolOr("MEMORY_REDIS_ENABLED", false), nil)
+
+	// NATS Publisher (P3.1–P3.7) — opt-in via NATS_ENABLED=true
+	var natsPub messaging.Publisher = messaging.NoopPublisher{}
+	if boolOr("NATS_ENABLED", false) {
+		natsURL := envOr("NATS_URL", "nats://127.0.0.1:4222")
+		if np, err := messaging.NewNATSPublisher(natsURL); err != nil {
+			slog.Warn("[wiring] NATS unavailable, noop", "error", err)
+		} else {
+			natsPub = np
+			slog.Info("[wiring] NATS connected", "url", natsURL)
+		}
+	}
+
 	memoryClient := memory.NewClient(memory.Config{
 		BaseURL:        envOr("MEMORY_SERVICE_URL", memory.DefaultBaseURL),
 		RequestTimeout: durationMsOr("MEMORY_SERVICE_TIMEOUT_MS", 5000),
@@ -242,7 +257,7 @@ func NewServerFromEnv() (*Server, error) {
 	capRegistry := capability.NewRegistry()
 	if capPath := envOr("CAPABILITY_REGISTRY_PATH", "config/capabilities.yaml"); capPath != "" {
 		if err := capRegistry.LoadFromFile(capPath); err != nil {
-			log.Printf("[wiring] capability registry load %s: %v (continuing without)", capPath, err)
+			slog.Warn("[wiring] capability registry load failed", "path", capPath, "error", err)
 		}
 	}
 	geopoliticalGameTheoryService := geopoliticalServices.NewGameTheoryService(acledClient, gameTheoryClient)
@@ -331,7 +346,7 @@ func NewServerFromEnv() (*Server, error) {
 		store, err := httpHandlers.NewGCTAuditSQLiteStore(gctAuditSQLitePathFromEnv())
 		if err != nil {
 			// Degraded: log and continue with JSONL only (no fail-fast for audit DB)
-			log.Printf("[gct-audit] SQLite init failed, using JSONL only: %v", err)
+			slog.Warn("[gct-audit] SQLite init failed, using JSONL only", "error", err)
 		} else {
 			gctAuditDB = store
 		}
@@ -409,7 +424,7 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/ohlcv", httpHandlers.OHLCVHandler(financeBridgeClient))
 	mux.HandleFunc("/api/v1/search", httpHandlers.SearchHandler(financeBridgeClient))
 	mux.HandleFunc("/api/v1/macro/history", httpHandlers.MacroHistoryHandler(macroService))
-	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient))
+	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient, natsPub))
 	mux.HandleFunc("/api/v1/news/headlines", httpHandlers.NewsHandler(newsService))
 	mux.HandleFunc("/api/v1/signals/composite", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/signals/composite"))
 	mux.HandleFunc("/api/v1/evaluate/strategy", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/evaluate/strategy"))
@@ -582,6 +597,17 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/options/calculator", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/options/calculator"))
 	mux.HandleFunc("/api/v1/defi/stress", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/defi/stress"))
 	mux.HandleFunc("/api/v1/oracle/cross-check", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/oracle/cross-check"))
+
+	// FlightRecorder (P6c) — Go-runtime tracing, complements OTel distributed tracing.
+	// go tool trace flight.trace to analyze goroutine/GC/scheduler data.
+	if boolOr("FLIGHT_RECORDER_ENABLED", false) {
+		fr := observability.NewFlightRecorder()
+		if err := fr.Start(); err != nil {
+			slog.Warn("[wiring] FlightRecorder start failed", "error", err)
+		} else {
+			mux.HandleFunc("/debug/flight-recorder", fr.HTTPHandler())
+		}
+	}
 
 	if boolOr("MACRO_INGEST_ENABLED", false) {
 		macroIngest := marketServices.NewMacroIngestService(

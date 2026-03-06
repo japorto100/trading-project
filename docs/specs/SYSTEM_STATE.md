@@ -1,6 +1,6 @@
 # SYSTEM STATE (IST vs. SOLL)
 
-> **Stand:** 27. Februar 2026 (Rev. 7 — UIL Phase 9 formal abgeschlossen: Thin-Proxy-Reclassify, dedupHash/Policy-Metadaten-Ende-zu-Ende, Request-ID-Haertung, Full Verify-Gates gruen.)
+> **Stand:** 06. März 2026 (Rev. 8 — Go Infrastructure Sprint 2: messaging/NATSPublisher+ensureStreams, observability/FlightRecorder, pkg/duplex+protocol, sqlc-Stubs, slog-Migration wiring.go, otelslog Bridge)
 > **Zweck:** Zentrale Wahrheit ueber alle Architektur-Schichten — wo wir heute stehen (IST) und wo wir hin muessen (SOLL). Ein einziges End-to-End-Bild.
 > **Quellen:** `package.json`, `go.mod`, `pyproject.toml`, `prisma/schema.prisma`, `dev-stack.ps1`, alle Docs im `docs/`-Ordner.
 > **Lebendes Dokument:** IST-Zustand wird nach jeder abgeschlossenen Phase in `EXECUTION_PLAN.md` aktualisiert.
@@ -76,6 +76,11 @@
 - **Ports:** 9060 (Gateway), 9052/9053 (GCT optional)
 - **Pattern:** Gorilla Mux, Standard `net/http` Handler, Channels für SSE — **SOTA-Hinweis:** gorilla/mux v1.8.1 ist seit September 2023 archiviert (kein Maintenance, kein CVE). Langfristig auf `net/http` stdlib oder `go-chi/chi` migrieren (Phase-14-Window empfohlen).
 - **Connectors:** ACLED, GDELT, CFR/CrisisWatch, ECB, Finnhub, FRED, GCT, News (RSS/GDELT/Finviz), Game-Theory, **ipc** (Python IPC, gRPC-first), **imf** (IMF IFS SDMX, Phase 14a)
+- **Messaging:** `go-backend/internal/messaging/` — Publisher Interface + NoopPublisher + NATSPublisher (JetStream, `NATS_ENABLED` opt-in; `ensureStreams` provisioniert MARKET_CANDLES + MARKET_TICKS Streams)
+- **Observability:** `go-backend/internal/observability/` — FlightRecorder (runtime/trace rolling buffer, MinAge 10s, `FLIGHT_RECORDER_ENABLED` opt-in); `internal/telemetry/` — OTel Tracer + otelslog fanout (JSON stdout + OTLP)
+- **pkg/duplex:** `go-backend/pkg/duplex/` — ExchangeAdapter Interface + NoopAdapter (Pre-Phase 11 stub, importierbar von externen Binaries)
+- **pkg/protocol:** `go-backend/pkg/protocol/` — Tick, OHLCV, OrderRequest/Response (shared wire types für Go + Rust gRPC)
+- **DB Stubs:** `go-backend/internal/db/` + `internal/repository/` + `sqlc.yaml` — vorbereitet für Phase 20 PostgreSQL-Migration; SQLite bleibt bis Multi-User (Phase 20)
 
 ### Analytics (Python)
 - **Python:** 3.12+, FastAPI 0.116, Uvicorn, Pydantic, httpx

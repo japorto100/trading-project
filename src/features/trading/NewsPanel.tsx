@@ -1,8 +1,9 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ExternalLink, Newspaper, RefreshCw, Search } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,33 +92,24 @@ function providerBadgeClass(ok: boolean): string {
 }
 
 export function NewsPanel({ symbol }: NewsPanelProps) {
-	const [articles, setArticles] = useState<MarketNewsArticle[]>([]);
-	const [providers, setProviders] = useState<MarketNewsProviderStatus[]>([]);
-	const [sources, setSources] = useState<NewsSource[]>([]);
 	const [selectedArticle, setSelectedArticle] = useState<MarketNewsArticle | null>(null);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [fetchedAt, setFetchedAt] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
 	const [providerFilter, setProviderFilter] = useState<NewsProviderFilter>("all");
 	const [sentimentFilter, setSentimentFilter] = useState<NewsSentimentFilter>("all");
 	const [sortMode, setSortMode] = useState<NewsSortMode>("newest");
 
-	const loadNews = useCallback(
-		async (forceRefresh: boolean = false) => {
-			setLoading(true);
-			setError(null);
-			let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	const {
+		data,
+		isFetching: loading,
+		error: queryError,
+		refetch: refetchNews,
+	} = useQuery({
+		queryKey: ["news", symbol],
+		queryFn: async () => {
+			const params = new URLSearchParams({ symbol, limit: "24" });
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 8000);
 			try {
-				const params = new URLSearchParams({
-					symbol,
-					limit: "24",
-				});
-				if (forceRefresh) {
-					params.set("refresh", "1");
-				}
-				const controller = new AbortController();
-				timeoutId = setTimeout(() => controller.abort(), 8000);
 				const response = await fetch(`/api/market/news?${params.toString()}`, {
 					cache: "no-store",
 					signal: controller.signal,
@@ -126,33 +118,25 @@ export function NewsPanel({ symbol }: NewsPanelProps) {
 				if (!response.ok || !payload.success) {
 					throw new Error(payload.error || `News request failed (${response.status})`);
 				}
-
-				setArticles(Array.isArray(payload.articles) ? payload.articles : []);
-				setProviders(Array.isArray(payload.providers) ? payload.providers : []);
-				setSources(Array.isArray(payload.sources) ? payload.sources : []);
-				setFetchedAt(payload.fetchedAt ?? new Date().toISOString());
-			} catch (requestError) {
-				if (requestError instanceof DOMException && requestError.name === "AbortError") {
-					setError("News request timed out. Try Refresh.");
-				} else {
-					setError(requestError instanceof Error ? requestError.message : "Unknown news error");
-				}
+				return payload;
 			} finally {
-				if (timeoutId) clearTimeout(timeoutId);
-				setLoading(false);
+				clearTimeout(timeoutId);
 			}
 		},
-		[symbol],
-	);
+		staleTime: 60_000,
+	});
 
-	useEffect(() => {
-		setSelectedArticle(null);
-		setQuery("");
-		setProviderFilter("all");
-		setSentimentFilter("all");
-		setSortMode("newest");
-		void loadNews(false);
-	}, [loadNews]);
+	const articles = Array.isArray(data?.articles) ? data.articles : [];
+	const providers = Array.isArray(data?.providers) ? data.providers : [];
+	const sources = Array.isArray(data?.sources) ? data.sources : [];
+	const fetchedAt = data?.fetchedAt ?? null;
+	const error = queryError instanceof Error ? queryError.message : null;
+
+	const loadNews = (forceRefresh: boolean = false) => {
+		if (forceRefresh) {
+			void refetchNews();
+		}
+	};
 
 	const providerSummary = useMemo(
 		() =>

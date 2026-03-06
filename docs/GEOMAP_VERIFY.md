@@ -51,6 +51,6 @@
 
 ## 4. Referenzen
 
-- [`PERFORMANCE_BASELINE.md`](./PERFORMANCE_BASELINE.md) — FPS-Targets, Messprotokoll
+- [`PERFORMANCE_BASELINE.md`](./PERFORMANCE_BASELINE.md) — FPS-Targets, Messprotokoll (optional: Szenario A/B/C vor Abnahme durchfuehren)
 - [`BASEMAP_POLICY.md`](./BASEMAP_POLICY.md) — OSM-Attribution, Geocoding
 - [`adr/ADR-002-GeoMap-Rendering-Foundation.md`](./adr/ADR-002-GeoMap-Rendering-Foundation.md) — Globe-Core, Flat/Regional optional

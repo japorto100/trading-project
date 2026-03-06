@@ -581,6 +581,8 @@ geoInertiaDrag(svg, (rotation) => {
 **Status (26.02.2026):** Bereits installiert und im Phase-4-Hybridpfad integriert.  
 **Plan-Regel:** **Nicht** erneut in v2 installieren; v2 fokussiert auf zusaetzliche Module/Overlays (z. B. `deck.gl`) und Gate-Entscheidungen.
 
+- **Optional (v3+):** Bei 5.000+ Events: supercluster-Berechnung in Web Worker auslagern. Worker empfängt Punkte + Bounds + Zoom, postet Cluster-Ergebnis zurück. Main-Thread rendert nur. Siehe [`PERFORMANCE_BASELINE.md`](./PERFORMANCE_BASELINE.md) Szenario C.
+
 ### 7.4 Nicht-d3 Chart Libraries (Abgrenzung)
 
 | Library | Status | Begruendung |

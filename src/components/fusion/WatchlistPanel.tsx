@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { memo, useEffect, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FusionSymbol } from "@/lib/fusion-symbols";
@@ -32,6 +33,7 @@ export function WatchlistPanel({
 	const [quotes, setQuotes] = useState<Record<string, QuoteData>>({});
 	const [loadingQuotes, setLoadingQuotes] = useState(false);
 	const [query, setQuery] = useState("");
+	const queryClient = useQueryClient();
 	const [sortMode, setSortMode] = useState<WatchlistSortMode>("default");
 	const [streamState, setStreamState] = useState<WatchlistStreamState>("connecting");
 	const [streamReconnects, setStreamReconnects] = useState(0);
@@ -108,6 +110,10 @@ export function WatchlistPanel({
 					const rows = payload.quotes && typeof payload.quotes === "object" ? payload.quotes : null;
 					if (!rows || Object.keys(rows).length === 0) return;
 					setQuotes((prev) => ({ ...prev, ...rows }));
+					queryClient.setQueryData<Record<string, QuoteData>>(["quotes", symbolsKey], (prev) => ({
+						...(prev ?? {}),
+						...rows,
+					}));
 					setStreamState("live");
 					setStreamLastUpdateAt(Date.now());
 					stopFallbackPolling();
