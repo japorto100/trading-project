@@ -35,7 +35,9 @@ func Encrypt(key []byte, plaintext []byte) (string, error) {
 		return "", fmt.Errorf("nonce: %w", err)
 	}
 	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
-	payload := append(nonce, ciphertext...)
+	payload := make([]byte, 0, len(nonce)+len(ciphertext))
+	payload = append(payload, nonce...)
+	payload = append(payload, ciphertext...)
 	return base64.StdEncoding.EncodeToString(payload), nil
 }
 

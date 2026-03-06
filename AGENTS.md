@@ -120,6 +120,8 @@ bun run build                  # Production build
 
 # Go Gateway
 cd go-backend && go run ./cmd/gateway
+cd go-backend && make bench             # all benchmarks (3s)
+cd go-backend && make bench-streaming   # CandleBuilder hot-path benchmarks
 
 # Python
 cd python-backend && source .venv/bin/activate
@@ -128,8 +130,11 @@ uvicorn main:app --port 8090
 # Rust Core (inside python-backend)
 cd python-backend/rust_core && maturin develop --release
 
-# Full Stack (PowerShell)
-.\scripts\dev-stack.ps1
+# Full Stack (PowerShell) — alles läuft per Default, nur Skip-Flags zum Abwählen
+.\scripts\dev-stack.ps1                                      # alles
+.\scripts\dev-stack.ps1 -SkipGCT -SkipNext                 # ohne GCT + Next.js
+.\scripts\dev-stack.ps1 -SkipGCT -SkipNext -SkipNats       # ohne NATS
+# Verfügbare Flags: -SkipGo -SkipGCT -SkipPython -SkipNext -SkipNats -SkipObservability
 
 # Database
 bun run db:push                # Sync schema
@@ -210,9 +215,17 @@ bun run db:generate            # Generate Prisma client
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (29980 symbols, 87674 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (30104 symbols, 87844 relationships, 300 execution flows).
 
-## Always Start Here
+## MANDATORY: Use GitNexus before any architecture/refactor/impact task
+
+**BEFORE exploring code manually, ALWAYS call `mcp__gitnexus__context` first.**
+
+```
+mcp__gitnexus__context  repo=tradeview-fusion
+mcp__gitnexus__query    repo=tradeview-fusion  question="..."
+mcp__gitnexus__impact   repo=tradeview-fusion  symbol="..."
+```
 
 1. **Read `gitnexus://repo/{name}/context`** — codebase overview + check index freshness
 2. **Match your task to a skill below** and **read that skill file**

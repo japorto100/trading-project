@@ -47,6 +47,29 @@ akzeptabel; der Median muss das Ziel erreichen.
 
 ---
 
+## Go Backend Benchmark Baseline (Sprint 4, 06. Mär 2026)
+
+**Platform:** Windows 10, Intel Core i7-2600 @ 3.40 GHz, GOMAXPROCS=8
+**Go:** 1.26, `go test -bench=. -benchmem -benchtime=3s`
+**Package:** `tradeviewfusion/go-backend/internal/services/market/streaming`
+
+| Benchmark | ns/op | B/op | allocs/op |
+|:----------|------:|-----:|----------:|
+| `BenchmarkApplyTick` (single-thread) | 72.54 | 0 | 0 |
+| `BenchmarkApplyTickParallel` (8 goroutines) | 188.3 | 0 | 0 |
+| `BenchmarkSnapshot` (100 candles) | 1367 | 4864 | 1 |
+
+**Lock-Contention Analysis:**
+- Parallel/Single ratio: 188.3 / 72.54 ≈ **2.6×** → exceeds 2× threshold
+- Indicates `sync.RWMutex` write-lock contention under concurrent writers
+- Recommendation: evaluate shard-lock (per-symbol CandleBuilder) or `sync.Map` in Phase 19
+
+**Notes:**
+- Zero allocations on hot path (ApplyTick): excellent — no GC pressure
+- Snapshot allocates once (slice copy): expected and unavoidable
+
+---
+
 ## Aktuelle Baseline (Phase 4 Closeout)
 
 | Szenario | Gemessener FPS | Status | Gemessen am |
@@ -91,3 +114,4 @@ akzeptabel; der Median muss das Ziel erreichen.
 | Datum | Änderung |
 |:------|:---------|
 | 26. Feb 2026 | Initial — Phase 4 Closeout |
+| 06. Mär 2026 | Sprint 4: Go Backend CandleBuilder Benchmarks — BenchmarkApplyTick/Parallel/Snapshot Baseline; Lock-Contention-Analyse (2.6× ratio); Recommendation: Shard-Lock Phase 19 |

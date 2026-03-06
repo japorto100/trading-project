@@ -14,9 +14,9 @@ func TickSubject(symbol string) string {
 }
 
 // CandleSubject returns the NATS subject for a candle update.
-// Format: market.candle.{SYMBOL}.{TIMEFRAME}  e.g. "market.candle.BTC-USDT.1m"
+// Format: market.{SYMBOL}.ohlcv.{TIMEFRAME}  e.g. "market.BTC-USDT.ohlcv.1m"
 func CandleSubject(symbol, timeframe string) string {
-	return fmt.Sprintf("market.candle.%s.%s", normalizeSubjectSymbol(symbol), timeframe)
+	return fmt.Sprintf("market.%s.ohlcv.%s", normalizeSubjectSymbol(symbol), timeframe)
 }
 
 // normalizeSubjectSymbol replaces "/" with "-" so subjects stay NATS-compatible.

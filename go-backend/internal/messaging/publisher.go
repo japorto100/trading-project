@@ -11,7 +11,7 @@ type Publisher interface {
 
 	// PublishCandle publishes an OHLCV candle payload (JSON bytes).
 	// Subject routing is handled by the implementation.
-	PublishCandle(ctx context.Context, payload []byte) error
+	PublishCandle(ctx context.Context, symbol, timeframe string, payload []byte) error
 
 	// Ping checks liveness of the backend connection.
 	Ping(ctx context.Context) error
@@ -25,6 +25,6 @@ type Publisher interface {
 type NoopPublisher struct{}
 
 func (NoopPublisher) PublishTick(_ context.Context, _ string, _ []byte) error { return nil }
-func (NoopPublisher) PublishCandle(_ context.Context, _ []byte) error          { return nil }
+func (NoopPublisher) PublishCandle(_ context.Context, _, _ string, _ []byte) error { return nil }
 func (NoopPublisher) Ping(_ context.Context) error                             { return nil }
 func (NoopPublisher) BackendName() string                                      { return "noop" }

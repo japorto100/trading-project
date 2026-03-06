@@ -31,6 +31,13 @@ bun run lint          # Biome check (0 errors expected)
 bun run build
 ```
 
+## Full Stack (PowerShell) — alle Services opt-out via Skip-Flags
+```powershell
+.\scripts\dev-stack.ps1                          # alles startet (Go, Python, NATS, Observability, Next.js, GCT)
+.\scripts\dev-stack.ps1 -SkipGCT -SkipNext      # typisch für Backend-Dev
+# Flags: -SkipGo -SkipGCT -SkipPython -SkipNext -SkipNats -SkipObservability
+```
+
 ## Practical Rules
 - Start with `rg` scans for ownership and usage before editing.
 - Use `bun why <pkg>` and `bun pm untrusted` for dependency incidents.
@@ -83,7 +90,15 @@ When debugging common issues:
 
 This project is indexed by GitNexus as **tradeview-fusion** (29980 symbols, 87674 relationships, 300 execution flows).
 
-## Always Start Here
+## MANDATORY: Use GitNexus before any architecture/refactor/impact task
+
+**BEFORE exploring code manually, ALWAYS call `mcp__gitnexus__context` first.**
+
+```
+mcp__gitnexus__context  repo=tradeview-fusion
+mcp__gitnexus__query    repo=tradeview-fusion  question="..."
+mcp__gitnexus__impact   repo=tradeview-fusion  symbol="..."
+```
 
 1. **Read `gitnexus://repo/{name}/context`** — codebase overview + check index freshness
 2. **Match your task to a skill below** and **read that skill file**

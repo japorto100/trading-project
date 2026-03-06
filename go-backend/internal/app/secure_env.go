@@ -8,6 +8,9 @@ import (
 	"tradeviewfusion/go-backend/internal/security/aesgcm"
 )
 
+// decryptEnvValue is provided by secure_env_decrypt_nosecret.go (default)
+// or secure_env_decrypt_secret.go (GOEXPERIMENT=runtimesecret).
+
 type secureEnvDecoder struct {
 	key []byte
 }
@@ -27,7 +30,7 @@ func secureEnvDecoderFromEnv() (*secureEnvDecoder, error) {
 func (d *secureEnvDecoder) decodeStringValue(plainEnvKey, encEnvKey string, fallback string) (string, error) {
 	if d != nil && len(d.key) > 0 {
 		if sealed := strings.TrimSpace(os.Getenv(encEnvKey)); sealed != "" {
-			plaintext, err := aesgcm.Decrypt(d.key, sealed)
+			plaintext, err := decryptEnvValue(d.key, sealed)
 			if err != nil {
 				return "", fmt.Errorf("decrypt %s: %w", encEnvKey, err)
 			}

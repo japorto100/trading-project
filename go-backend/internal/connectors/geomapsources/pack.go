@@ -6,12 +6,12 @@ package geomapsources
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"golang.org/x/sync/errgroup"
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/eu"
 	"tradeviewfusion/go-backend/internal/connectors/ofac"
@@ -58,25 +58,33 @@ func NewGeoMapSourcePack(cfg PackConfig) *GeoMapSourcePack {
 	}
 }
 
-// FetchAndMapToCandidates runs CheckForUpdates on all watchers and maps Added entries to GeoMap candidates.
-// Individual watcher failures are logged and skipped — partial results from successful watchers are returned.
-// Returns an error only if all watchers fail.
+// FetchAndMapToCandidates runs CheckForUpdates on all watchers in parallel and maps Added entries to GeoMap candidates.
+// Uses errgroup.WithContext: the first watcher error cancels all remaining fetches.
 func (p *GeoMapSourcePack) FetchAndMapToCandidates(ctx context.Context) ([]Candidate, error) {
 	if p == nil {
 		return nil, fmt.Errorf("geomap source pack unavailable")
 	}
-	var all []Candidate
-	var errs []string
+	results := make([]*base.DiffResult, len(p.watchers))
+	g, gctx := errgroup.WithContext(ctx)
 	for i, w := range p.watchers {
+		i, w := i, w
+		g.Go(func() error {
+			result, err := w.CheckForUpdates(gctx)
+			if err != nil {
+				return err
+			}
+			results[i] = result
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+	var all []Candidate
+	for i, result := range results {
 		source := "OFAC"
 		if i < len(p.sources) {
 			source = p.sources[i]
-		}
-		result, err := w.CheckForUpdates(ctx)
-		if err != nil {
-			slog.Warn("sanctions watcher skipped", "source", source, "error", err.Error())
-			errs = append(errs, fmt.Sprintf("%s: %v", source, err))
-			continue
 		}
 		for _, item := range result.Added {
 			c := mapSanctionsToCandidate(item, source)
@@ -84,9 +92,6 @@ func (p *GeoMapSourcePack) FetchAndMapToCandidates(ctx context.Context) ([]Candi
 				all = append(all, c)
 			}
 		}
-	}
-	if len(errs) > 0 && len(all) == 0 && len(errs) == len(p.watchers) {
-		return nil, fmt.Errorf("all watchers failed: %s", strings.Join(errs, "; "))
 	}
 	return all, nil
 }

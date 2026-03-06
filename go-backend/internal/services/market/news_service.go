@@ -5,7 +5,10 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type Headline struct {
@@ -50,32 +53,44 @@ func (s *NewsService) Headlines(ctx context.Context, symbol string, query string
 		queryOrSymbol = query
 	}
 
-	merged := make([]Headline, 0, limit*2)
-
 	allowNonLanguageAwareFetchers := lang == "" || lang == "en"
 	gdeltTerm := queryOrSymbol
 	if lang != "" {
 		gdeltTerm = applyGDELTLanguageConstraint(queryOrSymbol, lang)
 	}
 
-	for _, call := range []struct {
+	calls := []struct {
 		fetcher newsFetcher
 		term    string
 	}{
 		{fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.rssFetcher), term: queryOrSymbol},
 		{fetcher: s.gdeltFetcher, term: gdeltTerm},
 		{fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.finvizFetcher), term: symbol},
-	} {
-		fetcher := call.fetcher
-		if fetcher == nil {
-			continue
-		}
-		items, err := fetcher.Fetch(ctx, call.term, limit)
-		if err != nil {
-			continue
-		}
-		merged = append(merged, normalizeHeadlines(items)...)
 	}
+
+	var (
+		mu     sync.Mutex
+		merged = make([]Headline, 0, limit*2)
+	)
+	g, gctx := errgroup.WithContext(ctx)
+	for _, call := range calls {
+		call := call
+		if call.fetcher == nil {
+			continue
+		}
+		g.Go(func() error {
+			items, err := call.fetcher.Fetch(gctx, call.term, limit)
+			if err != nil {
+				return nil // non-fatal: partial results acceptable
+			}
+			normalized := normalizeHeadlines(items)
+			mu.Lock()
+			merged = append(merged, normalized...)
+			mu.Unlock()
+			return nil
+		})
+	}
+	_ = g.Wait()
 
 	unique := deduplicateHeadlines(merged)
 	sort.SliceStable(unique, func(i, j int) bool {

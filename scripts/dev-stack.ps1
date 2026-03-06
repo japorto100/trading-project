@@ -1,15 +1,16 @@
-# Start full stack: Go Gateway + GCT + Python (Rust-powered) services + Next.js
+# Start full stack: Go Gateway + GCT + Python (Rust-powered) services + Next.js + NATS + Observability
 # Usage: from repo root: bun run dev:full:gct:python
-# Optional: -SkipGo, -SkipGCT, -SkipPython, -NoNext, -NoObservability, -InstallMl
+# All services run by default. Pass -Skip* flags to disable individual services.
+# Optional: -SkipGo, -SkipGCT, -SkipPython, -SkipNext, -SkipNats, -SkipObservability, -InstallMl
 
 param(
     [switch]$SkipGo,
     [switch]$SkipGCT,
     [switch]$SkipPython,
+    [switch]$SkipNext,
+    [switch]$SkipNats,
+    [switch]$SkipObservability,    # Skip OpenObserve OTel tracing (normally on :5080/5081)
     [switch]$InstallMl,
-    [switch]$NoNext,
-    [switch]$NoObservability,      # Skip OpenObserve OTel tracing (normally on :5080/5081)
-    [switch]$Nats,                 # Start NATS JetStream server (opt-in, port 4222)
     [int]$WaitSeconds = 0,
     [bool]$Watch = $true,
     [int]$RestartDelaySeconds = 2
@@ -259,8 +260,8 @@ try {
     Import-EnvFile -Path (Join-Path $goBackendDir ".env.development")
     Import-EnvFile -Path (Join-Path $pythonBackendRoot ".env.development")
 
-    # 0b) OpenObserve (Default ON, skip via -NoObservability flag)
-    if (-not $NoObservability) {
+    # 0b) OpenObserve (Default ON, skip via -SkipObservability flag)
+    if (-not $SkipObservability) {
         $ooDir = Join-Path $repoRoot "tools\openobserve"
         $ooExe = Join-Path $ooDir "openobserve.exe"
         if (-not (Test-Path $ooExe)) {
@@ -306,9 +307,9 @@ try {
         }
     }
 
-    # 0c) NATS JetStream (opt-in via -Nats flag)
+    # 0c) NATS JetStream (Default ON, skip via -SkipNats flag)
     # Alternative: docker compose -f docker-compose.nats.yml up -d
-    if ($Nats) {
+    if (-not $SkipNats) {
         $natsDir = Join-Path $repoRoot "tools\nats"
         $natsExe = Join-Path $natsDir "nats-server.exe"
         if (-not (Test-Path $natsExe)) {
@@ -330,7 +331,7 @@ try {
         Stop-ListenerOnPort -Port 4222 -Name "nats"
         Write-Host "[nats] Starting JetStream on :4222 (monitoring: :8222)..." -ForegroundColor Cyan
         $natsProc = Start-LoggedProcess -Name "nats" -FilePath $natsExe `
-            -ArgumentList @("-js", "-m=8222", "--max_payload=8MB") `
+            -ArgumentList @("-js", "-m=8222") `
             -WorkingDirectory $natsDir
         $processes += $natsProc
         $ready = Wait-ForPort -Port 4222 -Name "nats" -TimeoutSecs 15
@@ -482,7 +483,7 @@ try {
     }
 
     # 4) Register Next.js frontend as managed process unless disabled
-    if (-not $NoNext) {
+    if (-not $SkipNext) {
         Register-ManagedService -Name "nextjs" -Port 3000 -StartAction {
             Write-Host "[nextjs] Starting frontend on port 3000..."
             Start-LoggedProcess -Name "nextjs" -FilePath "bun" -ArgumentList @("run", "dev") -WorkingDirectory $repoRoot
@@ -498,10 +499,10 @@ try {
         Start-ManagedService -Name "memory-service" | Out-Null
         Start-ManagedService -Name "agent-service" | Out-Null
     }
-    if (-not $NoNext) { Start-ManagedService -Name "nextjs" | Out-Null }
+    if (-not $SkipNext) { Start-ManagedService -Name "nextjs" | Out-Null }
 
     # 6) Wait for all background services to be ready
-    if (-not $NoNext) {
+    if (-not $SkipNext) {
         Ensure-PortReady -Port 3000 -Name "nextjs" -TimeoutSecs 120
     }
     if (-not $SkipGo) {
@@ -520,7 +521,7 @@ try {
     Write-Host "Go Gateway:   http://127.0.0.1:9060"
     Write-Host "Python API:   8081, 8091, 8092, 8093, 8094 (agent)"
     if (-not $SkipGCT) { Write-Host "GCT gRPC:     127.0.0.1:9052" }
-    if (-not $NoObservability) { Write-Host "OpenObserve:  http://localhost:5080  (Traces/Logs/Metrics)" -ForegroundColor Cyan }
+    if (-not $SkipObservability) { Write-Host "OpenObserve:  http://localhost:5080  (Traces/Logs/Metrics)" -ForegroundColor Cyan }
 
     if ($Watch) {
         if ($WaitSeconds -gt 0) {

@@ -11,6 +11,10 @@ linters:
     - ineffassign
     - staticcheck
     - unused
+    - gocritic
+    - exhaustive
+    - revive
+    - nolintlint
   settings:
     staticcheck:
       checks:
@@ -18,10 +22,22 @@ linters:
         - "-SA1019"   # grpc.DialContext deprecation -- migration tracked separately
         - "-ST1000"   # package comments -- not enforced yet
         - "-ST1003"   # naming conventions -- existing code uses JsonRPC prefix
+    revive:
+      rules:
+        - name: exported
+          disabled: true   # export comments not enforced yet
+        - name: var-naming
+          disabled: true   # existing code uses JsonRPC prefix
+    exhaustive:
+      default-signifies-exhaustive: true
+    nolintlint:
+      require-explanation: true
+      require-specific: true
   exclusions:
     rules:
       - path: _test\.go
         linters:
           - errcheck
+          - gocritic
     paths:
       - vendor-forks

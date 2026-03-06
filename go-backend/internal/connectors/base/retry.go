@@ -20,7 +20,7 @@ func isIdempotentMethod(method string) bool {
 
 // shouldRetry is reserved for future connector retry logic.
 //
-//nolint:unused
+//nolint:unused // reserved scaffold — will be wired when retry middleware is introduced (pre-Phase 11)
 func shouldRetry(method string, resp *http.Response, err error) bool {
 	if !isIdempotentMethod(method) {
 		return false
@@ -43,7 +43,7 @@ func shouldRetry(method string, resp *http.Response, err error) bool {
 
 // retryBackoff is reserved for future connector retry logic.
 //
-//nolint:unused
+//nolint:unused // reserved scaffold — paired with shouldRetry, wired pre-Phase 11
 func retryBackoff(attempt int) time.Duration {
 	if attempt < 0 {
 		attempt = 0
@@ -59,7 +59,7 @@ func retryBackoff(attempt int) time.Duration {
 
 // min is used by retryBackoff.
 //
-//nolint:unused
+//nolint:unused // reserved scaffold — used only by retryBackoff (above), both wired pre-Phase 11
 func min(a, b int) int {
 	if a < b {
 		return a

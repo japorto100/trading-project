@@ -17,6 +17,11 @@ package messaging
 //	func (s *Subscriber) Start(ctx context.Context) error   // blocks until ctx cancelled
 //	func (s *Subscriber) Stop() error                       // drain + unsubscribe
 //
+// OTel Trace-Context extraction (Phase B — Rust consumer pattern):
+//
+//	ctx = otel.GetTextMapPropagator().Extract(ctx, natsMsgCarrier{msg})
+//	// ctx now carries the trace from the Go publisher → continue span chain
+//
 // Reconnect strategy:
 //   - On NATS disconnect: wait for client.IsConnected(), then resubscribe
 //   - DeliverLastPerSubjectPolicy: new subscriber gets last tick per symbol immediately

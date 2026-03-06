@@ -12,6 +12,7 @@ import (
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // InitLogProvider initialises an OTLP gRPC log provider, registers it as the
@@ -48,9 +49,25 @@ func InitLogProvider(ctx context.Context, serviceName, otlpEndpoint string) (*sd
 	// Fan out: JSON stdout (existing) + OTel bridge (new).
 	otelHandler := otelslog.NewHandler(serviceName, otelslog.WithLoggerProvider(lp))
 	jsonHandler := slog.NewJSONHandler(os.Stdout, nil)
-	slog.SetDefault(slog.New(&fanoutHandler{handlers: []slog.Handler{jsonHandler, otelHandler}}))
+	tracedJsonHandler := &traceContextHandler{Handler: jsonHandler}
+	slog.SetDefault(slog.New(&fanoutHandler{handlers: []slog.Handler{tracedJsonHandler, otelHandler}}))
 
 	return lp, nil
+}
+
+// traceContextHandler extracts OTel trace_id and span_id from context and adds them to stdout JSON.
+type traceContextHandler struct {
+	slog.Handler
+}
+
+func (h *traceContextHandler) Handle(ctx context.Context, r slog.Record) error {
+	if spanCtx := trace.SpanContextFromContext(ctx); spanCtx.IsValid() {
+		r.AddAttrs(
+			slog.String("trace_id", spanCtx.TraceID().String()),
+			slog.String("span_id", spanCtx.SpanID().String()),
+		)
+	}
+	return h.Handler.Handle(ctx, r)
 }
 
 // fanoutHandler forwards every slog record to multiple slog.Handlers.

@@ -86,7 +86,7 @@ func withRequestIDAndLogging(next http.Handler) http.Handler {
 			logFields = append(logFields, "authVerified", authVerified)
 		}
 
-		slog.Info("http_request", logFields...)
+		slog.InfoContext(r.Context(), "http_request", logFields...)
 	})
 }
 

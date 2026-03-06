@@ -45,7 +45,7 @@ func main() {
 	server, err := app.NewServerFromEnv()
 	if err != nil {
 		slog.Error("gateway init failed", "error", err)
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic // exitAfterDefer: OTel shutdown defers are best-effort; server init failure requires immediate exit
 	}
 	if err := server.Run(); err != nil {
 		slog.Error("gateway stopped with error", "error", err)

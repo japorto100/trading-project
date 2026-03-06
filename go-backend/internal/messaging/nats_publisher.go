@@ -3,11 +3,26 @@ package messaging
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	nats "github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"go.opentelemetry.io/otel"
 )
+
+// natsMsgCarrier implements propagation.TextMapCarrier for nats.Header,
+// enabling W3C TraceContext propagation into NATS message headers.
+type natsMsgCarrier struct{ msg *nats.Msg }
+
+func (c natsMsgCarrier) Get(key string) string { return c.msg.Header.Get(key) }
+func (c natsMsgCarrier) Set(key, val string) {
+	if c.msg.Header == nil {
+		c.msg.Header = make(nats.Header)
+	}
+	c.msg.Header.Set(key, val)
+}
+func (c natsMsgCarrier) Keys() []string { return nil }
 
 // NATSPublisher publishes market events to NATS JetStream.
 // Create via NewNATSPublisher; call Close() on gateway shutdown.
@@ -44,7 +59,7 @@ func (p *NATSPublisher) ensureStreams(ctx context.Context) error {
 	streams := []jetstream.StreamConfig{
 		{
 			Name:      "MARKET_CANDLES",
-			Subjects:  []string{"market.candle", "market.candle.>"},
+			Subjects:  []string{"market.*.ohlcv.>"},
 			MaxAge:    time.Hour,
 			MaxMsgs:   100_000,
 			Storage:   jetstream.MemoryStorage,
@@ -68,12 +83,21 @@ func (p *NATSPublisher) ensureStreams(ctx context.Context) error {
 }
 
 func (p *NATSPublisher) PublishTick(ctx context.Context, symbol string, payload []byte) error {
-	_, err := p.js.Publish(ctx, TickSubject(symbol), payload)
+	msg := nats.NewMsg(TickSubject(symbol))
+	msg.Data = payload
+	otel.GetTextMapPropagator().Inject(ctx, natsMsgCarrier{msg})
+	_, err := p.js.PublishMsg(ctx, msg)
+	if err == nil {
+		slog.Debug("published tick", "symbol", symbol, "bytes", len(payload))
+	}
 	return err
 }
 
-func (p *NATSPublisher) PublishCandle(ctx context.Context, payload []byte) error {
-	_, err := p.js.Publish(ctx, "market.candle", payload)
+func (p *NATSPublisher) PublishCandle(ctx context.Context, symbol, timeframe string, payload []byte) error {
+	msg := nats.NewMsg(CandleSubject(symbol, timeframe))
+	msg.Data = payload
+	otel.GetTextMapPropagator().Inject(ctx, natsMsgCarrier{msg})
+	_, err := p.js.PublishMsg(ctx, msg)
 	return err
 }
 

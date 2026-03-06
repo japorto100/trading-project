@@ -211,6 +211,11 @@ func MarketStreamHandler(client streamTickerClient, natsPub messaging.Publisher)
 			lastQuoteAt = time.Unix(quote.Timestamp, 0).UTC().Format(time.RFC3339)
 			marketStreamSnapshotStore.UpsertQuote(snapshotKey, quote)
 			_ = writeSSEEvent(w, "quote", quote)
+			if natsPub != nil {
+				if b, err := json.Marshal(quote); err == nil {
+					go func() { _ = natsPub.PublishTick(r.Context(), quote.Symbol, b) }()
+				}
+			}
 			if candleBuilder != nil {
 				res := candleBuilder.ApplyTick(marketstreaming.Tick{
 					Symbol:    quote.Symbol,
@@ -241,7 +246,7 @@ func MarketStreamHandler(client streamTickerClient, natsPub messaging.Publisher)
 					_ = writeSSEEvent(w, "candle", candlePayload)
 					if natsPub != nil {
 						if b, err := json.Marshal(candlePayload); err == nil {
-							go func() { _ = natsPub.PublishCandle(context.Background(), b) }()
+							go func() { _ = natsPub.PublishCandle(r.Context(), params.Symbol, params.Timeframe, b) }()
 						}
 					}
 				}

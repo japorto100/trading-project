@@ -219,8 +219,7 @@ func (c *QuoteClient) tryStockProviders(ctx context.Context, pair currency.Pair,
 	}
 	var lastErr error
 	for _, provider := range c.providerCandidates(assetClass, fallback) {
-		switch strings.ToLower(provider) {
-		case "finnhub":
+		if strings.ToLower(provider) == "finnhub" {
 			ticker, err := c.stockClient.GetTicker(ctx, pair, assetType)
 			if err == nil {
 				if c.router != nil {
@@ -244,8 +243,7 @@ func (c *QuoteClient) tryForexProviders(ctx context.Context, pair currency.Pair,
 	}
 	var lastErr error
 	for _, provider := range c.providerCandidates(assetClass, fallback) {
-		switch strings.ToLower(provider) {
-		case "ecb":
+		if strings.ToLower(provider) == "ecb" {
 			ticker, err := c.forexClient.GetTicker(ctx, pair)
 			if err == nil {
 				if c.router != nil {
