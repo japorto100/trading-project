@@ -57,7 +57,9 @@ trace_geomap.json
 
 # Go
 *.test
+*.test.exe
 *.out
+*.prof
 coverage.out
 .coverprofile
 go.work.sum
