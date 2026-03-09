@@ -88,7 +88,8 @@ Smart Accounts sind **No-Go**, wenn:
 
 ## Referenzen
 
+- [README.md](./README.md) – Web3-Index
+- [references/README.md](../references/README.md) – externer Referenzindex
 - [Ethereum Account Abstraction](https://ethereum.org/roadmap/account-abstraction/)
 - [Safe Smart Accounts](https://docs.safe.global/)
-- [`docs/web3/overview.md`](./overview.md)
-- [`docs/REFERENCE_PROJECTS.md`](../REFERENCE_PROJECTS.md)
+- [overview.md](./overview.md)

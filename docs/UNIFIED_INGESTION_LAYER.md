@@ -39,9 +39,20 @@ Die Unified Ingestion Layer verarbeitet **unstrukturierte** Datenquellen die nic
 | Strukturierte OHLCV/Macro-Daten (Finnhub, FRED, ECB, etc.) | **Go Data Router** | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) |
 | News-Headlines von APIs (NewsData, GNews, Webz, GDELT) | **Go News Fetcher** (migriert von TS) | [`project_audit2.md`](./archive/project_audit2.md) L286 (archiviert), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) L397-398 |
 | Indikator-Berechnung | **Python + Rust/PyO3** | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) |
-| GeoMap Event-Persistenz und Timeline | **GeoMap Engine** | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) |
+| GeoMap Event-Persistenz und Timeline | **GeoMap Engine** | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) |
 
 Die UIL ist die **Bruecke** zwischen rohen unstrukturierten Inhalten und den bestehenden Subsystemen. Sie produziert Candidates -- nie finale Daten.
+
+### 0.1 Konsolidierungs-Addendum (Retrieval-Routing & Source-Confidence)
+
+Fuer UIL-Kandidaten gilt als verbindliche Erweiterung:
+
+- Open-Web-/unstrukturierte Quellen sind Discovery- und Gap-Fill-Layer.
+- UIL darf keine direkte Canonical-Truth-Mutation ausloesen.
+- Promotion in stabilere Schichten erfolgt nur ueber Claim/Evidence/Review-Gates.
+- Source-Confidence wird explizit mitgefuehrt (nicht implizit aus Quelle erraten).
+
+**Aladdin-Gap (Event-Backbone):** Async Job-Queue, Replay, Fanout für UIL-Candidates. OSS: NATS JetStream. Priorität: Hoch. Siehe Master_master §8.5, GO_GATEWAY (Streaming).
 
 ### Gemeinsames Muster aller UIL-Quellen
 
@@ -250,7 +261,7 @@ Bestimmt welche(s) Subsystem(e) den Content erhalten. Kann mehrere gleichzeitig 
 
 Pro Macro-Route gibt es Sub-Kategorien. Diese sind erweiterbar.
 
-**GeoMap** (aus [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 7.1):
+**GeoMap** (aus [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 7.1):
 
 | Micro-Kategorie | Beschreibung |
 |-----------------|-------------|
@@ -387,7 +398,7 @@ Raw Content (from Go / TS)
 |--------|-------------|------------|
 | **Ollama (lokal)** | Llama 3, Mistral -- kostenlos, offline, datenschutzfreundlich | v1 (Default) |
 | **OpenAI API** | GPT-4o-mini -- hoehere Qualitaet, kostet pro Call | v1 (Optional) |
-| **Sentiment-Modell** (FinBERT, financial-roberta-large, FinGPT, XLM-R, FinBERT2-CN -- siehe [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18.2 fuer Vergleichstabelle) | Fuer Sentiment-spezifische Sub-Tasks (nicht fuer Klassifizierung). Modulares Interface: Modell-Austausch = Config-Aenderung | v2 |
+| **Sentiment-Modell** (FinBERT, financial-roberta-large, FinGPT, XLM-R, FinBERT2-CN -- siehe [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18.2 fuer Vergleichstabelle) | Fuer Sentiment-spezifische Sub-Tasks (nicht fuer Klassifizierung). Modulares Interface: Modell-Austausch = Config-Aenderung | v2 |
 
 Bestehende Ollama-Integration: `python-backend/` nutzt bereits Ollama fuer lokale LLM-Calls.
 
@@ -462,7 +473,7 @@ Fleiss κ (gesamt): 0.61 (substantial agreement) ✓
 
 ## 5. Human-in-the-Loop Review (Double-Threshold + Training-Loop)
 
-> Uebernimmt das Pattern aus [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4 und [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.2-4.7.
+> Uebernimmt das Pattern aus [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4 und [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.2-4.7.
 
 ### 5.1 Double-Threshold Routing
 
@@ -501,7 +512,7 @@ Alle Review-Aktionen fliessen als Trainings-Datenpunkte in die Pipeline (Details
 
 ## 6. Copy/Paste als Top-Level Feature
 
-> **Migration:** Von GeoMap-spezifisch ([`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.15) zu globalem Feature.
+> **Migration:** Von GeoMap-spezifisch ([`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.15) zu globalem Feature.
 
 ### 6.1 Warum Top-Level?
 
@@ -620,22 +631,22 @@ flowchart TD
 |-------------|-------------|------------|
 | Sek. 0 (Abgrenzung) | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) | Go Data Router = strukturierte Daten. UIL = unstrukturierte Daten |
 | Sek. 1 (Sprachgrenzen) | [`project_audit2.md`](./archive/project_audit2.md) L160, L210, L286 | Primaerquelle fuer Language Boundary Contract (archiviert) |
-| Sek. 1 (Sprachgrenzen) | [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) L46 | "Go ist der einzige Ort fuer Daten-Beschaffung" |
+| Sek. 1 (Sprachgrenzen) | [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) | Root-Index fuer verschobene Referenzkataloge |
 | Sek. 1 (Sprachgrenzen) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) L397-398 | News-Rohdaten von Go, Verarbeitung in Python |
 | Sek. 2.1 (Reddit Migration) | [`project_audit2.md`](./archive/project_audit2.md) L286 | "News-Fetching in src/lib/news/sources.ts wandert in die Go-Schicht" (archiviert) |
-| Sek. 3.2 (GeoMap Micro) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 7.1 | Kategorie-Taxonomie fuer geopolitische Events |
-| Sek. 5 (HITL Review) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4 | Feedback-Driven Review System (Signal/Noise/Uncertain) |
+| Sek. 3.2 (GeoMap Micro) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 7.1 | Kategorie-Taxonomie fuer geopolitische Events |
+| Sek. 5 (HITL Review) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4 | Feedback-Driven Review System (Signal/Noise/Uncertain) |
 | Sek. 5.3 (Training) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.2-4.7 | Human-AI Teaming Pipeline, Metriken, Policy-Tuning, ML Training |
-| Sek. 6 (Copy/Paste) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.15 | Migriert von GeoMap-spezifisch zu Top-Level |
-| Sek. 6 (Evidence) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.1 | Evidence Bundle Pattern (SHA256 + Timestamp) |
+| Sek. 6 (Copy/Paste) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.15 | Migriert von GeoMap-spezifisch zu Top-Level |
+| Sek. 6 (Evidence) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.1 | Evidence Bundle Pattern (SHA256 + Timestamp) |
 | Sek. 4.4 (LLM-ML Teaming) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 8 | UIL ist die konkrete Implementierung des LLM-ML Teaming Patterns |
 
 ### Von anderen Docs hierher (Updates noetig)
 
 | Dokument | Sektion | Update |
 |----------|---------|--------|
-| [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) | Sek. 35.15 | Verweis: "Copy/Paste ist jetzt Top-Level Feature in UIL Sek. 6" |
-| [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) | Neue Sektion | Unconventional Sources: YouTube Go-Libraries, Reddit Go Migration |
+| [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) | Sek. 35.15 | Verweis: "Copy/Paste ist jetzt Top-Level Feature in UIL Sek. 6" |
+| [`docs/references/sources/unconventional-and-translation.md`](./references/sources/unconventional-and-translation.md) | Quellenkatalog | Unconventional Sources: YouTube / Reddit / Translation / inoffizielle Quellen |
 | [`NOTES-19.02.2026.md`](./NOTES-19.02.2026.md) | Sek. F | Markieren als "Extrahiert nach UNIFIED_INGESTION_LAYER.md" |
 | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) | Einleitung | Abgrenzungs-Notiz: strukturierte vs. unstrukturierte Daten |
 | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) | Sek. 12 (Querverweise) | Neuer Eintrag: UIL als Implementierung von Sek. 4, 8 |

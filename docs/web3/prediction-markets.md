@@ -48,6 +48,7 @@ prediction_quote
 3. Event-Matching (duplikat-/near-duplicate-Erkennung)
 4. Confidence-Scoring
 5. Divergence-Signal gegen News und Marktpreise
+6. **Oracle Cross-Check:** Bei aktiviertem G10-Layer: Prediction-Shift + Preisbewegung + Oracle-Spread → "Signal conflict" markieren statt blindes Follow-Signal (siehe [oracle-integration.md](./oracle-integration.md))
 
 ## Confidence-Scoring (einfacher Start)
 
@@ -71,6 +72,8 @@ prediction_quote
 
 ## Verweise
 
-- [`docs/REFERENCE_PROJECTS.md`](../REFERENCE_PROJECTS.md)
-- [`docs/web3/overview.md`](./overview.md)
-- [`docs/web3/smart-accounts.md`](./smart-accounts.md)
+- [README.md](./README.md) – Web3-Index
+- [references/README.md](../references/README.md) – externer Referenzindex
+- [overview.md](./overview.md)
+- [smart-accounts.md](./smart-accounts.md)
+- [oracle-integration.md](./oracle-integration.md) – Layer 2, G10 Oracles

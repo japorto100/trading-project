@@ -3,7 +3,9 @@
 > **Stand:** 07. März 2026  
 > **Zweck:** Integrationsleitfaden für Go Gateway mit Frontend, Python/Rust-Services und Agent-Tooling.  
 > **Maßgebliche Statusquellen:** `docs/specs/SYSTEM_STATE.md`, `docs/specs/EXECUTION_PLAN.md`  
-> **Auth-Referenz:** `docs/specs/AUTH_SECURITY.md` (inkl. Agent-/MCP-Sicherheitsanforderungen)
+> **Auth-Referenz:** `docs/specs/AUTH_SECURITY.md` (Umbrella) und
+> `docs/specs/security/POLICY_GUARDRAILS.md` fuer Agent-/MCP-
+> Sicherheitsanforderungen
 
 ---
 
@@ -76,6 +78,57 @@ Go Gateway benötigt für RSC **keine Sonder-API**, sondern konsistente Auth-/He
 
 Proto liegt unter `go-backend/internal/proto/ipc/ipc.proto` (`ForwardRequest` RPC).  
 Python-Services unterstützen optional gRPC (`GRPC_ENABLED=1`) mit Port-Konvention HTTP+1000.
+
+### Weitere stabile Defaults
+
+- **Adaptive Router-Logik** bleibt Go-owned:
+  Asset-Class-Routing, Health-/Fallback-Entscheidungen und Provider-Metadaten
+  gehoeren in den Gateway-Layer, nicht in zufaellige Frontend- oder Python-
+  Umwege.
+- **BaseConnector statt Copy/Paste-Connectoren**:
+  gemeinsame HTTP-/Retry-/Rate-Limit-/Error-Class-Bausteine bleiben die
+  Default-Richtung fuer neue strukturierte Datenquellen.
+- **Quellen-Gruppen statt 1:1-Sonderfaelle**:
+  REST, SDMX, Time-Series, Bulk, RSS, Diff, Translation und Oracle-/Cross-Check-
+  Quellen werden gruppenweise ausgebaut, nicht als unverbundene Einzel-Clients.
+- **Symbol-/Prefix-Kataloge** bleiben Gateway-nah:
+  Symbol-Mapping, Prefix-Routing und spaetere Symbol-Katalog-Services gehoeren an
+  dieselbe Boundary wie Routing und Provider-Capabilities.
+
+## 1c. Streaming-Leitbild fuer Browser-nahe Marktpfade
+
+Die operative Streaming-Richtung bleibt:
+
+1. **Ingestion**  
+   Provider-Feeds und interne Stream-Quellen normalisieren Events/Ticks auf
+   Gateway-nahe Markt- und Symbolgrenzen.
+2. **Processing**  
+   Candle-/Depth-/Alert-Logik arbeitet auf normalisierten Events, inklusive
+   Dedupe, Sortierung, Retry-/Reconnect-Folgen und spaeter Replay/Recovery.
+3. **Delivery**  
+   Browser-nahe Clients konsumieren standardmaessig **SSE/stream-first**; REST
+   bleibt Recovery-, Snapshot- und Fallback-Pfad.
+
+Arbeitsregeln:
+
+- **REST + SSE** bleibt der Browser-Default; WebTransport ist Beobachtungsthema,
+  nicht Primärpfad.
+- **Stream-first, REST-fallback** bedeutet nicht "zwei gleichberechtigte
+  Wahrheiten", sondern: Streams fuer Live-Aktualitaet, REST fuer Recovery,
+  Bootstrap und kontrollierte Degradation.
+- Interne Bus-/Queue-Loesungen (spaeter z. B. NATS) koennen die Processing-
+  Strecke erweitern, sind aber keine Voraussetzung fuer die erste saubere
+  Streaming-Grenze.
+  **Aladdin-Gap (Streaming):** NATS JetStream für Ingestion, SSE/WebSocket für Delivery. OSS: gorilla/websocket, SSE (Go stdlib). Architektur-Komponenten: ws-ingestor, candle-aggregator, alert-engine (ADR-001). Priorität: Hoch.
+
+Hardening-Schwerpunkte:
+
+- out-of-order / verspätete Events duerfen Candle- und Orderbook-Grenzen nicht
+  still korrumpieren
+- reconnect/replay braucht Dedupe- und Checkpoint-Semantik
+- Provider-Limits, Disconnect-Verhalten und Heartbeats muessen pro Quelle klar
+  klassifiziert sein
+- SSE-Fehlerpfade duerfen nicht in stilles Frontend-Polling "umkippen"
 
 ---
 

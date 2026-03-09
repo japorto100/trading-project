@@ -18,8 +18,19 @@ Leitprinzip:
 
 - Next.js bleibt BFF/Thin-Proxy.
 - Go ist zentrale Control Plane (Policy, AuthZ, Rate-Limit, Audit, Routing).
-- Python ist Compute/ML/Agentic Processing.
-- Rust ist Performance-Layer hinter Python (PyO3), kein eigener externer Service in v1.
+- Python ist Agentik-/ML-/Modeling- und Simulationsschicht.
+- Rust ist gezielter Hot-Path-Compute-Layer; PyO3 ist heute wichtig, aber nicht
+  die einzige langfristige Produktionsgrenze.
+
+### Produkt-Surface Defaults
+
+- Research-/Decision-Surface ist ein wichtiger primaerer Einstieg, nicht nur der
+  tiefe Trading-Workspace.
+- Event Intelligence bleibt First-Class Surface: Headlines, Kalender, Geo,
+  betroffene Assets, Portfolio und Alerts sollen drilldown-faehig verbunden
+  bleiben.
+- PWA-first bleibt frueh sinnvoll; native Splits entstehen nur bei echtem
+  Produktdruck.
 
 ---
 
@@ -51,6 +62,7 @@ flowchart LR
 
     G --> C[(Redis / Hot Cache)]
     G --> D[(Primary DB)]
+    G --> OS[(Object Storage S3 API)]
 ```
 
 ### Sync Path Regeln
@@ -61,6 +73,8 @@ flowchart LR
   - Rate Limits (global + endpoint + actor)
   - Audit Events (mutierend und sicherheitsrelevant)
   - Input/Output Contract Validation
+- Objektzugriffe fuer Upload/Download laufen ueber signierte,
+  kurzlebige Access-Pfade aus Go (kein direkter Browser- oder Agent-Root-Zugriff).
 - Python liefert Compute-Ergebnisse, aber keine unkontrollierten Side Effects ohne Go-Policy-Gate.
 
 ---
@@ -76,6 +90,9 @@ flowchart LR
     X --> W
     W --> RS[(Result Store)]
     W --> VC[(Vector / KG / Memory Stores)]
+    W --> OS[(Object Storage S3 API)]
+    O --> M[(Object Metadata / Index DB)]
+    M --> OS
     O --> AO[(Audit / Ops Logs)]
 ```
 
@@ -88,6 +105,8 @@ flowchart LR
   - `idempotencyKey`
   - `dedupHash` (falls inhaltlich relevant)
   - `traceId` / `requestId` (wenn aus User-Aktion entstanden)
+- Artefakte (PDF, Audio, Video, Parquet) werden object-first gespeichert;
+  relationale Stores halten nur Metadaten, Retention und Zugriffspolicies.
 - Fehlschlaege gehen in DLQ/Failure-Queue; keine stillen Drops.
 
 ---
@@ -129,6 +148,7 @@ flowchart TB
 | ML/Analytics/Inference | Python | Compute-only, kontrollierte Side Effects |
 | High-Performance Kernels | Rust via PyO3 | Deterministische Inputs/Outputs, Benchmarks |
 | Scheduling/Batch | Scheduler + Go Orchestrator | Retry/DLQ/Idempotenz verpflichtend |
+| Object Storage Layer | SeaweedFS/Garage via S3 API | immutable-by-default Artefakte, lifecycle/retention, checksums |
 | Secrets | Go-side Secret Management | Keine Frontend- oder Client-Leaks |
 
 ---
@@ -246,7 +266,9 @@ Die Plattform verfolgt bis auf Weiteres eine **No-Julia-first** Strategie:
 
 ### 12.2 Begruendung
 
-- Bestehender Stack ist bereits auf `Go -> Python -> Rust` ausgerichtet.
+- Bestehender Stack ist heute teils auf `Go -> Python -> Rust` ausgerichtet,
+  bewegt sich aber fuer schwere Produktionspfade in Richtung einer klareren
+  Go↔Rust-Grenze.
 - Laufzeit-, Build- und Betriebskomplexitaet bleiben geringer als bei einer vierten Kernsprache.
 - 2026 Rust-Schwerpunkte adressieren zentrale Zukunftsthemen:
   - Cross-language interop
@@ -267,10 +289,13 @@ Julia darf in Betracht gezogen werden, wenn **alle** Punkte erfuellt sind:
 ### 12.4 Bevorzugte Upgrades vor Julia
 
 1. Rust-Hot-Path Ausbau (SIMD/parallel/no-copy boundaries).
-2. PyO3 Boundary-Hardening (strict schemas, error contracts, perf counters).
-3. Wasm-Component Plugin-Pfade fuer kontrollierte Erweiterbarkeit.
-4. Async-/Trait-Ergonomie-Verbesserungen aus Rust 2026 Roadmaps adaptieren.
-5. Supply-chain Hardening (trusted publishing, advisory scanning, reproducible builds).
+2. Direkte Go↔Rust-Service-/Compute-Grenze fuer stabile numerische Kerne
+   evaluieren, bevor neue Python-Hot-Path-Abhaengigkeiten wachsen.
+3. PyO3 Boundary-Hardening (strict schemas, error contracts, perf counters) als
+   Fallback-/Bridge-Pfad.
+4. Wasm-Component Plugin-Pfade fuer kontrollierte Erweiterbarkeit.
+5. Async-/Trait-Ergonomie-Verbesserungen aus Rust 2026 Roadmaps adaptieren.
+6. Supply-chain Hardening (trusted publishing, advisory scanning, reproducible builds).
 
 ---
 
@@ -357,8 +382,113 @@ Dieses Dokument ist die Zielarchitektur-Referenz. Detaillierte route-by-route Zu
 
 - `docs/specs/UIL_ROUTE_MATRIX.md`
 - `docs/specs/API_CONTRACTS.md`
-- `docs/PROXY_CONVENTIONS.md`
 - `docs/specs/SYSTEM_STATE.md`
 - `docs/specs/EXECUTION_PLAN.md`
-- `docs/SUPERAPP.md`
+- `storage_layer.md`
+- `docs/specs/execution/storage_layer_delta.md`
+- `docs/other_project/SUPERAPP.md` (strategische Referenz, nicht aktive Root-Authority)
+
+---
+
+## 17) Service Blueprint (verbindliche Modulgrenzen)
+
+Die folgenden Module sind als Zielbild fuer klare Verantwortungsgrenzen verbindlich.
+Sie sind keine Pflicht zur sofortigen Microservice-Zerlegung, sondern die normative
+Schnittordnung innerhalb der bestehenden Struktur.
+
+### 17.1 Frontend Surface
+
+- `app-shell` (Navigation, auth-aware shell, globale Error Boundaries)
+- `geomap-surface` (Map/Globe, Overlays, Drilldown)
+- `review-studio` (Candidate-/Contradiction-/Evidence-Review)
+- `simulation-workbench` (Branching, Szenariovergleich, Timeline)
+- `portfolio-workspace` (Exposure, Relevance, Watchlist-Kontext)
+- `notes-journal` (persoenliche Forschung/Thesen)
+
+### 17.2 Go Control Plane
+
+- `gateway` (public API, auth/authz, rate limit, correlation, contracts)
+- `connector-router` (provider dispatch, fallback, retry, quota)
+- `stream-hub` (SSE/WebSocket multiplexing)
+- `job-controller` (async jobs, status, cancellation, checkpoint)
+- `promotion-gate` (policy/review gates fuer write-nahe Promotion)
+- `audit-timeline` (append-only audit and mutation timeline)
+
+### 17.3 Python Intelligence Plane
+
+- `retrieval-orchestrator` (federated retrieval ueber APIs/graph/vector/web)
+- `verifier` (claim decomposition, evidence collection, stance/confidence)
+- `agent-runtime` (planner/executor/replanner, tool invocation, policy hooks)
+- `simulation-core` (rollouts, branch generation, scoring)
+- `context-assembler` (M1-M5 assembly, budgets, freshness/degradation flags)
+- `labeling-pipeline` (extract/classify/dedup/route fuer UIL)
+
+### 17.4 Rust Acceleration Plane
+
+- `graph-kernels`, `spatial-kernels`, `ode-kernels`, `mc-kernels`,
+  `indicator-kernels`
+- Rust bleibt selektiver Hot-Path-Layer; Einsatz nur mit Profiling-Nachweis.
+
+---
+
+## 18) Kernobjekte und Vertragsfelder
+
+Diese Objektfamilien sind systemweit verbindlich, damit Retrieval, Claim-Review,
+Agentik und Simulation dieselbe Sprache nutzen.
+
+- `CanonicalEntity`: `entity_id`, `entity_type`, `canonical_name`, `aliases[]`,
+  `provenance[]`, `status`
+- `Claim`: `claim_id`, `about_entity_ids[]`, `claim_type`, `time_scope`,
+  `current_confidence`, `review_state`
+- `Evidence`: `evidence_id`, `source_id`, `supports_or_contradicts_claim_id`,
+  `stance`, `retrieval_path`, `quality_score`
+- `UserOverlayNode`: `overlay_id`, `owner_user_id`, `references_entity_ids[]`,
+  `overlay_type`, `visibility`, `sync_scope`
+- `ScenarioSnapshot`: `scenario_id`, `parent_scenario_id`, `world_state_version`,
+  `belief_snapshot_id`, `kg_snapshot_id`, `model_version`, `time_horizon`, `status`
+- `SearchNode`: `search_node_id`, `scenario_id|analysis_run_id`, `parent_node_id`,
+  `depth`, `action_taken`, `score`, `uncertainty`, `tool_trace_ids[]`
+- `PromotionRecord`: `promotion_id`, `object_type`, `object_id`, `from_state`,
+  `to_state`, `policy_basis`, `reviewer_or_agent_id`, `timestamp`
+
+---
+
+## 19) Retrieval- und Simulationsvertraege
+
+### 19.1 Retrieval als Prozess
+
+Retrieval ist kein einzelner Lookup, sondern ein Ablauf:
+
+1. intent bestimmen
+2. domain scope setzen
+3. retrieval family waehlen
+4. candidate sources holen
+5. normalize/dedup/cluster
+6. evidence quality/provenance bewerten
+7. an verifier/simulation/agent weitergeben
+
+### 19.2 Retrieval-Intents (Mindestset)
+
+- `factual_lookup`
+- `source_discovery`
+- `contradiction_hunt`
+- `timeline_reconstruction`
+- `analogous_case_retrieval`
+- `scenario_prior_building`
+- `monitoring_watch_mode`
+
+### 19.3 Simulation Minimal Stack
+
+Fruehe produktive Simulation folgt mindestens:
+
+1. `belief_snapshot` laden
+2. relevante Akteure/Regionen bestimmen
+3. objectives/constraints initialisieren
+4. action set erzeugen
+5. transition model anwenden
+6. outcomes scoren
+7. branch results auf map/timeline/tree projizieren
+
+Arbeitsregel: zuerst stabile state/action/reward contracts und best-first/beam
+search; MCTS erst nachgewiesenem Mehrwert.
 

@@ -3,6 +3,15 @@
 > **Erstellt:** 14. Februar 2026
 > **Zweck:** Sammlung aehnlicher Open-Source-Projekte, die als Referenz, Inspiration oder Code-Quelle fuer den beschleunigten Ausbau von Tradeview Fusion dienen koennen.
 
+## Archiv (nicht mehr verfuegbar)
+
+| Projekt | Status | Hinweis |
+|---------|--------|---------|
+| **GoChart** ([github.com/laion01/GoChart](https://github.com/laion01/GoChart)) | 404 | Repo nicht mehr erreichbar (Stand 15.02.2026) |
+| **Divergex** ([github.com/divergex/platform](https://github.com/divergex/platform)) | 404 | Repo nicht mehr erreichbar (Stand 15.02.2026) |
+
+---
+
 ## Ueber Tradeview Fusion
 
 Tradeview Fusion ist eine Trading-Plattform gebaut mit **Next.js 16 + React 19**, **Tailwind v4**, **shadcn/ui**, **Prisma (SQLite)** und **Zustand**. Kernfeatures:

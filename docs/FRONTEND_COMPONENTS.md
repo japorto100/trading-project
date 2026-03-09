@@ -14,9 +14,8 @@ Der empfohlene Schnitt ist:
 - `docs/specs/FRONTEND_ARCHITECTURE.md`
   - Routing, Shell, State, Datenfluss, API-Wege, Surface-Grenzen
 - `docs/FRONTEND_COMPONENTS.md`
-  - konkrete UI-Surfaces, Komponentenfamilien, Workbench-Patterns, externe UI-Referenzen
-- `docs/FRONTEND_DESIGN_TOOLING.md`
-  - Design-to-code, UI-Tooling, visuelle Produktionswerkzeuge
+  - konkrete UI-Surfaces, Komponentenfamilien, Workbench-Patterns,
+    Design-to-code-/UI-Tooling-Entscheidungen und externe UI-Referenzen
 - `docs/AGENT_ARCHITECTURE.md`
   - Rollen, Capability-Grenzen, Agent-Verhalten
 - `docs/MEMORY_ARCHITECTURE.md`
@@ -39,6 +38,8 @@ Wenn diese Referenzen in `ERRORS.md`, `AGENT_ARCHITECTURE.md` oder `FRONTEND_ARC
 ---
 
 ## 2. Grundsatz
+
+**Aladdin-Gap (Drawing Persistence):** Drawing Objects in DB persistieren. Keine externe OSS-Lib; Prisma-Schema erweitern. Priorität: Niedrig.
 
 Alle hier genannten Produkte, Frameworks und UIs sind **Optionen / Referenzen / Pattern-Quellen**.
 Sie sind **keine** automatische Produktentscheidung fuer `tradeview-fusion`.
@@ -144,6 +145,32 @@ Fuer `tradeview-fusion` interessant als:
 - moegliche Option fuer agentische Chat-/Tool-Surfaces
 - Referenz fuer Streaming + State-Handling auf React-Seite
 
+### 3.8 Design-to-Code und read-only Agent-UI-Tooling
+
+Aus der frueheren Design-Tooling-Notiz bleiben fuer dieses Dokument vor allem die
+Frontend-nahen Produktionsregeln relevant:
+
+| Tool / Pattern | Rolle fuer `tradeview-fusion` | Wo sinnvoll | Wo nicht |
+|---|---|---|---|
+| **Pencil.dev** | Component-/Screen-Design mit strukturierter Agent-Uebergabe | Auth-, Settings-, Admin-, statische Workspace-Raender | nicht fuer Trading-Chart, GeoMap-Rendering oder datengetriebene Viz-Kerne |
+| **Figma MCP** | stabile Design-to-code-Bridge ohne UI-Neubau im Prompt | Layout-, Spacing- und System-Komponenten | nicht als Ersatz fuer Frontend-Architektur oder API-Grenzen |
+| **Tambo** | read-only Agent-UI / dynamische Output-Komponenten | Agent Playground, Analyse-Karten, Monitor-/Dashboard-Surfaces | nicht fuer Order-Placement, Wallet-/Account-Mutationen oder andere schreibende Finanzaktionen |
+
+Arbeitsregeln:
+
+- Design-Tools kommen **nach** sauberer Frontend-/Gateway-Architektur, nicht davor.
+- Programmatische Viz-Surfaces bleiben programmatisch: `lightweight-charts`,
+  GeoMap/D3, Analytics-Charts.
+
+### 3.9 Chart-Plugins (LWC)
+
+| Ressource | Rolle | Link |
+|-----------|-------|------|
+| **LWC Plugin Examples** | Volume Profile, Rectangle, Trend Line, Vertical Line, Session Highlighting — offizielle TradingView-Dokumentation | [Plugin Examples](https://tradingview.github.io/lightweight-charts/plugin-examples/) |
+- AI-generierte UI darf im Trading-Kontext nur read-only oder assistiv sein;
+  finanzielle Mutation bleibt in deterministischen, explizit getesteten
+  Komponenten.
+
 ---
 
 ## 4. Verknuepfung mit bestehenden Fachdocs
@@ -194,3 +221,4 @@ Dieses Dokument kann spaeter konkret gegliedert werden in:
 - `docs/AGENT_ARCHITECTURE.md`
 - `docs/MEMORY_ARCHITECTURE.md`
 - `docs/CONTEXT_ENGINEERING.md`
+- `docs/archive/FRONTEND_DESIGN_TOOLING.md`

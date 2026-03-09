@@ -466,7 +466,7 @@ Alle 23 bestehenden Funktionen bleiben in TypeScript. Sie sind fuer latenz-kriti
 **Hinweis:** Indikatoren #18-21 bleiben in TS fuer lokale UI-Darstellung, senden ihre Ergebnisse aber AUCH an Python fuer die Composite-Signal-Berechnung. #22 (Heartbeat) wird nach Python migriert, weil die Kombinations-Logik dort laeuft. Die TS-Version kann vorerst bleiben fuer die SignalInsightsBar.
 
 **Offener Punkt: PineTS (aus project_audit2, 22c):**
-[PineTS](https://github.com/QuantForgeOrg/PineTS) ist eine Pine-Script-kompatible Indikator-Bibliothek in TypeScript die als optionaler Playground fuer Frontend-Prototyping evaluiert wird. **Lizenz-Gate: AGPL-3.0** -- vor produktivem Einsatz muss die Lizenz-Kompatibilitaet geklaert werden. Bis dahin: keine Integration, nur als Referenz in [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) Sektion 6. Falls AGPL inkompatibel: nur als Code-Referenz fuer Algorithmen nutzen, nicht als Dependency.
+[PineTS](https://github.com/QuantForgeOrg/PineTS) ist eine Pine-Script-kompatible Indikator-Bibliothek in TypeScript die als optionaler Playground fuer Frontend-Prototyping evaluiert wird. **Lizenz-Gate: AGPL-3.0** -- vor produktivem Einsatz muss die Lizenz-Kompatibilitaet geklaert werden. Bis dahin: keine Integration, nur als Referenz in [`docs/references/projects/to-watch.md`](./references/projects/to-watch.md). Falls AGPL inkompatibel: nur als Code-Referenz fuer Algorithmen nutzen, nicht als Dependency.
 
 ### 2.2 Python (+ Rust/PyO3) -- NEUER FastAPI Service
 
@@ -680,7 +680,9 @@ HYBRID (v2, wenn ML-Pipeline steht):
 | **Look-Ahead Bias** | Feature-Berechnung nutzt Daten die zum Signal-Zeitpunkt noch nicht verfuegbar waren | Purged K-Fold Cross-Validation (AFML Ch.7, Sek. 5b) |
 | **Overfitting Bias** | Zu viele Features fuer zu wenig Daten → Modell memoriert statt generalisiert | Deflated Sharpe Ratio (Sek. 5j, Todo #47) als Reality-Check |
 | **Market Regime Bias** | Modell trainiert in Bull-Market, deployed in Bear-Market | Regime Detection (Sek. 5f, Todo #43) als Kontext-Feature |
-| **Source Bias** (Soft Signals) | Sentiment-Modelle (FinBERT etc.) primaer auf EN Bloomberg-Headlines trainiert. Modell-Optionen + Ensemble-Strategie: [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18.2 | Language-Kalibrierung in UIL (Sek. 4.5.1), Cross-Source Confidence. Langfristig: sprachspezifische Modelle (FinBERT2-CN, XLM-R) |
+| **Source Bias** (Soft Signals) | Sentiment-Modelle (FinBERT etc.) primaer auf EN Bloomberg-Headlines trainiert. Modell-Optionen + Ensemble-Strategie: [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18.2 | Language-Kalibrierung in UIL (Sek. 4.5.1), Cross-Source Confidence. Langfristig: sprachspezifische Modelle (FinBERT2-CN, XLM-R) |
+
+**Aladdin-Gap (Screener/Scanner):** Strategy Presets, Composite Signal – Aladdin-ähnliche Screening-Funktion. Keine externe OSS-Lib; baut auf INDICATOR_ARCHITECTURE (Composite Signal, §3) auf. Priorität: Niedrig.
 
 **Continuous Bias Monitoring (ab Stufe 2):**
 
@@ -1235,7 +1237,7 @@ Berechnet implizite Volatilitaet aus Optionspreisen via Black-Scholes-Merton Inv
 Optionaler Endpoint: `/api/v1/options/iv-surface`
 - Input: `symbol`, `option_chain[]` (Strike, Expiry, Bid, Ask, Type)
 - Output: `surface_data[]` (Strike, DTE, IV), `atm_iv` (At-The-Money IV), `skew` (Put vs Call IV Differenz)
-- Voraussetzung: Options-Daten-Provider (REFERENCE_PROJECTS.md, NEUE Quellen: Options-Daten)
+- Voraussetzung: Options-Daten-Provider (`docs/references/sources/market-data.md`)
 
 ### Quant-Origin Erweiterungen (empirisch bewaehrt, bedingt integrierbar)
 
@@ -1791,7 +1793,7 @@ Erweiterung von `/api/v1/orderflow/vpin` oder neuer Endpoint: `/api/v1/portfolio
 > **Theorie:** Eine Markov-Kette modelliert eine Folge von Zustaenden wobei die Wahrscheinlichkeit des naechsten Zustands NUR vom aktuellen Zustand abhaengt (Memoryless Property / Markov Property). Eine Transition-Matrix **P** enthaelt die Uebergangswahrscheinlichkeiten P(i→j) wobei jede Zeile sich zu 1 summiert.
 > **Primaer betroffen:** Python Indicator Service, Composite Signal (Sek. 3), Regime Detection (5a/5f), Portfolio Analytics (5.P.5)
 > **Sekundaer betroffen:** GeoMap (Event Escalation), Agent Architecture (BTE State Machine)
-> **Querverweise:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4.4, [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.3a, [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 9a
+> **Querverweise:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4.4, [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.3a, [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 9a
 
 Markov Chains sind kein einzelnes Feature sondern ein **Pattern das sich durch das gesamte Projekt zieht**. Ueberall wo wir Zustaende und Uebergaenge haben, koennen Markov Chains Vorhersagen, Anomalien und Frueherkennung liefern.
 
@@ -2310,7 +2312,7 @@ Organisiert in 5 Phasen. Jedes Todo hat Datei-Referenzen und Buch-Zeilen.
 | **Bias-Validierung (Composite Signal)** | **Dieses Dokument Sektion 3.6 + [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 4.5** |
 | **Markt-Taeuschungserkennung (HDNNs)** | **[`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 1.4 + Todo #49 (VPIN)** |
 | **Markov Chain Patterns (Regime, HMM, Signal, MCMC, Order Flow)** | **Dieses Dokument Sektion 5q, Todos #63-67** |
-| **Markov Chain: Geopolitische Escalation** | **[`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.3a** |
+| **Markov Chain: Geopolitische Escalation** | **[`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.3a** |
 | **Markov Chain: Behavioral State Machine (BTE/DRS)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4.4** |
 | **Markov Chain: MDP/RL, Sentiment Regime, Cross-Domain Fusion** | **[`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 9a** |
 | **Privacy / Consent / Data Minimization** | **[`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 8a + [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md)** |

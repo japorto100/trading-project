@@ -2,7 +2,7 @@
 
 > **Stand:** 22. Februar 2026
 > **Kontext:** Geopolitical Soft-Signal Pipeline, Composite Signal Integration, Indikator-Architektur
-> **Referenz-Dokumente:** `INDICATOR_ARCHITECTURE.md` (Sek. 3, 5f), `GEOPOLITICAL_MAP_MASTERPLAN.md`, `Advanced-architecture-for-the-future.md` (Sek. 3.2, 6.1), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 3.3: Keen/Minsky-Paradigma mit Quellen, Sek. 5.1: Zentralbanken nach Paradigma, Sek. 8: TransmissionChannel KG-Edges)
+> **Referenz-Dokumente:** `INDICATOR_ARCHITECTURE.md` (Sek. 3, 5f), `GEOMAP_OVERVIEW.md`, `Advanced-architecture-for-the-future.md` (Sek. 3.2, 6.1), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 3.3: Keen/Minsky-Paradigma mit Quellen, Sek. 5.1: Zentralbanken nach Paradigma, Sek. 8: TransmissionChannel KG-Edges)
 > **Referenz-Buecher:**
 > - `docs/books/new/Dynamic Noncooperative Game Theory (Tamer Basar, Geert Jan Olsder).md` -- Nash-Gleichgewichte, Differentialspiele, Pontryagin
 > - `docs/books/new/Network games learning and dynamics.md` -- Bayesian/Adaptive Learning, Congestion Games
@@ -10,6 +10,13 @@
 > - `docs/books/new/Die 36 Srategeme-ProfRick.md` -- Strategeme, Kipppunkte, Krisenlogik, Cheap Talk vs. Costly Signals
 > - `docs/books/new/Differential_and_Algorithmic_Game_Theory_-_Edgard_A_Pimentel.md` -- Evolutionary GT, Mean Field Games, Replicator Dynamics, Hopf-Bifurkationen
 > - `docs/books/advanced-in-financial-markets-ml.md` -- AFML: Meta-Labeling, Regime Detection, Feature Importance
+
+> **Normative Zusatzregeln (09. Maerz 2026):**
+> - Simulation ist eine eigene Arbeitsform und **nicht** die Wahrheitsschicht.
+> - Scenario-/Simulationspfade bleiben Branches oder Snapshots und duerfen
+>   kanonische Daten nicht still ueberschreiben.
+> - GeoMap und Simulation gehoeren zusammen, aber nicht als untrennbarer Brei:
+>   gemeinsame Surface, klar getrennter Simulationsmodus.
 
 ---
 
@@ -36,8 +43,8 @@
    - 3.7 [Integration ins Composite Signal](#37-integration-ins-composite-signal)
 4. [Ehrliche Bewertung: Was davon ist echte Game Theory?](#4-ehrliche-bewertung-was-davon-ist-echte-game-theory)
 5. [Soll-Zustand: Stufenplan v1 → v7](#5-soll-zustand-stufenplan-v1--v7)
-   - 5.1 [Stufe v2: Historisches Backtesting](#51-stufe-v2-historisches-backtesting)
-   - 5.2 [Stufe v3: Spieler-Modellierung (Normal Form)](#52-stufe-v3-spieler-modellierung-normal-form)
+   - 5.1 [Stufe v2: Historisches Backtesting](#51-stufe-v2-historisches-backtesting-event--marktreaktion)
+   - 5.2 [Stufe v3: Spieler-Modellierung (Normal Form)](#52-stufe-v3-spieler-modellierung-normal-form-game)
    - 5.3 [Stufe v4: Sequentielle / Dynamische Games (Extensive Form)](#53-stufe-v4-sequentielle--dynamische-games-extensive-form)
    - 5.4 [Stufe v5: Evolutionary Game Theory + Replicator Dynamics](#54-stufe-v5-evolutionary-game-theory--replicator-dynamics)
    - 5.5 [Stufe v6: Bayesian Adaptive + Mean Field Games](#55-stufe-v6-bayesian-adaptive--mean-field-games)
@@ -882,7 +889,7 @@ Das ist kein abstraktes Philosophieren. Es bestimmt konkrete Design-Entscheidung
 
 Der Kernpfad darf unabhaengig vom vollen Planner-Stack shipped werden, solange Contracts stabil bleiben.
 
-### 10.2 Abhaengigkeiten zu Phase 6 und 10
+### 10.2 Abhaengigkeiten zu Memory- und Agent-Layern (Legacy-Phasennamen)
 
 - **Phase 6 (Memory):**
   - KG-/Episodic-Lesezugriff nur ueber definierte Memory-API Contracts

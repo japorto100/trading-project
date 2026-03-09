@@ -2,7 +2,7 @@
 
 > **Stand:** 22. Februar 2026
 > **Zweck:** Definiert das Gesamtbild fuer Caching, Persistenz, Wissensrepraesentation und Agent-Memory in TradeView Fusion. Von kurzfristigen TTL-Caches bis zu langfristigem Knowledge-Graph-basiertem Agentenwissen.
-> **Referenz-Dokumente:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md) (Sek. 8: Knowledge Graph), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) (Sek. 0.3-0.7: Cache-Strategie), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (Sek. 7: RAG/Reasoning), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 8: KG Domain D Seed-Schema), [`KG_ONTOLOGY.md`](./KG_ONTOLOGY.md) (formales Schema, Ontologie-Quellen)
+> **Referenz-Dokumente:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md) (Sek. 8: Knowledge Graph), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) (Sek. 0.3-0.7: Cache-Strategie), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (Sek. 7: RAG/Reasoning), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 8: KG Domain D Seed-Schema), [`archive/KG_ONTOLOGY.md`](./archive/KG_ONTOLOGY.md) (formales Schema, Ontologie-Quellen; archivierte Referenz)
 > **Referenz-Buecher:**
 > - "The Behavior Ops Manual" (Chase Hughes, 2022) -- BTE/DRS als strukturiertes Wissen im Knowledge Graph
 > - "Die 36 Strategeme" (Prof. Rieck) -- Krisenlogik als relationales Wissen im Knowledge Graph
@@ -103,6 +103,28 @@ Inspiriert von menschlichem Gedaechtnis und gaengigen Agent-Memory-Frameworks:
 | Episodic | Stunden-Monate | Gezielt abrufbar | Vergangene Analysen, Feedback | PostgreSQL / SQLite |
 | Semantic | Permanent | Strukturiert querybar | Fakten, Relationen, Ontologien | Knowledge Graph + Vector Store |
 
+### 2.1 Epistemische Trennung (verbindlich)
+
+Zusaetzlich zu Working / Episodic / Semantic Memory gilt projektweit eine zweite,
+gleich wichtige Trennung:
+
+- **truth** = kanonische oder stark verifizierte Fakten
+- **belief** = plausibler, aber unsicherer Arbeitsstand
+- **scenario** = hypothetische oder simulierte Pfade
+
+Diese Ebenen duerfen nicht still vermischt werden.
+
+Praktische Arbeitsregel:
+
+- `semantic memory` darf truth und sauber markierte belief-Strukturen enthalten
+- `episodic memory` speichert Verlauf, Overrides, Bewertungen und Agent-Erfahrung
+- `scenario`-Artefakte bleiben standardmaessig ephemer oder klar getrennt von
+  kanonischen Stores
+
+Damit verhindern wir, dass Retrieval, Agenten oder Simulation spaeter faktische,
+hypothetische und persoenliche Overlays in einen einzigen Wahrheitsraum
+zusammenziehen.
+
 ---
 
 ## 3. Ist-Zustand: Was existiert
@@ -168,7 +190,7 @@ Inspiriert von menschlichem Gedaechtnis und gaengigen Agent-Memory-Frameworks:
 - **Keine Agent-Entscheidungslogs:** Warum hat der Game-Theory-Scorer 0.7 vergeben? Welche Faktoren trugen wie viel bei?
 - **Keine Rueckkopplung:** Event X hatte Score 0.7 → GLD bewegte sich +2.3%. Dieses Wissen wird nirgends gespeichert oder genutzt.
 - **Keine Profiling-Historie:** BTE/DRS-Scores ueber Zeit pro Person (`AGENT_ARCHITECTURE.md` Sek. 8) -- geplant, nicht implementiert.
-- **Kein Override-Tracking mit Feedback-Loop:** Candidate accept/reject wird gespeichert, aber nicht systematisch ausgewertet (`GEOPOLITICAL_MAP_MASTERPLAN.md` Sek. 5.4: "System erkennt eigene Schwaechen" -- Zukunft).
+- **Kein Override-Tracking mit Feedback-Loop:** Candidate accept/reject wird gespeichert, aber nicht systematisch ausgewertet (`GEOMAP_OVERVIEW.md` Sek. 5.4: "System erkennt eigene Schwaechen" -- Zukunft).
 
 ### 3.3 Semantic Memory (Langfristig)
 
@@ -235,7 +257,7 @@ Inspiriert von menschlichem Gedaechtnis und gaengigen Agent-Memory-Frameworks:
 - BTE-Marker haben exakte Punktwerte und Schwellwerte -- Fakten, keine Assoziationen
 - Krisenlogik hat kausale Ketten -- ein Graph modelliert `Kipppunkt --[fuehrt_zu]--> Dammbruch`
 
-**Formale Bestaetigung (CE 2.0 Research):** Das Paper "On the Theoretical Limitations of Embedding-Based Retrieval" ([arXiv:2508.21038](https://arxiv.org/abs/2508.21038)) beweist mathematisch dass Single-Vector-Embeddings bei komplexem Reasoning fundamental versagen -- insbesondere bei kontrastiven Aufgaben (exakt unser Strategem-6-vs-8 Problem) und Multi-Hop-Queries ("Was beeinflusst was beeinflusst mein Portfolio?"). In der CE 2.0 Terminologie heisst dieser Ansatz **GraphRAG**: Graph fuer Struktur + Vector fuer Semantik = Hybrid. Unsere FalkorDB-Architektur (KG + Built-in Vector Index) implementiert genau dieses Pattern. Vollstaendige Analyse: [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) Sek. 3.1.
+**Formale Bestaetigung (CE 2.0 Research):** Das Paper "On the Theoretical Limitations of Embedding-Based Retrieval" ([arXiv:2508.21038](https://arxiv.org/abs/2508.21038)) beweist mathematisch dass Single-Vector-Embeddings bei komplexem Reasoning fundamental versagen -- insbesondere bei kontrastiven Aufgaben (exakt unser Strategem-6-vs-8 Problem) und Multi-Hop-Queries ("Was beeinflusst was beeinflusst mein Portfolio?"). In der CE 2.0 Terminologie heisst dieser Ansatz **GraphRAG**: Graph fuer Struktur + Vector fuer Semantik = Hybrid. Unsere FalkorDB-Architektur (KG + Built-in Vector Index) implementiert genau dieses Pattern. Die projektnahe Einordnung liegt in [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md).
 
 #### Zwei-Schichten-KG-Architektur
 
@@ -341,7 +363,7 @@ Edges:
 
 #### M2b: Frontend User-KG (Per-User, im Browser)
 
-> **Encryption at Rest:** Der User-KG enthaelt finanziell sensitive Daten (Positionen, Entry-Preise, Groessen). KuzuDB WASM hat keine eingebaute Verschluesselung. Die gesamte IDBFS-Persistenz wird deshalb durch einen Encryption-Layer geschuetzt: WebAuthn PRF-derived Key (primary) oder Server-derived Key (fallback). Details: [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 13.
+> **Encryption at Rest:** Der User-KG enthaelt finanziell sensitive Daten (Positionen, Entry-Preise, Groessen). KuzuDB WASM hat keine eingebaute Verschluesselung. Die gesamte IDBFS-Persistenz wird deshalb durch einen Encryption-Layer geschuetzt: WebAuthn PRF-derived Key (primary) oder Server-derived Key (fallback). Details: [`CLIENT_DATA_ENCRYPTION.md`](./specs/security/CLIENT_DATA_ENCRYPTION.md).
 
 ```
 Nodes:
@@ -428,7 +450,7 @@ LOGOUT / TAB-CLOSE:
 **Warum KuzuDB WASM (Frontend):**
 - Laeuft komplett im Browser, kein Server noetig
 - Cypher-Query-Language (gleiche Sprache wie FalkorDB Backend → Code-Sharing moeglich)
-- Persistent ueber IndexedDB (mit AES-256-GCM Encryption Layer, siehe [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 13)
+- Persistent ueber IndexedDB (mit AES-256-GCM Encryption Layer, siehe [`CLIENT_DATA_ENCRYPTION.md`](./specs/security/CLIENT_DATA_ENCRYPTION.md))
 - Inspiriert von [GitNexus](https://github.com/abhigyanpatwari/GitNexus)-Architektur (KuzuDB native CLI + KuzuDB WASM Web UI). Architektur-Referenz fuer Frontend User-KG; Schema anpassen (Trading/Geo statt Code)
 
 **Empfehlung:** NetworkX-Prototyp in Python fuer Backend (laden aus YAML/JSON-Seed-Dateien). Parallel KuzuDB WASM im Frontend fuer User-KG. Backend-Migration zu FalkorDB wenn NetworkX-Prototyp validiert ist.
@@ -519,6 +541,8 @@ evaluation_log:
 ### 5.4 Stufe M4: Vector Store + RAG Pipeline
 
 > **Frage:** "Wie finden wir relevante Hintergrund-Information zu einem aktuellen Event?"
+
+**Aladdin-Gap (Vector/RAG):** Vector Store für Recall, semantische Suche, Agent-Portfolio-Berichte. OSS-Optionen: ChromaDB, sentence-transformers (bereits in deps), Hybrid-Retrieval. Priorität: Niedrig. Siehe auch ai_retrieval_knowledge_infra_full.md §20 (LangChain, LlamaIndex).
 
 **Was embedded wird:**
 
@@ -783,7 +807,7 @@ edges:
 
 **IE-Pipeline (Entity Linking, Relation Extraction):** Fuer spaetere Erweiterung: ReLiK (Entity Linking + Relation Extraction), SapBERT (biomed/UMLS), Fin-E5 (Finance-Embeddings, FinMTEB). Bei Konkretisierung der IE-Pipeline in REFERENCE_PROJECTS ergaenzen.
 
-**Ontologie-Quellen:** Formales Schema (Klassen, IDs, Relationen) aus FIBO, Wikidata, GLEIF LEI, OpenFIGI, OpenSanctions. Domain-Docs (`GAME_THEORY.md`, `POLITICAL_ECONOMY_KNOWLEDGE.md`) liefern Semantik, nicht das Schema. Details: [`KG_ONTOLOGY.md`](./KG_ONTOLOGY.md).
+**Ontologie-Quellen:** Formales Schema (Klassen, IDs, Relationen) aus FIBO, Wikidata, GLEIF LEI, OpenFIGI, OpenSanctions. Domain-Docs (`GAME_THEORY.md`, `POLITICAL_ECONOMY_KNOWLEDGE.md`) liefern Semantik, nicht das Schema. Details: [`archive/KG_ONTOLOGY.md`](./archive/KG_ONTOLOGY.md).
 
 ### 6.4 Frontend: User-KG Node- und Edge-Schema
 
@@ -943,17 +967,17 @@ User klickt auf Iran-Sanctions Event in GeoMap
 | Sek. 5.2 + 6 (Knowledge Graph) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4, 8 | BTE/DRS-Marker + Needs/Decision Map als KG-Nodes |
 | Sek. 5.3 (Episodic) | [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 5.1 | Backtesting = erste Episodic-Memory-Nutzung |
 | Sek. 5.3 (Episodic) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.7.1 | Concept Drift Detection via Override-Tracking |
-| Sek. 5.3 (Episodic) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4 | Candidate accept/reject Feedback Loop |
+| Sek. 5.3 (Episodic) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4 | Candidate accept/reject Feedback Loop |
 | Sek. 5.4 (Vector Store) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 7 | RAG fuer Trading-Knowledge |
 | Sek. 5.5 (Working Memory) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 2 | Vier Pipeline-Agent-Rollen brauchen Context Assembly |
 | **Sek. 5.3 (M3 Erweiterung)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 12-13** | **routing_log, workflow_log, research_log, evaluation_log fuer Orchestration-Layer + neue Rollen** |
 | **Sek. 5.5 (M5 Erweiterung)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 15.1** | **MemoryAccessPolicy in Agent Registry steuert welcher Agent welche Memory-Schichten lesen/schreiben darf** |
 | **Sek. 5.5 (M5 Erweiterung)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 13.4** | **Monitor Agent aggregiert M3-Logs fuer sieben Monitoring-Dimensionen (Entropy, Override-Rate, etc.)** |
 | Sek. 7 (Architektur) | [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek. 5b | redb OHLCV-Cache (Rust-spezifisch, komplementaer zu Redis) |
-| Sek. 5.2 M2b (Frontend User-KG) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.8 | TS In-Memory Entity Graph → wird durch KuzuDB WASM User-KG ersetzt |
-| Sek. 5.2 M2b (Encryption) | [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 13 | Client-Side Data Encryption: WebAuthn PRF + Server-Fallback, AES-256-GCM auf IDBFS |
-| Sek. 5.2 (GraphRAG, Embedding Limits) | [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) Sek. 2.2, 3.1 | CE 2.0 Validierung: Formaler Beweis KG > Vector, GraphRAG Terminologie |
-| Sek. 9.8 (Self-Baking) | [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) Sek. 1 | CE 2.0 Konzept: Episodic→Semantic Verdichtung |
+| Sek. 5.2 M2b (Frontend User-KG) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.8 | TS In-Memory Entity Graph → wird durch KuzuDB WASM User-KG ersetzt |
+| Sek. 5.2 M2b (Encryption) | [`CLIENT_DATA_ENCRYPTION.md`](./specs/security/CLIENT_DATA_ENCRYPTION.md) | Client-Side Data Encryption: WebAuthn PRF + Server-Fallback, AES-256-GCM auf IDBFS |
+| Sek. 5.2 (GraphRAG, Embedding Limits) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) + zitierte CE-2.0-Papers | CE 2.0 Validierung: Formaler Beweis KG > Vector, GraphRAG Terminologie |
+| Sek. 9.8 (Self-Baking) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) | CE 2.0 Konzept: Episodic→Semantic Verdichtung |
 | Sek. 9.7 (Memory vs. Context) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) | Context Assembly, Retrieval-Policies, Token-Budgets (separates Dokument) |
 
 ---
@@ -1024,7 +1048,7 @@ Memory (dieses Dokument) definiert **was gespeichert wird und wo**. Context Engi
 ### 9.8 Self-Baking: Episodic (M3) → Semantic (M2a) Verdichtung ✅ Konzept definiert
 
 > **Offene Frage aus 9.6:** "Wie fliesst Episodic-Wissen zurueck in den Knowledge Graph?"
-> **Konzept aus CE 2.0 Research:** "Self-Baking" = automatische Verdichtung von rohem Kontext (High-Entropy) in abstrakteres, kompakteres Wissen (Low-Entropy). Quelle: [Context Engineering 2.0](https://arxiv.org/abs/2510.26493), vollstaendige Analyse: [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) Sek. 1.
+> **Konzept aus CE 2.0 Research:** "Self-Baking" = automatische Verdichtung von rohem Kontext (High-Entropy) in abstrakteres, kompakteres Wissen (Low-Entropy). Quelle: [Context Engineering 2.0](https://arxiv.org/abs/2510.26493); projektnahe Ableitungen dazu stehen in [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md).
 
 **Problem:** Episodic Memory (M3) sammelt Roh-Eintraege (`analysis_log`: Event → Score → Marktreaktion → Override ja/nein). Diese Eintraege sind wertvoll fuer Debugging und Nachvollziehbarkeit, aber zu granular fuer den KG. Ein Agent der "Wie gut sind wir bei MENA-Events?" fragen will, muesste 500+ Episodic-Eintraege durchsuchen statt eine aggregierte Antwort aus dem KG zu bekommen.
 
@@ -1188,3 +1212,78 @@ Pflicht-Telemetrie:
 - `cache.hit_rate`
 - `cache.fallback_active`
 - `cache.errors`
+
+---
+
+## 11. Konsolidierungs-Addendum (Merge / Ontologie / Branching)
+
+Dieses Addendum zieht die verbindlichen Kernpunkte aus dem frueheren
+`KG_MERGE_AND_OVERLAY_ARCHITECTURE.md` und `KG_ONTOLOGY.md` in die aktive
+Memory-Spec.
+
+### 11.1 Overlay ist kein zweiter Truth-KG
+
+- Global Canonical Graph bleibt Domain-Truth.
+- User Overlay Graph bleibt privat, local-first und user-owned.
+- Merge erfolgt auf Query-Ebene; keine physische DB-Fusion.
+
+### 11.2 Claim/Evidence/Stance als M2/M3-Bruecke
+
+Subjektive oder zeitlich fragile Inhalte werden als Claim-/Evidence-/Stance-
+Objekte modelliert, nicht als direkte faktische Kanten im Canonical Graph.
+
+- Claim: These/Interpretation mit Zeitfenster und Confidence
+- Evidence: Quelle/Signal/Artefakt als Beleg
+- Stance: relationale Einordnung (supports/opposes/refines/hedges)
+
+### 11.3 Namespace- und ID-Regeln
+
+Verbindliche Namespaces fuer Schichttrennung:
+
+- `g:` canonical
+- `e:` event
+- `u:` user overlay
+- `c:` claim/stance
+- `x:` evidence
+- `s:` simulation branch
+- `m:` semantic memory
+
+Canonical-ID-Prioritaet:
+
+1. LEI/FIGI/ISIN/Wikidata QID/formale IDs
+2. deterministische interne IDs
+3. keine user-generierten Zufalls-IDs fuer globale Fakten
+
+### 11.4 Simulation Branches als separater Layer
+
+Simulation produziert Branch-Artefakte (`s:*`) und darf den Canonical Graph
+nicht direkt mutieren.
+
+Persistierbar:
+
+- branch metadata
+- outputs/summaries
+- optional extrahierte claims/evidence
+
+Nicht als canonical fact persistierbar:
+
+- hypothetische truths/states/edges
+
+### 11.5 User-zentrierter Merge-Query-Ablauf
+
+1. Frontend fragt lokalen Overlay Graph (Positionen/Watchitems/Claims).
+2. Frontend sendet minimale IDs/Handles an Merge-Endpoint.
+3. Backend liefert Domain-Antwort (KG + optional episodic/vector context).
+4. Frontend fusioniert Ergebnis typisiert fuer personalisierte Sicht.
+
+### 11.6 Ontologiequellen fuer M2
+
+Formale Schemaquellen:
+
+- FIBO
+- Wikidata
+- GLEIF LEI
+- OpenFIGI
+- OpenSanctions
+
+Domain-Dokumente liefern Semantik, nicht das formale Schema.

@@ -736,7 +736,7 @@ Wenn ein komplett neuer Microservice gebaut wird (z.B. dedizierter Backtesting-S
 | Data Science | pandas, numpy, scipy (20+ Jahre) | **Polars** (Rust-nativ, unser Standard -- Sek. 5a), numpy via ndarray | Nichts vergleichbar |
 | Pretrained Models | 99% aller Models verfuegbar | ~1% portiert | ~0.1% portiert |
 
-Unsere AI-Pipelines (Sentiment-Modelle -- siehe [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18.2 fuer Optionen, Narrative-Analyse, Game-Theory-Impact, Elliott-Wave-ML) brauchen dieses Ecosystem. Rust ersetzt Python hier nicht.
+Unsere AI-Pipelines (Sentiment-Modelle -- siehe [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18.2 fuer Optionen, Narrative-Analyse, Game-Theory-Impact, Elliott-Wave-ML) brauchen dieses Ecosystem. Rust ersetzt Python hier nicht.
 
 Was Rust tut: Die rechenintensiven Teilschritte innerhalb der Python-Pipelines beschleunigen (via PyO3). Python bleibt Orchestrator und ML-Runtime.
 
@@ -799,7 +799,7 @@ Der GCT-Backtester (112 Go-Files, ~5000 LoC) wird langfristig durch den Rust+Pyt
 ## 13. Geo Map -- Rust fuer Backend Spatial Queries (nicht fuer Rendering)
 
 > **Update 2026-02-19:** Urspruengliche Bewertung "Kein Rust noetig" revidiert nach Rendering-Tiefenanalyse und h3o-Evaluation. Frontend-Rendering bleibt JS/TS (d3-geo → Hybrid → deck.gl). Backend Spatial Queries werden ab v3 in Rust gemacht.
-> **Vollstaendige Rendering-Analyse:** Siehe [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.4
+> **Vollstaendige Rendering-Analyse:** Siehe [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.4
 
 ### Aktueller Stand
 
@@ -1146,7 +1146,7 @@ Langfristig (optional):
 - ChartGPU evaluieren fuer Chart-Performance (kein Rust noetig)
 - Tauri v2 Desktop App
 - Rust AI Agent Integration fuer deterministische Pipelines
-- **Geo-Map Backend Spatial Queries** (h3o + petgraph): Wenn Event-Volumen >5k waechst. Siehe Sek. 13 und [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.4 Stufe 3
+- **Geo-Map Backend Spatial Queries** (h3o + petgraph): Wenn Event-Volumen >5k waechst. Siehe Sek. 13 und [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.4 Stufe 3
 - **Geo-Map Transformer Severity-Klassifikation** (DL-7): tch-rs Inference fuer Candidate Pipeline. Siehe Sek. 18, DL-7
 - **Geo-Map LSTM Regime Detection** (DL-6): Pro-Region Regime-State. Siehe Sek. 18, DL-6
 
@@ -1168,7 +1168,7 @@ Langfristig (optional):
 | DL-4 | **Kap 2: Loss Functions + Gradient Descent** | MITTEL | 1-2 | Python (PyO3) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 5 | Direkt portierbar | Strategy Evaluation Metriken (Sharpe, MSE, MAE) |
 | DL-5 | **Kap 5: Autodiff in Rust** | MITTEL | 3 | Python (PyO3) | [`Portfolio-architecture.md`](./Portfolio-architecture.md) Sek. 5.3 | Machbar, nicht dringend | Monte Carlo VaR Sensitivity-Analyse |
 | DL-6 | **Kap 7.6-7.7: RNN + LSTM** (tch-rs) | MITTEL | 3+ | Python (PyO3), indirekt Go (Daten) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Todos #35, #43 | Machbar, ~200 LoC | Regime Detection, einfache Zeitreihen-Vorhersage |
-| DL-7 | **Kap 8.4-8.5: Transformers** (Self-Attention, Sentiment) | MITTEL | 4+ | Python (ersetzt/ergaenzt soft-signals), indirekt React (Geo-Map UI) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18 | Machbar, braucht Training | Severity-Klassifikation fuer Geo-Event-Candidates |
+| DL-7 | **Kap 8.4-8.5: Transformers** (Self-Attention, Sentiment) | MITTEL | 4+ | Python (ersetzt/ergaenzt soft-signals), indirekt React (Geo-Map UI) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18 | Machbar, braucht Training | Severity-Klassifikation fuer Geo-Event-Candidates |
 | DL-8 | **Kap 4.6: Burn, Candle, Linfa** | NIEDRIG | 4+ | Python (PyO3) | [`Portfolio-architecture.md`](./Portfolio-architecture.md) Sek. 5.3 | Ecosystem noch jung | HRP Clustering in Rust statt scipy (>200 Assets) |
 | DL-9 | **Kap 8.1-8.3: GANs** | NIEDRIG | 5+ | Python | -- | Theoretisch, kein klarer ROI | Synthetische Geo-Events / Marktdaten fuer Testing |
 | DL-10 | **Kap 4.4.2: CSV Preprocessing Rust vs. Python** | **HOCH** | 1 | Python (Polars/PyO3) | Dieses Dokument Sek. 5a | Direkt anwendbar | Polars nutzt exakt die Vorteile die das Buch beschreibt (SIMD, keine Zwischen-Allokationen, Rayon-parallel) |
@@ -1356,13 +1356,13 @@ Geo-Map Candidate Pipeline (aktuell Python soft-signals):
 
 **Verbundene Layer:**
 - **Python:** Training + Fine-Tuning auf gelabelten Geo-Events (HuggingFace Trainer → TorchScript Export)
-- **React:** Candidate Queue UI, Event Inspector zeigt Severity + Confidence ([`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 6, 9, 18)
-- **Go:** Liefert News-Daten via ACLED/GDELT/News-Adapter ([`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 12, 14)
+- **React:** Candidate Queue UI, Event Inspector zeigt Severity + Confidence ([`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 6, 9, 18)
+- **Go:** Liefert News-Daten via ACLED/GDELT/News-Adapter ([`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 12, 14)
 
 **Betrifft:**
-- [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18 (Soft-Signal NLP/ML Pipeline)
-- [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 6 (Confidence Ladder C0-C4)
-- [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 17 (Hard-Signal Scoring)
+- [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18 (Soft-Signal NLP/ML Pipeline)
+- [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 6 (Confidence Ladder C0-C4)
+- [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 17 (Hard-Signal Scoring)
 - Indirekt: [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 0.4 (ML/AI Modelle generell)
 
 **Machbarkeit:** Machbar, aber braucht gelabelte Trainingsdaten (Geo-Events mit Severity-Labels). Fruehestens Phase 4 (Geo-Map v3). Das Buch zeigt die Rust-Implementation, aber Production-Quality braucht Fine-Tuning auf Domain-Daten.

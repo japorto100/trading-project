@@ -1,7 +1,26 @@
 # UIL Route Matrix (Next -> Go -> Python)
 
-> Stand: 27 Feb 2026  
-> Zweck: Kompaktes Audit-Artefakt fuer UIL-Ownership und Datenfluss.
+> **Stand:** 09. Maerz 2026
+> **Zweck:** Kompaktes Boundary- und Audit-Artefakt fuer UIL-Ownership,
+> Route-Zuordnung und Datenfluss.
+> **Source-of-Truth-Rolle:** Autoritativ fuer die UIL-Route-Matrix, nicht fuer
+> die komplette Geo-/UIL-Fachlogik.
+
+---
+
+## Scope
+
+- Next -> Go -> Python Zuordnung fuer UIL-Pfade
+- Ownership der Candidate-, Contradiction- und Ingest-Routen
+- Pflichtfelder fuer Policy-Metadaten im Candidate-Fluss
+
+Nicht Teil dieser Spec:
+
+- komplette GeoMap-Produktlogik
+- Security-/Auth-Vollregeln
+- alle nicht-UIL API-Boundaries
+
+---
 
 ## Core Principle
 
@@ -42,3 +61,12 @@ Diese Felder muessen im Candidate-Fluss durchgaengig bleiben:
 
 - Next alias routes fuer ingest/seed sind gate-geschuetzt und fail-closed, falls Go-owned-Modi nicht aktiv sind.
 - Request tracing laeuft ueber `X-Request-ID` von Next -> Go -> interne Downstreams.
+
+---
+
+## Querverweise
+
+- `API_CONTRACTS.md`
+- `api/API_NEXT_TO_GO.md`
+- `ARCHITECTURE.md`
+- `SYSTEM_STATE.md`

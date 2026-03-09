@@ -1,18 +1,28 @@
 # TradeView Fusion — Agent Guide
 
-> **Stand:** 22. Februar 2026
+> **Stand:** 09. Maerz 2026
 > Shared source of truth for all coding agents in this workspace.
+> **Dokumentations-Hierarchie:** [`docs/specs/DOCUMENTATION_ARCHITECTURE.md`](docs/specs/DOCUMENTATION_ARCHITECTURE.md)
 > **Detaillierte Regeln:** `.cursor/rules/` (project.mdc, go-backend.mdc, python-backend.mdc, frontend.mdc, specs.mdc)
 
 ## Start Here
 
 1. Read **this file** completely (mandatory).
-2. Read `docs/specs/EXECUTION_PLAN.md` — master roadmap with 22+1 phases, sub-phases, dependencies, and current progress marker.
+2. Read `docs/specs/EXECUTION_PLAN.md` — highest-level working plan, phases, dependencies, current progress.
 3. Read `docs/specs/SYSTEM_STATE.md` — IST/SOLL per architecture layer (ground truth for what exists vs. what is planned).
 4. Read the model-specific guide if present: `CLAUDE.md`, `GEMINI.md`, or `CODEX.md`.
 5. Read the spec document for the area you are working on (see table below).
 
 > **Rule:** Never implement a feature without first reading its spec document. Cross-check phase dependencies in `EXECUTION_PLAN.md`.
+
+## Spec-Hierarchie
+
+| Ebene | Ort | Rolle |
+|:------|:----|:------|
+| Core Specs | `docs/specs/*.md` | Normative Source of Truth |
+| Execution Specs | `docs/specs/execution/*.md` | Checklisten, Verify Gates, laufende Abarbeitung |
+| Domain Reference | `docs/*.md` (Root) | Tiefer Fachkontext bei Bedarf |
+| Deep Reference | `docs/books/`, `docs/archive/` | Nur bei explizitem Bedarf |
 
 ## Project
 
@@ -45,24 +55,32 @@ Multi-service trading platform: real-time charting, geopolitical risk map, portf
 | Datei | Inhalt | Lesen wenn... |
 |:---|:---|:---|
 | `EXECUTION_PLAN.md` | Phasen-Roadmap (22+1 Phasen), Sub-Phasen, Dependencies, Current Progress | Immer zuerst |
-| `execution_mini_plan.md` | Granulare Verify-Checkliste, P0–P3, Ablauf, Verify-Skripte | Live-Verify, Abnahme |
-| `SYSTEM_STATE.md` | IST/SOLL pro Architektur-Bereich (17 Sektionen) | Immer zuerst |
-| `API_CONTRACTS.md` | Alle Endpoint-Definitionen, Request/Response Schemas (13 Sektionen) | Endpoint-Arbeit |
-| `AUTH_SECURITY.md` | 3-Schichten Auth, RBAC, WebMCP Security, Exchange Key Security | Auth, Security |
-| `FRONTEND_ARCHITECTURE.md` | Komponentenstruktur, State Management, Dependencies, Phase-Mapping | Frontend-Arbeit |
+| `execution/cross_cutting_verify.md` | Granulare Verify-Checkliste, P0–P3, Ablauf | Live-Verify, Abnahme |
+| `execution/compute_delta.md` | Go/Python/Rust Compute-Split, Indicator-Delta | Compute, Rust |
+| `execution/infra_provider_delta.md` | Provider-Rollout, Credential-Transport, Infra | Infra, Provider |
+| `execution/geomap_closeout.md` | GeoMap Phase-4-Checkliste, Verify-Gates | GeoMap-Arbeit |
+| `SYSTEM_STATE.md` | IST/SOLL pro Architektur-Bereich | Immer zuerst |
+| `API_CONTRACTS.md` | Index; Details in `api/` (Browser/Next/Go, Internal) | Endpoint-Arbeit |
+| `AUTH_SECURITY.md` | Umbrella Security Spec; focused deep-dives in `security/` | Auth, Security |
+| `security/CLIENT_DATA_ENCRYPTION.md` | Browser/KG encryption, PRF, fallback, rotation | Privacy, Frontend KG |
+| `FRONTEND_ARCHITECTURE.md` | Komponentenstruktur, State Management, Dependencies | Frontend-Arbeit |
 | `ARCHITECTURE.md` | System-Architektur, Schichten, Abhaengigkeiten | Architektur-Arbeit |
+| `DOCUMENTATION_ARCHITECTURE.md` | Ebenen, Read Order, Ownership, Split-Regeln | Doku-Struktur |
 | `CAPABILITY_REGISTRY.md` | API/Tool scopes, risk-tier, Policy Tiers | Phase 23, Agent Security |
 | `ROLLOUT_GATES.md` | Reversible Rollout Gates, Feature Flags | Phase 24 |
 | `PLUGIN_PILOT.md` | Internal Plugin Pilot, Partner Boundary | Phase 24 |
 | `PARTNER_BOUNDARY.md` | Partner/ISV Boundary Spec | Phase 24 |
 | `PAYMENT_ADAPTER.md` | Payment Orchestration Adapter | Phase 24 |
 
-### Domain Docs (docs/)
+### Domain Reference Docs (docs/)
+
+Root-Docs liefern tieferen Fachkontext. Nur bei Bedarf lesen; Specs sind Source of Truth.
+
 
 | Datei | Inhalt | Phase(n) |
 |:---|:---|:---|
-| `GEOPOLITICAL_MAP_MASTERPLAN.md` | GeoMap Vision, 35+ Sektionen, Rendering-Pfad | 4, 12, 19 |
-| `GEOPOLITICAL_OPTIONS.md` | D3-Module-Katalog, Geo-Extensions, Feature→Module Matrix, Install-Plan | 4, 12, 19 |
+| `GEOMAP_OVERVIEW.md` | GeoMap Vision, 35+ Sektionen, Rendering-Pfad | 4, 12, 19 |
+| `GEOMAP_MODULE_CATALOG.md` | D3-Module-Katalog, Geo-Extensions, Feature→Module Matrix, Install-Plan | 4, 12, 19 |
 | `go-research-financial-data-aggregation-2025-2026.md` | Go Data Router, BaseConnector, 40+ Provider | 0, 7 |
 | `GO_GATEWAY.md` | Gateway-Architektur, Routing, Middleware | 0 |
 | `INDICATOR_ARCHITECTURE.md` | 112 Indikator-Tasks, Rust/Python Split, ML Pipeline | 8, 11, 14, 15 |
@@ -81,7 +99,7 @@ Multi-service trading platform: real-time charting, geopolitical risk map, portf
 | `adr/ADR-002-GeoMap-Rendering-Foundation.md` | Globe-Core, Flat/Regional optional, deck.gl Gate | 4 |
 | `PROVIDER_LIMITS.md` | Provider Rate Limits, Quotas, Fallback Chain | 0, 7 |
 | `PROXY_CONVENTIONS.md` | Correlation-ID, Thin-Proxy, Provider-Bypass-Verbot | 0, 1 |
-| `GEOMAP_VERIFY.md` | Draw-Workflow, E2E-Abnahme, Save-Fehlerpfad | 4 |
+| `GEOMAP_VERIFY_GATES.md` | Draw-Workflow, E2E-Abnahme, Save-Fehlerpfad | 4 |
 | `BASEMAP_POLICY.md` | OSM-Attribution, Geocoding-Provider, Lizenz-Checklist | 4 |
 | `GEOCODING_STRATEGY.md` | Geocoding-Provider-Strategie, Cache/Fallback | 4 |
 | `PERFORMANCE_BASELINE.md` | FPS, Frame-Time p50/p95, Lastprofile, deck.gl Entry-Gate | 4, 12 |
@@ -140,6 +158,19 @@ cd python-backend/rust_core && maturin develop --release
 bun run db:push                # Sync schema
 bun run db:generate            # Generate Prisma client
 ```
+
+## CLI Tooling Policy (Windows + Git Bash)
+
+- Prefer modern tools for agent operations: `rg`, `fd`, `bat`, `eza`, `jq`, `yq`, `fzf`, `zoxide`, `delta`.
+- Search rule: use `rg`/`fd` first; do not default to `grep`/`find` unless needed for compatibility.
+- GitHub operations should use `gh` where available (PRs, checks, issue triage).
+- Installer ownership by tool family:
+  - System CLIs -> `choco`
+  - Rust CLIs -> `cargo` / `cargo-binstall`
+  - Python CLIs -> `uv tool`
+  - Node CLIs -> `pnpm -g`
+- Keep installs reproducible: prefer pinned major versions for critical tools and verify with `command -v <tool>` + `--version`.
+- `uutils-coreutils` is optional and does not replace the full Unix toolchain (e.g. not `grep`/`sed`/`awk`).
 
 ## Coding Standards
 
@@ -204,13 +235,14 @@ bun run db:generate            # Generate Prisma client
 - Extend, do not replace. No alternative map libraries (no Leaflet, no MapLibre).
 - Planned additions (Phase 4): `d3-scale`, `d3-scale-chromatic`, `d3-transition`, `d3-timer`, `d3-ease`, `supercluster`.
 - Planned additions (Phase 12): `d3-inertia`, `d3-geo-voronoi`, `d3-hierarchy`, `d3-force`.
-- Full module catalog: `docs/GEOPOLITICAL_OPTIONS.md`.
+- Full module catalog: `docs/specs/geo/GEOMAP_MODULE_CATALOG.md`.
 
 ## Security
 
 - Never trust all lifecycle scripts. Review before `bun pm trust`.
 - No secrets in logs, API responses, or frontend code.
-- See `docs/specs/AUTH_SECURITY.md` for full security architecture (incl. WebMCP hardening).
+- See `docs/specs/AUTH_SECURITY.md` for the security topology and use
+  `docs/specs/security/` for focused auth/policy/secrets/WebMCP details.
 
 <!-- gitnexus:start -->
 # GitNexus MCP

@@ -84,6 +84,20 @@ GCT portfolioManager           Python Service             Frontend
 └──────────────────┘           └──────────────┘           └──────────────────┘
 ```
 
+**Aladdin-Gap (OSS) – Portfolio-relevante Lücken:**
+
+| Lücke | Beschreibung | Open-Source-Option | Priorität |
+|-------|--------------|--------------------|-----------|
+| **GCT Bridge** | Go REST Endpoints, Next.js Proxy für Whole Portfolio | Eigener Code | Hoch |
+| **Whole Portfolio** | GCT + Paper + Broker (Alpaca, IBKR) in einem Snapshot | – | Hoch |
+| **Common Data Language** | Asset-Klassen, Symbol-Normalisierung, einheitliches Positions-Modell | – | Hoch |
+| **Broker-Adapter** | Alpaca, IBKR für Multi-Asset | alpaca-trade-api (Python), ib_insync (Python); Go: eigene Clients | Mittel |
+| **IBOR/ABOR** | Event-Sourcing für Orders, intent vs. settled | Eventide, oder eigener Event-Store auf NATS/Postgres | Mittel (zurückgestellt) |
+
+**Zurückgestellt (Aladdin):** IBOR/ABOR-Trennung erst bei Live-Trading. Event-Sourcing: Eventide oder NATS/Postgres.
+
+**Was wir nicht übernehmen:** eFront/Preqin, STP für alle Börsen (Broker-Adapter decken Use Case).
+
 ---
 
 ## 2. GCT Multi-Asset Erweiterung
@@ -241,6 +255,8 @@ Unser Go-Backend (`go-backend/`) muss GCT-Daten exponieren. Aktuell hat es **nul
 | `/api/gct/portfolio/ohlcv` | GET | `OHLCV[]` fuer gehaltene Assets (fuer Python) | Data Router → Provider-Chain |
 
 ### 4.2 Broker-Adapter Pattern
+
+**Aladdin-Gap:** Broker-Adapter für Alpaca, IBKR (Multi-Asset). OSS-Optionen: alpaca-trade-api, ib_insync (Python); Go: eigene Clients. Priorität: Mittel. Siehe Gap-Tabelle in §1.4.
 
 Fuer Multi-Asset brauchen wir Broker-Adapter die `IBotExchange` implementieren. Minimalversion:
 

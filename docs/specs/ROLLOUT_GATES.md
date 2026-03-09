@@ -1,7 +1,32 @@
 # Reversible Rollout Gates — Phase 24.4
 
-> Stand: 27 Feb 2026  
-> Zweck: KPI-basierte Stage-Gates (internal → pilot → limited external) mit Rollback-Kriterien.
+> **Stand:** 09. Maerz 2026
+> **Zweck:** Spec fuer reversible Rollout-Stages, KPI-Gates und Rollback-Regeln
+> fuer spaetere externe Oeffnung.
+> **Source-of-Truth-Rolle:** Zielbild fuer Rollout-Governance; aktuelle
+> Go-Registry-Scaffolds sind nur der Anfang, nicht die vollstaendige Runtime.
+
+---
+
+## Scope
+
+- Stages `internal -> pilot -> limited external -> general`
+- KPI-Schwellen und Rollback-Kriterien
+- einfache Registry-/Config-Scaffolds als Startpunkt
+
+Nicht Teil dieser Spec:
+
+- Behauptung, dass jede Rollback-API bereits implementiert ist
+- produktive SLO-/Observability-Dashboards
+- Partner-/Plugin-spezifische Vertragsdetails
+
+---
+
+## Status
+
+- Target-State mit vorhandenem Go-Scaffold fuer Stage-Registry
+- manuelle Rollback- und KPI-Automation sind als Zielbild zu lesen, bis die
+  entsprechenden Handler / Pipelines explizit existieren
 
 ---
 
@@ -32,7 +57,8 @@
 - Error-Rate > 2% fuer 1h
 - Latency p95 > 1s fuer 30min
 - Kritischer Bug gemeldet
-- Manueller Rollback via `POST /api/v1/rollout/{feature}/rollback`
+- Manueller Rollback via `POST /api/v1/rollout/{feature}/rollback` ist
+  Zielzustand, nicht bereits als bestaetigte Runtime-API gesetzt
 
 ---
 
@@ -50,7 +76,8 @@ rollout:
 
 ---
 
-## Referenzen
+## Querverweise
 
-- EXECUTION_PLAN.md Phase 24d
-- ARCHITECTURE.md Rollout Plan
+- `EXECUTION_PLAN.md`
+- `ARCHITECTURE.md`
+- `PLUGIN_PILOT.md`

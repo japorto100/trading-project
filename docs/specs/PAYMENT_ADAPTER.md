@@ -1,7 +1,10 @@
 # Payment Orchestration Adapter — Phase 24.3
 
-> Stand: 27 Feb 2026  
-> Zweck: Optionaler Adapter-Layer fuer Payment/Routing/Reconciliation als eigene Domain.
+> **Stand:** 09. Maerz 2026
+> **Zweck:** Future-facing Scaffold-Spec fuer eine optionale Payment-Domain mit
+> Adapter-, Routing- und Reconciliation-Grenze.
+> **Source-of-Truth-Rolle:** Owner fuer das Zielbild des Payment-Adapters, nicht
+> fuer bereits vorhandene Produktionspfade.
 
 ---
 
@@ -10,6 +13,12 @@
 - Additive Domain — keine Core-Bypaesse
 - Payment, Routing, Reconciliation
 - Optional: Nur aktiv wenn Payment-Feature enabled
+
+Nicht Teil dieser Spec:
+
+- aktuelle Core-Trading- oder Portfolio-Ausfuehrung
+- Partner-/Plugin-Governance
+- Behauptung, dass bereits ein Payment-Provider live integriert ist
 
 ---
 
@@ -41,7 +50,17 @@ type PaymentAdapter interface {
 
 ---
 
-## Referenzen
+## Status
 
-- EXECUTION_PLAN.md Phase 24c
-- ARCHITECTURE.md B4
+- Phase-24-Target-State
+- aktuell als Architektur- und Interface-Scaffold zu lesen
+- konkrete Provider-Integration, Secrets, Audit und Rollout-Gates folgen erst mit
+  echter Produktentscheidung
+
+---
+
+## Querverweise
+
+- `EXECUTION_PLAN.md`
+- `ARCHITECTURE.md`
+- `ROLLOUT_GATES.md`

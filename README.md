@@ -108,7 +108,7 @@ tradeview-fusion/
 | Document | Content |
 |----------|---------|
 | [`docs/INDICATOR_ARCHITECTURE.md`](./docs/INDICATOR_ARCHITECTURE.md) | Indicator blueprint, ~57 implementation todos, book references |
-| [`docs/GEOPOLITICAL_MAP_MASTERPLAN.md`](./docs/GEOPOLITICAL_MAP_MASTERPLAN.md) | Geo map architecture, event model, soft-signal pipeline |
+| [`docs/specs/geo/GEOMAP_OVERVIEW.md`](./docs/specs/geo/GEOMAP_OVERVIEW.md) | Geo map architecture, event model, soft-signal pipeline |
 | [`docs/RUST_LANGUAGE_IMPLEMENTATION.md`](./docs/RUST_LANGUAGE_IMPLEMENTATION.md) | Rust/PyO3 acceleration layer strategy |
 | [`docs/ADR-001-streaming-architecture.md`](./docs/ADR-001-streaming-architecture.md) | Streaming architecture + consolidated open items |
 | [`docs/PROVIDER_LIMITS.md`](./docs/PROVIDER_LIMITS.md) | Provider rate limits, news sources, external references |

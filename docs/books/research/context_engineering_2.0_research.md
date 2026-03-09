@@ -155,7 +155,7 @@ Die Industrie hat 2026 klar gezeigt: Einfach alles in ein 1M-Token-Fenster werfe
 **Kernidee:** Statt fuer jede Kombination aus LLM + Tool eigenen Code zu schreiben, definiert MCP ein Protokoll: Server exponieren Tools/Resources, Clients (LLMs) nutzen sie. Standardisierte Discovery, Auth, Error Handling.
 
 **Relevanz fuer uns (MITTEL -- bereits teilweise vorhanden):**
-- `AUTH_SECURITY.md` Sek. 8 definiert bereits MCP-Sicherheit fuer den Go Gateway
+- `POLICY_GUARDRAILS.md` definiert bereits MCP-Sicherheit fuer den Go Gateway
 - `GO_GATEWAY.md` Sek. 2 beschreibt MCP Use Cases
 - CE 2.0 bestaetigt: MCP ist 2026 der absolute Industriestandard
 - Unser Go Gateway exponiert bereits Tools (get_quote, get_ohlcv etc.) -- MCP wuerde das standardisieren
@@ -170,7 +170,7 @@ Das NotebookLLM-Gespraech identifiziert drei Luecken fuer ein vollstaendiges CE 
 |---|---|---|---|
 | **Orchestrierung** (Memory Controller / "OS") | MemOS / Letta (veraltet, nicht SOTA) | Statische Policies: `CONTEXT_ENGINEERING.md` Sek. 7.1 (TTL), Sek. 5.3 (Kompression) | Niedrig: Statische Policies reichen fuer 1-5 User. Spaeter eigener Baking-Job |
 | **Strukturierung** (Graph) | Knowledge Graph / GraphRAG | Geplant: FalkorDB (`MEMORY_ARCHITECTURE.md` M2a) | Erledigt: Bereits eingeplant |
-| **Interoperabilitaet** (Protokoll) | MCP | Teilweise: `GO_GATEWAY.md` Sek. 2, `AUTH_SECURITY.md` Sek. 8 | Erledigt: In Sprint 6.x eingeplant |
+| **Interoperabilitaet** (Protokoll) | MCP | Teilweise: `GO_GATEWAY.md` Sek. 2, `security/POLICY_GUARDRAILS.md` | Erledigt: In Sprint 6.x eingeplant |
 | **Context Compression** (dynamisch) | DyCP, LLMLingua-2 | Fehlt: Nur statische Kompression (Sek. 5.3) | **HOCH: Einbauen in CONTEXT_ENGINEERING.md** |
 
 **Groesste Luecke: Dynamische Context Compression**
@@ -322,7 +322,7 @@ Datenschutzfokussiertes Markdown-PKM. Keine direkte Relevanz.
 | 4 | **RAG vs. Long Context** + "Context Rot" + "Lost in the Middle" | Byteiota, LightOn AI, Google Research | Usage | **VALIDIERT** | `CONTEXT_ENGINEERING.md` Sek. 5 | Formale Begruendung fuer Token-Budget-Strategie. "Context Rot ab 32K" + "U-Kurve" als Zitate aufnehmen. Priority-Stack ist bereits korrekt |
 | 5 | **GraphRAG** | Microsoft Research | Collection | **VALIDIERT** | `MEMORY_ARCHITECTURE.md` M2a | Bestaetigt FalkorDB-Entscheidung. "GraphRAG" als CE 2.0 Terminologie in Docs aufnehmen |
 | 6 | **Embedding Limitations** (Theoretical) | arXiv:2508.21038 | Usage | **VALIDIERT** | `MEMORY_ARCHITECTURE.md` Sek. 5.2 | Formaler Beweis: Single-Vector-Embeddings versagen bei kontrastivem Reasoning. Bestaetigt `GAME_THEORY.md` Sek. 8 (Strategem 6 vs. 8). Als Zitat aufnehmen |
-| 7 | **MCP** (Model Context Protocol) | modelcontextprotocol.io | Framework | **VALIDIERT** | `AUTH_SECURITY.md` Sek. 8 | Bestaetigt Industriestandard 2026. Bereits in Sprint 6.x eingeplant. Kein Handlungsbedarf |
+| 7 | **MCP** (Model Context Protocol) | modelcontextprotocol.io | Framework | **VALIDIERT** | `security/POLICY_GUARDRAILS.md` | Bestaetigt Industriestandard 2026. Bereits in Sprint 6.x eingeplant. Kein Handlungsbedarf |
 | 8 | **Agentic RAG** (State-Aware Retrieval) | Squirro, Google Dev Blog | Collection | **REFERENZ** | `CONTEXT_ENGINEERING.md` Sek. 3, 6.2 | Bereits tangiert: Unser Merge-Layer (Sek. 6.2) implementiert State-Aware Retrieval. "Dynamic Retrieval Planner" als Zukunftsnotiz |
 | 9 | **CE 2.0 3-Saeulen-Modell** | arXiv:2510.26493 | Framework | **REFERENZ** | `CONTEXT_ENGINEERING.md` Sek. 1 | Nuetzliches Vokabular-Mapping (Collection=M1-M4, Management=CE.md, Usage=Agent-Pipeline). Kein Architektur-Aenderung |
 | 10 | **MemOS / Letta** (Memory Controller) | CE 2.0 Paper | Management | **REFERENZ** | -- | **Nicht SOTA 2026** (NotebookLLM: "Context 1.5 / Legacy"). Konzept eines Memory Controllers ist langfristig relevant, Tools veraltet. Statische Policies reichen |

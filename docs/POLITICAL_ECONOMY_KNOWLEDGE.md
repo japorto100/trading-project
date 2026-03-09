@@ -42,9 +42,9 @@
 > - [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) -- CENTRAL_BANK_BASELINE, Regime-Kontext fuer Agents
 > - [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) -- Regime-Fit-Scoring, Contrarian Injection
 > - [`GAME_THEORY.md`](./GAME_THEORY.md) -- Keen/Minsky-Gleichungen, Transmissionsmechanismen
-> - [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) -- Exergie-Scoring, Zentralbank-Layer
+> - [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) -- Exergie-Scoring, Zentralbank-Layer
 > - [`ENTROPY_NOVELTY.md`](./ENTROPY_NOVELTY.md) -- Monetaere Entropie, Issuance Surface, Gruppe B
-> - [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) -- Datenquellen-Katalog, YouTube-Paradigmen
+> - [`docs/references/sources/unconventional-and-translation.md`](./references/sources/unconventional-and-translation.md) -- YouTube-/unstrukturierte Quellen
 
 ---
 
@@ -861,7 +861,7 @@ Sieben Module fuer souveraene Reform: Geld, Infrastruktur, Ressourcen, Menschen,
 
 **Energie als Substrat:** "Every modern capability depends on energy... Without abundant energy, policy becomes redistribution of scarcity." Dies verbindet direkt zu Keens Exergie-These (Sek. 6.3). [Sasan, UWDFULL]
 
-**Verbindung zu `GEOPOLITICAL_MAP_MASTERPLAN.md`:** Die Korridor-Architektur mappt direkt auf den geplanten PathLayer der GeoMap. Sovereign Parameter Sets koennten als CBDC-Parameter-Vergleichs-Layer auf der Karte visualisiert werden.
+**Verbindung zu `GEOMAP_OVERVIEW.md`:** Die Korridor-Architektur mappt direkt auf den geplanten PathLayer der GeoMap. Sovereign Parameter Sets koennten als CBDC-Parameter-Vergleichs-Layer auf der Karte visualisiert werden.
 
 ---
 
@@ -942,7 +942,7 @@ Welche bestehenden Docs muessen aktualisiert werden, wenn Domain D implementiert
 | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) | Sek. 7.2 (Zentralbank-Reden) | CENTRAL_BANK_BASELINE von Hardcoded-Dict in KG-Query migrieren. Paradigmen-Kontext fuer DRS-Modulation. | Mittel |
 | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) | Sek. 4.1 (Regime-Fit), Sek. 8.3 (Contrarian Injection) | Regime-Detektor mit oekonomischem Modell unterlegen (Keen: Kreditzyklusphase, Minsky-Indikator). Contrarian Injection kann heterodoxe Paradigmen-Perspektiven liefern. | Mittel |
 | [`GAME_THEORY.md`](./GAME_THEORY.md) | Sek. 0.2 (Keen/Minsky), Sek. 5.6 (v7 Stability) | TransmissionChannel-Edges formalisieren. Keen-Gleichungen als KG-Referenz statt nur Prosa. Minsky-Indikator mit Domain-D-Daten speisen. | Mittel |
-| [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) | Sek. 17.2.1 (Exergie), Sek. 35.13 (Zentralbank-Layer) | exergy_shock-Edges erhalten Paradigmen-Kontext. Zentralbank-Layer mit semantischem Modell (Paradigmen-Views pro Institution). | Niedrig |
+| [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) | Sek. 17.2.1 (Exergie), Sek. 35.13 (Zentralbank-Layer) | exergy_shock-Edges erhalten Paradigmen-Kontext. Zentralbank-Layer mit semantischem Modell (Paradigmen-Views pro Institution). | Niedrig |
 | [`ENTROPY_NOVELTY.md`](./ENTROPY_NOVELTY.md) | Sek. 14 (Querverweis-Matrix B) | Rueckverweis auf dieses Dokument als politisch-oekonomischer Kontext fuer Gruppe B (monetaere Entropie). | Niedrig |
 | [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) | Sek. 31.9 (YouTube-Kanaele) | Paradigmen-Taxonomie hinzufuegen: Keen = Post-Keynesianismus, Murphy = MMT, Gammon = Oesterreichisch-adjacent, Alden = Pragmatic Macro. | Niedrig |
 
@@ -1051,7 +1051,7 @@ Der Agent sollte **kein Paradigma als Default** verwenden. Stattdessen:
    - **Karl Polanyi**, *The Great Transformation* -- Felber referenziert ihn; das vollstaendige Werk wuerde die historische Analyse der Kommodifizierung liefern
    - **Immanuel Wallerstein**, *World-Systems Analysis* -- Kern-Peripherie-Dynamik fuer globale Finanzarchitektur
 
-8. **Weltsystem/Abhaengigkeit:** Die Murphy/Christensen-Analyse der Offshore-Netzwerke und Steueroasen beruehrt die Weltsystem-Theorie, ohne sie explizit zu benennen. Eine Formalisierung der Kern-Peripherie-Dynamik (G7 als Kern, Rohstoffexporteure als Peripherie, Steueroasen als Semi-Peripherie) wuerde die geopolitische Architektur in `GEOPOLITICAL_MAP_MASTERPLAN.md` verbessern.
+8. **Weltsystem/Abhaengigkeit:** Die Murphy/Christensen-Analyse der Offshore-Netzwerke und Steueroasen beruehrt die Weltsystem-Theorie, ohne sie explizit zu benennen. Eine Formalisierung der Kern-Peripherie-Dynamik (G7 als Kern, Rohstoffexporteure als Peripherie, Steueroasen als Semi-Peripherie) wuerde die geopolitische Architektur in `GEOMAP_OVERVIEW.md` verbessern.
 
 9. **Podcast-Integration:** Murphy/Christensen existieren nur als Transkript-Zusammenfassung (nicht als vollstaendiges Transkript). Soll ein vollstaendiges Transkript als Quelldokument erstellt werden?
 

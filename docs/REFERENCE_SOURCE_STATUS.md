@@ -1,58 +1,38 @@
 # Reference Source Status
 
-> Stand: 28 Feb 2026  
-> Zweck: Provider-Status-Matrix fuer Phase 14. Wird bei jedem neuen Connector aktualisiert.
+> **Stand:** 09. Maerz 2026  
+> **Rolle:** Schlanker Root-Einstieg fuer den aktiven Quellen-/Provider-Status.
+> Die kanonische Matrix liegt jetzt unter `docs/references/status.md`.
 
 ---
 
-## SDMX-Provider
+## Kanonische Datei
 
-| Provider | Status | Symbolformat | Exchange | Notes |
-|:---------|:-------|:-------------|:---------|:-----|
-| IMF IFS | Implementiert | `IMF_IFS_<FREQ>_<REF_AREA>_<INDICATOR>`, `POLICY_RATE` | `imf` | Phase 14a |
-| ECB | Implementiert | ECB-spezifisch | `ecb` | ecbsdmx |
-| OECD | Implementiert | `OECD_<LOCATION>_<SUBJECT>_<MEASURE>_<FREQUENCY>`, `GDP` | `oecd` | 14a.2 MEI |
-| World Bank | Implementiert | `WB_WDI_<FREQ>_<SERIES>_<REF_AREA>`, `POPULATION` | `worldbank` | 14a.2 WDI |
-| UN | Scaffold | `UN_*` | `un` | 14a.2 |
-| ADB | Scaffold | `ADB_*` | `adb` | 14a.2 |
+- [`docs/references/status.md`](./references/status.md)
+- Quellen-/Key-Onboarding: [`docs/specs/execution/source_onboarding_and_keys.md`](./specs/execution/source_onboarding_and_keys.md)
 
 ---
 
-## TimeSeries / EM Central Banks
+## Kerncluster
 
-| Provider | Status | Exchange | Notes |
-|:---------|:-------|:---------|:-----|
-| BCB (Brazil) | Implementiert | `bcb` | Phase 14b |
-| Banxico | Implementiert | `banxico` | Phase 14b |
-| BoK (Korea) | Implementiert | `bok` | Phase 14b |
-| BCRA (Argentina) | Implementiert | `bcra` | Phase 14b |
-| TCMB (Turkey) | Implementiert | `tcmb` | Phase 14b |
-| RBI (India) | Implementiert | `rbi` | Phase 14b |
-| FRED | Implementiert | `fred` | Phase 14b.2 |
-| OFR | Scaffold | `OFR_*` | `ofr` | 14b.2 |
-| NYFed | Scaffold | `NYFED_*` | `nyfed` | 14b.2 |
+| Cluster | Detail |
+|---------|--------|
+| SDMX | IMF, ECB, OECD, World Bank, UN, ADB |
+| TimeSeries / EM Central Banks | BCB, Banxico, BoK, BCRA, TCMB, RBI, FRED, OFR, NYFed |
+| Bulk / DiffWatcher | CFTC, FINRA, LBMA, FXCM, OFAC, UN, SECO, EU, GeoMap Source Pack |
 
 ---
 
-## BulkFetcher / DiffWatcher
+## Historie
 
-| Source | Status | Notes |
-|:-------|:-------|:-----|
-| CFTC COT | Scaffold | 14c.1 |
-| FINRA ATS | Scaffold | 14c.2 |
-| LBMA Gold Fix | Scaffold | 14c.3 |
-| FXCM Sentiment | Scaffold | 14c.3 |
-| OFAC SDN | Scaffold | 14d.1 |
-| UN Sanctions | Scaffold | 14d.2 |
-| SECO Sanctions | Scaffold | 14d.2 |
-| EU Sanctions | Scaffold | 14d.2 |
-| GeoMap Source Pack | Scaffold | 14g.1 |
+- Legacy Root-Fassung: [`docs/archive/REFERENCE_SOURCE_STATUS_legacy.md`](./archive/REFERENCE_SOURCE_STATUS_legacy.md)
 
 ---
 
-## Aenderungshistorie
+## Konsolidierungs-Audit (archivierte KG/AI Quellen)
 
-| Datum | Aenderung |
-|:------|:----------|
-| 28. Feb 2026 | Initial — Phase 14 Status-Matrix |
-| 01. Mär 2026 | 14c.3 LBMA/FXCM, 14d.2 UN/SECO/EU, 14g.1 GeoMap Source Pack |
+| Archivquelle | Status | Aktive Ziel-Owner |
+|---------|--------|--------|
+| `archive/KG_MERGE_AND_OVERLAY_ARCHITECTURE.md` | verteilt | `specs/ARCHITECTURE.md`, `MEMORY_ARCHITECTURE.md`, `CONTEXT_ENGINEERING.md`, `AGENT_ARCHITECTURE.md`, `AGENT_TOOLS.md`, `specs/API_CONTRACTS.md`, `specs/AUTH_SECURITY.md`, `CLAIM_VERIFICATION_ARCHITECTURE.md`, `UNIFIED_INGESTION_LAYER.md` |
+| `archive/KG_ONTOLOGY.md` | verteilt | `MEMORY_ARCHITECTURE.md`, `specs/ARCHITECTURE.md`, `specs/API_CONTRACTS.md` |
+| `archive/ai_retrieval_knowledge_infra_full.md` | verteilt | `specs/ARCHITECTURE.md`, `CONTEXT_ENGINEERING.md`, `MEMORY_ARCHITECTURE.md`, `UNIFIED_INGESTION_LAYER.md`, `specs/API_CONTRACTS.md` |

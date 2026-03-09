@@ -2,7 +2,7 @@
 
 > **Stand:** 18. Februar 2026
 > **Zweck:** Dokumentiert Architektur-Patterns aus dem Buch "GenAI and LLMs for Beyond 5G Networks" (Springer, 2026) die langfristig auf TradeView Fusion uebertragbar sind. Das Buch ist Telco-spezifisch, aber mehrere Kapitel enthalten Patterns die strukturell identisch zu Problemen in einer Multi-Service Trading-Intelligence-Plattform sind.
-> **Status:** Nur Referenz. Nichts davon ist geplant oder hat Todos. Kommt zeitlich nach den bestehenden Roadmaps in [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md), [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) und [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md).
+> **Status:** Nur Referenz. Nichts davon ist geplant oder hat Todos. Kommt zeitlich nach den bestehenden Roadmaps in [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md), [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) und [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md).
 > **Prioritaet:** Niedrig. Die bestehenden Phasen (Python Indicator Service, Rust PyO3, WASM, Geo Map v2/v3, Backtest Engine) gehen vor. Dieses Dokument wird relevant wenn diese Phasen groesstenteils abgeschlossen sind.
 > **Buch-Pfade:** `docs/books/GenAI_and_LLMS.md` (17863 Zeilen), `docs/books/Emotion_and_Facial_Recognition_in_AI_-_Khadija_Slimani.md`, `docs/books/new/The_Behavior_Ops_Manual_-_Chase_Hughes.md`
 > **Agent-Architektur:** Fuer das generelle Agent-Workflow-Pattern (Extractor → Verifier → Guard → Synthesizer), Behavioral Text Analysis (BTE/DRS), Speech Analysis und Multimodales Dashboard siehe [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md).
@@ -219,7 +219,7 @@ Unser bestehendes System hat bereits implizit diese Rollen. Das Buch liefert das
 **Bereits konzeptionell vorbereitet:** `ADR-001-streaming-architecture.md` beschreibt die Streaming-Architektur mit Ingestion -> Processing -> Delivery. Ein interner Event-Bus waere die logische Erweiterung.
 
 **Was es braucht:**
-- Entscheidung: Redis Pub/Sub (leichtgewichtig, bereits fuer Cache geplant) vs. NATS (robuster, aber zusaetzliche Infrastruktur)
+- Entscheidung: Redis Pub/Sub (leichtgewichtig, bereits fuer Cache geplant) vs. NATS (robuster, aber zusaetzliche Infrastruktur). **Aladdin:** NATS JetStream für Event-Backbone.
 - Definition der Event-Typen und Schemas
 - Kommt erst bei >3 Services die synchronisiert werden muessen
 
@@ -245,7 +245,7 @@ Das ist das Pattern das am staerksten auf unsere Geopolitical Soft-Signal Pipeli
 - Filter: Kategorien = [Sanctions, Commodity Shock, Shipping Chokepoint Risk]
 - Assets: GLD, CL (Crude Oil)
 - Severity-Threshold: S3+
-- Quellen: Tier A + Tier B (gemaess `GEOPOLITICAL_MAP_MASTERPLAN.md` Sektion 11)
+- Quellen: Tier A + Tier B (gemaess `GEOMAP_OVERVIEW.md` Sektion 11)
 
 Heute ist das statisch konfiguriert. Das IBN-Pattern beschreibt wie das dynamisch und natuerlichsprachlich werden koennte.
 
@@ -323,7 +323,7 @@ Unser Candidate-Flow in der Geopolitical Map IST ein Guardrail-System. Das Buch 
 | **2025-2026 SOTA** | **Granulare Klassifikation + Override-Erklaerung + Feedback-Loop** | "Wenn Analyst X noise reclassifiziert und 'duplicate_missed' taggt, hat die Dedup-Engine ein Problem bei Source Y" |
 | 2026+ | Contestability + Active Learning + Concept Drift | System erkennt eigene Schwaechen, fragt gezielt, passt sich an |
 
-**Unser neues System (definiert in [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4):**
+**Unser neues System (definiert in [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4):**
 - System klassifiziert jeden Candidate als `signal` / `noise` / `uncertain` mit `systemReason`
 - Analyst gibt granulares Feedback: Confirm, Reclassify, Uncertain, Snooze, Split
 - Bei Reclassifications: strukturierte Override-Erklaerung (`overrideReason` Tags + Freitext)
@@ -334,7 +334,7 @@ Unser Candidate-Flow in der Geopolitical Map IST ein Guardrail-System. Das Buch 
 
 ### 4.3 Feedback-Driven Training Pipeline (Architektur)
 
-> **Datenquelle:** `GeoAnalystFeedback[]` aus [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4, 13.2
+> **Datenquelle:** `GeoAnalystFeedback[]` aus [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4, 13.2
 > **Consumer:** Severity-Classifier (DL-7 in [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md)), Policy-as-Code Rules, Dedup-Engine
 
 ```
@@ -476,7 +476,7 @@ Personalisiertes Ranking basierend auf individuellem Feedback-Profil:
 
 > **Buch-Referenz (Emotion AI):** "Emotion and Facial Recognition in AI" (Slimani et al., Springer 2026), Kapitel "Navigating the Future of Emotion AI" -- Adversarial Attacks, Data Poisoning, Deepfakes. Das Buch beschreibt wie Emotion-AI-Modelle durch manipulierte Inputs getaeuscht werden koennen (z.B. subtile Pixel-Aenderungen die eine "happy" Klassifikation in "angry" aendern).
 
-**Uebertragung auf uns:** Unsere ML-Modelle (Sentiment-Modell -- FinBERT oder Alternativen, siehe [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18.2; XGBoost fuer Signal-Klassifikation; Severity-Classifier DL-7) sind angreifbar durch:
+**Uebertragung auf uns:** Unsere ML-Modelle (Sentiment-Modell -- FinBERT oder Alternativen, siehe [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18.2; XGBoost fuer Signal-Klassifikation; Severity-Classifier DL-7) sind angreifbar durch:
 
 | Angriffsvektor | Emotion-AI-Aequivalent | Unser Risiko | Mitigation |
 |---|---|---|---|
@@ -653,7 +653,9 @@ Das Buch formalisiert das als "LLM-ML Teaming" Pattern und beschreibt Best Pract
 ## 8a. Privacy-Preserving ML Patterns
 
 > **Buch-Referenz (Emotion AI):** "Emotion and Facial Recognition in AI" (Slimani et al., Springer 2026), mehrere Kapitel -- insb. Sek. 4.1 "Privacy Concerns in Emotion Data Collection", Sek. "Embedded Ethics and Privacy-by-Design", und das Kapitel "Navigating the Future of Emotion AI". Das Buch dokumentiert: 60% der Nutzer lesen keine Datenschutzerklaerungen zur Emotionsdatenerhebung (Studie aus Kap. "Emotion AI: Challenges, Opportunities, and the Road Ahead"). Empfohlene Gegenmassnahmen: Granularer Consent, Data Minimization, Differential Privacy, Federated Learning.
-> **Status:** Architektur-Leitlinie. Nichts davon ist implementiert. Kommt fruehestens mit Phase 6 (Auth + Security) in [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md).
+> **Status:** Architektur-Leitlinie. Nichts davon ist implementiert. Kommt
+> fruehestens nach heutiger Auth-/Security-Baseline und Consent-Vertiefung in
+> [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md).
 
 ### 8a.1 Warum das fuer uns relevant ist (obwohl wir keine Gesichter analysieren)
 
@@ -685,7 +687,7 @@ Wir verarbeiten sensible Daten die analoge Datenschutz-Anforderungen haben:
 
 **Prinzip (aus Emotion-AI-Buch):** "Erlaubst du dieser App Zugriff auf deine Gesichtsausdruecke?" -- nicht ein pauschaler Consent, sondern differenziert nach Datentyp und Verwendungszweck.
 
-**Umsetzung fuer uns (ab Phase 6, Auth-UI):**
+**Umsetzung fuer uns (ab Auth-/Consent-UI-Ausbau):**
 
 | Consent-Typ | Was der User erlaubt | Default | Granularitaet |
 |---|---|---|---|
@@ -705,7 +707,7 @@ Wir verarbeiten sensible Daten die analoge Datenschutz-Anforderungen haben:
 | Aggregierte Trading-Metriken (Dashboard) | Laplace-Noise auf Portfolio-Summen bevor sie in Dashboards fuer andere sichtbar sind | Niedrig (hoher Schutz) -- Einzelportfolio-Werte duerfen nie exakt sichtbar sein |
 | Feedback-Metriken (Sek. 4.4) | Noise auf pro-Analyst Override-Rate bevor sie im Team-Dashboard angezeigt wird | Mittel -- Trend soll sichtbar sein, nicht exakte Zahl pro Person |
 
-**Achtung:** Bei 3-5 Usern ist Differential Privacy mathematisch schwach (kleines N = grosses Noise noetig fuer Schutz). Erst ab ~10+ Usern sinnvoll. Bis dahin: Zugriffskontrolle (RBAC, AUTH_SECURITY.md Sek. 2.3) ist der effektivere Schutzmechanismus.
+**Achtung:** Bei 3-5 Usern ist Differential Privacy mathematisch schwach (kleines N = grosses Noise noetig fuer Schutz). Erst ab ~10+ Usern sinnvoll. Bis dahin: Zugriffskontrolle (RBAC, [`security/AUTH_MODEL.md`](./specs/security/AUTH_MODEL.md)) ist der effektivere Schutzmechanismus.
 
 ### 8a.5 Federated Learning -- Warum NICHT geplant
 
@@ -766,7 +768,7 @@ Das ist kein ML-Problem -- einfache Engineering-Patterns reichen. Aber das Buch 
 ## 9a. Markov Chain Patterns -- Stochastische Zustands-Modelle (Querschnittsthema)
 
 > **Kontext:** Markov Chains sind ein Querschnittspattern das sich durch Trading (Regime Detection), GeoMap (Event Escalation), Behavioral Analysis (State Machine) und Portfolio (Monte Carlo) zieht. Dieses Dokument sammelt die **langfristigen** Anwendungen die ueber die konkreten Implementierungen in den Fach-Docs hinausgehen.
-> **Aktuelle Implementierungen:** [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 5q (Market Regime, HMM, Signal Chain, MCMC), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4.4 (Behavioral State Chain), [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.3a (Geopolitical Escalation Chain)
+> **Aktuelle Implementierungen:** [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 5q (Market Regime, HMM, Signal Chain, MCMC), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4.4 (Behavioral State Chain), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.3a (Geopolitical Escalation Chain)
 
 ### 9a.1 Markov Decision Process (MDP) -- Foundation fuer Reinforcement Learning
 
@@ -868,7 +870,7 @@ Behavioral State Chain (Agent 4.4)   ←→  Earnings Call Signal
 |---|---|---|
 | **ML-Inference-Service gebaut** (separater Service mit GPU/CPU Inference) | Anomaly Detection, Forecasting | Sek.1 (Autoencoder, LSTM, Hybrid) |
 | **Rust Backtest Engine live** (Phase 3 in RUST_LANGUAGE_IMPLEMENTATION.md) | Worker-Orchestration, Stress Testing | Sek.2 (Multi-Agent), Sek.7 (Digital Twin) |
-| **Geo Map v3 mit ML-Ranking** (GEOPOLITICAL_MAP_MASTERPLAN.md Sek.4.4) | Intent-Translation, Guardrails, XAI | Sek.3, Sek.4, Sek.6 |
+| **Geo Map v3 mit ML-Ranking** (GEOMAP_OVERVIEW.md Sek.4.4) | Intent-Translation, Guardrails, XAI | Sek.3, Sek.4, Sek.6 |
 | **WASM-Indikatoren im Frontend** (Phase 2 in RUST_LANGUAGE_IMPLEMENTATION.md) | Edge AI Deployment | Sek.5 (Compression, Split Inference) |
 | **Event-Bus zwischen Services** (Erweiterung von ADR-001) | Agent Communication | Sek.2.3 (Message Bus) |
 | **Feedback-Driven Review live** (Signal/Noise/Uncertain + Overrides) | Training Pipeline, Calibration, Active Learning | Sek.4.2-4.7 (Human-AI Teaming Pipeline) |
@@ -878,6 +880,8 @@ Behavioral State Chain (Agent 4.4)   ←→  Earnings Call Signal
 | **Sentiment-Pipeline + GDELT Tone** produktionsreif | Sentiment Regime Chain | Sek.9a.2 |
 | **Multimodal Dashboard + BTE live** | Behavioral State Chain Visualisierung | Sek.9a via [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek.4.4 |
 | **Unified Ingestion Layer gebaut** (YouTube, Reddit, Copy/Paste → LLM → Review) | LLM-ML Teaming, Hierarchische Klassifizierung, HITL Training Loop | Sek.4 (Guardrails), Sek.8 (LLM-ML Teaming) → Implementierung in [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) |
+
+**Aladdin-Gap (Data Lakehouse):** Bronze/Silver/Gold Medallion für Analytics. OSS-Optionen: DuckDB, Apache Iceberg, Delta Lake. Priorität: Niedrig, zurückgestellt. Aladdin nutzt Snowflake; wir bleiben bei OSS. Kein Snowflake.
 
 ---
 
@@ -1005,9 +1009,9 @@ Verbindung des Entropy Health Monitors mit dem bestehenden Concept Drift Detecti
 | Sek.2 (Multi-Agent) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek.0.1, 0.3, 0.6 | Sync/Async, Job-Queue, Skalierung |
 | Sek.2 (Multi-Agent) | [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek.5 | Rust Backtesting Engine mit Rayon Worker Pool |
 | Sek.2 (Multi-Agent) | [`ADR-001-streaming-architecture.md`](./ADR-001-streaming-architecture.md) | Streaming-Architektur, Ingestion/Processing/Delivery |
-| Sek.3 (Intent-Based) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek.5, 6 | Candidate-Flow, Signal-vs-Noise-Policy |
-| Sek.4.1-4.2 (Guardrails, HITL) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek.5.4, 6, 11, 13.2 | Feedback-Driven Review, Confidence Ladder, Source Tiers, AnalystFeedback Type |
-| Sek.4.3-4.7 (Training Pipeline) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek.5.4.5, 35.6 | Feedback-Daten als Trainingsquelle, Evaluation Harness Metriken |
+| Sek.3 (Intent-Based) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek.5, 6 | Candidate-Flow, Signal-vs-Noise-Policy |
+| Sek.4.1-4.2 (Guardrails, HITL) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek.5.4, 6, 11, 13.2 | Feedback-Driven Review, Confidence Ladder, Source Tiers, AnalystFeedback Type |
+| Sek.4.3-4.7 (Training Pipeline) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek.5.4.5, 35.6 | Feedback-Daten als Trainingsquelle, Evaluation Harness Metriken |
 | Sek.4.6 (ML Training) | [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek.18, DL-7 | Rust Transformer Severity-Classifier als Consumer der Trainings-Daten |
 | Sek.5 (Edge AI) | [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek.4 | WASM fuer Frontend-Indikatoren |
 | Sek.7 (Digital Twin) | [`Future-Quant-trading.md`](./Future-Quant-trading.md) Sek.3.3 | Monte Carlo Stochastic Processes |
@@ -1018,9 +1022,9 @@ Verbindung des Entropy Health Monitors mit dem bestehenden Concept Drift Detecti
 | Sek.4.3-4.7 (Training Pipeline) | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 5.3 | UIL Review-Aktionen = Trainings-Datenpunkte fuer dieselbe Pipeline |
 | Sek.8 (LLM-ML Teaming) | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 4 | UIL ist die konkrete Implementierung: LLM fuer Freitext-Klassifizierung, ML fuer Dedup/Scoring |
 | Sek.1.4 (Markt-Mikroexpressionen) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Todo #49 (VPIN) | Order-Flow-Daten als Basis fuer Taeuschungserkennung |
-| Sek.4.8 (Adversarial Robustness) | [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 5 | Schutz gegen manipulierte Inputs ergaenzt Auth-Schutz |
+| Sek.4.8 (Adversarial Robustness) | [`security/SECURITY_HARDENING_TRACKS.md`](./specs/security/SECURITY_HARDENING_TRACKS.md) | Schutz gegen manipulierte Inputs ergaenzt Auth-Schutz |
 | Sek.8.3 (Continual Learning) | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 5.3 | UIL Training-Loop nutzt denselben Retraining-Mechanismus |
-| Sek.8a (Privacy-Preserving ML) | [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 10 | Granularer Consent und Data Minimization als Architektur-Leitlinie |
+| Sek.8a (Privacy-Preserving ML) | [`security/POLICY_GUARDRAILS.md`](./specs/security/POLICY_GUARDRAILS.md) | Granularer Consent und Data Minimization als Architektur-Leitlinie |
 | Sek.8a (Privacy-Preserving ML) | "Emotion and Facial Recognition in AI" (Slimani, Springer 2026) | Buch-Referenz: Privacy, Bias, Federated Learning, Differential Privacy |
 | Sek.1.4, 4.8, 8.3, 8a | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 4.5 | Bias-Awareness in der LLM/NLP Pipeline |
 | Sek.4.2-4.7, 6, 1.4 | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Teil I | Agent-Rollen (Extractor/Verifier/Guard/Synthesizer), BTE/DRS Behavioral Analysis, Speech Analysis, Multimodales Dashboard. Guard-Pattern hier definiert → dort als generelle Architektur formalisiert |

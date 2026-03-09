@@ -7,13 +7,9 @@
 4. Spec document for the area you are working on (table in `AGENTS.md`)
 
 ## Project Context
-- Next.js 16 + React 19 trading platform with Tailwind v4, shadcn/ui, Prisma (SQLite).
-- Two pages: Trading Dashboard (`/`) and Geopolitical Map (`/geopolitical-map`).
-- ~30 API routes, 13 market-data providers with circuit-breaker and fallback chain.
-- Single-user mode. Auth not implemented yet (Phase 1).
-- Database is SQLite (`file:./dev.db`). Enums in Prisma schema are commented out and replaced with String fields.
-- 22+1 phase roadmap. Phases 0-4 not started. Memory (Phase 6), Agents (Phase 10), Game Theory (Phase 17) planned.
-- 4 active services + GCT fork. 3 planned services (Redis, Memory, Agent). See `AGENTS.md` architecture table.
+- Projekt-Status und Architektur: `docs/specs/SYSTEM_STATE.md` und `EXECUTION_PLAN.md` sind die Source of Truth.
+- Diese Datei enthaelt nur modell-spezifische Hinweise; keine Fachtruth duplizieren.
+- Dokumentations-Hierarchie und Split-Regeln stehen in `docs/specs/DOCUMENTATION_ARCHITECTURE.md`.
 
 ## Claude-Specific Focus
 - Be concise and execution-oriented.
@@ -48,6 +44,18 @@ bun run build
 - For error handling in API routes: `catch (error: unknown)` + `getErrorMessage()` from `@/lib/utils`. Never introduce `catch (error: any)`.
 - When updating spec documents: update `Stand` date, add `Aenderungshistorie` entry, update cross-references in related docs.
 
+## CLI Tooling Policy (Windows + Git Bash)
+- Prefer `rg`/`fd` over `grep`/`find` for discovery and code search.
+- Prefer `jq`/`yq` for structured output processing.
+- Use `gh` for GitHub workflows when available.
+- Installer ownership:
+  - System CLIs -> `choco`
+  - Rust CLIs -> `cargo` / `cargo-binstall`
+  - Python CLIs -> `uv tool`
+  - Node CLIs -> `pnpm -g`
+- Always verify tool availability and version after install (`command -v`, `<tool> --version`).
+- `uutils-coreutils` is optional and does not replace `grep`/`sed`/`awk`.
+
 ## Pitfalls
 - After `bun install`, always run `bun run db:generate` before dev or build. Without it, Prisma client is missing and build fails with `Cannot find module '.prisma/client/default'`.
 - `tailwind.config.ts` is a v3 relic. Do not restore it as active v3 config. Tailwind v4 reads from `globals.css`.
@@ -67,11 +75,13 @@ bun run build
 ## Key Files For Context
 - `docs/specs/EXECUTION_PLAN.md` — 22+1 phase roadmap with sub-phases, dependencies, and current progress marker.
 - `docs/specs/SYSTEM_STATE.md` — IST/SOLL per architecture layer (17 sections). Ground truth for what exists.
-- `docs/specs/API_CONTRACTS.md` — all endpoint definitions incl. Memory (Sek. 11), Agent (Sek. 12), State Observation (Sek. 13).
-- `docs/GEOPOLITICAL_MAP_MASTERPLAN.md` — comprehensive spec for the map feature (35+ sections).
-- `docs/GEOPOLITICAL_OPTIONS.md` — D3 module catalog, feature-to-module matrix, staged install plan.
+- `docs/specs/DOCUMENTATION_ARCHITECTURE.md` — doc layers, read order, ownership and split rules.
+- `docs/specs/API_CONTRACTS.md` — umbrella API contract; use `docs/specs/api/` for boundary details.
+- `docs/specs/AUTH_SECURITY.md` — umbrella security spec; use `docs/specs/security/` for focused auth/policy/secrets/encryption docs.
+- `docs/specs/geo/GEOMAP_OVERVIEW.md` — comprehensive spec for the map feature (35+ sections).
+- `docs/specs/geo/GEOMAP_MODULE_CATALOG.md` — D3 module catalog, feature-to-module matrix, staged install plan.
 - `docs/PROXY_CONVENTIONS.md` — Phase 0/1: Correlation-ID, thin proxy, provider-bypass rules.
-- `docs/GEOMAP_VERIFY.md` — Phase 4: Draw-workflow, E2E acceptance, save error paths.
+- `docs/specs/geo/GEOMAP_VERIFY_GATES.md` — Phase 4: Draw-workflow, E2E acceptance, save error paths.
 - `docs/BASEMAP_POLICY.md`, `docs/GEOCODING_STRATEGY.md`, `docs/PMTILES_CONTRACT.md`, `docs/PERFORMANCE_BASELINE.md` — Phase 4 GeoMap policy docs.
 
 ## Core Domain Models

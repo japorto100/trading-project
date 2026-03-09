@@ -12,7 +12,7 @@
 > - [`UVD.txt`](./books/entropy-thermo/UVD.txt) -- Kiyan Sasan (uvd.money): Universe Dollar -- Bitcoin-gesicherter, basket-indexierter stabiler Werttraeger
 > - [`UDRP.txt`](./books/entropy-thermo/UDRP.txt) -- Kiyan Sasan: United Digital Reserve Protocol -- Cross-Border-Settlement mit Sovereign CBDC-Modulen
 > - [`UWDFULL.txt`](./books/entropy-thermo/UWDFULL.txt) -- Kiyan Sasan: United World Dynamics -- "Parameter State" Konzept fuer maschinenlesbare Regierungsfuehrung
-> **Referenz-Dokumente:** [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md), [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md), [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md), [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md), [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md), [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Politisch-oekonomischer Kontext fuer Gruppe B: 8 Paradigmen, Eliten-Zirkulation, Schnittmengen-Matrix)
+> **Referenz-Dokumente:** [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md), [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md), [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md), [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md), [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Politisch-oekonomischer Kontext fuer Gruppe B: 8 Paradigmen, Eliten-Zirkulation, Schnittmengen-Matrix)
 > **Primaer betroffen:** Python-Backend (Signal Pipeline, Agent Pipeline), Go Gateway (Exergie-Daten, Oracle Cross-Check, CBDC-Tracking), Frontend (Entropy-Visualisierung, GeoMap Corridor Layer)
 
 ---
@@ -237,7 +237,7 @@ Edge "Iran→Oil" hat Confidence 0.85 → wird oft in Kontext aufgenommen
 
 ### 4.5 Markt-Exergie-Blindheit (aus Paper 2)
 
-**Betrifft:** [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 0.2 (Keen/Minsky), [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) (Event-Scoring), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 3 (Composite Signal)
+**Betrifft:** [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 0.2 (Keen/Minsky), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) (Event-Scoring), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 3 (Composite Signal)
 
 **Mechanismus:** Mainstream-Marktmodelle unterschaetzen Energie-Impact systematisch (Keen: χ ≈ 0.007 statt α ≈ 2/3). Wenn unser System dieselbe Blindheit erbt (z.B. durch LLMs die auf Mainstream-Texten trainiert sind), replizieren wir den Bias.
 
@@ -356,7 +356,7 @@ Neuer Edge-Typ im Backend-KG (M2a):
 
 Der `keen_multiplier` ist ein Meta-Signal: "Um wie viel unterschaetzt der Markt diesen Impact vermutlich?" Das ist direkt operationalisierbar als Contrarian-Indikator.
 
-**Betrifft fuer spaetere Integration:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 6 (KG Schema), [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) (Event-Scoring), [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 0.2 (Keen erweitern)
+**Betrifft fuer spaetere Integration:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 6 (KG Schema), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) (Event-Scoring), [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 0.2 (Keen erweitern)
 
 ---
 
@@ -430,7 +430,7 @@ Diese Tabelle zeigt pro bestehendes Dokument: welche Sektion waere betroffen, wa
 | [`GAME_THEORY.md`](./GAME_THEORY.md) | Sek. 0.2 (Keen/Minsky) | Erweiterung um Exergie-Perspektive: Keen nicht nur als "Instabilitaet", sondern als "physikalische Grundlage der Instabilitaet". Verweis auf dieses Dokument. | NIEDRIG | Sek. 1.2, 1.3 |
 | [`GAME_THEORY.md`](./GAME_THEORY.md) | Sek. 5.4 (v5: Evolutionary GT + Replicator Dynamics) | Replicator Dynamics IST einer der Update-Mechanismen aus Paper 1. Entropy Collapse als Endstadium von Replicator Dynamics dokumentieren. | NIEDRIG | Sek. 1.1 |
 | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) | Sek. 3 (Composite Signal) | Entropy Health Monitor als Meta-Indikator. Signal-Typ-Diversitaet tracken. Min-Gewicht pro Signaltyp einfuehren um Monokultur zu verhindern. | MITTEL | Sek. 5.1 |
-| [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) | Event-Scoring | Exergie-Dimension in Event-Bewertung: `keen_multiplier` als Meta-Signal fuer "um wie viel unterschaetzt der Markt diesen Impact?" | MITTEL | Sek. 5.6 |
+| [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) | Event-Scoring | Exergie-Dimension in Event-Bewertung: `keen_multiplier` als Meta-Signal fuer "um wie viel unterschaetzt der Markt diesen Impact?" | MITTEL | Sek. 5.6 |
 | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) | Sek. 3 (Klassifizierung) | UIL als Novelty-Quelle bewusst staerken: unstrukturierte Quellen sind die primaere Novelty-Regeneration (β) des Systems | NIEDRIG | Sek. 3 |
 | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) | Sek. 4.7.1 (Concept Drift), Sek. 8.3 (Continual Learning) | Entropy Collapse als formaler Rahmen fuer Concept Drift. Continual Learning als Novelty-Regeneration. | NIEDRIG | Sek. 5.1 |
 | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) | Energiedaten-Quellen | EIA/IEA als Datenquelle fuer H_exergy Berechnung. Bereits teilweise abgedeckt (Macro-Daten). | NIEDRIG | Sek. 6.1 |
@@ -438,8 +438,8 @@ Diese Tabelle zeigt pro bestehendes Dokument: welche Sektion waere betroffen, wa
 | **--- Gruppe B Ergaenzungen ---** | | | | |
 | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) | Sek. 5r (NEU), 5s (NEU) | Market Entropy Index (5 Komponenten, E-Metrik Parallel) + Synthetischer URB-Index | MITTEL | Sek. 10.6, 11.4 |
 | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) | Sek. 14.4, 14.5 (NEU) | Market Entropy Go-Datenlieferung + Trade Corridor Adapter | MITTEL | Sek. 10.6, 13.2 |
-| [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) | Sek. 35.8, 35.13b-d (NEU) | CBDC Parameter Layer, Trade Corridor Visualization, Country Attractiveness Heatmap, neue Edge-Types | MITTEL | Sek. 12.4, 13.2, 13.4 |
-| [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) | Neue Sektionen (Corridor, Attractiveness, CBDC Policy) | UN Comtrade, WTO, Heritage EFI, WGI, Henley, FSI, CPI, Chinn-Ito als neue Datenquellen | MITTEL | Sek. 13.2, 13.4 |
+| [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) | Sek. 35.8, 35.13b-d (NEU) | CBDC Parameter Layer, Trade Corridor Visualization, Country Attractiveness Heatmap, neue Edge-Types | MITTEL | Sek. 12.4, 13.2, 13.4 |
+| [`docs/references/sources/sovereign-and-corridors.md`](./references/sources/sovereign-and-corridors.md) | Sovereign / Corridor / CBDC-Katalog | UN Comtrade, WTO, Heritage EFI, WGI, Henley, FSI, CPI, Chinn-Ito als neue Datenquellen | MITTEL | Sek. 13.2, 13.4 |
 
 ### Zusammenfassung der Aenderungs-Dringlichkeit
 
@@ -453,7 +453,7 @@ ERLEDIGT (Gruppe A, eingearbeitet 2026-02-22):
   ├── INDICATOR_ARCHITECTURE.md Sek. 5t (Entropy Health Monitor -- System-Selbst-Check, 5 Dimensionen)
   ├── GAME_THEORY.md Sek. 0.2 (Keen-Exergie-Erweiterung + keen_multiplier)
   ├── GAME_THEORY.md Sek. 5.4 (Entropy Collapse als Endstadium von Replicator Dynamics)
-  └── GEOPOLITICAL_MAP_MASTERPLAN.md Sek. 17.2.1 (keen_multiplier in Event-Scoring)
+  └── GEOMAP_OVERVIEW.md Sek. 17.2.1 (keen_multiplier in Event-Scoring)
 
 ERLEDIGT (Gruppe A Langfrist → Advanced-architecture-for-the-future.md Sek. 11b):
   ├── Sek. 11b.1: H_exergy Dual-Fragilitaets-Matrix (v3+)
@@ -464,8 +464,8 @@ ERLEDIGT (Gruppe A Langfrist → Advanced-architecture-for-the-future.md Sek. 11
 ERLEDIGT (Gruppe B, 2026-02-22):
   ├── INDICATOR_ARCHITECTURE.md Sek. 5r (Market Entropy Index) + 5s (URB-Index)
   ├── go-research Sek. 14.4 (Entropy-Inputs) + 14.5 (Trade Corridors)
-  ├── GEOPOLITICAL_MAP_MASTERPLAN.md Sek. 35.13b-d (CBDC, Corridors, Attractiveness)
-  └── REFERENCE_PROJECTS.md (Sovereign Parameters, Corridors, Attractiveness)
+  ├── GEOMAP_OVERVIEW.md Sek. 35.13b-d (CBDC, Corridors, Attractiveness)
+  └── docs/references/sources/sovereign-and-corridors.md
 
 OFFEN (bei Gelegenheit):
   ├── AGENT_ARCHITECTURE.md Sek. 2 (Synthesizer-Anfaelligkeit dokumentieren)
@@ -608,8 +608,8 @@ Der Base Layer ist neutral; Module tragen die Spezifik. Diese Trennung (neutrale
 |---|---|---|
 | **E-Metrik (5 Komponenten)** | Market Entropy Index (neuer Composite Indicator) | Siehe Sek. 14 → INDICATOR_ARCHITECTURE.md |
 | **E_o (Oracle Disagreement)** | Oracle Disagreement Detector im Go-Router | Bereits dokumentiert in go-research Sek. 14 |
-| **E_l (Leverage Proxy)** | DeFi-Leverage-Tracking (DefiLlama + Coinglass) | Bereits dokumentiert in REFERENCE_PROJECTS.md |
-| **E_c (Congestion)** | Bitcoin Mempool Fee Pressure (mempool.space) | Bereits dokumentiert in REFERENCE_PROJECTS.md |
+| **E_l (Leverage Proxy)** | DeFi-Leverage-Tracking (DefiLlama + Coinglass) | Bereits dokumentiert in `docs/web3/defi-onchain-data.md` |
+| **E_c (Congestion)** | Bitcoin Mempool Fee Pressure (mempool.space) | Bereits dokumentiert in `docs/web3/defi-onchain-data.md` |
 | **g(E) Entropie-Response** | Regime-Adaptive Signal-Gewichtung | Signal-Gewichte koennten entropie-abhaengig skaliert werden (hohe E → konservativere Signale) |
 | **ZK-Computation** | Nicht direkt anwendbar (wir sind kein Blockchain-System) | Konzeptuell interessant: "Messe den System-Zustand ohne Privacy zu verletzen" |
 | **Module Surface** | Go-Router Layer-Architektur (L1 Web2 / L2 Oracle / L3 Enrichment) | Parallele Trennung: neutraler Datenlayer + spezialisierte Analyse-Module |
@@ -638,7 +638,7 @@ UVD nutzt spezifische Bitcoin-Blockhoehen als Epochen-Grenzen. Das ist relevant 
 - Keine zentrale Zeitquelle noetig
 - Block-Timing-Varianz (Abweichung vom 10-Min-Schnitt) ist ein eigenes Signal
 
-**Fuer uns:** Bitcoin-Blockhoehe als Timing ist nicht relevant (wir sind kein Blockchain-System), aber die **Metriken des Bitcoin-Netzwerks** (Hash Rate, Mempool, Fee Pressure, Miner Flows) sind eigenstaendige Makro-Signale → bereits in REFERENCE_PROJECTS.md als Quellen dokumentiert.
+**Fuer uns:** Bitcoin-Blockhoehe als Timing ist nicht relevant (wir sind kein Blockchain-System), aber die **Metriken des Bitcoin-Netzwerks** (Hash Rate, Mempool, Fee Pressure, Miner Flows) sind eigenstaendige Makro-Signale → bereits in `docs/web3/defi-onchain-data.md` als Quellen dokumentiert.
 
 ### 11.3 Oracle-Mechanismus (UVD Sek. 3.3 + 8.1)
 
@@ -655,9 +655,9 @@ UVD benoetigt externe Preis-Daten (XAU/USD, CHF/USD, SGD/USD) fuer die Basket-Be
 | Sasan-Konzept | Unser Equivalent | Umsetzung |
 |---|---|---|
 | **URB Basket (XAU 40%, CHF 30%, SGD 30%)** | Synthetischer URB-Index als Referenz-Benchmark | INDICATOR_ARCHITECTURE: Neuer synthetischer Index `/api/v1/macro/urb-index` |
-| **De-Dollarization These** | CBDC-Tracking + IMF COFER als Datenquellen | Bereits in REFERENCE_PROJECTS.md dokumentiert |
+| **De-Dollarization These** | CBDC-Tracking + IMF COFER als Datenquellen | Bereits in `docs/references/sources/sovereign-and-corridors.md` dokumentiert |
 | **Oracle-Mechanismus** | CrossCheck() + Oracle Disagreement Detector | Bereits in go-research Sek. 14 dokumentiert |
-| **BTC-Blockhoehe-Metriken** | mempool.space + Blockchain.com als Datenquellen | Bereits in REFERENCE_PROJECTS.md dokumentiert |
+| **BTC-Blockhoehe-Metriken** | mempool.space + Blockchain.com als Datenquellen | Bereits in `docs/web3/defi-onchain-data.md` dokumentiert |
 
 ---
 
@@ -796,13 +796,13 @@ UWD definiert eine rationale Eskalationsleiter: Diplomatie → Oekonomische Re-P
 | **Market Entropy Index** (E-Metrik als Composite Indicator) | `INDICATOR_ARCHITECTURE.md` | Sek. 5 (neue Sek. 5r) | Neuer Indikator: Gewichteter Composite aus Volatilitaet + Leverage + Oracle Disagreement + Congestion + Velocity-Dispersion | MITTEL |
 | **Synthetischer URB-Index** (XAU 40% + CHF 30% + SGD 30%) | `INDICATOR_ARCHITECTURE.md` | Sek. 5 (neue Sek. 5s) | Neuer synthetischer Benchmark: `/api/v1/macro/urb-index` | NIEDRIG |
 | **Oracle Disagreement Detector** | `go-research-financial-data-aggregation-2025-2026.md` | Sek. 14 | Bereits dokumentiert. Verweis auf E_o Konzept hinzufuegen | ERLEDIGT |
-| **CBDC Parameter Comparison Layer** | `GEOPOLITICAL_MAP_MASTERPLAN.md` | Sek. 35.13 (Zentralbank-Layer) | Erweiterung: CBDC-Parameter (Privacy, Capital Controls, Tax Logic) als Sub-Layer | MITTEL |
-| **Corridor Visualization** | `GEOPOLITICAL_MAP_MASTERPLAN.md` | Sek. 35.8 (Entity Graph) | Erweiterung: Corridor-Lines als PathLayer, Trade-Volume-Gewichtung, Corridor-Events | MITTEL |
-| **Country Attractiveness Index** | `GEOPOLITICAL_MAP_MASTERPLAN.md` | Neue Sektion | Heatmap-Layer: Henley + EFI + Migration + CBDC + Governance | NIEDRIG |
-| **Escalation-Severity Mapping** | `GEOPOLITICAL_MAP_MASTERPLAN.md` | Sek. 17.2 (Score Proposal) | Ergaenzung: Sasan-Eskalationsleiter als Severity-Framework | NIEDRIG |
-| **DeFi-Leverage + On-Chain Datenquellen** | `REFERENCE_PROJECTS.md` | Neue Sektionen | Bereits dokumentiert (DefiLlama, Coinglass, Whale Alert, mempool.space) | ERLEDIGT |
-| **CBDC Tracking + De-Dollarization** | `REFERENCE_PROJECTS.md` | Neue Sektionen | Bereits dokumentiert (Atlantic Council, IMF COFER, SWIFT RMB) | ERLEDIGT |
-| **Maschinenlesbare Standards** | `REFERENCE_PROJECTS.md` | Neue Sektionen | Bereits dokumentiert (GLEIF LEI, OpenFIGI, ISDA CDM) | ERLEDIGT |
+| **CBDC Parameter Comparison Layer** | `GEOMAP_OVERVIEW.md` | Sek. 35.13 (Zentralbank-Layer) | Erweiterung: CBDC-Parameter (Privacy, Capital Controls, Tax Logic) als Sub-Layer | MITTEL |
+| **Corridor Visualization** | `GEOMAP_OVERVIEW.md` | Sek. 35.8 (Entity Graph) | Erweiterung: Corridor-Lines als PathLayer, Trade-Volume-Gewichtung, Corridor-Events | MITTEL |
+| **Country Attractiveness Index** | `GEOMAP_OVERVIEW.md` | Neue Sektion | Heatmap-Layer: Henley + EFI + Migration + CBDC + Governance | NIEDRIG |
+| **Escalation-Severity Mapping** | `GEOMAP_OVERVIEW.md` | Sek. 17.2 (Score Proposal) | Ergaenzung: Sasan-Eskalationsleiter als Severity-Framework | NIEDRIG |
+| **DeFi-Leverage + On-Chain Datenquellen** | `docs/web3/defi-onchain-data.md` | Web3 / On-Chain Layer | Bereits dokumentiert (DefiLlama, Coinglass, Whale Alert, mempool.space) | ERLEDIGT |
+| **CBDC Tracking + De-Dollarization** | `docs/references/sources/sovereign-and-corridors.md` | Sovereign / CBDC Katalog | Bereits dokumentiert (Atlantic Council, IMF COFER, SWIFT RMB) | ERLEDIGT |
+| **Maschinenlesbare Standards** | `docs/references/README.md` | Externer Referenzindex | Bereits dokumentiert (GLEIF LEI, OpenFIGI, ISDA CDM) | ERLEDIGT |
 
 ### 14.2 Konzeptuelle Elemente (Langfristig)
 
@@ -857,7 +857,7 @@ UWD definiert eine rationale Eskalationsleiter: Diplomatie → Oekonomische Re-P
 | Sek. 4.1 | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 2 | Synthesizer als Hauptbetroffener von Episodic Feedback Loop |
 | Sek. 4.1, 5.5 | [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 5.3, 6 | M3 Episodic und KG-Confidence als Feedback-Amplifier |
 | Sek. 4.3 | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 3 | Composite Signal als Ort fuer Signal-Monokultur-Risiko |
-| Sek. 5.6 | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) | Exergie-Exposure als neue Dimension in Event-Bewertung |
+| Sek. 5.6 | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) | Exergie-Exposure als neue Dimension in Event-Bewertung |
 | Sek. 3 | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) | UIL als primaere Novelty-Quelle (β) des Systems |
 | Sek. 5.1 | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.7.1, 8.3 | Entropy Monitor verwandt mit Concept Drift Detection |
 | Sek. 6.1 | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) | Energiedaten (EIA/IEA) als Basis fuer H_exergy |
@@ -867,7 +867,7 @@ UWD definiert eine rationale Eskalationsleiter: Diplomatie → Oekonomische Re-P
 | Sek. 11.4 (URB-Index) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 5s (NEU) | Synthetischer URB-Benchmark |
 | Sek. 10.6 (E_o) | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) Sek. 14 | Oracle Disagreement Detector = E_o Implementierung |
 | Sek. 10.6 (Module Surface) | [`go-research-financial-data-aggregation-2025-2026.md`](./go-research-financial-data-aggregation-2025-2026.md) Sek. 14 | Layer-Architektur Parallele (L1/L2/L3 = Module Surface) |
-| Sek. 12.4 (Corridors) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.8, 35.13 | Corridor Visualization + CBDC Parameter Layer |
-| Sek. 13.2 (Corridors as Diplomacy) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.8 | Trade Corridors als PathLayer auf GeoMap |
-| Sek. 13.5 (Escalation Ladder) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 17.2 | Severity-Framework-Erweiterung |
-| Sek. 11.3 (Oracle), 12.1 (CBDC) | [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) | Oracle Networks, CBDC Tracking, DeFi-Leverage, Bitcoin-Netzwerk als Datenquellen |
+| Sek. 12.4 (Corridors) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.8, 35.13 | Corridor Visualization + CBDC Parameter Layer |
+| Sek. 13.2 (Corridors as Diplomacy) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.8 | Trade Corridors als PathLayer auf GeoMap |
+| Sek. 13.5 (Escalation Ladder) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 17.2 | Severity-Framework-Erweiterung |
+| Sek. 11.3 (Oracle), 12.1 (CBDC) | [`docs/references/README.md`](./references/README.md) | Verteilte Kataloge fuer Oracle Networks, CBDC Tracking, DeFi-Leverage, Bitcoin-Netzwerk |

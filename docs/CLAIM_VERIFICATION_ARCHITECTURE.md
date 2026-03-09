@@ -126,3 +126,25 @@ ImpRIF ([arXiv:2602.21228](https://arxiv.org/html/2602.21228v1)) formalisiert In
 - JSON-Schema fuer Claim/Subclaim/Evidence/Belief (Detail-Spec)
 - Integration in PlanStep (pipeline: `claim_verification`)
 - Dynamic Decomposition: wann zerlegen, wann direkt verifizieren?
+
+---
+
+## 7. Konsolidierungs-Addendum (Claim/Evidence/Stance + Konfliktklassen)
+
+### 7.1 Pflichtobjekte
+
+Neben Claim/Subclaim gelten fuer den Merge-Vertrag explizit:
+
+- `Claim` (`c:*`)
+- `Evidence` (`x:*`)
+- `Stance` (supports/opposes/refines/hedges/supersedes/conditions)
+
+### 7.2 Konfliktklassen (Kurz)
+
+- Typ A: Fakt vs. Meinung
+- Typ B: alte vs. neue Evidenz
+- Typ C: Agent vs. User
+- Typ D: local vs. synced user data
+- Typ E: Simulation vs. Realitaet
+
+Konflikte werden modelliert und markiert, nicht still ueberschrieben.

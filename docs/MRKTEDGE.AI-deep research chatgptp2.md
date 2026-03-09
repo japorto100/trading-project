@@ -1,5 +1,10 @@
 # MRKTEDGE.AI – Technische, UX- und AI/ML-Analyse auf Basis öffentlich verfügbarer Evidenz
 
+> **Status (09. Maerz 2026):** Externer Benchmark / Referenzdokument. Kein
+> aktives Architektur-Owner-Dokument. Relevante normative Ableitungen werden in
+> Root-/Spec-Dokumente verteilt; diese Analyse bleibt als Recherche-Artefakt
+> erhalten.
+
 ## Executive Summary
 
 entity["company","MRKT AI","trading platform toronto, ca"] positioniert sich als browserbasierte, abonnementgetriebene „AI-powered“ Markt-Intelligence-Plattform, die **Fundamentals/Makro, Sentiment, Positionierung und News** zu einem **handlungsnahen Kontext-Layer** verdichtet („understand why markets move in seconds“). citeturn1view0turn23view0

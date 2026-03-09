@@ -5,7 +5,7 @@
 > **Abgrenzung:** `CONTEXT_ENGINEERING.md` definiert WAS der Agent braucht. Dieses Dokument definiert WIE er es bekommt (Werkzeuge).
 > **Abgrenzung:** `AGENT_ARCHITECTURE.md` definiert Rollen und Workflows. Dieses Dokument definiert die Toolbox die jede Rolle nutzt.
 > **Abgrenzung:** `MEMORY_ARCHITECTURE.md` definiert Speicher-Schichten. Dieses Dokument definiert die Read/Write-Interfaces zu diesen Schichten.
-> **Referenz-Dokumente:** [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md), [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md)
+> **Referenz-Dokumente:** [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md)
 > **Externe Referenzen:**
 > - [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) -- Browser-Debugging und Automation
 > - [WebMCP](https://webmcp.dev/) -- Website-to-Agent Bridge
@@ -105,6 +105,8 @@
 | **Communication** | WhatsApp/Telegram/Discord | Channel (extern) | User-Benachrichtigung, Befehle | T2 |
 | **A2A** | Google A2A Protocol | Protocol | Agent-zu-Agent Collaboration | T4 |
 | **Code Search** | Agentic File Search on Repo | Tool (intern) | Codebase-Navigation | T3 |
+| **Tool Discovery** | Tool Search / Lazy Loading | Runtime-Pattern | grosse Tool-Inventare ohne Context-Bloat nutzbar halten | T2 |
+| **Plan Surface** | Markdown-/JSON-Planartefakt | Datei / UI / Store | Planner-Status sichtbar und editierbar machen | T2 |
 
 ---
 
@@ -243,6 +245,36 @@ navigator.modelContext.registerTool(
 
 **Das loest dein Kernproblem:** Der Agent kann den Frontend-State deterministisch lesen (kein Screenshot + Vision noetig fuer strukturierte Daten) UND mit der UI interagieren (GeoMap Marker anklicken, Simulation starten, Chart-Symbol wechseln). Und das mit 98% Accuracy statt der ~60-70% von Screenshot-Agenten.
 
+### 3.1 Tool Discovery und Lazy Loading
+
+Sobald viele MCP-Server und interne Tool-Familien parallel existieren, braucht die
+Agent-Runtime einen Discovery-Layer statt "alle Tool-Deskriptoren immer im
+Prompt".
+
+**Arbeitsregel fuer `tradeview-fusion`:**
+
+- Tool-Discovery ist ein **Runtime-Pattern**, kein eigenes Root-Architekturzentrum.
+- Grosse Tool-Inventare werden ueber Suche + selektives Nachladen erschlossen.
+- Die Default-Suche sollte zwei Modi haben:
+  - **regex/exakt** fuer bekannte Tool-Namen und Familien
+  - **BM25/semantisch** fuer Aufgabenbeschreibungen und unscharfe Queries
+
+**Warum das wichtig ist:**
+
+- weniger Context Pollution bei vielen MCP- und internen Tools
+- bessere Tool-Auswahl statt "blindes" Halluzinieren von Tool-Namen
+- saubere Skalierung, wenn spaeter Memory-, Research-, Broker- und Admin-Tools
+  parallel verfuegbar sind
+
+**Benennungsregeln fuer Tools:**
+
+- Verben + Objekte klar halten: `search_papers`, `read_paper`, `market_data_fetch`
+- verwandte Tool-Familien konsistent gruppieren
+- Beschreibungen so schreiben, dass semantische Suche sie gut matchen kann
+
+Das Tool-Search-Muster bleibt damit in der Heimat von Runtime-/Tooling-Entscheiden
+und muss nicht als eigene Root-Verfassung weiterleben.
+
 ---
 
 ## 4. Browser Control Tools
@@ -327,6 +359,40 @@ WS /api/agent/state-stream
 ```
 
 **Warum beides:** REST fuer On-Demand Context Assembly. WebSocket fuer proaktive Reaktion ("User hat gerade auf Iran-Sanktions-Event geklickt → ich bereite Game Theory Analyse vor").
+
+### 5.3 Human-editierbare Planflaeche
+
+Fuer komplexe Agent-Laeufe braucht der Planner neben strukturiertem State auch eine
+menschlich lesbare Projektion des aktuellen Plans.
+
+**Pattern:**
+
+- **Planner** schreibt einen strukturierten Plan und optional eine Markdown-/
+  Checklist-Projektion.
+- **Executor** arbeitet immer nur den naechsten freigegebenen Schritt ab.
+- **Replanner** bewertet nach jedem wichtigen Schritt, ob der Plan noch stimmt.
+- **Human-in-the-loop** kann Schritte markieren, umpriorisieren, pausieren oder
+  mit Kommentaren versehen.
+
+**Architekturregel:**
+
+- Die **strukturierte Runtime-Representation** bleibt die Source of Truth.
+- Die Markdown-/UI-Ansicht ist die editierbare Oberflaeche fuer Mensch und Agent.
+- Diese Planflaeche gehoert zu Agent-Workbench/Mission-Control-Surfaces, nicht in
+  Trading-Kern-Widgets.
+
+### 5.4 Read-only Agent-UI-Surfaces
+
+Tambo oder aehnliche Frameworks sind fuer uns vor allem als Laufzeitmuster fuer
+agentische Output-Surfaces relevant:
+
+- Analyse-Karten
+- Tool-Result-Renderings
+- Playground-/Monitor-Komponenten
+- statusnahe SSE-/Streaming-Widgets
+
+**Harte Grenze:** Solche AI-getriebenen UI-Surfaces bleiben read-only oder
+assistiv. Keine Orders, keine Kontomutationen, keine stillen Side Effects.
 
 ---
 
@@ -704,12 +770,38 @@ Welche Rolle bekommt welche Tools? Principle of Least Privilege.
 | Dieses Dokument | Referenziertes Dokument | Verbindung |
 |---|---|---|
 | Sek. 3 (MCP) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 12-15 | Erweiterte Rollen nutzen Tools aus diesem Dokument |
-| Sek. 4 (Browser) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) | GeoMap-Navigation via Browser Tools |
+| Sek. 4 (Browser) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) | GeoMap-Navigation via Browser Tools |
 | Sek. 5 (Frontend State) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) Sek. 2-3 | Consumer "Frontend UI" bekommt State via diese API |
 | Sek. 6 (Agentic Search) | [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 5.4 | Ergaenzt Vector Store (M4) fuer strukturierte Dokumente |
-| Sek. 7 (Research) | [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) | Neue Quelle: Emergent Mind |
+| Sek. 7 (Research) | [`docs/references/README.md`](./references/README.md) | Externer Referenzindex fuer Research-Quellen |
 | Sek. 8 (Channels) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 13 | Orchestrator + Router nutzen Channels fuer Output |
 | Sek. 9 (A2A) | [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 5.6 | Mean Field Games brauchen Multi-Agent Collaboration |
 | Sek. 10 (GeoMap Simulation) | [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 5.3-5.4 | Spielbaeume + Evolutionary GT visualisiert |
-| Sek. 10 (GeoMap Simulation) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35 | Entity Graph + Transmission Paths |
+| Sek. 10 (GeoMap Simulation) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35 | Entity Graph + Transmission Paths |
 | Sek. 11 (Tool Access) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) Sek. 8 | MemoryAccessPolicy erweitert um ToolAccessPolicy |
+
+---
+
+## 15. Konsolidierungs-Addendum -- Merge/Claim/Simulation Tools
+
+Ergaenzende Tool-Familie fuer den Overlay-/Claim-/Branch-Vertrag:
+
+| Tool-ID | Zweck | Scope |
+|---|---|---|
+| `get_overlay_context` | Lokalen User-Overlay-Kontext fuer Merge-Queries lesen | read-only |
+| `evaluate_claim` | Claim gegen Evidence, Widerspruch und Staleness bewerten | read-mostly |
+| `create_simulation_branch` | Branch aus Event/Claim/Snapshot erzeugen | bounded-write |
+| `attach_evidence` | Evidence an Claim/Branch verknuepfen | bounded-write |
+
+### 15.1 Capability-Scoping (verbindlich)
+
+- `get_overlay_context`: `viewer+` (nur fuer eigenen user scope)
+- `evaluate_claim`: `analyst+` oder policy-freigegebener Agent
+- `create_simulation_branch`: `analyst+` mit Branch-Quota/Rate-Limit
+- `attach_evidence`: `analyst+`, audit-pflichtig
+
+Harte Regeln:
+
+- Kein Tool in dieser Familie darf canonical facts direkt mutieren.
+- Alle write-nahen Aufrufe muessen provenance + idempotency_key + audit_event_id tragen.
+- Simulation-Tools schreiben nur in Branch-/Claim-Layer, nicht in den globalen Truth-Layer.

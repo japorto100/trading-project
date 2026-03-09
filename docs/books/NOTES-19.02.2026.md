@@ -4,9 +4,9 @@
 > **Bereinigt:** Alles was in Projekt-Dokumentation extrahiert wurde, ist entfernt. Verbleibende Eintraege sind entweder fuer andere Projekte oder noch nicht bearbeitet.
 >
 > **Was wurde wohin extrahiert?**
-> - Zentralbanken-Filter (GeoMap) → [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.13
-> - Events UI Modals → [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.14
-> - News Copy/Paste Workflow → [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.15 → jetzt Top-Level in [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 6
+> - Zentralbanken-Filter (GeoMap) → [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.13
+> - Events UI Modals → [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.14
+> - News Copy/Paste Workflow → [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.15 → jetzt Top-Level in [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 6
 > - YouTube-Content-Quellen (F) → [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 2.1 + [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) Unkonventionelle Quellen
 > - Zentralbank-Bilanzen + APIs (C+D komplett) → [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md)
 > - HKCM / Elliott / Fibonacci (E komplett) → [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 4.3-4.4
@@ -14,7 +14,7 @@
 > - investing.com, Symbole, DEX vs CEX (H1+H2+H5) → [`REFERENCE_PROJECTS.md`](./REFERENCE_PROJECTS.md) + [`go-research`](./go-research-financial-data-aggregation-2025-2026.md)
 > - Backtesting Go vs Python (H3) → [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek. 5
 > - Go↔Python↔Webapp Architektur (K) → beantwortet in Konversation (gRPC empfohlen)
-> - d3-geo / Leaflet (B2) → bereits in [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Rendering-Sektionen
+> - d3-geo / Leaflet (B2) → bereits in [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Rendering-Sektionen
 
 ---
 

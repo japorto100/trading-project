@@ -3,7 +3,7 @@
 > **Stand:** 22. Februar 2026
 > **Zweck:** Definiert die Context-Strategie fuer alle Consumer im System: Welche Memory-Schichten werden fuer welchen Query-Typ angezapft, wie wird Relevanz bewertet, wie werden Multi-Source-Ergebnisse gemerged, und wie wird das Token-Budget fuer LLM-Agents verwaltet.
 > **Abgrenzung zu MEMORY_ARCHITECTURE.md:** Memory definiert *was wo gespeichert wird* (Infrastruktur, Schemas, Persistenz). Context Engineering definiert *was wann fuer wen zusammengestellt wird* (Policies, Scoring, Budgets). Memory ist die Bibliothek. Context Engineering ist der Bibliothekar.
-> **Referenz-Dokumente:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) (M1-M5, Zwei-Schichten-KG, Fast/Slow Lane), [`KG_ONTOLOGY.md`](./KG_ONTOLOGY.md) (Ontologie-Quellen), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) (Vier Agent-Rollen, Guards), [`GAME_THEORY.md`](./GAME_THEORY.md) (Krisenlogik, Strategeme), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (RAG/Reasoning Patterns), [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) (CE 2.0 Research: DyCP, LLMLingua-2, RAG-Debatte, Self-Baking)
+> **Referenz-Dokumente:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) (M1-M5, Zwei-Schichten-KG, Fast/Slow Lane), [`archive/KG_ONTOLOGY.md`](./archive/KG_ONTOLOGY.md) (Ontologie-Quellen; archivierte Referenz), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) (Vier Agent-Rollen, Guards), [`GAME_THEORY.md`](./GAME_THEORY.md) (Krisenlogik, Strategeme), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (RAG/Reasoning Patterns), [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) (CE 2.0 Research: DyCP, LLMLingua-2, RAG-Debatte, Self-Baking)
 > **Primaer betroffen:** Python-Backend (Agent-Pipeline, Context Assembler), Frontend (User-KG Queries, Merge-Layer), Go Gateway (SSE Context-Updates)
 
 ---
@@ -830,6 +830,56 @@ Abhaengig von der Game-Theory v2 Implementation.
 | Sek. 8.2 (Extractor kein Episodic) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4 | BTE/DRS Extractor soll unbefangen arbeiten |
 | **Sek. 8.3 (Assembly Pseudocode)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 15.1** | **MemoryAccessPolicy steuert welche Memory-Schichten pro Agent-Rolle erlaubt sind** |
 | Sek. 4 (Relevance, Regime-Fit) | [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 3 | risk_on/risk_off Regime-Detektion |
-| Sek. 4.4 (User-Feedback-Loop) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4 | Candidate accept/reject Feedback |
+| Sek. 4.4 (User-Feedback-Loop) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4 | Candidate accept/reject Feedback |
 | Sek. 7 (Freshness, SSE) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 0.3-0.7 | Redis TTL-Policies |
 | Sek. 9 (Observability) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.7.1 | Concept Drift Detection |
+
+---
+
+## 12. Konsolidierungs-Addendum (Merge-aware Retrieval)
+
+Dieses Addendum verankert die merge-aware Retrieval-Regeln aus der
+KG-Merge-Konsolidierung im aktiven Context-Contract.
+
+### 12.1 Merge-aware Query-Typen
+
+Die folgenden Query-Typen sind als First-Class-Intent zu behandeln:
+
+- `event_impact_for_user`
+- `claim_evaluation_for_user`
+- `historical_similarity_for_claim_or_event`
+- `simulation_context_assembly`
+
+### 12.2 Claim Evaluation Context
+
+Bei `claim_evaluation_for_user` muss der Assembler mindestens getrennt liefern:
+
+- `evidence_for`
+- `evidence_against`
+- `unresolved`
+- `stale_evidence`
+
+Und darf keine direkte Faktmutation aus der Evaluation ableiten.
+
+### 12.3 Stale-Evidence- und Contradiction-Scoring
+
+Zusatzmetriken fuer Ranking/Output:
+
+- `stale_evidence_count`
+- `contradiction_count`
+- `contradiction_severity`
+- `evidence_recency_score`
+
+Output mit hoher Staleness oder Widerspruchsdichte wird nicht verworfen, sondern
+explizit markiert und im UI als unsicher dargestellt.
+
+### 12.4 Simulation-Context-Assembly
+
+Simulation-Kontext wird aus getrennten Inputs gebaut:
+
+- canonical context (`g:*`, `e:*`)
+- user assumptions/claims (`c:*`, `u:*`)
+- branch metadata (`s:*`)
+- optional episodic parallels (`M3`)
+
+Regel: Simulation bleibt branch-basiert; keine stillen Canonical-Schreibpfade.

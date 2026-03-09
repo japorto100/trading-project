@@ -446,10 +446,10 @@ Beispiele für dort verankerte Optionen:
 ### 8.8 Geo-/Rendering-spezifische Performance-Optionen
 
 Ziel-Dokumente:
-- `docs/GEOPOLITICAL_MAP_MASTERPLAN.md`
-- `docs/PERFORMANCE_BASELINE.md`
+- `docs/specs/geo/GEOMAP_OVERVIEW.md`
+- `docs/specs/geo/GEOMAP_VERIFY_GATES.md` (Performance-Baseline Sek. 4)
+- `docs/specs/geo/GEOMAP_FOUNDATION.md` (Rendering Foundation Sek. 4)
 - `docs/specs/EXECUTION_PLAN.md`
-- `docs/adr/ADR-002-GeoMap-Rendering-Foundation.md`
 
 Beispiele für dort verankerte Optionen:
 - `deck.gl`
@@ -496,8 +496,8 @@ Beispiele für dort verankerte Optionen:
 
 ## 10. Primärquellen
 
-- `docs/Master_master_architecture_2026_IMPORTANT.md`
-- `docs/Master_master_diff_merge_matrix.md`
+- `docs/archive/Master_master_architecture_2026_IMPORTANT.md`
+- `docs/archive/Master_master_diff_merge_matrix.md`
 - `docs/specs/AUTH_SECURITY.md`
 - `docs/specs/API_CONTRACTS.md`
 - `docs/specs/EXECUTION_PLAN.md`

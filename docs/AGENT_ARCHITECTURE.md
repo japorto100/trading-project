@@ -15,6 +15,14 @@
 > - AdaptOrch (2026, [arXiv:2602.16873](https://arxiv.org/pdf/2602.16873)) -- Topologie-bewusste Orchestration: 12-23% Verbesserung gegenueber statischen Baselines
 > **Primaer betroffen:** Python-Backend (LLM-Pipeline, Sentiment, Speech, Agent Registry), Go-Backend (Fetching, SSE-Router), Frontend (Dashboard, Agent Builder UI)
 
+> **Normative Zusatzregeln (09. Maerz 2026):**
+> - Agenten sind **untrusted orchestrators**, keine impliziten Truth-Owner.
+> - Wo mehrstufige Pfadsuche wichtig wird, wird Search **explizit** modelliert
+>   (z. B. Beam Search / BFS / spaeter MCTS) statt still dem LLM ueberlassen.
+> - Ausfuehrungs- und Tool-Arbeit soll langfristig in isolierbaren Sandbox- oder
+>   kontrollierten Runtime-Grenzen laufen; Reproduzierbarkeit und Audit gehen vor
+>   "magischer" Tool-Autonomie.
+
 ---
 
 ## Inhaltsverzeichnis
@@ -36,6 +44,7 @@
 **Teil II: Orchestration und Multi-Agent-System (Sek. 12-17)**
 
 12. [Orchestration Layer -- Router, Planner, Orchestrator](#12-orchestration-layer--router-planner-orchestrator)
+    - [12.5a Plan-Execute-Replan + human-editable plan projection](#125a-plan-execute-replan--human-editable-plan-projection)
     - [12.6 Runtime Defaults -- LangGraph zuerst, Temporal spaeter gezielt](#126-runtime-defaults--langgraph-zuerst-temporal-spaeter-gezielt)
 13. [Erweiterte Agent-Rollen -- Research, Synthesizer+, Evaluator, Monitor](#13-erweiterte-agent-rollen--research-synthesizer-evaluator-monitor)
 14. [Heterogene LLM-Architektur -- Modell-Auswahl pro Rolle](#14-heterogene-llm-architektur--modell-auswahl-pro-rolle)
@@ -168,6 +177,15 @@ Extractor Output
          Final Score + Routing Decision
 ```
 
+**Aladdin-Gap – Pre-Trade Compliance & Bounded AI:**
+
+| Prinzip | Aladdin-Erkenntnis | Übertrag |
+|---------|--------------------|----------|
+| **Pre-Trade Compliance** | Regel-Engine vor Order-Ausführung | Regeln in Go/Python, evtl. CEL (Common Expression Language). Priorität: Mittel, erst bei Live-Trading relevant. |
+| **Bounded AI** | Inhaltsfilter, keine unerlaubten Empfehlungen | Agent-Tools an Risk-Tiers (read-only, bounded-write, approval-write) |
+
+OSS: CEL (Common Expression Language) für regelbasierte Prüfungen.
+
 ---
 
 ## 4. Behavioral Text Analysis (BTE/DRS)
@@ -287,7 +305,7 @@ def detect_non_contracting(text: str) -> list[BTEMarker]:
 ### 4.4 Behavioral State Machine -- Markov Chain auf Earnings Calls
 
 > **Konzept:** Waehrend eines Earnings Calls oder einer Pressekonferenz durchlaeuft ein Speaker verschiedene Verhaltenszustaende. Diese Uebergaenge koennen als Markov Chain modelliert werden. Statt nur am Ende einen DRS-Gesamtscore zu haben, tracken wir den **Verlauf** der Zustandsuebergaenge ueber den Call hinweg.
-> **Querverweise:** [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 5q (Markov Chain Patterns allgemein), [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 35.3a (Event Escalation Chain)
+> **Querverweise:** [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 5q (Markov Chain Patterns allgemein), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.3a (Event Escalation Chain)
 
 **Behavioral States:**
 
@@ -514,7 +532,7 @@ Einige Audio-Marker brauchen kein ML-Modell sondern sind reine Signalverarbeitun
 ### 6.3 Feature-Flag und Zugang
 
 - Feature-Flag: `FEATURE_MULTIMODAL_ANALYSIS=true` (default: false)
-- Nur fuer Rolle `analyst` sichtbar (RBAC, [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 2.3)
+- Nur fuer Rolle `analyst` sichtbar (RBAC, [`AUTH_MODEL.md`](./specs/security/AUTH_MODEL.md))
 - Eigener API-Endpoint: `POST /api/v1/analyze/multimodal` (async, Job-Queue)
 - Verarbeitung ist rechenintensiv (LLM + Audio-Modelle) → async mit Status-Polling
 
@@ -653,7 +671,7 @@ Output: CEO-Profil
 
 ## 9. Datenquellen fuer die Behavioral Analysis Pipeline
 
-> **Vollstaendige Quellen-Dokumentation mit APIs, Preisen, Code-Beispielen und Integrations-Reihenfolge:** Siehe [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) **Sek. 12.4 A-G**.
+> **Vollstaendige Quellen-Dokumentation mit APIs, Preisen, Code-Beispielen und Integrations-Reihenfolge:** Siehe [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) **Sek. 12.4 A-G**.
 > Hier nur die Zusammenfassung mit Fokus auf die Pipeline-Relevanz.
 
 ### 9.1 Quellen-Uebersicht nach Prioritaet
@@ -1072,7 +1090,7 @@ Das ist akzeptabel fuer Post-hoc-Analyse. Fuer "Live" waehrend eines Calls wuerd
 | Profile (Needs/Decision Map) | Unbegrenzt (aggregiert, kein PII) | Opt-out moeglich | DB-Encryption |
 | Human Feedback | Unbegrenzt (Training Data) | Anonymisiert | DB-Encryption |
 
-> Verbindung zu [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 10: Audio-Aufnahmen sind hochsensibel. Granular Consent gilt fuer die Analyse, nicht fuer die Aufnahme (die ist oeffentlich). Aber: Profiling-Ergebnisse unterliegen DSGVO Art. 22 (automatisierte Entscheidungsfindung). Human-in-the-Loop ist Pflicht bei Profiling.
+> Verbindung zu [`POLICY_GUARDRAILS.md`](./specs/security/POLICY_GUARDRAILS.md): Audio-Aufnahmen sind hochsensibel. Granular Consent gilt fuer die Analyse, nicht fuer die Aufnahme (die ist oeffentlich). Aber: Profiling-Ergebnisse unterliegen DSGVO Art. 22 (automatisierte Entscheidungsfindung). Human-in-the-Loop ist Pflicht bei Profiling.
 
 ---
 
@@ -1086,14 +1104,14 @@ Das ist akzeptabel fuer Post-hoc-Analyse. Fuer "Live" waehrend eines Calls wuerd
 | Sek. 4 (BTE/DRS) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.8 | Adversarial Robustness -- DRS Guard ist nicht prompt-injectable |
 | **Sek. 4 + 8 (BTE/DRS + Profiling)** | **[`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 5.2 + 6** | **BTE-Marker, Behavioral States, Needs Map, Decision Map werden als Knowledge Graph Nodes modelliert. KG statt Vector DB fuer strukturiertes Wissen mit exakten Relationen (DRS-Punkte, State-Uebergaenge). Agenten querien den KG deterministisch statt via Freitext-Prompt.** |
 | **Sek. 4 + 8 (BTE/DRS)** | **[`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 8** | **Strategeme + BTE-Marker teilen sich denselben Knowledge Graph. Zwei Domains, ein Graph: Krisenlogik (Rieck) + Behavioral Analysis (Hughes) als komplementaere Wissensbasen.** |
-| Sek. 5 (Speech Analysis) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18.2 | Sentiment-Modell-Optionen (Ensemble-Strategie) |
+| Sek. 5 (Speech Analysis) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18.2 | Sentiment-Modell-Optionen (Ensemble-Strategie) |
 | Sek. 6 + 10 (Dashboard) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek. 3.5 | Multimodale Fusion = Hybrid Fusion Pattern |
-| Sek. 7 + 9 (Earnings Calls) | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 18.1 | Soft-Signal-Adapter (neue Quelle: Earnings Call Transcripts) |
+| Sek. 7 + 9 (Earnings Calls) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 18.1 | Soft-Signal-Adapter (neue Quelle: Earnings Call Transcripts) |
 | Sek. 8 (Profiling) | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 4.5 | Bias-Awareness -- Profiling-Output ist bias-anfaellig und braucht Human Review |
 | Sek. 9.5 (YouTube KB) | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 3 | UIL unterstuetzt YouTube-Transcripts als Quell-Typ |
-| Sek. 10 (Full-Stack Dashboard) | [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 2.3, 10 | RBAC: analyst role. Audio-Daten → Granular Consent + Data Minimization |
+| Sek. 10 (Full-Stack Dashboard) | [`AUTH_MODEL.md`](./specs/security/AUTH_MODEL.md) + [`POLICY_GUARDRAILS.md`](./specs/security/POLICY_GUARDRAILS.md) | RBAC: analyst role. Audio-Daten → Granular Consent + Data Minimization |
 | Sek. 10.4 (Backend) | [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) | Prosody Features koennten langfristig nach Rust (FFI) migriert werden |
-| Sek. 3 (Guards allgemein) | [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 10 | Privacy: Profiling-Daten sind hochsensibel → Data Minimization + Consent |
+| Sek. 3 (Guards allgemein) | [`POLICY_GUARDRAILS.md`](./specs/security/POLICY_GUARDRAILS.md) | Privacy: Profiling-Daten sind hochsensibel → Data Minimization + Consent |
 
 ---
 
@@ -1288,6 +1306,45 @@ class AgentOrchestrator:
 ```
 
 **Verbindung zu Sek. 10.3:** Der Orchestrator nutzt das bestehende Celery+Redis Job-Management. Jeder PlanStep wird ein Celery-Task. Der Orchestrator ist der Celery Chord/Chain Coordinator.
+
+### 12.5a Plan-Execute-Replan + human-editable plan projection
+
+Fuer komplexe Laeufe reicht "ein Planner erzeugt einmal einen DAG" nicht aus. Der
+praktische Default ist ein wiederholter Dreischritt:
+
+1. **Planner** erzeugt oder aktualisiert den Plan.
+2. **Executor/Orchestrator** arbeitet den naechsten freigegebenen Schritt ab.
+3. **Replanner** prueft nach Resultaten, Fehlern oder neuen Fakten, ob der Plan
+   angepasst werden muss.
+
+Dieses Pattern trennt bewusst:
+
+- **Bewusstsein / Strategie** → Planner
+- **Ausfuehrung / Hands-on Work** → Executor + Orchestrator
+- **Kurskorrektur** → Replanner
+
+**Wichtige Arbeitsregel:** Der Executor arbeitet nie "frei schwebend" an zehn
+Schritten gleichzeitig, sondern immer gegen einen expliziten aktuellen Planstand.
+
+**Human-editable plan projection:**
+
+- Neben dem strukturierten Runtime-State darf der Plan als Markdown-/Checklist-
+  Projektion im UI sichtbar sein.
+- Menschen duerfen Reihenfolge, Kommentare, Pausen und Freigaben beeinflussen.
+- Die strukturierte Workflow-Representation bleibt trotzdem die technische Source
+  of Truth; die Markdown-Ansicht ist Projektion und Bedienoberflaeche.
+
+**Wann replannen:**
+
+- ein Schritt liefert neue Fakten, die Abhaengigkeiten veraendern
+- ein optionaler Schritt faellt weg und der Folgeschritt muss neu bewertet werden
+- Budget-, Latenz- oder Tool-Grenzen aendern sich waehrend des Laufs
+- Human-in-the-loop markiert einen Schritt als "skip", "priorisieren" oder
+  "anders ausfuehren"
+
+Das passt direkt zu LangGraph/HITL-Workflows: Planner- und Replanner-Nodes duerfen
+grosses Reasoning nutzen, waehrend der Orchestrator moeglichst deterministisch
+bleibt.
 
 ### 12.6 Runtime Defaults -- LangGraph zuerst, Temporal spaeter gezielt
 
@@ -1511,7 +1568,7 @@ class MemoryAccessPolicy:
 | `transcript_fetch` | Earnings Call Transcripts | Nein | analyst |
 | `code_execute` | Sandboxed Python (Quant) | Nein* | analyst |
 
-**Harte Regel (FRONTEND_DESIGN_TOOLING.md Sek. 3.3):** Kein Tool mit `is_destructive: true` darf von Agenten aufgerufen werden. Order-Placement bleibt in deterministischen UI-Komponenten.
+**Harte Regel (`AGENT_TOOLS.md` Sek. 5.4):** Kein Tool mit `is_destructive: true` darf von Agenten aufgerufen werden. Order-Placement bleibt in deterministischen UI-Komponenten.
 
 ### 15.3 Agent Templates (≈ Skills)
 
@@ -1592,7 +1649,7 @@ Plugin-System fuer externe Datenquellen. Entspricht dem UIL-Adapter-Konzept (UNI
 | **Sek. 13.1 (Research Agent)** | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 3 | Research Agent nutzt UIL-Adapter als Tool Connectors |
 | **Sek. 13 (Decomposer/Claim)** | [`CLAIM_VERIFICATION_ARCHITECTURE.md`](./CLAIM_VERIFICATION_ARCHITECTURE.md) | Claim→Subclaim-Pipeline, Verifier-Alignment, Belief-State fuer Geo/Trading |
 | **Sek. 13.2 (K. Synthesizer)** | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) Sek. 8 | Erweiterung der Role-Context Matrix |
-| **Sek. 13.3 (Evaluator)** | [`GEOPOLITICAL_MAP_MASTERPLAN.md`](./GEOPOLITICAL_MAP_MASTERPLAN.md) Sek. 5.4 | Automatische Vorstufe des Human-in-the-Loop |
+| **Sek. 13.3 (Evaluator)** | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4 | Automatische Vorstufe des Human-in-the-Loop |
 | **Sek. 13.4 (Monitor)** | [`ENTROPY_NOVELTY.md`](./ENTROPY_NOVELTY.md) Sek. 5-6 | Fuehrt Dual-Entropy-Metrik operativ aus |
 | **Sek. 13.4 (Monitor)** | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.7.1 | Concept Drift Detection |
 | **Sek. 14 (Heterogene LLMs)** | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) Sek. 5.1 | Token-Budgets variieren je nach Modell-Klasse |
@@ -1600,7 +1657,45 @@ Plugin-System fuer externe Datenquellen. Entspricht dem UIL-Adapter-Konzept (UNI
 | **Sek. 15.1 (Agent Registry)** | [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 5.3 | Episodic Store loggt pro Agent-Typ |
 | **Sek. 15.2 (Tool Registry)** | [`UNIFIED_INGESTION_LAYER.md`](./UNIFIED_INGESTION_LAYER.md) Sek. 3 | UIL-Adapter als Tool Connectors |
 | **Sek. 15.4 (Connectors)** | [`GO_GATEWAY.md`](./GO_GATEWAY.md) | Go Gateway = primaerer Connector fuer Market Data |
-| **Sek. 15.5 (Policies)** | [`FRONTEND_DESIGN_TOOLING.md`](./FRONTEND_DESIGN_TOOLING.md) Sek. 3.3 | `no_trading_actions` kodifiziert Tambo-Sicherheitsregel |
-| **Sek. 15.5 (Policies)** | [`AUTH_SECURITY.md`](./specs/AUTH_SECURITY.md) Sek. 10 | PII-Schutz, DSGVO Art. 22 |
+| **Sek. 15.5 (Policies)** | [`AGENT_TOOLS.md`](./AGENT_TOOLS.md) Sek. 5.4 | `no_trading_actions` kodifiziert die read-only Agent-UI-Grenze |
+| **Sek. 15.5 (Policies)** | [`POLICY_GUARDRAILS.md`](./specs/security/POLICY_GUARDRAILS.md) | PII-Schutz, DSGVO Art. 22 |
 | **Sek. 16 (User Agents)** | [`specs/EXECUTION_PLAN.md`](./specs/EXECUTION_PLAN.md) | Einordnung als Phase 7b+ |
-| **Sek. 16.2 (Frontend)** | [`FRONTEND_DESIGN_TOOLING.md`](./FRONTEND_DESIGN_TOOLING.md) Sek. 3 | Tambo fuer Playground + Monitor (read-only) |
+| **Sek. 16.2 (Frontend)** | [`FRONTEND_COMPONENTS.md`](./FRONTEND_COMPONENTS.md) Sek. 3.8 | Agent Playground und Monitor nutzen read-only Agent-UI-Patterns |
+
+---
+
+## 18. Konsolidierungs-Addendum -- Memory-Write-Policy
+
+Dieses Addendum macht die Merge-/Overlay-Regeln als Agent-Vertrag explizit.
+
+### 18.1 Write-Grenzen pro Wissensschicht
+
+| Schicht | Default | Erlaubte Agent-Schreibpfade |
+|---|---|---|
+| Global Canonical Graph | read-only | keine direkten Agent-Writes |
+| Fast Event Layer | read-mostly | nur kontrollierte ingest/derive-Pfade |
+| User Overlay Graph | read-only bis freigegeben | bounded writes fuer user-owned Objekte |
+| Claim/Evidence/Stance | bounded-write | claims/evidence/stance anlegen und verknuepfen |
+| Simulation Branch Layer | bounded-write | branch creation/run/extract-claims |
+
+### 18.2 Claim-Suggestion vs. Fact-Mutation
+
+- Agenten duerfen Claims vorschlagen und Evidence verknuepfen.
+- Agenten duerfen keine canonical facts direkt mutieren.
+- Promotion Richtung canonical truth erfolgt nur via Policy-/Review-Gates.
+
+### 18.3 Simulation-Branch-Handling
+
+- Simulation erzeugt `s:branch:*`-Artefakte.
+- Branch-Outputs bleiben hypothetisch.
+- Nur explizit extrahierte Claims/Evidence duerfen in den Claim-Layer uebergehen.
+- Keine direkte Canonical-Mutation durch Simulation.
+
+### 18.4 Provenance und Idempotency
+
+Alle agentischen Writes in Memory-nahen Schichten muessen tragen:
+
+- `provenance` (wer/woher/wann)
+- `idempotency_key`
+- `reversible` bzw. nachvollziehbarer rollback path
+- `audit_event_id`
