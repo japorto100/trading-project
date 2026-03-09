@@ -1,5 +1,3 @@
-$ErrorActionPreference = "Stop"
-
 param(
 	[string]$Exchange = "Binance",
 	[string]$SpotPair = "BTC-USDT",
@@ -8,13 +6,15 @@ param(
 	[string]$GctPassword = "Password"
 )
 
+$ErrorActionPreference = "Stop"
+
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $goBackendDir = Resolve-Path (Join-Path $scriptDir "..")
-$gctDir = Join-Path $goBackendDir "vendor-forks\\gocryptotrader"
+$gctDir = Join-Path $goBackendDir "go-crypto-trader"
 $gctExe = Join-Path $gctDir "gocryptotrader.exe"
 
 if (-not (Test-Path $gctExe)) {
-	throw "Missing gocryptotrader.exe at $gctExe. Build it with: go build . (inside vendor-forks\\gocryptotrader)"
+	throw "Missing gocryptotrader.exe at $gctExe. Build it with: go build . (inside go-crypto-trader)"
 }
 
 New-Item -ItemType Directory -Path $DataDir -Force | Out-Null

@@ -36,6 +36,7 @@
 **Teil II: Orchestration und Multi-Agent-System (Sek. 12-17)**
 
 12. [Orchestration Layer -- Router, Planner, Orchestrator](#12-orchestration-layer--router-planner-orchestrator)
+    - [12.6 Runtime Defaults -- LangGraph zuerst, Temporal spaeter gezielt](#126-runtime-defaults--langgraph-zuerst-temporal-spaeter-gezielt)
 13. [Erweiterte Agent-Rollen -- Research, Synthesizer+, Evaluator, Monitor](#13-erweiterte-agent-rollen--research-synthesizer-evaluator-monitor)
 14. [Heterogene LLM-Architektur -- Modell-Auswahl pro Rolle](#14-heterogene-llm-architektur--modell-auswahl-pro-rolle)
 15. [Agent Registry und Tool System](#15-agent-registry-und-tool-system)
@@ -1287,6 +1288,35 @@ class AgentOrchestrator:
 ```
 
 **Verbindung zu Sek. 10.3:** Der Orchestrator nutzt das bestehende Celery+Redis Job-Management. Jeder PlanStep wird ein Celery-Task. Der Orchestrator ist der Celery Chord/Chain Coordinator.
+
+### 12.6 Runtime Defaults -- LangGraph zuerst, Temporal spaeter gezielt
+
+Dieses Dokument hält die **Default-Entscheidung** für zukünftige Agent-Workflows fest, damit durable execution nicht ad hoc pro Feature neu entschieden wird.
+
+| Ebene | Default | Wann einsetzen | Wann **nicht** sofort einsetzen |
+|---|---|---|---|
+| **Agent-/Reasoning-Workflows** | **LangGraph** | mehrstufige Agent-Läufe, Resume nach Unterbruch, Human-in-the-loop, Streaming, Checkpoints im Python-Agent-Layer | nicht nötig für triviale 1-Step-Requests oder rein deterministische Kurzpfade |
+| **Produkt-/Business-Workflows** | **Temporal** (später, gezielt) | langlebige, robuste, produktkritische Abläufe mit starken Retry-/Saga-/Durability-Anforderungen | nicht als Erst-Framework für die Agent-Schicht und nicht vor klar nachgewiesenem Bedarf |
+
+**Arbeitsregel für TradeView Fusion:**
+- **LangGraph zuerst** im Python-Agent-/LLM-Layer
+- **Temporal später**, wenn Agent-Orchestrierung in echte langlebige Produkt-Workflows übergeht
+- kein gleichzeitiger Früh-Einstieg in beide Frameworks ohne klar getrennte Verantwortlichkeiten
+
+**Konkrete Zuordnung:**
+- `agent-service` / Agent Runtime / Planner-Orchestrator / HITL-Flows → **LangGraph**
+- langlaufende, geschäftskritische, nicht nur agentische Multi-Step-Prozesse mit strikter Durability → **Temporal**
+
+**Nicht die Default-Rolle von Temporal in diesem Projekt:**
+- einfacher Ersatz für Celery
+- Standardlaufzeit für jeden Agent-Call
+- Begründung für zusätzliche Infrastruktur, bevor die LangGraph-/Python-Agent-Schicht sauber steht
+
+Diese Entscheidung ist absichtlich kompatibel mit der Architekturformel aus den übrigen Architektur-Dokumenten:
+- Python bleibt die Modellierungs- und Agentik-Schicht
+- Go bleibt die Control Plane
+- Rust bleibt der Compute-Layer
+- Durable Workflow-Infrastruktur wird erst dann erweitert, wenn die fachliche Trennung stabil ist
 
 ---
 

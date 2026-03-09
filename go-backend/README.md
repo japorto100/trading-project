@@ -1,4 +1,4 @@
-# Go Backend (Gateway + GCT Fork Base)
+# Go Backend (Gateway + GCT Upstream Mirror)
 
 This folder hosts the Go layer for Tradeview Fusion.
 
@@ -10,8 +10,8 @@ This folder hosts the Go layer for Tradeview Fusion.
 
 ## Structure
 
-- `vendor-forks/gocryptotrader/`
-  - Local fork base (downloaded source mirror of upstream).
+- `go-crypto-trader/`
+  - Local upstream mirror used by `go.mod replace` and local runtime scripts.
 - `cmd/gateway/`
   - Gateway entrypoint.
 - `internal/`
@@ -27,7 +27,8 @@ This folder hosts the Go layer for Tradeview Fusion.
 
 ## Current status
 
-- Local GCT fork base is present at `go-backend/vendor-forks/gocryptotrader`.
+- Local GCT upstream mirror is present at `go-backend/go-crypto-trader`.
+- Legacy vendor fork is archived at `archive/go-backend/vendor-forks/gocryptotrader` and is no longer part of the active runtime path.
 - Gateway skeleton is in place with:
   - `GET /health`
   - `GET /api/v1/quote` (stable multi-source contract: GCT + ECB + FINNHUB + FRED/FED/BOJ/SNB)
@@ -138,7 +139,7 @@ Environment for Geopolitical GameTheory bridge:
 
 Environment for Backtest capability discovery:
 
-- `GCT_STRATEGY_EXAMPLES_DIR` (default: `vendor-forks/gocryptotrader/backtester/config/strategyexamples`)
+- `GCT_STRATEGY_EXAMPLES_DIR` (default: `go-crypto-trader/backtester/config/strategyexamples`)
 
 Environment for real GCT backtest execution (optional):
 
@@ -150,7 +151,7 @@ Environment for real GCT backtest execution (optional):
 - `GCT_BACKTEST_REQUEST_TIMEOUT_MS` (default: `8000`)
 - `GCT_BACKTEST_POLL_INTERVAL_MS` (default: `750`)
 - `GCT_BACKTEST_RUN_TIMEOUT_MS` (default: `300000`)
-- `GCT_BACKTEST_REPORT_OUTPUT_DIR` (default: `vendor-forks/gocryptotrader/backtester/results`)
+- `GCT_BACKTEST_REPORT_OUTPUT_DIR` (default: `go-crypto-trader/backtester/results`)
 
 Backtest run status model:
 
@@ -197,4 +198,4 @@ Optional:
 - **golangci-lint** (optional, recommended before PR):  
   `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest` then  
   `golangci-lint run ./cmd/... ./internal/...`  
-  Config: `.golangci.yml` (excludes `vendor-forks`).
+  Config: `.golangci.yml` (excludes archived legacy vendor code).

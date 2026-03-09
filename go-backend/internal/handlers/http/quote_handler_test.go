@@ -8,23 +8,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
-	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 type fakeQuoteClient struct {
 	ticker       gct.Ticker
 	err          error
 	lastExchange string
-	lastAsset    asset.Item
-	lastPair     gct.Pair
+	lastAsset    string
+	lastPair     contracts.Pair
 }
 
-func (f *fakeQuoteClient) GetTicker(_ context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
-	f.lastExchange = exchange
-	f.lastPair = pair
-	f.lastAsset = assetType
+func (f *fakeQuoteClient) GetTickerTarget(_ context.Context, target contracts.MarketTarget) (gct.Ticker, error) {
+	target = target.Normalized()
+	f.lastExchange = target.Exchange
+	f.lastPair = target.Pair
+	f.lastAsset = target.AssetType
 
 	if f.err != nil {
 		return gct.Ticker{}, f.err
@@ -161,10 +161,10 @@ func TestQuoteHandler_ReturnsStableContract(t *testing.T) {
 	if client.lastExchange != "Binance" {
 		t.Fatalf("expected forwarded exchange Binance, got %s", client.lastExchange)
 	}
-	if client.lastAsset.String() != "spot" {
+	if client.lastAsset != "spot" {
 		t.Fatalf("expected forwarded asset spot, got %s", client.lastAsset)
 	}
-	if client.lastPair.Base.String() != "BTC" || client.lastPair.Quote.String() != "USDT" {
+	if client.lastPair.Base != "BTC" || client.lastPair.Quote != "USDT" {
 		t.Fatalf("expected forwarded pair BTC/USDT, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
 	}
 }
@@ -222,7 +222,7 @@ func TestQuoteHandler_ReturnsStableContractForECBForex(t *testing.T) {
 	if client.lastExchange != "ECB" {
 		t.Fatalf("expected forwarded exchange ECB, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "EUR" || client.lastPair.Quote.String() != "USD" {
+	if client.lastPair.Base != "EUR" || client.lastPair.Quote != "USD" {
 		t.Fatalf("expected forwarded pair EUR/USD, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
 	}
 }
@@ -274,7 +274,7 @@ func TestQuoteHandler_ReturnsStableContractForFinnhubEquity(t *testing.T) {
 	if client.lastExchange != "FINNHUB" {
 		t.Fatalf("expected forwarded exchange FINNHUB, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "AAPL" || client.lastPair.Quote.String() != "USD" {
+	if client.lastPair.Base != "AAPL" || client.lastPair.Quote != "USD" {
 		t.Fatalf("expected forwarded pair AAPL/USD, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
 	}
 }
@@ -326,7 +326,7 @@ func TestQuoteHandler_ReturnsStableContractForFredMacro(t *testing.T) {
 	if client.lastExchange != "FRED" {
 		t.Fatalf("expected forwarded exchange FRED, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "CPIAUCSL" || client.lastPair.Quote.String() != "USD" {
+	if client.lastPair.Base != "CPIAUCSL" || client.lastPair.Quote != "USD" {
 		t.Fatalf("expected forwarded pair CPIAUCSL/USD, got %s/%s", client.lastPair.Base, client.lastPair.Quote)
 	}
 }
@@ -354,7 +354,7 @@ func TestQuoteHandler_ReturnsStableContractForBojMacroAlias(t *testing.T) {
 	if client.lastExchange != "BOJ" {
 		t.Fatalf("expected forwarded exchange BOJ, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "POLICY_RATE" {
+	if client.lastPair.Base != "POLICY_RATE" {
 		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
 	}
 }
@@ -382,7 +382,7 @@ func TestQuoteHandler_ReturnsStableContractForBcbMacroAlias(t *testing.T) {
 	if client.lastExchange != "BCB" {
 		t.Fatalf("expected forwarded exchange BCB, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "POLICY_RATE" {
+	if client.lastPair.Base != "POLICY_RATE" {
 		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
 	}
 }
@@ -410,7 +410,7 @@ func TestQuoteHandler_ReturnsStableContractForBanxicoMacro(t *testing.T) {
 	if client.lastExchange != "BANXICO" {
 		t.Fatalf("expected forwarded exchange BANXICO, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "SF43718" {
+	if client.lastPair.Base != "SF43718" {
 		t.Fatalf("expected handler symbol SF43718, got %s", client.lastPair.Base)
 	}
 }
@@ -438,7 +438,7 @@ func TestQuoteHandler_ReturnsStableContractForBokMacroAlias(t *testing.T) {
 	if client.lastExchange != "BOK" {
 		t.Fatalf("expected forwarded exchange BOK, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "POLICY_RATE" {
+	if client.lastPair.Base != "POLICY_RATE" {
 		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
 	}
 }
@@ -466,7 +466,7 @@ func TestQuoteHandler_ReturnsStableContractForBcraMacroAlias(t *testing.T) {
 	if client.lastExchange != "BCRA" {
 		t.Fatalf("expected forwarded exchange BCRA, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "POLICY_RATE" {
+	if client.lastPair.Base != "POLICY_RATE" {
 		t.Fatalf("expected handler symbol POLICY_RATE, got %s", client.lastPair.Base)
 	}
 }
@@ -494,7 +494,7 @@ func TestQuoteHandler_ReturnsStableContractForTcmbMacroSeries(t *testing.T) {
 	if client.lastExchange != "TCMB" {
 		t.Fatalf("expected forwarded exchange TCMB, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "TP_AB_TOPLAM" {
+	if client.lastPair.Base != "TP_AB_TOPLAM" {
 		t.Fatalf("expected handler symbol TP_AB_TOPLAM, got %s", client.lastPair.Base)
 	}
 }
@@ -522,7 +522,7 @@ func TestQuoteHandler_ReturnsStableContractForRbiMacroSeries(t *testing.T) {
 	if client.lastExchange != "RBI" {
 		t.Fatalf("expected forwarded exchange RBI, got %s", client.lastExchange)
 	}
-	if client.lastPair.Base.String() != "FXRES_TR_USD_W" {
+	if client.lastPair.Base != "FXRES_TR_USD_W" {
 		t.Fatalf("expected handler symbol FXRES_TR_USD_W, got %s", client.lastPair.Base)
 	}
 }

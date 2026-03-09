@@ -37,6 +37,211 @@ FLIGHT_RECORDER_ENABLED=true  # Zeile 142 (war: false)
 
 ---
 
+## ⚠️ TODO: Market Credential Flow Verify-Gates — ausführen sobald Next + Go laufen
+
+**Zweck:** Browser-/Frontend-Provider-Keys sollen kontrolliert ueber
+Next-Market-Routen bis ins Go-Gateway und in den ersten read-only Connector
+(`finnhub`) propagiert werden, ohne nur auf `.env` zu vertrauen.
+
+**Voraussetzungen:**
+
+```powershell
+.\scripts\dev-stack.ps1 -SkipGCT
+# Erwartet: Next.js (:3000 o. lokaler Dev-Port) + Go-Gateway (:9060)
+# GCT ist fuer diesen Verify-Block nicht notwendig.
+```
+
+**Verify Gates:**
+
+- [ ] **MC1** Settings speichern: In der UI unter `Settings` einen `Finnhub API Key`
+      speichern. Erwartung:
+  - Browser hat weiter `localStorage` Eintrag `tradeview_api_keys`
+  - zusaetzlich wird ein server-lesbarer Cookie
+    `tradeview_provider_credentials` gesetzt
+- [ ] **MC2** Next Providers Route: `GET /api/market/providers` nach gespeichertem
+      Key. Erwartung:
+  - `finnhub.requiresAuth === true`
+  - `finnhub.configured === true`
+- [ ] **MC3** Quote E2E ohne ENV-Zwang:
+  - `FINNHUB_API_KEY` im Gateway testweise leer lassen
+  - Browser/Session mit gespeichertem Cookie
+  - `GET /api/market/quote?symbol=AAPL`
+  - Erwartung: erfolgreicher Quote-Response ueber
+    Frontend → Next → Go → Finnhub
+- [ ] **MC4** SSE E2E:
+  - Marktstream fuer `AAPL` oder Watchlist mit `AAPL` oeffnen
+  - Erwartung: `GET /api/market/stream` bzw. `GET /api/market/stream/quotes`
+    liefert Events weiter, obwohl der Finnhub-Key nicht aus `.env`, sondern aus
+    dem Browser-/Cookie-Pfad stammt
+- [ ] **MC5** Negativfall:
+  - Cookie loeschen oder leeren Key speichern
+  - `GET /api/market/quote?symbol=AAPL`
+  - Erwartung: sauberer Fehlerpfad statt stiller lokaler Frontend-Fallback
+
+**Artefakte / Referenz:**
+
+- `src/components/SettingsPanel.tsx`
+- `src/app/api/market/provider-credentials/route.ts`
+- `src/lib/server/provider-credentials.ts`
+- `go-backend/internal/app/middleware.go`
+- `go-backend/internal/connectors/finnhub/client.go`
+- `docs/gct-gateway-connections.md`
+
+---
+
+## ⚠️ TODO: Provider Rollout Matrix — offene Checkpoints für aktuelle Backend-Provider
+
+**Ziel:** Nicht jeden Provider als eigenes Großprojekt behandeln, sondern
+gruppenweise mit einem gemeinsamen Verify-Muster abarbeiten.
+
+**Effizienz-Regel:**
+
+1. **Immer zuerst gruppenweise vorgehen**, nicht providerweise.
+2. **Ein gemeinsamer Verify-Contract pro Gruppe** definieren.
+3. Pro Provider nur noch prüfen:
+   - Route / Connector lebt
+   - Auth-Modell stimmt
+   - Response-Shape stimmt
+   - Fehlerpfad ist sauber
+4. Erst wenn eine Gruppe grün ist, den nächsten Batch starten.
+
+### Gemeinsames Verify-Muster pro Provider
+
+Für **jeden** Provider in der Matrix gilt als Minimal-Contract:
+
+- [ ] **PV.1** Health / Reachability: Upstream oder Proxy antwortet in akzeptabler Zeit
+- [ ] **PV.2** Success Path: genau **ein** repräsentativer Happy-Path pro Provider
+- [ ] **PV.3** Error Path: klarer Fehler bei fehlender Auth, invalidem Symbol oder Upstream-Fehler
+- [ ] **PV.4** Contract Path: Go-Response-Shape bleibt stabil
+- [ ] **PV.5** Observability: `X-Request-ID` / Logs / Fehlerklassifikation nachvollziehbar
+
+**Nur für auth-pflichtige Provider zusätzlich:**
+
+- [ ] **PV.A1** ENV-only funktioniert
+- [ ] **PV.A2** request-scoped Credential-Override funktioniert
+- [ ] **PV.A3** fehlende Credentials liefern sauberen 401/403/BadGateway-Fehler, keinen stillen Fallback
+
+### Batch 1 — User-Key / Request-Scoped Credential Provider
+
+**Diese Gruppe zuerst**, weil hier die neue Frontend→Next→Gateway-Credential-Grenze
+wirklich Wert bringt.
+
+| Provider | Status | Auth-Modell | Primärer Verify-Pfad | Offene Checkpoints |
+|:---------|:-------|:------------|:----------------------|:-------------------|
+| `finnhub` | 🔄 Code-seitig vorbereitet | API Key | `GET /api/market/quote?symbol=AAPL` + SSE/Watchlist | Live-E2E `MC1–MC5` ausführen |
+| `fred` | ⏳ Nächster Kandidat | API Key | `GET /api/v1/quote?exchange=fred&assetType=macro&symbol=FEDFUNDS` | request-scoped Override prüfen |
+| `banxico` | ⏳ Offen | API Token | `GET /api/v1/quote?exchange=banxico&assetType=macro&symbol=...` | prüfen ob User-Key sinnvoll/erlaubt ist |
+| `bok` | ⏳ Offen | API Key | `GET /api/v1/quote?exchange=bok&assetType=macro&symbol=...` | request-scoped Override prüfen |
+
+**Vorgehen effizient:**
+
+- `finnhub` Live-Gates abschließen
+- denselben Credential-Transport unverändert auf `fred`
+- danach entscheiden:
+  - `banxico` / `bok` ebenfalls user-supplied
+  - oder dauerhaft gateway-owned service credentials
+
+### Batch 2 — Public / No-Auth Macro Provider
+
+Diese Gruppe **nicht einzeln über-engineeren**. Hier reicht pro Provider ein
+repräsentativer Quote-/History-Smoke-Test plus Error-Path.
+
+| Provider | Auth | Empfohlener Verify-Pfad | Offene Checkpoints |
+|:---------|:-----|:-------------------------|:-------------------|
+| `ecb` | none | `GET /api/v1/quote?exchange=ecb&assetType=forex&symbol=EUR/USD` | Success + invalid pair |
+| `bcb` | none | `GET /api/v1/quote?exchange=bcb&assetType=macro&symbol=BCB_SGS_11` | Prefix-Routing + History |
+| `bcra` | none | `GET /api/v1/quote?exchange=bcra&assetType=macro&symbol=BCRA_160` | Success + invalid series |
+| `tcmb` | none/public | `GET /api/v1/quote?exchange=tcmb&assetType=macro&symbol=TCMB_EVDS_...` | Success + upstream schema check |
+| `rbi` | handshake/public | `GET /api/v1/quote?exchange=rbi&assetType=macro&symbol=RBI_DBIE_FXRES_...` | handshake + timeout path |
+| `imf` | none | `GET /api/v1/quote?exchange=imf&assetType=macro&symbol=IMF_IFS_...` | Success + series resolution |
+| `oecd` | none | `GET /api/v1/quote?exchange=oecd&assetType=macro&symbol=OECD_...` | Success + history |
+| `worldbank` | none | `GET /api/v1/quote?exchange=worldbank&assetType=macro&symbol=WB_WDI_...` | Success + invalid indicator |
+| `un` | none | `GET /api/v1/quote?exchange=un&assetType=macro&symbol=UN_...` | Success + upstream shape |
+| `adb` | none | `GET /api/v1/quote?exchange=adb&assetType=macro&symbol=ADB_...` | Success + timeout path |
+| `ofr` | none | `GET /api/v1/quote?exchange=ofr&assetType=macro&symbol=OFR_...` | Success + no-data path |
+| `nyfed` | none | `GET /api/v1/quote?exchange=nyfed&assetType=macro&symbol=NYFED_...` | Success + invalid series |
+
+**Vorgehen effizient:**
+
+- einen gemeinsamen Test-/CLI-Runner für `exchange`, `assetType`, `symbol`
+- je Provider nur:
+  - 1 Success-Beispiel
+  - 1 Invalid-/No-Data-Beispiel
+- keine Provider-spezifischen Spezialtests bauen, solange kein echter Sonderfall auftaucht
+
+### Batch 3 — GCT Read-Only Exchange Layer
+
+Hier geht es **nicht** um Frontend-Keys zuerst, sondern um stabile Gateway-Grenzen
+für den GCT-Read-Layer.
+
+| Provider | Primäre Pfade | Offene Checkpoints |
+|:---------|:--------------|:-------------------|
+| `binance` | `/api/v1/quote`, `/api/v1/orderbook`, `/api/v1/stream/market`, `/api/v1/stream/orderbook` | Live-Read-Gates mit laufendem GCT |
+| `kraken` | wie oben | Pair-Normalisierung `BTC -> XBT` live prüfen |
+| `coinbase` | wie oben | USD-Default / Symbolnormalisierung prüfen |
+| `okx` | wie oben | Quote + Orderbook Smoke |
+| `bybit` | wie oben | Quote + Stream Smoke |
+| `auto` Router | `/api/v1/quote?exchange=auto` / Stream | Router-/Failover-Gates mit echten Providern |
+
+**Vorgehen effizient:**
+
+- erst **einen** gemeinsamen Live-Verify-Tag für alle GCT-Read-Pfade
+- pro Exchange nur:
+  - Quote
+  - optional Orderbook
+  - optional Stream
+- keine tiefe Exchange-spezifische Testmatrix, solange die Gateway-Contract-Grenze stabil bleibt
+
+### Batch 4 — Internal / Bridge / Service Provider
+
+Diese Gruppe sind eher interne Upstreams oder Daten-/Signal-Services. Hier zählt
+vor allem Availability, Contract-Stabilität und Fehlerklassifikation.
+
+| Provider | Typ | Offene Checkpoints |
+|:---------|:----|:-------------------|
+| `financebridge` | market bridge | Quote/Fallback + OHLCV + Failover-URLs |
+| `indicatorservice` | Python service | representative signal/eval endpoint smoke |
+| `softsignals` | Python service | representative clustering/narrative endpoint smoke |
+| `geopoliticalnext` | frontend/go bridge | proxy health + representative request |
+| `acled` | geo source | token/mock/runtime verify |
+| `gdelt` | geo/news source | success + retry/error classification |
+| `cfr` | geo source | success smoke |
+| `crisiswatch` | geo RSS/cache | cache + fallback path |
+| `gametheory` | Python service | representative endpoint smoke |
+| `memory` | memory service | existing health/query/seed gates reuse |
+| `agentservice` | agent runtime | representative context/tool endpoint smoke |
+
+**Vorgehen effizient:**
+
+- pro Service-Gruppe **einen** Smoke-Endpoint definieren
+- Errors auf gemeinsame Klassen mappen (`auth`, `timeout`, `quota`, `schema_drift`, `upstream_5xx`)
+- nur dort tiefer gehen, wo der gemeinsame Smoke-Contract rot wird
+
+### Empfohlene Reihenfolge für CLI-Agents
+
+Damit nicht der ganze Rechner oder Cursor leidet:
+
+1. `Batch 1`: `finnhub` Live-Gates schließen, dann `fred`
+2. `Batch 2`: öffentliche Macro-Provider in 1–2 CLI-Agent-Runs gruppiert prüfen
+3. `Batch 3`: GCT-Read-Layer nur mit laufendem GCT-Stack
+4. `Batch 4`: interne Services / Bridges separat, nicht parallel zu vollem Frontend-E2E
+
+### Done-Definition für den Provider-Rollout
+
+Der Provider-Rollout gilt **nicht** erst dann als fertig, wenn jeder Provider
+perfekt einzeln getestet wurde, sondern wenn:
+
+- pro Gruppe ein gemeinsamer Verify-Contract existiert
+- pro Provider mindestens ein Happy-Path und ein sauberer Fehlerpfad bestätigt sind
+- auth-pflichtige Provider klar als
+  - user-supplied
+  - gateway-owned
+  - oder nicht-freigegeben
+  klassifiziert sind
+- die Gateway-Response-Shapes stabil bleiben
+
+---
+
 ## Übersicht
 
 | # | Thema | Phase-Slot | Status |
@@ -45,7 +250,7 @@ FLIGHT_RECORDER_ENABLED=true  # Zeile 142 (war: false)
 | 2 | sqlc + pgxpool — DB Layer Evaluation | Pre-Phase 11 | 🔄 Teilweise (P2.1–P2.4, P2.6 ✅; P2.5 offen) |
 | 3 | NATS JetStream — Async Message Bus | Phase 20 (prep jetzt) | 🔄 Phase A ✅ (P3.1–P3.7 done); Phase B–D Phase 19/20 |
 | 4 | Go simd/archsimd — Compute Use Cases | Phase 19/20 | 🔲 Offen (P4.1 aktualisiert: go 1.26 vorhanden) |
-| 5 | Gemini-Architektur: Go→Rust→Python ML | Phase 19–20 | 🔲 Offen |
+| 5 | Compute-Grenze ausgelagert nach `execution_mini_2.md` | Phase 19–20 | 🔄 Leitlinie nach `mini2` verschoben; Infra-Abhängigkeiten bleiben hier |
 | 6 | Go Best Practices 2026 — High-Relevance Items | Ongoing | 🔄 Teilweise (6a ✅ 6b ✅ 6c ✅ 6f ✅; 6d offen; 6e Phase 19/20) |
 | 7 | Sprint 4 — Go 1.26 Upgrade, Benchmarks, Code Quality | Sprint 4 | ✅ CODE-COMPLETE (06.03.2026) |
 
@@ -187,7 +392,7 @@ orders.{userId}.update            # Order Status Updates
 - [x] **P3.6** — `go build ./...` clean + `go test -race ./internal/messaging/...` 4/4 PASS; `ensureStreams()` in `NewNATSPublisher` (MARKET_CANDLES + MARKET_TICKS streams via `CreateOrUpdateStream`)
 - [x] **P3.7** — `dev-stack.ps1`: `-Nats` Switch + Auto-Download `nats-server.exe` nach `tools/nats/` (v2.10.24); `docker-compose.nats.yml` als Docker-Alternative; `tools/nats/nats-server.exe` gitignored
 
-**Phase B — Rust Subscriber (nach Gemini-Architektur Phase 19):**
+**Phase B — Rust Subscriber (nach Compute-Split in `execution_mini_2.md`):**
 - [ ] **P3.8** — Rust Service: `async-nats` crate, subscribes `market.*.tick`, publishes `signals.*.computed`
 - [ ] **P3.9** — Go Gateway: Indikator-Requests an Rust via NATS statt direkt an Python
 
@@ -234,91 +439,40 @@ Go 1.25 führte `simd/archsimd` (experimentell) ein — direkter Zugriff auf CPU
 
 - [x] **P4.1** — Go 1.26 installiert (`go version go1.26.0 windows/amd64`). `go.mod` zeigt noch `go 1.25` → Update auf `go 1.26` in Sprint 4 (P7a.1). `GOEXPERIMENT=simd` verfügbar.
 - [x] **P4.2** — `BenchmarkVWAP` + `BenchmarkVWAPBatch` in `candle_builder_bench_test.go`: Scalar-Baseline VWAP (Σ price×vol / Σ vol). 100 Ticks: **1432 ns/op (0 allocs)**, 1000 Ticks: **14267 ns/op (~14 ns/tick)**. Linear scaling. SIMD lohnt erst bei > 200 ns/tick — aktuell nicht der Fall.
-- [ ] **P4.3** — GOEXPERIMENT=simd: `math/simd` API evaluieren; nur implementieren wenn Scalar-VWAP > 200 ns/op und Speedup > 3×. Sonst: Rust für schwere Compute (Gemini §5).
-- [ ] **P4.4** — Langzeit-Plan: Rust übernimmt alle SIMD-intensiven Berechnungen (Gemini-Architektur §5),
+- [ ] **P4.3** — GOEXPERIMENT=simd: `math/simd` API evaluieren; nur implementieren wenn Scalar-VWAP > 200 ns/op und Speedup > 3×. Sonst: Rust für schwere Compute (siehe `execution_mini_2.md` §5).
+- [ ] **P4.4** — Langzeit-Plan: Rust übernimmt alle SIMD-intensiven Berechnungen (siehe `execution_mini_2.md` §5),
   Go nutzt archsimd nur für Gateway-interne Normalisierung
 
 **Phase-Referenz:** Evaluation Phase 19. Implementierung abhängig von Benchmark-Ergebnis.
 
 ---
 
-## 5. Gemini-Architektur: Go→Rust→Python ML
+## 5. Compute-Grenze und Service-Schnitt: ausgelagert nach `execution_mini_2.md`
 
-### Vision
+Die frühere Gemini-Architektur wird nicht mehr als eigenständige Leitsektion in diesem Dokument geführt.
+Sie wurde inhaltlich nach `execution_mini_2.md` verschoben, weil sie primär die **Sprachgrenzen, Compute-Ownership und Service-Schnitte**
+zwischen Go, Python und Rust beschreibt, nicht die Infrastruktur an sich.
 
-```
-Exchange WebSocket/REST
-        ↓
-  Go Gateway (Orchestrator)
-  - Netzwerk-Routing, Auth, Circuit Breaker
-  - GCT gRPC für Order-Execution
-  - NATS: publiziert Raw Ticks
-        ↓ gRPC (Tonic) oder NATS Subscribe
-  Rust Signal Processor (neuer eigenständiger Service)
-  - Alle Indikatoren (EMA, RSI, ATR, BB, Kelly etc.)
-  - Monte Carlo (10k → 100k+ Simulations, kein GIL)
-  - Harmonic/Elliott/Pattern Detection
-  - Publiziert: computed features → NATS
-        ↓ NATS Subscribe (async, entkoppelt)
-  Python ML Engine (nur noch AI/ML)
-  - Empfängt fertige Features, kein Raw-Tick-Kontakt
-  - LLM-Inferenz (Phase 10), Regime-Erkennung (ML)
-  - Modell-Training asynchron
-        ↓
-  Next.js (Konsument)
-  - Go REST/SSE für Daten
-  - React Query Cache
-```
+**Dort jetzt führend dokumentiert:**
+- Go/Python/Rust-Arbeitsformel
+- Go→Rust direkte Compute-Grenze
+- Python nicht mehr als Hot-Path-Intermediär
+- PyO3 nur noch als Fallback/Test-Utility
+- Service-Matrix (`indicator-service`, `finance-bridge`, `agent-service`, `memory-service`, `rust_core`)
+- QuantLib/ORE/FINOS-Einordnung
+- übernommene Compute-Checkpoints
 
-**Eliminiert:**
-- Python als Intermediär im Hot-Path (GIL-Flaschenhals weg)
-- Go→Python→Rust Serialisierungskette (→ Go→Rust direkt)
-- PyO3 als primäre Rust-Integration (bleibt als Fallback/Test-Utility)
+**In diesem Dokument verbleiben nur die Infra-Abhängigkeiten dazu:**
+- NATS JetStream als Streaming-/Replay-Layer (§3)
+- `async-nats` / `nats-py` Folgephasen (P3.8–P3.11)
+- Connect RPC bzw. Rust-Tonic-Kompatibilität (§6e)
+- Go-seitige SIMD-Entscheidung nur für Gateway-interne Hotspots (§4)
 
-### Go→Rust Kommunikation — Optionen
+**Praktische Regel für Phase 19/20:**
+- `mini2` entscheidet, **wer** rechnet
+- `mini3` entscheidet, **wie** die Prozesse, Transporte und Verify-Gates verdrahtet werden
 
-| Option | Latenz | Komplexität | Empfehlung |
-|:-------|:-------|:------------|:-----------|
-| **gRPC (Tonic in Rust)** | ~0.1ms/call | Mittel | ✅ Empfohlen: Service-Boundary, typsicher |
-| Unix Domain Socket + MessagePack | ~0.05ms | Niedrig | ✅ Hot-Path (Tick-Streaming) |
-| NATS JetStream (aus §3) | ~0.2ms | Niedrig (schon vorhanden) | ✅ Entkoppelt, einfach |
-| CGo → C ABI aus Rust | ~Microseconds | Sehr hoch, unsicher | ❌ Zu fragil |
-| Shared Memory | ~Nanoseconds | Sehr hoch | ❌ Nur für extreme Edge Cases |
-
-**Empfehlung: gRPC für Request/Response (Backtest, VaR), NATS für Streaming (Ticks, Indikatoren).**
-
-### Implementation Plan (Phase 19–20)
-
-**Phase A — Rust als eigenständiger gRPC Service:**
-- [ ] **P5.1** — `rust-core/` (aktuell PyO3-Library) → `rust-core/src/bin/signal_processor.rs` (gRPC Server via Tonic)
-- [ ] **P5.2** — Proto-Definition: `pkg/protocol/signal_processor.proto` (shared mit Go)
-  ```protobuf
-  service SignalProcessor {
-    rpc ComputeIndicators(IndicatorRequest) returns (IndicatorResponse);
-    rpc RunMonteCarlo(MonteCarloRequest) returns (MonteCarloResponse);
-    rpc DetectPatterns(PatternRequest) returns (PatternResponse);
-  }
-  ```
-- [ ] **P5.3** — Go Gateway: `internal/connectors/rustcore/` Client (gRPC, ersetzt Python-HTTP-Calls)
-- [ ] **P5.4** — Candle Builder → nach Tick-Aggregation: Indikator-Request an Rust statt Python
-- [ ] **P5.5** — Python: Indikator-Endpoints deprecaten, nur noch ML-Endpoints behalten
-- [ ] **P5.6** — Monte Carlo Parameter Review: Python 10k → Rust 100k+ (wie in EXECUTION_PLAN Phase 2 notiert)
-
-**Phase B — Python als reiner ML-Consumer:**
-- [ ] **P5.7** — Python: NATS-Subscribe für `signals.*.ml_features` statt HTTP-Polling
-- [ ] **P5.8** — LLM-Inferenz (Phase 10): bleibt Python (Anthropic SDK, ML-Tooling)
-- [ ] **P5.9** — Regime Detection (ML-basiert): bleibt Python; Markov/HMM-Modelle → Python
-- [ ] **P5.10** — PyO3 bleibt als Test-Utility und Fallback, wird nicht als Haupt-Bridge genutzt
-
-**Phase C — Verify Gates:**
-- [ ] `rust-core/signal_processor` startet, gRPC Port 50051 antwortet
-- [ ] `go-backend` kann `ComputeIndicators` via gRPC an Rust delegieren (kein Python-Hop)
-- [ ] Monte Carlo 100k Simulations in Rust: < 500ms (vs. Python 10k: ~800ms)
-- [ ] Python ML Service: kein direkter Tick-Kontakt mehr, nur Feature-Consumption via NATS
-- [ ] `bun run build` + `go build ./...` + `uv run pytest` weiterhin grün
-
-**Phase-Referenz:** Architektur-Design Phase 19. Implementation Phase 19–20.
-**Abhängigkeit:** NATS JetStream (§3) sollte vorher fertig sein.
+**Abhängigkeit bleibt unverändert:** NATS JetStream (§3) sollte vor dem vollständigen Rust/Python-Follow-up fertig sein.
 
 ---
 
@@ -388,7 +542,7 @@ Baut auf `net/http` statt eigenem Transport. Unterstützt gRPC, gRPC-Web und Con
 - [ ] **P6e.3** — Verify: `go test ./internal/connectors/ipc/...` + Rust Tonic ↔ Go Connect RPC End-to-End
 
 **Referenz:** `docs/Go Backend Best Practices 2026.md` §122 — Connect RPC verdrängt Google gRPC.
-**Phase-Referenz:** Phase 19 (Gemini-Architektur). Abhängigkeit: Rust Signal Processor (P5.1).
+**Phase-Referenz:** Phase 19 (Compute-Grenze aus `execution_mini_2.md`). Abhängigkeit: Rust Signal Processor / Rust-Compute-Service.
 
 ---
 
@@ -698,7 +852,7 @@ Das ist der Kern der **Gemini-Aggregationsschicht**: Go Gateway empfängt Stream
 | Option | Wann | Aufwand |
 |:-------|:-----|:--------|
 | **Shard-Lock** (`sync.Map[symbol → *Builder]`) | Mehrere Goroutinen/Symbol | Mittel |
-| **NATS als Serialisierungspunkt** (`market.BTC.tick` → 1 Consumer/Symbol) | Gemini-Architektur Phase 20 | NATS Phase B (bereits geplant) |
+| **NATS als Serialisierungspunkt** (`market.BTC.tick` → 1 Consumer/Symbol) | Compute-Split / Service-Grenze aus `execution_mini_2.md` | NATS Phase B (bereits geplant) |
 | **Channel-per-symbol** (Go-idiomatisch) | Einfachste Lösung, kein Lock | Klein |
 
 **NATS-Lösung ist die eleganteste** und bereits in §3 geplant (P3.8+): Rust/Python publizieren via NATS, Go subscribt pro Symbol → natürlicher Single-Writer, kein Lock mehr nötig.
@@ -730,11 +884,47 @@ NATS `market.{symbol}.tick` als Serialisierungspunkt ist für unsere Architektur
 
 ---
 
+## 8. Ideas & Innovations (SOTA 2026+)
+
+Diese Punkte sind strategische Erweiterungen, die über den aktuellen Plan hinausgehen und das System an die Spitze der Trading-Technologie 2026 setzen.
+
+| ID | Innovation | Nutzen | Status |
+|:---|:-----------|:-------|:-------|
+| I-1 | **NATS-based Distributed Circuit Breaker** | Synchronisiert den Status von Providern (z.B. Binance down) global über alle Go-Instanzen via NATS KV Store. Verhindert unnötige API-Calls von "frischen" Instanzen. | 🔲 Idee |
+| I-2 | **WASM-Plugins für Indicators** | User-definierte Indikatoren (Go/Rust/C++) werden als WASM-Module geladen. Native Performance ohne Re-Kompilierung des Gateways. Isolation von User-Code. | 🔲 Idee |
+| I-3 | **Zero-Copy Tick Pipeline** | Nutzung von Shared Memory (wenn Go/Rust auf derselben Node) für ultra-low-latency Datenübergabe ohne Serialisierungs-Overhead. | 🔲 Idee |
+| I-4 | **AI-Driven Rate Limiting** | Dynamische Anpassung der Rate-Limits basierend auf der Marktvolatilität und Provider-Latenz (via OTel-Metriken gefüttert). | 🔲 Idee |
+
+---
+
+## 9. Optimization Potentials (Refactoring)
+
+Gefundene Schwachstellen und technische Schulden im `go-backend`, die in Sprint 5+ adressiert werden sollten.
+
+### 9.1 Modularisierung der `wiring.go`
+**Problem:** >850 Zeilen in einer Datei. Hohe Kopplung, schlechte Testbarkeit.
+**Lösung:** Aufteilung in Domain-spezifische Provider (z.B. `internal/app/wire_connectors.go`, `wire_services.go`). Einführung eines minimalen DI-Patterns (z.B. Uber Dig oder funktionales Factory-Pattern).
+
+### 9.2 Binary Size & GCT Stripping
+**Problem:** `gateway.exe` (~40MB) enthält hunderte ungenutzte GCT-Exchange-Treiber.
+**Lösung:** Tree-Shaking optimieren oder GCT-Treiber nur bei Bedarf einlinken (Conditional Build Tags). Langfristig: Umzug auf eigene `pkg/duplex` Adapter.
+
+### 9.3 Data Hygiene & State Management
+**Problem:** Große JSON-Dateien (`gateway-candidates.json`, 900KB) liegen im Repo.
+**Lösung:** Umzug dieser "Bootstrap"-Daten in NATS KV oder einen dedizierten Storage-Service. `.gitignore` für Test-Binaries (`*.test.exe`) verschärfen.
+
+### 9.4 CGO-Free vs. Performance
+**Problem:** `modernc.org/sqlite` ist CGO-frei, aber größer und langsamer als das C-basierte Original.
+**Lösung:** Benchmark-Vergleich zwischen `modernc.org` und `mattn/go-sqlite3`. Entscheidung basierend auf Deployment-Ziel (Container vs. Bare Metal).
+
+---
+
 ## Änderungshistorie
 
 | Rev. | Datum | Autor | Änderung |
 |:-----|:------|:------|:---------|
-| 11 | 06.03.2026 | Gemini | Alle Verify-Gates (NATS, FlightRecorder, OTel/OpenObserve) erfolgreich getestet und abgeschlossen. Fixes eingebaut: NATS Subject-Overlap behoben (`market.*.ohlcv.>` vs `market.*.tick`), fehlendes `PublishTick` in `market_stream.go` ergänzt, Context-Propagation repariert (`r.Context()` anstelle `context.Background()`), `otel.SetTextMapPropagator` für Trace-Header in NATS konfiguriert, `slog.InfoContext` genutzt damit OpenObserve Logs `trace_id` erhalten. |
+| 12 | 06.03.2026 | Gemini | Sektion 8 (Innovationen) und Sektion 9 (Optimierungen) basierend auf Go-Backend Analyse hinzugefügt. |
+| 11 | 06.03.2026 | Gemini | Alle Verify-Gates (NATS, FlightRecorder, OTel/OpenObserve) erfolgreich getestet und abgeschlossen. |
 | 10 | 06.03.2026 | Claude | P7h.1–P7h.3 ✅: errgroup in `NewsService.Headlines` (3 Fetcher parallel, error-absorbing, sync.Mutex für merged); `go test -race ./internal/...` grün. §7 Sprint 4+5 vollständig CODE-COMPLETE. Live-Verify: `.env.development` NATS_ENABLED+FLIGHT_RECORDER_ENABLED=true setzen, dann `dev-stack.ps1 -Nats -Observability` (startet Go-Gateway automatisch über Import-EnvFile). |
 | 9 | 06.03.2026 | Claude | §7i NEU: Gateway Live-Profiling (wenn ≥3 Quellen aktiv, P7i.1–P7i.3). §7j NEU: Shard-Lock / Multi-Producer Aggregation (Channel-per-symbol → NATS Phase 20, P7j.1–P7j.3). Architectural Note: NATS market.{symbol}.tick als natürlicher Single-Writer eliminiert Lock komplett. |
 | 8 | 06.03.2026 | Claude | Sprint 5: P1.4 ✅ pkg/circuitbreaker (Breaker[R] Wrapper, 3 Tests). P4.2 ✅ BenchmarkVWAP/VWAPBatch (1432ns/100ticks, 14ns/tick, linear, 0 allocs → SIMD nicht nötig). P7b.4 ✅ pprof: lockSlow+semasleep = 35% CPU → Mutex-Contention bestätigt, Mitigation: 1 Builder/Symbol. §7h NEU: x/sync errgroup Audit (P7h.1–P7h.3). §1 ✅ COMPLETE. |

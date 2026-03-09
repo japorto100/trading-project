@@ -74,4 +74,4 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-replace github.com/thrasher-corp/gocryptotrader => ./vendor-forks/gocryptotrader
+replace github.com/thrasher-corp/gocryptotrader => ./go-crypto-trader

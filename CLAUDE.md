@@ -92,18 +92,9 @@ Key Prisma models in `prisma/schema.prisma` (all use String instead of enums for
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (30104 symbols, 87844 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (30144 symbols, 87944 relationships, 300 execution flows).
 
-## MANDATORY: Use GitNexus before any architecture/refactor/impact task
-
-**BEFORE exploring code manually, ALWAYS call `mcp__gitnexus__context` first.**
-This is not optional — it prevents redundant file reads and surfaces cross-cutting dependencies.
-
-```
-mcp__gitnexus__context  repo=tradeview-fusion
-mcp__gitnexus__query    repo=tradeview-fusion  question="..."
-mcp__gitnexus__impact   repo=tradeview-fusion  symbol="..."
-```
+## Always Start Here
 
 1. **Read `gitnexus://repo/{name}/context`** — codebase overview + check index freshness
 2. **Match your task to a skill below** and **read that skill file**

@@ -1,140 +1,121 @@
 # GO GATEWAY — Integration & Optionen
 
-> **Stand:** 20. Februar 2026  
-> **Zweck:** Detaillierte Integration des Go Gateways mit Frontend, AI-Agents und alternativen Protokollen. Ergänzt `.cursor/rules/go-backend.mdc` und `docs/specs/API_CONTRACTS.md`.  
-> **Auth-Referenz:** `docs/specs/AUTH_SECURITY.md` — MCP-Sicherheit siehe dort Sek. 8.
-> **Reihenfolge-Hinweis (23. Feb 2026, Codex):** Vor der breiten `REFERENCE_PROJECTS.md`-Expansion wurde die priorisierte Bestands-HTTP-Connector-Queue auf `internal/connectors/base.Client` vereinheitlicht. Ab hier gilt: **Reference-Quellen gruppenweise (G4 -> G3) und contract-first**, nicht ad hoc.
+> **Stand:** 07. März 2026  
+> **Zweck:** Integrationsleitfaden für Go Gateway mit Frontend, Python/Rust-Services und Agent-Tooling.  
+> **Maßgebliche Statusquellen:** `docs/specs/SYSTEM_STATE.md`, `docs/specs/EXECUTION_PLAN.md`  
+> **Auth-Referenz:** `docs/specs/AUTH_SECURITY.md` (inkl. Agent-/MCP-Sicherheitsanforderungen)
 
 ---
 
-## 1. React Server Components (RSC) — SOTA 2026
+## 1. Frontend-Integration (RSC + Client Components)
 
-### Was ist RSC
+### Einordnung
 
-Next.js 16 nutzt **Server Components by default**. Sie laufen auf dem Server, fetchen Daten direkt (ohne Client-JS), und streamen HTML. Client Components (`'use client'`) nur wo Interaktivität nötig ist.
+Next.js 16 nutzt React Server Components (RSC) by default, aber im Trading-Kontext bleibt der Haupt-Workspace bewusst **Client-first** (Charting, Interaktionen, Streaming-Events).
 
-### Integration mit Go Gateway
+### Aktueller Architekturrahmen
+
+| Aspekt | Richtung |
+|:---|:---|
+| **Boundary** | Frontend spricht für Domain-Daten primär Go Gateway an (`/api/*` Next routes als BFF/Thin-Proxy). |
+| **Realtime** | Market Streaming über Go-SSE (`stream-first`, REST-Fallback kontrolliert/gated). |
+| **Client-First Bereiche** | Trading Workspace / Chart / Interactive Tooling bleiben Client Components. |
+| **RSC-Einsatz** | Selektiv für initiale, read-heavy Flächen (z. B. erste Sidebar-/Summary-Daten), nicht als Dogma für alle Trading-Seiten. |
+
+### RSC mit Go Gateway (wenn genutzt)
 
 | Aspekt | Details |
 |:---|:---|
-| **Aufruf** | RSC ruft Go Gateway per `fetch()` direkt auf (gleiche URLs wie Client). Kein Code-Change in Go. |
-| **Auth** | Server-seitiger Fetch: Cookies (JWT) werden automatisch mitgesendet. Go validiert wie gewohnt. |
-| **Caching** | Next.js `fetch` cached per Default. Für Market Data: `cache: 'no-store'` oder `next: { revalidate: 30 }`. |
-| **Fehler** | RSC kann `error.tsx` / `loading.tsx` nutzen. Go-Fehler → Error Boundary. |
+| **Aufruf** | RSC kann Go Gateway per `fetch()` indirekt über Next-APIs oder direkt über Gateway-URL konsumieren. |
+| **Auth** | Session-/Header-Weitergabe bleibt verpflichtend (Request-ID, Rolle/JWT je nach Pfad). |
+| **Caching** | Für Markt-/Live-Daten standardmäßig `cache: "no-store"` oder explizite Revalidation-Strategie. |
+| **Fehlerbild** | Error Boundaries + degradationsfähige API-Antworten statt stiller Fallbacks. |
 
-### Wo RSC einsetzen (SOTA-Pattern)
+### Wichtig
 
-| Seite/Bereich | RSC? | Begründung |
-|:---|:---|:---|
-| **Dashboard initial** | Ja | Watchlist-Symbole, erste Quote-Snapshots. Schnellerer First Paint, kein `useEffect` + `fetch` im Client. |
-| **GeoMap initial** | Ja | Events, Timeline, Regionen beim ersten Load. Danach Client für Interaktion. |
-| **Portfolio Summary** | Ja | Statische Übersicht. Live-Updates per Client + TanStack Query. |
-| **Chart** | Nein | Braucht `lightweight-charts`, DOM, Interaktion → Client Component. |
-| **Watchlist** | Hybrid | Liste per RSC, Klicks/State im Client. |
-| **News Panel** | Ja | Headlines initial per RSC, Polling/SSE im Client. |
-
-### Beispiel (RSC)
-
-```tsx
-// app/page.tsx (Server Component)
-export default async function TradingPage() {
-  const symbols = await fetch(`${process.env.GO_GATEWAY_BASE_URL}/api/v1/market/search?q=top`, {
-    cache: 'no-store',
-    headers: { 'X-Request-ID': crypto.randomUUID() },
-  }).then(r => r.json());
-
-  return (
-    <TradingLayout>
-      <WatchlistSidebar symbols={symbols} />  {/* Server-rendered */}
-      <TradingChart />  {/* Client Component, 'use client' */}
-    </TradingLayout>
-  );
-}
-```
-
-### Go-Seite: Keine Änderung nötig
-
-Go Gateway bleibt unverändert. RSC nutzt dieselben REST-Endpoints. Einzige Anforderung: Go muss **server-seitige Requests** akzeptieren (andere `User-Agent`, gleiche Auth via Cookie-Forwarding durch Next.js).
+Go Gateway benötigt für RSC **keine Sonder-API**, sondern konsistente Auth-/Header-/Contract-Konformität auf denselben REST-Endpunkten.
 
 ---
 
 ## 1b. Provider-Expansion-Methodik (GCT-inspirierte Patterns)
 
-> **Kontext:** Fuer 40+ zusaetzliche Quellen (Phase 7/14) nutzen wir die in Phase 0 eingefuehrte BaseConnector-/Adaptive-Router-Struktur. Dabei werden **Methoden aus GoCryptoTrader** uebernommen (Robustheit, WS-Lifecycle, Fehlerklassen), aber Nicht-Crypto-Quellen bleiben in unserer eigenen `internal/connectors/base` Architektur.
+> **Kontext:** Die Expansion folgt der eingeführten BaseConnector-/Adaptive-Router-Struktur. GCT wird als Robustheits-Referenz genutzt, nicht als universelles Domänenmodell für Nicht-Crypto-Quellen.
 
-### Prinzip
+### Prinzipien
 
-- **GCT als Pattern-Referenz**, nicht als universelles Domaenenmodell fuer Macro/Legal/Geo
-- **Router-Metadaten (`group`, `kind`)** in `go-backend/config/provider-router.yaml`
-- **Capability-Matrix** pro Provider (statt riesigem Interface)
-- **Fehlerklassen** fuer Retry/Circuit/Fallback-Entscheidungen
+- **GCT als Pattern-Referenz**, nicht als Domain-Zwang für Macro/Geo/Legal
+- **Router-Metadaten (`group`, `kind`, `capabilities`)** in `go-backend/config/provider-router.yaml`
+- **Capability-Matrix** pro Provider statt monolithischer Interfaces
+- **Fehlerklassen** für Retry/Circuit/Fallback-Entscheidungen
+- **Contract-first + gruppenweise Rollouts** (kein ad hoc Connector-Wachstum)
 
-### Bereits begonnen (Go-Layer)
+### Stand (März 2026)
 
-- `internal/connectors/base/capabilities.go`
-- `internal/connectors/base/error_classification.go`
-- `internal/connectors/base/sdmx_client.go`
-- `internal/connectors/base/timeseries.go`
-- `internal/connectors/base/bulk_fetcher.go`
-- `internal/connectors/base/rss_client.go`
-- `internal/connectors/base/diff_watcher.go`
-- `internal/connectors/base/translation.go`
-- `internal/connectors/base/oracle_client.go`
-- **Bereits migrierte Bestands-Connectoren auf `base.Client`:** `acled`, `finnhub`, `fred`, `ecb`, `geopoliticalnext`, `gdelt`, `news/*`, `gametheory`, `crisiswatch`. **`indicatorservice`, `financebridge`, `softsignals`** nutzen den **IPC-Client** (`internal/connectors/ipc`) — gRPC-first, HTTP-Fallback.
-- **Bestands-Queue Status:** Die priorisierten produktiven HTTP-Connectoren sind auf `base.Client` vereinheitlicht. Naechster Fokus: **Reference-Quellen gruppenweise** (`G4` Zentralbank-Zeitreihen, dann `G3` SDMX), contract-first + router metadata/capabilities gepflegt.
-- **Reference-Start (G4):** `BCB` (SGS), `Banxico` (SIE), `BoK ECOS`, `BCRA` (Principales Variables v4), `TCMB EVDS3` und ein erster `RBI DBIE`-Slice (FX Reserves) sind integriert (`internal/connectors/bcb`, `internal/connectors/banxico`, `internal/connectors/bok`, `internal/connectors/bcra`, `internal/connectors/tcmb`, `internal/connectors/rbi`) und via `market.NewRoutedMacroClient(...)` + Prefix-Registry in Quote-/Macro-History-Pfade verdrahtet. Prefixe: `BCB_SGS_*`, `BANXICO_*`, `BOK_ECOS_*`, `BCRA_*`, `TCMB_EVDS_*`, `RBI_DBIE_FXRES_*`. Dieses Prefix-Routing reduziert source-spezifische Sonderfaelle in `internal/app/wiring.go` und ist die Basis fuer weitere G4-Provider und spaetere RBI-DBIE-Dataset-Erweiterungen.
-- **G3-SDMX Foundation (vor Connector-Batch):** `internal/connectors/base/sdmx_client.go` besitzt jetzt einen geordneten Dimension-Key-Builder, Dataflow-/Datastructure-Pfad-Helper, Query-Optionen und einen generischen SDMX-JSON-Single-Series-Parser. Damit koennen `ECB`/`OECD`/`IMF`-Connectoren im naechsten Schritt gruppenweise statt als Einzelloesungen gebaut werden (Research-Matrix: `docs/tmp/G3_SDMX_SOURCE_INTAKE_2026-02-23.md`).
+- Base-Layer etabliert:  
+  `internal/connectors/base/capabilities.go`  
+  `internal/connectors/base/error_classification.go`  
+  `internal/connectors/base/sdmx_client.go`  
+  `internal/connectors/base/timeseries.go`  
+  `internal/connectors/base/bulk_fetcher.go`  
+  `internal/connectors/base/rss_client.go`  
+  `internal/connectors/base/diff_watcher.go`  
+  `internal/connectors/base/translation.go`  
+  `internal/connectors/base/oracle_client.go`
+- Priorisierte Bestands-HTTP-Connectoren sind auf gemeinsamer Base-Architektur konsolidiert.
+- G4-/G3-nahe Makro-Routen sind vertikal verdrahtet über `market.NewRoutedMacroClient(...)` + Prefix-Registry.
+- Prefix-Routing ist produktiv relevant (u. a. `BCB_SGS_*`, `BANXICO_*`, `BOK_ECOS_*`, `BCRA_*`, `TCMB_EVDS_*`, `RBI_DBIE_FXRES_*`, `IMF_IFS_*`, `OECD_*`, `WB_WDI_*`, `UN_*`, `ADB_*`, `OFR_*`, `NYFED_*`).
 
-**Go ↔ Python IPC:** Proto `go-backend/internal/proto/ipc/ipc.proto` mit `ForwardRequest` RPC. Python-Services starten gRPC bei `GRPC_ENABLED=1`; Port-Konvention: gRPC = HTTP-Port + 1000 (z. B. 8081→9081, 8091→9091, 8092→9092).
+### Roadmap-Reihenfolge (weiter gültig)
 
-### Empfohlene Reihenfolge (effizient)
-
-1. **G1 + G4** (REST + Zentralbank-Zeitreihen): hoechster Hebel bei moderater Komplexitaet  
-2. **G3 SDMX**: ein Client erschliesst mehrere globale Makroquellen  
-3. **G5/G6/G7** (Bulk/RSS/Diff): starke Coverage fuer Geo/Legal ohne Realtime-Komplexitaet  
+1. **G4 + produktnahe Makro-Quellen** stabilisieren  
+2. **G3 SDMX** weiter ausbauen (shared client, keine Einzellösungen)  
+3. **G5/G6/G7** (Bulk/RSS/Diff) für Geo/Legal-Coverage  
 4. **G8/G9/G10** gezielt nach Produktbedarf/Lizenz/Freigaben
+
+### Go ↔ Python IPC
+
+Proto liegt unter `go-backend/internal/proto/ipc/ipc.proto` (`ForwardRequest` RPC).  
+Python-Services unterstützen optional gRPC (`GRPC_ENABLED=1`) mit Port-Konvention HTTP+1000.
 
 ---
 
-## 2. MCP (Model Context Protocol) — Optional
+## 2. MCP / WebMCP / Agent-Tools
 
-### Was ist MCP
+### Einordnung
 
-**Model Context Protocol** — Standard damit AI-Agents (Cursor, Claude, etc.) Tools und Ressourcen nutzen können. Ein MCP-Server exponiert z.B. `get_quote`, `get_portfolio` als "Tools".
+MCP/WebMCP ist **nicht mehr nur theoretisch optional**, sondern bereits als Agent-Tooling-Richtung im System verankert (policy-/capability-gated Pfade über Go).
 
-**Go MCP SDK:** `github.com/modelcontextprotocol/go-sdk` — offizielle Implementierung für MCP-Server und -Clients in Go.
+### Leitplanken für Tools
 
-### Use Cases (wenn aktiviert)
-
-| Tool | Beschreibung | Sensibilität |
+| Tool-Typ | Beispiele | Sensibilität |
 |:---|:---|:---|
-| `get_quote(symbol)` | Aktueller Preis eines Symbols | Niedrig |
-| `get_ohlcv(symbol, timeframe, limit)` | OHLCV-Historie | Niedrig |
-| `get_portfolio_summary()` | Portfolio-Übersicht | **Hoch** |
-| `get_geopolitical_events(region?)` | Geo-Events für Region | Niedrig |
-| `get_news(symbol?)` | News-Headlines | Niedrig |
-| `submit_order(...)` | **Niemals** als MCP-Tool | Kritisch |
+| **Read-Only** | Quote, OHLCV, News, Geo-Kontext | Niedrig bis mittel |
+| **Portfolio/Account-nah** | Portfolio Summary, Positionen | Hoch |
+| **Mutationen** | Chart-/State-Mutationen (agentisch) | Hoch (nur mit Policy + Confirm) |
+| **Execution/Orders** | Order Submit/Cancel | **Kritisch** (nicht als frei aufrufbares Agent-Tool) |
 
-### Warum MCP unsicher by default
+### Warum „by default unsicher“ weiter gilt
 
-- MCP-Server lauscht typischerweise auf `stdio` oder `localhost` — kein Auth-Layer
-- AI-Agents können alle exponierten Tools aufrufen
-- Kein RBAC, kein Rate Limit, kein Audit-Log im Standard
-- **Ohne Härtung:** Jeder mit Zugriff auf den Agent kann Portfolio-Daten lesen oder schlimmeres
+- Tool-Exposition ohne starken Auth-Layer ist riskant
+- Ohne RBAC/Rate-Limits/Audit entsteht direkter Missbrauchspfad
+- Agent-Tooling muss wie API-Produktionssurface behandelt werden
 
-### Auth-Anforderungen für MCP (wenn aktiviert)
+### Mindestanforderungen (verpflichtend)
 
-Siehe `docs/specs/AUTH_SECURITY.md` Sek. 9. Kurz:
+Siehe `docs/specs/AUTH_SECURITY.md`. Kurzfassung:
 
-- MCP-Server nur als **Sub-Process** des Gateways, nicht als eigenständiger Service
-- Jeder MCP-Tool-Call muss **JWT-validiert** durch den Go Gateway
-- **RBAC:** Nur `viewer`-Tools für MCP (Quote, News, Events). Kein Portfolio, keine Orders
-- **Rate Limit:** Strikte Limits pro Agent-Session
-- **Audit:** Jeder MCP-Tool-Call wird geloggt (Agent-ID, Tool, User)
+- Tool-Pfade über Go Gateway zentral absichern
+- JWT/Session-validierte Aufrufe, rollenbasiert
+- Capability-Checks pro Tool
+- Harte Rate-Limits pro Session/User/Toolklasse
+- Audit-Trail (wer, wann, welches Tool, welcher Kontext)
+- Mutationen nur mit expliziter Governance (Policy + Confirm-Flow)
 
 ### Empfehlung
 
-**Optional, Phase 9+.** Nur wenn AI-Agents (Cursor Composer, Claude Code) explizit auf unsere Daten zugreifen sollen. Ohne Auth-Härtung nicht aktivieren.
+- **Read-first Agent-Tools** weiter ausbauen
+- **Mutationen eng begrenzen** und policy-gated betreiben
+- **Keine direkte Trading-Execution als offenes Agent-Tool**
 
 ---
 
@@ -142,19 +123,27 @@ Siehe `docs/specs/AUTH_SECURITY.md` Sek. 9. Kurz:
 
 ### WebTransport (QUIC/HTTP3)
 
-- **Status:** Beobachten. W3C Spec aktiv, Browser-Support noch nicht universell.
-- **Vorteil:** Kein Head-of-Line-Blocking wie WebSocket/SSE. Multiplexing, unreliable Datagrams für Tick-Daten.
-- **Relevanz:** Für Real-Time Market-Streaming (Phase 5). Aktuell SSE ausreichend.
-- **Crates:** `wtransport`, `web-transport` (Rust). Go: experimentelle `net/http` HTTP/3 Support.
+- **Status:** Beobachten; noch kein Primärpfad.
+- **Vorteil:** Multiplexing, keine klassischen HOL-Blockaden.
+- **Aktuelle Priorität:** Niedriger als REST+SSE-Härtung.
 
 ### gRPC-Web
 
-- **Status:** Go Gateway könnte gRPC-Web für Browser-Clients anbieten.
-- **Vorteil:** Binär-Protokoll, weniger Overhead als JSON-REST.
-- **Nachteil:** Mehr Komplexität, REST reicht für unser Volumen.
-- **Empfehlung:** Nicht priorisieren. REST + SSE bleibt Standard.
+- **Status:** Möglich, aber derzeit nicht priorisiert.
+- **Vorteil:** Binär, effizient bei passenden Workloads.
+- **Nachteil:** Zusätzliche Browser-/Infra-Komplexität.
+- **Empfehlung:** REST + SSE bleibt Standard für Frontend-Pfade.
 
 ### GraphQL
 
 - **Status:** Nicht geplant.
-- **Begründung:** REST-API ist überschaubar, Contract-First mit `API_CONTRACTS.md`. GraphQL Overhead nicht gerechtfertigt.
+- **Begründung:** Contract-first REST-Fläche ist überschaubar und ausreichend.
+
+---
+
+## 4. Was bleibt konstant
+
+1. Go Gateway ist Single Entry Point für Kern-Domainpfade.  
+2. REST + SSE ist der Default für Browser-nahe Flows.  
+3. Provider-Expansion bleibt contract-first, gruppenweise und capability-basiert.  
+4. Security-Enforcement (Auth/RBAC/RateLimit/Audit) ist nicht optional, sondern Plattformstandard.  

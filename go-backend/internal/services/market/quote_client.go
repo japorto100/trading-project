@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/router/adaptive"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
-	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
 
 type cryptoTickerClient interface {
@@ -52,6 +53,11 @@ func NewQuoteClient(
 
 func (c *QuoteClient) SetAdaptiveRouter(router *adaptive.Router) {
 	c.router = router
+}
+
+func (c *QuoteClient) GetTickerTarget(ctx context.Context, target contracts.MarketTarget) (gct.Ticker, error) {
+	exchange, pair, assetType := normalizeMarketTarget(target)
+	return c.GetTicker(ctx, exchange, pair, assetType)
 }
 
 func (c *QuoteClient) GetTicker(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {

@@ -881,6 +881,29 @@ Behavioral State Chain (Agent 4.4)   ←→  Earnings Call Signal
 
 ---
 
+## 10a. Platform-, Runtime- und Deep-Tech-Radar aus `ERRORS.md`
+
+> **Kontext:** Die folgenden Themen stammen nicht primaer aus dem GenAI/LLM-Buch, sondern aus dem breiteren Technologie-Radar in [`docs/specs/ERRORS.md`](./specs/ERRORS.md). Sie bleiben mit Tool-/Library-Namen erhalten, sind aber fuer `tradeview-fusion` ueberwiegend **later later** und nicht Teil der fruehen Kernverfassung.
+
+| Thema | Tool-/Library-Namen, die als Optionen erhalten bleiben sollen | Wann relevant | Warum nicht frueh Kernarchitektur |
+|---|---|---|---|
+| **High-Performance Browser Streaming** | `WebTransport`, `quic-go` | Erst wenn SSE/WebSocket fuer Live-Daten messbar an Grenzen stoesst und Safari-/iOS-Fallback akzeptabel ist | Browser-Support und Komplexitaet noch zu teuer fuer den fruehen Standardpfad |
+| **Kernel-nahe Runtime Security & Observability** | `Tetragon`, `Grafana Beyla`, `OpenTelemetry eBPF Instrumentation` | Bei Linux-/K8s-Betrieb, tiefer Runtime-Security oder Zero-Code-Instrumentation-Bedarf | Stark infra-/plattformabhaengig, kein frueher Produktkern |
+| **Durable Execution** | `Temporal`, `Restate` | Wenn lange Agent-/Trading-/Review-Jobs ueber Prozess- oder Pod-Neustarts robust fortgesetzt werden muessen | Erst bei hoehrem Betriebs- und Orchestrierungsgrad sinnvoll |
+| **Sequencer-zentrische Messaging-Architektur / Reactive Stream Processing** | `Redpanda`, `Aeron`, `Point72/csp` | Wenn harte Event-Reihenfolge, sehr hoher Durchsatz, reactive streaming graphs oder Low-Latency-Execution dominieren | Fuer fruehe Produktphasen zu schwergewichtig |
+| **Type-Safe Configuration / Platform Engineering** | `Pkl`, `KCL`, `OpenTofu`, `Crossplane` | Wenn die Infra-Landschaft gross genug wird, dass Config Drift und manuelle Ops zum Problem werden | Aktuell mehr Plattformschwere als echter Produkthebel |
+| **Binär-reproduzierbare Toolchains** | `Nix`, `Nix Flakes` | Wenn der polyglotte Stack reproduzierbar ueber CI, Dev und Deployment hinweg vereinheitlicht werden muss | Heute noch kein zwingender Gatekeeper fuer Delivery |
+| **Hardware-gestuetzte Geheimnis- und Runtime-Isolation** | `Confidential Containers`, `Intel TDX`, `AMD SEV-SNP` | Bei spaeterem Compliance-, Key- oder Multi-Tenant-Hardening | Zu weit von der aktuellen Delivery- und Hosting-Realitaet entfernt |
+| **Experimentelle Embedded-Rendering-Pfade** | `Servo` | Nur bei sehr speziellen Embedded-/Headless-/Custom-Rendering-Anforderungen | Standard-Browser-Stack reicht derzeit klar aus |
+
+**Wichtige Abgrenzung:**
+
+- `deck.gl` / `WebGPU` gehoeren fuer euch **nicht** primaer hierher, sondern in GeoMap-/Performance-/ADR-Dokumente, weil sie schon konkret an die Kartenarchitektur gekoppelt sind.
+- `Connect RPC` gehoert fuer euch **nicht** primaer hierher, sondern in Gateway-/IPC-/Execution-Dokumente, weil es bereits als konkrete Transportoption diskutiert wird.
+- `OpenSandbox` gehoert ebenfalls nicht nur in den Future-Radar, weil die Sandbox-Schicht bereits zur Agent-Runtime passt.
+
+---
+
 ## 11. Nicht uebertragbar: Was wir bewusst ignorieren
 
 Zur Dokumentation -- diese Buch-Kapitel sind fuer TradeView Fusion irrelevant:

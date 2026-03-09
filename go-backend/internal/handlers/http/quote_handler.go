@@ -5,218 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
-	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/contracts"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/handlers/marketparams"
 )
 
-var symbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
-var macroInstrumentPattern = regexp.MustCompile(`^[A-Z0-9_]{2,40}$`)
-
-type exchangeConfig struct {
-	upstream          string
-	source            string
-	allowedAssetTypes map[string]struct{}
-	defaultQuote      string
-	symbolFormat      string
-}
-
-var allowedExchanges = map[string]exchangeConfig{
-	"binance": {
-		upstream: "Binance",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USDT",
-		symbolFormat: "pair",
-	},
-	"kraken": {
-		upstream: "Kraken",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "pair",
-	},
-	"coinbase": {
-		upstream: "Coinbase",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "pair",
-	},
-	"okx": {
-		upstream: "OKX",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USDT",
-		symbolFormat: "pair",
-	},
-	"bybit": {
-		upstream: "Bybit",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USDT",
-		symbolFormat: "pair",
-	},
-	"auto": {
-		upstream: "AUTO",
-		source:   "router",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-			"equity":  {},
-			"forex":   {},
-			"macro":   {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument_or_pair",
-	},
-	"ecb": {
-		upstream: "ECB",
-		source:   "ecb",
-		allowedAssetTypes: map[string]struct{}{
-			"forex": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "pair",
-	},
-	"finnhub": {
-		upstream: "FINNHUB",
-		source:   "finnhub",
-		allowedAssetTypes: map[string]struct{}{
-			"equity": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument_or_pair",
-	},
-	"fred": {
-		upstream: "FRED",
-		source:   "fred",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"fed": {
-		upstream: "FED",
-		source:   "fred",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"boj": {
-		upstream: "BOJ",
-		source:   "fred",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"snb": {
-		upstream: "SNB",
-		source:   "fred",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"bcb": {
-		upstream: "BCB",
-		source:   "bcb",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"banxico": {
-		upstream: "BANXICO",
-		source:   "banxico",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"bok": {
-		upstream: "BOK",
-		source:   "bok",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"bcra": {
-		upstream: "BCRA",
-		source:   "bcra",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"tcmb": {
-		upstream: "TCMB",
-		source:   "tcmb",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"rbi": {
-		upstream: "RBI",
-		source:   "rbi",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-	"imf": {
-		upstream: "IMF",
-		source:   "imf",
-		allowedAssetTypes: map[string]struct{}{
-			"macro": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument",
-	},
-}
-
 type quoteClient interface {
-	GetTicker(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error)
+	GetTickerTarget(ctx context.Context, target contracts.MarketTarget) (gct.Ticker, error)
 }
 
 func QuoteHandler(client quoteClient) http.HandlerFunc {
@@ -225,32 +23,15 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 		exchange := strings.ToLower(valueOrDefault(r.URL.Query().Get("exchange"), "binance"))
 		assetType := strings.ToLower(valueOrDefault(r.URL.Query().Get("assetType"), "spot"))
 
-		exchangeCfg, ok := allowedExchanges[exchange]
-		if !ok {
+		resolved, err := marketparams.ResolveTarget(symbol, exchange, assetType, marketparams.DefaultExchangeConfigs, marketparams.ResolveOptions{})
+		if err != nil {
 			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
 				Success: false,
-				Error:   "unsupported exchange",
+				Error:   err.Error(),
 			})
 			return
 		}
-		pair, normalizedSymbol, ok := resolveSymbol(symbol, exchangeCfg)
-		if !ok {
-			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
-				Success: false,
-				Error:   "invalid symbol format",
-			})
-			return
-		}
-		if !isAllowed(exchangeCfg.allowedAssetTypes, assetType) {
-			writeJSON(w, http.StatusBadRequest, contracts.APIResponse[*contracts.Quote]{
-				Success: false,
-				Error:   "unsupported assetType",
-			})
-			return
-		}
-
-		assetItem, _ := asset.New(assetType)
-		ticker, err := client.GetTicker(r.Context(), exchangeCfg.upstream, pair, assetItem)
+		ticker, err := client.GetTickerTarget(r.Context(), resolved.Target)
 		if err != nil {
 			status := mapQuoteErrorToHTTP(err)
 			writeJSON(w, status, contracts.APIResponse[*contracts.Quote]{
@@ -266,9 +47,9 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 		}
 
 		quote := contracts.Quote{
-			Symbol:    normalizedSymbol,
+			Symbol:    resolved.Symbol,
 			Exchange:  exchange,
-			AssetType: assetType,
+			AssetType: resolved.AssetType,
 			Last:      ticker.Last,
 			Bid:       ticker.Bid,
 			Ask:       ticker.Ask,
@@ -276,7 +57,7 @@ func QuoteHandler(client quoteClient) http.HandlerFunc {
 			Low:       ticker.Low,
 			Volume:    ticker.Volume,
 			Timestamp: timestamp,
-			Source:    exchangeCfg.source,
+			Source:    resolved.Source,
 		}
 
 		writeJSON(w, http.StatusOK, contracts.APIResponse[*contracts.Quote]{
@@ -291,82 +72,6 @@ func valueOrDefault(value, fallback string) string {
 		return fallback
 	}
 	return value
-}
-
-func parseSymbol(symbol string) (currency.Pair, bool) {
-	normalized := strings.TrimSpace(strings.ToUpper(symbol))
-	normalized = strings.ReplaceAll(normalized, "-", "/")
-	normalized = strings.ReplaceAll(normalized, "_", "/")
-
-	parts := strings.Split(normalized, "/")
-	if len(parts) != 2 {
-		return currency.EMPTYPAIR, false
-	}
-	if !symbolPartPattern.MatchString(parts[0]) || !symbolPartPattern.MatchString(parts[1]) {
-		return currency.EMPTYPAIR, false
-	}
-
-	return currency.NewPair(currency.NewCode(parts[0]), currency.NewCode(parts[1],)), true
-}
-
-func parseInstrumentSymbol(symbol string) (string, bool) {
-	normalized := strings.TrimSpace(strings.ToUpper(symbol))
-	normalized = strings.ReplaceAll(normalized, "-", "")
-	normalized = strings.ReplaceAll(normalized, "_", "")
-	if !symbolPartPattern.MatchString(normalized) {
-		return "", false
-	}
-	return normalized, true
-}
-
-func parseMacroInstrumentSymbol(symbol string) (string, bool) {
-	normalized := strings.TrimSpace(strings.ToUpper(symbol))
-	normalized = strings.ReplaceAll(normalized, "-", "_")
-	normalized = strings.ReplaceAll(normalized, " ", "_")
-	normalized = strings.ReplaceAll(normalized, "__", "_")
-	if !macroInstrumentPattern.MatchString(normalized) {
-		return "", false
-	}
-	return normalized, true
-}
-
-func resolveSymbol(symbol string, cfg exchangeConfig) (currency.Pair, string, bool) {
-	switch cfg.symbolFormat {
-	case "instrument":
-		instrument, ok := parseMacroInstrumentSymbol(symbol)
-		if !ok {
-			return currency.EMPTYPAIR, "", false
-		}
-		quote := cfg.defaultQuote
-		if quote == "" {
-			quote = "USD"
-		}
-		return currency.NewPair(currency.NewCode(instrument), currency.NewCode(strings.ToUpper(quote))), instrument, true
-	case "instrument_or_pair":
-		if pair, ok := parseSymbol(symbol); ok {
-			return pair, strings.ToUpper(pair.Base.String() + "/" + pair.Quote.String()), true
-		}
-		instrument, ok := parseInstrumentSymbol(symbol)
-		if !ok {
-			return currency.EMPTYPAIR, "", false
-		}
-		quote := cfg.defaultQuote
-		if quote == "" {
-			quote = "USD"
-		}
-		return currency.NewPair(currency.NewCode(instrument), currency.NewCode(strings.ToUpper(quote))), instrument, true
-	default:
-		pair, ok := parseSymbol(symbol)
-		if !ok {
-			return currency.EMPTYPAIR, "", false
-		}
-		return pair, strings.ToUpper(pair.Base.String() + "/" + pair.Quote.String()), true
-	}
-}
-
-func isAllowed(allowed map[string]struct{}, value string) bool {
-	_, ok := allowed[value]
-	return ok
 }
 
 func mapQuoteErrorToHTTP(err error) int {

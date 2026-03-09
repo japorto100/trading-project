@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,6 +72,41 @@ func TestWithRequestIDAndLogging_SetsResponseHeader(t *testing.T) {
 
 	if got := res.Header().Get("X-Request-ID"); got == "" {
 		t.Fatal("expected X-Request-ID response header")
+	}
+}
+
+func TestWithRequestIDAndLogging_AttachesProviderCredentialsToContext(t *testing.T) {
+	encoded := base64.StdEncoding.EncodeToString([]byte(`{"finnhub":{"key":"demo-key"}}`))
+	handler := withRequestIDAndLogging(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		creds, ok := ProviderCredentialsFromContext(r.Context(), "finnhub")
+		if !ok || creds.Key != "demo-key" {
+			t.Fatalf("expected finnhub provider credentials in context, got %+v", creds)
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/quote", nil)
+	req.Header.Set(providerCredentialsHeader, encoded)
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+}
+
+func TestWithRequestIDAndLogging_RejectsInvalidProviderCredentialsHeader(t *testing.T) {
+	handler := withRequestIDAndLogging(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/quote", nil)
+	req.Header.Set(providerCredentialsHeader, "%%%bad-base64%%%")
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", res.Code)
 	}
 }
 

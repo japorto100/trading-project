@@ -66,6 +66,7 @@ async function fetchQuoteFromEndpoint(
 	symbol: string,
 	requestId: string,
 	userRole?: string,
+	providerCredentialsHeader?: string,
 ): Promise<{ provider: string; data: QuoteData } | null> {
 	const headers: Record<string, string> = {
 		Accept: "application/json",
@@ -73,6 +74,9 @@ async function fetchQuoteFromEndpoint(
 	};
 	if (userRole) {
 		headers["X-User-Role"] = userRole;
+	}
+	if (providerCredentialsHeader) {
+		headers["X-Tradeview-Provider-Credentials"] = providerCredentialsHeader;
 	}
 
 	const response = await fetch(endpoint.toString(), {
@@ -107,6 +111,7 @@ export async function fetchQuoteViaGateway(
 	symbol: string,
 	requestId: string,
 	userRole?: string,
+	providerCredentialsHeader?: string,
 ): Promise<{ provider: string; data: QuoteData } | null> {
 	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
 	const route = inferGoQuoteRoute(symbol);
@@ -115,7 +120,7 @@ export async function fetchQuoteViaGateway(
 		endpoint.searchParams.set("symbol", route.symbol);
 		endpoint.searchParams.set("exchange", route.exchange);
 		endpoint.searchParams.set("assetType", route.assetType);
-		return fetchQuoteFromEndpoint(endpoint, symbol, requestId, userRole);
+		return fetchQuoteFromEndpoint(endpoint, symbol, requestId, userRole, providerCredentialsHeader);
 	}
 
 	const fallback = inferFinanceBridgeFallback(symbol);
@@ -124,5 +129,5 @@ export async function fetchQuoteViaGateway(
 	const endpoint = new URL("/api/v1/quote/fallback", gatewayBaseURL);
 	endpoint.searchParams.set("symbol", fallback.symbol);
 	endpoint.searchParams.set("assetType", fallback.assetType);
-	return fetchQuoteFromEndpoint(endpoint, symbol, requestId, userRole);
+	return fetchQuoteFromEndpoint(endpoint, symbol, requestId, userRole, providerCredentialsHeader);
 }

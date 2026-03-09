@@ -25,14 +25,16 @@ func (f *fakeOHLCVClient) GetOHLCV(_ context.Context, req financebridge.OHLCVReq
 func TestOHLCVHandler_ValidatesAndReturnsContract(t *testing.T) {
 	client := &fakeOHLCVClient{
 		rows: []financebridge.Candle{
+			{Time: 1700000600, Open: 11, High: 13, Low: 10, Close: 12, Volume: 124},
 			{Time: 1700000000, Open: 10, High: 12, Low: 9, Close: 11, Volume: 123},
+			{Time: 1700000000, Open: 10, High: 12, Low: 9, Close: 11.5, Volume: 999},
 		},
 	}
 	handler := OHLCVHandler(client)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
-		"/api/v1/ohlcv?symbol=BTC/USD&timeframe=1H&limit=2&start=100&end=200",
+		"/api/v1/ohlcv?symbol=BTC/USD&timeframe=1h&limit=2&start=100&end=200",
 		nil,
 	)
 	res := httptest.NewRecorder()
@@ -66,14 +68,21 @@ func TestOHLCVHandler_ValidatesAndReturnsContract(t *testing.T) {
 	if body.Provider != "finance-bridge" {
 		t.Fatalf("expected provider finance-bridge, got %s", body.Provider)
 	}
-	if body.Count != 1 {
-		t.Fatalf("expected count 1, got %d", body.Count)
+	if body.Timeframe != "1H" {
+		t.Fatalf("expected normalized timeframe 1H, got %s", body.Timeframe)
+	}
+	if body.Count != 2 {
+		t.Fatalf("expected deduped count 2, got %d", body.Count)
 	}
 	if body.Start == nil || *body.Start != 100 {
 		t.Fatalf("expected start=100, got %+v", body.Start)
 	}
 	if body.End == nil || *body.End != 200 {
 		t.Fatalf("expected end=200, got %+v", body.End)
+	}
+
+	if len(body.Data) != 2 || body.Data[0].Time != 1700000000 || body.Data[1].Time != 1700000600 {
+		t.Fatalf("expected sorted unique candles, got %+v", body.Data)
 	}
 
 	if client.lastReq.Symbol != "BTC/USD" || client.lastReq.Timeframe != "1H" || client.lastReq.Limit != 2 {

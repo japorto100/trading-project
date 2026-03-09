@@ -1,8 +1,8 @@
-# Execution Mini-Plan 2: Buch-Nähe & Indikator-Erweiterung
+# Execution Mini-Plan 2: Buch-Nähe, Compute-Split & Indikator-Erweiterung
 
-> **Stand:** 04 Mär 2026 (Rev. 1)
-> **Zweck:** Plan für maximale Nähe zu Kaabar (Mastering Financial Markets with Python 2026) und Deep Learning with Rust (Maleki 2026), Ist-Zustand, nötige Annäherung, geplante Indikator-Erweiterung. Buchbezüge mit Zeilenangaben für spätere Agent-Arbeit.
-> **Referenzen:** [`INDICATOR_ARCHITECTURE.md`](../INDICATOR_ARCHITECTURE.md), [`RUST_LANGUAGE_IMPLEMENTATION.md`](../RUST_LANGUAGE_IMPLEMENTATION.md), [`execution_mini_plan.md`](./execution_mini_plan.md)
+> **Stand:** 06 Mär 2026 (Rev. 2)
+> **Zweck:** Plan für maximale Nähe zu Kaabar (Mastering Financial Markets with Python 2026) und Deep Learning with Rust (Maleki 2026), plus aktualisiertes Zielbild für Go/Python/Rust-Verantwortlichkeiten, Rust-Übernahme schwerer Compute-Pfade und die geplante Indikator-Erweiterung. Buchbezüge mit Zeilenangaben für spätere Agent-Arbeit.
+> **Referenzen:** [`INDICATOR_ARCHITECTURE.md`](../INDICATOR_ARCHITECTURE.md), [`RUST_LANGUAGE_IMPLEMENTATION.md`](../RUST_LANGUAGE_IMPLEMENTATION.md), [`execution_mini_plan.md`](./execution_mini_plan.md), [`execution_mini_plan_3.md`](./execution_mini_plan_3.md), [`../Master_master_architecture_2026_IMPORTANT.md`](../Master_master_architecture_2026_IMPORTANT.md)
 
 ---
 
@@ -14,7 +14,8 @@
 | **B** | Python: Fehlende Indikatoren (CARSI, HMA, SWV, etc.) | MITTEL |
 | **C** | Rust: Crate-Struktur + Rayon + Concurrency | HOCH |
 | **D** | Rust: Indikator-Portierung (KAMA, ALMA, HMA, Stochastic) | MITTEL |
-| **E** | Indikator-Erweiterung (geplant) | MITTEL |
+| **E** | Go/Python/Rust Zielbild + Compute-Split + Service-Grenzen | HOCH |
+| **F** | Indikator-Erweiterung (geplant) | MITTEL |
 
 ---
 
@@ -159,11 +160,109 @@ my_time_series['swing_low'] = my_time_series['swing_low'].replace(0, np.nan)
 
 ---
 
-## 5. Indikator-Erweiterung (geplant)
+## 5. Zielbild 2026: Go, Python, Rust
+
+### 5.1 Arbeitsformel und Ownership
+
+Dieses Dokument übernimmt den Compute-/Service-Schnitt jetzt als führende Leitlinie für Indikator-, Pattern-, Portfolio- und Simulationsarbeit.
+
+**Arbeitsformel (übernommen aus Master-Master):**
+- **Go transportiert, schützt, ordnet.**
+- **Python modelliert, plant, verifiziert, simuliert.**
+- **Rust beschleunigt punktuell.**
+
+| Schicht | Primäre Verantwortung | Gehört ausdrücklich **nicht** primär hierhin |
+|---------|------------------------|----------------------------------------------|
+| **Go Gateway** | Contracts, Provider-Routing, Auth/Policy, Streaming, NATS-Publish, Request-Korrelation, sync/async Orchestration | Mathematisch breite Indikator-Library, ML-Inferenz, Forschungs-Notebooks |
+| **Python Services** | Agentik, Retrieval, ML, Regime Detection, Forschungs-/Referenzimplementierungen, Simulation-Logik, Game-/Control-Theory-Modellierung | Hot-Path Tick-Compute als Intermediär zwischen Go und Rust |
+| **Rust Core / Rust Service** | Indikator-Kernels, Monte-Carlo-Kernels, Pattern-/Signal-Kernels, ODE-/Rollout-Beschleunigung, dichte numerische Loops | Frontdoor-HTTP, Policy, breit veränderliche Forschungslogik |
+
+### 5.2 Übernommene Gemini-Leitlinie (aus `execution_mini_plan_3.md`)
+
+Die frühere Gemini-Sektion aus `execution_mini_plan_3.md` wird inhaltlich hierher verschoben. Sie ist keine reine Infra-Frage, sondern die **führende Compute- und Sprachgrenzen-Entscheidung**.
+
+**Zielbild:**
+
+```text
+Exchange WebSocket/REST
+        ↓
+  Go Gateway (Orchestrator / Contracts / Routing)
+        ↓
+  Rust Signal Processor
+  - Indikatoren
+  - Monte Carlo / Rollouts
+  - schwere Pattern Detection
+        ↓
+  Python ML / Agent / Simulation Layer
+  - Regime / ML / LLM / Research
+  - konsumiert Features statt Raw Ticks
+        ↓
+  Next.js / UI
+```
+
+**Damit wird eliminiert:**
+- Python als synchroner Intermediär im Hot-Path
+- Go→Python→Rust als Standardkette für schwere Compute-Arbeit
+- PyO3 als primäre Produktionsgrenze zwischen Go und Rust
+
+**Damit bleibt ausdrücklich erhalten:**
+- Python als Referenz- und Forschungsoberfläche für Buch-Nähe
+- Python als ML-/Agent-/Simulationsschicht
+- PyO3 als Fallback, Test-Utility und lokale Entwicklungsbrücke
+
+### 5.3 Service-Split und Migrationsmatrix
+
+| Service / Modul | Kurzfristige Rolle | Mittelfristige Richtung |
+|-----------------|--------------------|-------------------------|
+| **`indicator-service`** | Python-Referenzschicht für Buch-Nähe, Feature-/API-Experimente, einige bestehende Quant-Endpunkte | In Research-/Reference-Layer und Rust-backed Produktionspfade aufspalten; schwere/stabile Kerne nach Rust |
+| **`rust_core` / künftiger Rust Signal Processor** | lokale Beschleunigung via PyO3 | eigenständiger Service oder klarer Compute-Layer für Indikatoren, Monte Carlo, Pattern Detection |
+| **`finance-bridge`** | Datenadapter mit Python-Komfort (`yfinance`, Polars, Cache) | mittelfristig stärker Richtung Go-/Connector-Schicht ziehen; kein Kern der Intelligence Plane |
+| **`agent-service`** | Python-first | bleibt Python; LangGraph/LLM/Tool-Orchestration lebt hier |
+| **`memory-service`** | Python-first | bleibt Python; semantische/KG/vector-nahe Arbeit gehört hierhin |
+| **`geopolitical-soft-signals`** | Python-Modellierung plus heuristische Quant-Teile | Modellierungslogik bleibt Python; numerische innere Loops/MC/ODE später selektiv nach Rust |
+
+### 5.4 Buch-Strategie: Python als Referenz, Rust als Produktionskernel
+
+Die Python-Finance-Bücher bleiben wichtig, aber nicht als Argument für eine Python-Only-Produktionsschicht.
+
+**Arbeitsregel:**
+- Buchformeln zuerst in Python buchnah oder testbar nachvollziehbar implementieren
+- Python-Version als Referenz, Oracle und schnelles Forschungsmedium behalten
+- stabile, häufig genutzte, CPU-lastige Kerne danach nach Rust portieren
+
+**Besonders relevant für Portierung nach Rust:**
+- HMA, KAMA, ALMA, Stochastic
+- größere Indikator-Suites
+- Monte Carlo / VaR / Rollouts
+- Composite- und Pattern-Detection mit hoher Parallelität
+
+### 5.5 Externe Quant-Stacks: Einordnung
+
+| Stack | Empfehlung | Warum |
+|-------|------------|-------|
+| **QuantLib** | **Beobachten + selektiv als Referenz nutzen** | gut für Pricing-/Risk-Validierung, aber kein Ziel-Stack für Gateway/Agent/Streaming |
+| **ORE** | **Nur beobachten, aktuell nicht übernehmen** | stark für institutionelle Risk-/XVA-Workloads, für den aktuellen Produktkern zu schwer |
+| **FINOS / Legend** | **Beobachten für Datenmodellierung/Governance** | interessant für Semantik, Lineage, Modellierung; kein Ersatz für Go/Python/Rust-Service-Schnitt |
+
+**Konsequenz:** Erst den eigenen Go/Python/Rust-Schnitt sauber machen. Externe Großframeworks nur dann aktiv adoptieren, wenn ein klarer fachlicher Pull entsteht.
+
+### 5.6 Übernommene Checkpoints / Verify Gates
+
+- [ ] **G1** — Go→Rust direkte Produktionsgrenze definieren; Python nicht mehr Default-Intermediär für Hot-Path-Compute
+- [ ] **G2** — Rust Signal Processor als eigenständiger Service oder klarer Compute-Layer benannt und eingeplant
+- [ ] **G3** — `indicator-service` trennt Referenz-/Research-Pfade von produktionsreifer Heavy-Compute-Arbeit
+- [ ] **G4** — Python bleibt Owner für ML, Agentik, Regime Detection, Retrieval und Simulationslogik
+- [ ] **G5** — PyO3 bleibt Fallback/Test-Utility, nicht Haupt-Bridge
+- [ ] **G6** — Monte-Carlo-Review abgeschlossen: welche Pfade in NumPy/Polars bleiben dürfen, welche nach Rust müssen
+- [ ] **G7** — `finance-bridge` Rolle entschieden: temporärer Python-Adapter vs. spätere Go-Connector-Übernahme
+
+---
+
+## 6. Indikator-Erweiterung (geplant)
 
 > Alle Einträge mit Buch-Zeilenangaben für spätere Agent-Arbeit.
 
-### 5.1 Python (Kaabar)
+### 6.1 Python (Kaabar)
 
 | # | Todo | Buch-Referenz | Aufwand |
 |---|------|---------------|---------|
@@ -178,7 +277,7 @@ my_time_series['swing_low'] = my_time_series['swing_low'].replace(0, np.nan)
 | P9 | BB Signal Variants (5+ Methoden) | `mastering-finance-python.md` **L2027–2281, L2088–2261** | 1 Tag |
 | P10 | R Pattern, Bottle, Double Trouble (Candlestick) | `mastering-finance-python.md` **L3934–4118** | 1 Tag |
 
-### 5.2 Rust (RUST.md + Rust-Buch)
+### 6.2 Rust (RUST.md + Rust-Buch)
 
 | # | Todo | Buch-Referenz | Aufwand |
 |---|------|---------------|---------|
@@ -191,7 +290,7 @@ my_time_series['swing_low'] = my_time_series['swing_low'].replace(0, np.nan)
 | R7 | Stochastic in Rust | `mastering-finance-python.md` **L5986–5993** | 0.5 Tage |
 | R8 | Kand evaluieren | `RUST_LANGUAGE_IMPLEMENTATION.md` **L195–224** | 0.5 Tage |
 
-### 5.3 INDICATOR_ARCHITECTURE Todos (Übernahme)
+### 6.3 INDICATOR_ARCHITECTURE Todos (Übernahme)
 
 | # | Todo | INDICATOR_ARCHITECTURE | Buch-Referenz |
 |---|------|------------------------|---------------|
@@ -212,7 +311,7 @@ my_time_series['swing_low'] = my_time_series['swing_low'].replace(0, np.nan)
 
 ---
 
-## 6. Buchbezüge-Tabelle (Schnellreferenz)
+## 7. Buchbezüge-Tabelle (Schnellreferenz)
 
 | Thema | mastering-finance-python.md | deeplearning-with-rust.md | RUST_LANGUAGE_IMPLEMENTATION.md |
 |-------|-----------------------------|---------------------------|---------------------------------|
@@ -245,7 +344,7 @@ my_time_series['swing_low'] = my_time_series['swing_low'].replace(0, np.nan)
 
 ---
 
-## 7. Verify Gates (nach Umsetzung)
+## 8. Verify Gates (nach Umsetzung)
 
 ```bash
 # Swing Detection buchnah (default 20)
@@ -266,7 +365,7 @@ curl -X POST http://127.0.0.1:9060/api/v1/charting/transform \
 
 ---
 
-## 8. Abhängigkeiten
+## 9. Abhängigkeiten
 
 | Phase | Abhängigkeit |
 |-------|--------------|

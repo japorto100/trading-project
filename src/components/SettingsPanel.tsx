@@ -21,6 +21,7 @@ interface ProviderStatus {
 	name: string;
 	displayName: string;
 	available: boolean;
+	configured?: boolean;
 	requiresAuth: boolean;
 	supportedAssets: string[];
 	rateLimit: { requests: number; period: string };
@@ -59,14 +60,30 @@ export function SettingsPanel() {
 
 	const providers = providersData ?? [];
 
+	const syncApiKeysToGateway = async (keys: ApiKeyConfig) => {
+		const response = await fetch("/api/market/provider-credentials", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(keys),
+		});
+		if (!response.ok) {
+			throw new Error("provider credential sync failed");
+		}
+	};
+
 	// Load saved API keys from localStorage
 	useEffect(() => {
 		if (typeof window !== "undefined") {
 			const saved = localStorage.getItem(STORAGE_KEY);
 			if (saved) {
 				try {
-					const keys = JSON.parse(saved);
+					const keys = JSON.parse(saved) as ApiKeyConfig;
 					setApiKeys(keys);
+					void syncApiKeysToGateway(keys).catch(() => {
+						// Keep local-only settings if sync fails.
+					});
 				} catch {
 					// Ignore parse errors
 				}
@@ -79,13 +96,17 @@ export function SettingsPanel() {
 		}
 	}, []);
 
-	const saveApiKeys = () => {
-		if (typeof window !== "undefined") {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(apiKeys));
-			localStorage.setItem("tradeview_provider_priority", providerPriority);
+	const saveApiKeys = async () => {
+		if (typeof window === "undefined") return;
 
-			// Show success message
-			alert("API keys saved! Note: Restart the dev server to apply changes.");
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(apiKeys));
+		localStorage.setItem("tradeview_provider_priority", providerPriority);
+
+		try {
+			await syncApiKeysToGateway(apiKeys);
+			alert("API keys saved and synced to the gateway request flow.");
+		} catch {
+			alert("API keys saved locally, but gateway sync failed.");
 		}
 	};
 
@@ -160,6 +181,11 @@ export function SettingsPanel() {
 												<Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/50">
 													<Check className="h-3 w-3 mr-1" />
 													Connected
+												</Badge>
+											) : provider.requiresAuth && provider.configured ? (
+												<Badge variant="outline" className="text-amber-500 border-amber-500/50">
+													<Key className="h-3 w-3 mr-1" />
+													Configured
 												</Badge>
 											) : (
 												<Badge

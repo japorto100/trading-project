@@ -217,6 +217,7 @@ func NewServerFromEnv() (*Server, error) {
 	} else if boolOr("ADAPTIVE_ROUTER_REQUIRED", false) {
 		return nil, err
 	}
+	depthClient := marketServices.NewDepthClient(gctClient)
 	macroService := marketServices.NewMacroService(macroClient, ecbClient)
 	streamClient := marketServices.NewStreamClient(quoteClient, gctClient, finnhubClient)
 	geopoliticalEventsService := geopoliticalServices.NewEventsService(acledClient, gdeltGeoClient)
@@ -299,7 +300,7 @@ func NewServerFromEnv() (*Server, error) {
 		RequestRetries: intOr("NEWS_HTTP_RETRIES", 1),
 	})
 	newsService := marketServices.NewNewsService(rssClient, gdeltClient, finvizClient)
-	strategyExamplesDir := envOr("GCT_STRATEGY_EXAMPLES_DIR", "vendor-forks/gocryptotrader/backtester/config/strategyexamples")
+	strategyExamplesDir := envOr("GCT_STRATEGY_EXAMPLES_DIR", "go-crypto-trader/backtester/config/strategyexamples")
 	backtestExecutor := backtestServices.Executor(backtestServices.NewSimulatedExecutor())
 	if boolOr("GCT_BACKTEST_EXECUTOR_ENABLED", false) {
 		gctBacktestExecutor, err := backtestServices.NewGCTExecutor(backtestServices.GCTExecutorConfig{
@@ -309,7 +310,7 @@ func NewServerFromEnv() (*Server, error) {
 			InsecureSkipVerifyTLS: boolOr("GCT_BACKTEST_INSECURE_TLS", false),
 			RequestTimeout:        durationMsOr("GCT_BACKTEST_REQUEST_TIMEOUT_MS", 8000),
 			PollInterval:          durationMsOr("GCT_BACKTEST_POLL_INTERVAL_MS", 750),
-			ReportOutputDir:       envOr("GCT_BACKTEST_REPORT_OUTPUT_DIR", "vendor-forks/gocryptotrader/backtester/results"),
+			ReportOutputDir:       envOr("GCT_BACKTEST_REPORT_OUTPUT_DIR", "go-crypto-trader/backtester/results"),
 		})
 		if err != nil {
 			return nil, err
@@ -359,6 +360,7 @@ func NewServerFromEnv() (*Server, error) {
 		mux.HandleFunc("/api/v1/router/providers", httpHandlers.RouterProvidersHandler(muxRouterSnapshotter))
 	}
 	mux.HandleFunc("/api/v1/quote", httpHandlers.QuoteHandler(quoteClient))
+	mux.HandleFunc("/api/v1/orderbook", httpHandlers.OrderbookHandler(depthClient))
 	mux.HandleFunc("/api/v1/quote/fallback", httpHandlers.FinanceBridgeQuoteFallbackHandler(financeBridgeClient))
 	mux.HandleFunc(
 		"/api/v1/auth/revocations/jti",
@@ -425,6 +427,7 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/search", httpHandlers.SearchHandler(financeBridgeClient))
 	mux.HandleFunc("/api/v1/macro/history", httpHandlers.MacroHistoryHandler(macroService))
 	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient, natsPub))
+	mux.HandleFunc("/api/v1/stream/orderbook", sseHandlers.OrderbookStreamHandler(depthClient))
 	mux.HandleFunc("/api/v1/news/headlines", httpHandlers.NewsHandler(newsService))
 	mux.HandleFunc("/api/v1/signals/composite", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/signals/composite"))
 	mux.HandleFunc("/api/v1/evaluate/strategy", httpHandlers.IndicatorProxyHandler(indicatorServiceClient, "/api/v1/evaluate/strategy"))

@@ -5,6 +5,11 @@ import { canonicalizeFusionSymbol, resolveFusionSymbol } from "@/lib/fusion-symb
 import type { OHLCVData, TimeframeValue } from "@/lib/providers/types";
 import { evaluateTriggeredOrdersForSymbol } from "@/lib/server/orders-store";
 import { listPriceAlerts, updatePriceAlert } from "@/lib/server/price-alerts-store";
+import {
+	PROVIDER_CREDENTIALS_COOKIE,
+	PROVIDER_CREDENTIALS_HEADER,
+	resolveGatewayProviderCredentialsHeader,
+} from "@/lib/server/provider-credentials";
 import { isLegacyCandleStreamFallbackEnabled } from "@/lib/server/stream-runtime-flags";
 
 const ENCODER = new TextEncoder();
@@ -191,6 +196,13 @@ async function createGoBackedMarketStreamResponse(
 	};
 	if (userRole) {
 		headers["X-User-Role"] = userRole;
+	}
+	const providerCredentialsHeader = resolveGatewayProviderCredentialsHeader({
+		incomingHeader: request.headers.get(PROVIDER_CREDENTIALS_HEADER),
+		cookieValue: request.cookies.get(PROVIDER_CREDENTIALS_COOKIE)?.value,
+	});
+	if (providerCredentialsHeader) {
+		headers[PROVIDER_CREDENTIALS_HEADER] = providerCredentialsHeader;
 	}
 
 	let upstream: Response;

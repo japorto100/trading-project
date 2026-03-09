@@ -10,6 +10,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/requestctx"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
@@ -55,6 +57,31 @@ func TestGetTicker_RejectsMissingKey(t *testing.T) {
 	}
 	if requestErr.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", requestErr.StatusCode)
+	}
+}
+
+func TestGetTicker_UsesRequestScopedCredential(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("token"); got != "request-token" {
+			t.Fatalf("expected request-scoped token, got %q", got)
+		}
+		_, _ = w.Write([]byte(`{"c":205.12,"h":207.5,"l":203.9,"t":1771200000}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{
+		BaseURL: server.URL,
+	})
+	ctx := requestctx.WithProviderCredentials(context.Background(), base.CredentialStore{
+		"finnhub": {Key: "request-token"},
+	})
+
+	ticker, err := client.GetTicker(ctx, currency.NewPair(currency.NewCode("AAPL"), currency.NewCode("USD")), asset.Empty)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if ticker.Last != 205.12 {
+		t.Fatalf("expected last 205.12, got %f", ticker.Last)
 	}
 }
 
@@ -158,5 +185,49 @@ func TestOpenTradeStream_RejectsMissingKey(t *testing.T) {
 	}
 	if requestErr.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("expected status 401, got %d", requestErr.StatusCode)
+	}
+}
+
+func TestOpenTradeStream_UsesRequestScopedCredential(t *testing.T) {
+	upgrader := websocket.Upgrader{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("token") != "request-token" {
+			t.Fatalf("expected request-scoped token query")
+		}
+
+		connection, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			t.Fatalf("upgrade failed: %v", err)
+		}
+		defer connection.Close()
+
+		_, message, err := connection.ReadMessage()
+		if err != nil {
+			t.Fatalf("read subscribe message failed: %v", err)
+		}
+		if !strings.Contains(string(message), "\"symbol\":\"AAPL\"") {
+			t.Fatalf("expected subscribe message for AAPL, got %s", string(message))
+		}
+	}))
+	defer server.Close()
+
+	wsURL := strings.Replace(server.URL, "http://", "ws://", 1)
+	client := NewClient(Config{
+		WSBaseURL: wsURL,
+	})
+	ctx, cancel := context.WithTimeout(
+		requestctx.WithProviderCredentials(context.Background(), base.CredentialStore{
+			"finnhub": {Key: "request-token"},
+		}),
+		2*time.Second,
+	)
+	defer cancel()
+
+	tickerChannel, errorChannel, err := client.OpenTradeStream(ctx, "AAPL")
+	if err != nil {
+		t.Fatalf("open trade stream failed: %v", err)
+	}
+	if tickerChannel == nil || errorChannel == nil {
+		t.Fatal("expected channels to be returned")
 	}
 }

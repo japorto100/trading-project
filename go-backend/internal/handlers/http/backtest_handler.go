@@ -11,6 +11,10 @@ import (
 	"tradeviewfusion/go-backend/internal/contracts"
 )
 
+func defaultStrategyExamplesDir() string {
+	return filepath.Join("go-crypto-trader", "backtester", "config", "strategyexamples")
+}
+
 type BacktestCapabilities struct {
 	Engine            string   `json:"engine"`
 	StrategyDirectory string   `json:"strategyDirectory"`
@@ -22,7 +26,7 @@ func BacktestCapabilitiesHandler(strategyDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		directory := strings.TrimSpace(strategyDir)
 		if directory == "" {
-			directory = filepath.Join("vendor-forks", "gocryptotrader", "backtester", "config", "strategyexamples")
+			directory = defaultStrategyExamplesDir()
 		}
 
 		examples, err := listStrategyExamples(directory)

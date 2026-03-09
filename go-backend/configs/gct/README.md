@@ -1,6 +1,6 @@
 # GCT Config Notes
 
-Use `go-backend/vendor-forks/gocryptotrader/config_example.json` as baseline, but override before use:
+Use `go-backend/go-crypto-trader/config_example.json` as baseline, but override before use:
 
 - change `remoteControl.username` / `remoteControl.password` (never keep defaults)
 - keep gRPC + gRPC proxy (`json-rpc`) bound to localhost only

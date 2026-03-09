@@ -2,6 +2,11 @@ import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { resolveFusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
+import {
+	PROVIDER_CREDENTIALS_COOKIE,
+	PROVIDER_CREDENTIALS_HEADER,
+	resolveGatewayProviderCredentialsHeader,
+} from "@/lib/server/provider-credentials";
 import { isLegacyQuotesStreamFallbackEnabled } from "@/lib/server/stream-runtime-flags";
 
 const ENCODER = new TextEncoder();
@@ -130,6 +135,7 @@ function createLegacyPollingQuotesStreamResponse(
 	symbols: string[],
 	pollMs: number,
 	fallbackReason: string,
+	providerCredentialsHeader?: string,
 ): Response {
 	const quoteURL = new URL("/api/market/quote", request.nextUrl.origin);
 	quoteURL.searchParams.set("symbols", symbols.join(","));
@@ -161,6 +167,9 @@ function createLegacyPollingQuotesStreamResponse(
 					};
 					if (userRole) {
 						headers["X-User-Role"] = userRole;
+					}
+					if (providerCredentialsHeader) {
+						headers[PROVIDER_CREDENTIALS_HEADER] = providerCredentialsHeader;
 					}
 					const response = await fetch(quoteURL.toString(), {
 						headers,
@@ -295,6 +304,7 @@ function createGoMultiplexQuotesStreamResponse(
 	symbols: string[],
 	routes: GoStreamRoute[],
 	pollMs: number,
+	providerCredentialsHeader?: string,
 ): Response {
 	let closeStream: (() => void) | null = null;
 	const stream = new ReadableStream<Uint8Array>({
@@ -366,6 +376,9 @@ function createGoMultiplexQuotesStreamResponse(
 				};
 				if (userRole) {
 					headers["X-User-Role"] = userRole;
+				}
+				if (providerCredentialsHeader) {
+					headers[PROVIDER_CREDENTIALS_HEADER] = providerCredentialsHeader;
 				}
 
 				while (!closed) {
@@ -484,6 +497,10 @@ function createGoMultiplexQuotesStreamResponse(
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	const userRole = request.headers.get("x-user-role")?.trim() || "";
+	const providerCredentialsHeader = resolveGatewayProviderCredentialsHeader({
+		incomingHeader: request.headers.get(PROVIDER_CREDENTIALS_HEADER),
+		cookieValue: request.cookies.get(PROVIDER_CREDENTIALS_COOKIE)?.value,
+	});
 	const symbols = parseSymbols(request.nextUrl.searchParams.get("symbols"));
 	if (symbols.length === 0) {
 		return new Response("Missing symbols", { status: 400 });
@@ -502,6 +519,7 @@ export async function GET(request: NextRequest) {
 			symbols,
 			streamRoutes,
 			pollMs,
+			providerCredentialsHeader,
 		);
 	}
 
@@ -533,5 +551,6 @@ export async function GET(request: NextRequest) {
 		symbols,
 		pollMs,
 		"mixed_or_unsupported_symbols",
+		providerCredentialsHeader,
 	);
 }

@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { PROVIDER_REGISTRY } from "@/lib/providers";
 import type { ProviderInfo } from "@/lib/providers/types";
+import {
+	PROVIDER_CREDENTIALS_COOKIE,
+	parseProviderCredentialsCookie,
+} from "@/lib/server/provider-credentials";
 
 const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 
@@ -49,15 +53,20 @@ function isProviderAvailableViaGateway(name: string, gatewayReachable: boolean):
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
+	const storedCredentials = parseProviderCredentialsCookie(
+		request.cookies.get(PROVIDER_CREDENTIALS_COOKIE)?.value,
+	);
 	try {
 		const gatewayReachable = await isGatewayReachable(requestId, userRole);
 		const providerStatus = Object.entries(PROVIDER_REGISTRY).map(([name, providerInfo]) => {
 			const info = providerInfo as ProviderInfo;
+			const configured = Boolean(storedCredentials[name]);
 
 			return {
 				name,
 				displayName: info.displayName,
 				available: isProviderAvailableViaGateway(name, gatewayReachable),
+				configured,
 				requiresAuth: info.requiresAuth,
 				supportedAssets: info.supportedAssets,
 				rateLimit: info.rateLimit,

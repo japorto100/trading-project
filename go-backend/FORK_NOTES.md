@@ -2,8 +2,10 @@
 
 ## What was done
 
-- Upstream source mirrored locally to:
-  - `go-backend/vendor-forks/gocryptotrader`
+- Active upstream source mirror now lives at:
+  - `go-backend/go-crypto-trader`
+- Legacy vendor fork was kept only for comparison and is archived under:
+  - `archive/go-backend/vendor-forks/gocryptotrader`
 - Source review performed for:
   - feature surface (`README.md`)
   - runtime defaults (`config_example.json`)
@@ -37,7 +39,7 @@
 
 ## Fork check: duplicate-work assessment (2026-02-14)
 
-Reviewed areas in `vendor-forks/gocryptotrader`:
+Reviewed legacy fork areas in `archive/go-backend/vendor-forks/gocryptotrader`:
 
 - `gctrpc/rpc.proto` + generated `rpc.pb.gw.go` already expose:
   - `POST /v1/getticker`

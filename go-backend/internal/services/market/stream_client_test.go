@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
@@ -112,5 +113,33 @@ func TestStreamClient_RoutesCryptoStreamToGCTClient(t *testing.T) {
 	}
 	if cryptoStream.lastExchange != "Binance" {
 		t.Fatalf("expected exchange Binance, got %s", cryptoStream.lastExchange)
+	}
+}
+
+func TestStreamClient_OpenTickerStreamTargetUsesGatewayMarketTarget(t *testing.T) {
+	tickers := make(chan gct.Ticker)
+	errors := make(chan error)
+	cryptoStream := &fakeCryptoStreamClient{
+		tickerChannel: tickers,
+		errorChannel:  errors,
+	}
+	client := NewStreamClient(&fakeQuoteRouter{}, cryptoStream, &fakeStockStreamClient{})
+
+	tickerChannel, errorChannel, err := client.OpenTickerStreamTarget(context.Background(), contracts.MarketTarget{
+		Exchange:  " binance ",
+		AssetType: " spot ",
+		Pair:      contracts.Pair{Base: " btc ", Quote: " usdt "},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if tickerChannel == nil || errorChannel == nil {
+		t.Fatal("expected non-nil stream channels")
+	}
+	if cryptoStream.lastExchange != "binance" {
+		t.Fatalf("expected normalized exchange, got %q", cryptoStream.lastExchange)
+	}
+	if cryptoStream.lastPair.Base.String() != "BTC" || cryptoStream.lastPair.Quote.String() != "USDT" {
+		t.Fatalf("expected normalized pair BTC/USDT, got %s/%s", cryptoStream.lastPair.Base, cryptoStream.lastPair.Quote)
 	}
 }

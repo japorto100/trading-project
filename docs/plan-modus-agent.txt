@@ -1,0 +1,59 @@
+Hier ist die komprimierte Blaupause für deine eigene „Plan-Mode“-Architektur. Ich habe die Projekte so ausgewählt, dass du sie wie Legosteine kombinieren kannst – egal, ob für Code oder für komplexe Recherche-Aufgaben.
+
+### Die Architektur: Das "Plan-Execute-Refine" Modell
+
+Bevor wir zu den Links kommen, hier das fundamentale Prinzip, das du nachbauen solltest. Es trennt das **Bewusstsein** (Planung) vom **Körper** (Ausführung).
+
+1. **Der Architekt (Brain):** Erstellt einen Plan in Form einer Checkliste (Markdown). Er sieht alles, tut aber nichts.
+2. **Die Checkliste (State):** Ein Textdokument, das zwischen den Agenten geteilt wird. Hier kann der Mensch eingreifen.
+3. **Der Editor (Hands):** Nimmt sich immer nur *einen* Punkt der Checkliste vor und führt ihn aus.
+
+---
+
+### Dein "Einkaufszettel" auf GitHub
+
+Hier sind die drei Projekte, die du dir ansehen und aus denen du Code-Stücke übernehmen solltest:
+
+#### 1. Cline (ehemals Roo Code)
+
+* **Link:** [github.com/cline/cline](https://github.com/cline/cline)
+* **Was übernehmen:** Das **Task-Management & UI-Konzept**.
+* **Warum:** Cline ist ungeschlagen darin, wie man den Fortschritt einer KI visualisiert.
+* **Wie:** Schau dir den Ordner `src/core/agent/` an. Hier siehst du, wie die KI eine „Mission“ in Teilschritte zerlegt. Übernimm die Logik, wie der Agent den aktuellen Status speichert, damit er nach einer Unterbrechung weiß, wo er war.
+
+#### 2. Aider
+
+* **Link:** [github.com/aider-ai/aider](https://github.com/aider-ai/aider)
+* **Was übernehmen:** Den **Architect-Editor-Split**.
+* **Warum:** Aider hat die beste Logik, um zwei verschiedene KI-Modelle zusammenarbeiten zu lassen (ein „kluges“ für den Plan, ein „präzises“ für die Umsetzung).
+* **Wie:** Analysiere die Datei `aider/coders/architect_coder.py`. Das ist die Goldgrube für die Trennung von High-Level-Logik und Low-Level-Änderungen.
+
+#### 3. LangGraph (Plan-and-Execute Example)
+
+* **Link:** [github.com/langchain-ai/langgraph](https://github.com/langchain-ai/langgraph) (Suche dort nach `examples/plan-and-execute`)
+* **Was übernehmen:** Den **Re-Planning Loop**.
+* **Warum:** Das ist das Gehirn für Szenarien *außerhalb* von Code. Es lehrt die KI, nach jedem Schritt zu fragen: „Ist mein ursprünglicher Plan noch sinnvoll?“
+* **Wie:** Nutze deren Struktur eines gerichteten Graphen (Nodes und Edges). Eine Node ist der „Planner“, eine der „Executor“ und eine der „Re-Planner“.
+
+---
+
+### Zusammenfassung: Wo, Was, Warum?
+
+| Komponente | Projekt-Link | Warum dieses Projekt? | Was genau forken/kopieren? |
+| --- | --- | --- | --- |
+| **Der Planer** | [Aider](https://github.com/aider-ai/aider) | Beste Trennung von Strategie und Taktik. | Die `Architect`-Klasse und die Trennung der Prompts. |
+| **Die Ausführung** | [Cline](https://github.com/cline/cline) | Beste Handhabung von Datei- und Tool-Zugriffen. | Die Tool-Definitionen (Read/Write/Search) in `src/services/`. |
+| **Der Ablauf** | [LangGraph](https://github.com/langchain-ai/langgraph) | Perfekt für Logik-Schleifen (Re-Planning). | Die Logik, wie der Agent zum Plan zurückkehrt (`conditional_edges`). |
+
+### Warum das für dich nützlich ist (auch ohne Code)
+
+Wenn du dieses System für eine **Marktanalyse** benutzt:
+
+1. **Architekt** schreibt: 1. Suche Konkurrenz X, 2. Vergleiche Preise, 3. Erstelle Tabelle.
+2. **Du** sagst: „Lass Schritt 2 weg, nimm lieber Firma Y dazu.“
+3. **Editor** führt Schritt 1 aus und liefert die Ergebnisse.
+4. **Re-Planner** merkt: „Firma X ist pleite, ich muss Schritt 3 anpassen.“
+
+> **Dr. T's Tipp:** Fange klein an. Baue zuerst ein Skript, das eine `plan.md` schreibt und liest. Sobald die KI lernt, ihre eigene `plan.md` zu aktualisieren, hast du das Fundament von Cursor erfolgreich nachgebaut.
+
+Soll ich dir ein minimales Python-Skript schreiben, das genau diese Trennung (Planer -> Markdown-Datei -> Executor) simuliert?

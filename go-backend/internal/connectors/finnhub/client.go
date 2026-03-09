@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/websocket"
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
@@ -71,7 +72,8 @@ func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType as
 			Cause:      fmt.Errorf("unsupported finnhub assetType"),
 		}
 	}
-	if c.apiKey == "" {
+	apiKey := c.apiKeyForContext(ctx)
+	if apiKey == "" {
 		return gct.Ticker{}, &gct.RequestError{
 			Path:       "/quote",
 			StatusCode: http.StatusUnauthorized,
@@ -90,12 +92,16 @@ func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType as
 
 	query := url.Values{}
 	query.Set("symbol", symbol)
-	query.Set("token", c.apiKey)
+	query.Set("token", apiKey)
 	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, "/quote", query, nil)
 	if err != nil {
 		return gct.Ticker{}, err
 	}
 
+	return c.doTickerRequest(req)
+}
+
+func (c *Client) doTickerRequest(req *http.Request) (gct.Ticker, error) {
 	resp, err := c.baseClient.Do(req)
 	if err != nil {
 		timeout := false
@@ -148,6 +154,11 @@ func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType as
 		lastUpdated = time.Now().Unix()
 	}
 
+	symbol := strings.ToUpper(strings.TrimSpace(req.URL.Query().Get("symbol")))
+	if symbol == "" {
+		symbol = "UNKNOWN"
+	}
+
 	return gct.Ticker{
 		Pair:        currency.NewPair(currency.NewCode(symbol), currency.NewCode("USD")),
 		Currency:    symbol,
@@ -161,8 +172,18 @@ func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType as
 	}, nil
 }
 
+func (c *Client) apiKeyForContext(ctx context.Context) string {
+	if creds, ok := requestctx.ProviderCredential(ctx, "finnhub"); ok {
+		if key := strings.TrimSpace(creds.Key); key != "" {
+			return key
+		}
+	}
+	return strings.TrimSpace(c.apiKey)
+}
+
 func (c *Client) OpenTradeStream(ctx context.Context, symbol string) (<-chan gct.Ticker, <-chan error, error) {
-	if c.apiKey == "" {
+	apiKey := c.apiKeyForContext(ctx)
+	if apiKey == "" {
 		return nil, nil, &gct.RequestError{
 			Path:       "/ws",
 			StatusCode: http.StatusUnauthorized,
@@ -184,7 +205,7 @@ func (c *Client) OpenTradeStream(ctx context.Context, symbol string) (<-chan gct
 		return nil, nil, fmt.Errorf("build finnhub websocket url: %w", err)
 	}
 	query := endpoint.Query()
-	query.Set("token", c.apiKey)
+	query.Set("token", apiKey)
 	endpoint.RawQuery = query.Encode()
 
 	tickerChannel := make(chan gct.Ticker)

@@ -36,12 +36,21 @@ func TestRequestErrorError(t *testing.T) {
 }
 
 func TestCapabilitiesHelpers(t *testing.T) {
-	caps := Capabilities{Quote: true}
+	caps := Capabilities{Quote: true, Depth: true, Streaming: true, OrderStatus: true}
 	if !caps.SupportsRealtime() {
 		t.Fatal("expected realtime support")
 	}
 	if caps.SupportsAnalyticsSeed() {
 		t.Fatal("did not expect analytics seed support")
+	}
+	if !caps.Market().Depth {
+		t.Fatal("expected depth support in market capabilities")
+	}
+	if !caps.Stream().Live {
+		t.Fatal("expected live stream support")
+	}
+	if !caps.Order().Status {
+		t.Fatal("expected order status support")
 	}
 }
 
@@ -63,5 +72,78 @@ func TestClassifyHTTPStatusAndErrors(t *testing.T) {
 	}
 	if IsRetryableClass(ErrorClassAuth) {
 		t.Fatal("did not expect auth to be retryable")
+	}
+}
+
+func TestRetryDecisionRespectsRetryAfter(t *testing.T) {
+	resp, err := http.NewRequest(http.MethodGet, "https://example.com", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	_ = resp
+
+	response := &http.Response{
+		StatusCode: http.StatusTooManyRequests,
+		Header:     make(http.Header),
+	}
+	response.Header.Set("Retry-After", "5")
+
+	decision := RetryDecision(http.MethodGet, response, nil, time.Unix(1700000000, 0))
+	if !decision.ShouldRetry {
+		t.Fatal("expected retry decision to allow retry")
+	}
+	if decision.Delay != 5*time.Second {
+		t.Fatalf("expected 5s delay, got %s", decision.Delay)
+	}
+}
+
+func TestCredentialSetRedacted(t *testing.T) {
+	creds := CredentialSet{
+		Key:        "abc12345",
+		Secret:     "secret-9876",
+		Passphrase: "passphrase",
+		ClientID:   "client-1",
+		SubAccount: "desk-a",
+	}
+
+	if creds.IsEmpty() {
+		t.Fatal("expected credentials to be non-empty")
+	}
+	if !creds.HasSecrets() {
+		t.Fatal("expected credentials to report secrets")
+	}
+
+	redacted := creds.Redacted()
+	if redacted.Key == creds.Key || redacted.Secret == creds.Secret || redacted.Passphrase == creds.Passphrase {
+		t.Fatalf("expected secrets to be redacted, got %+v", redacted)
+	}
+	if redacted.ClientID != "client-1" || redacted.SubAccount != "desk-a" {
+		t.Fatalf("expected non-secret fields preserved, got %+v", redacted)
+	}
+}
+
+func TestCredentialStoreHelpers(t *testing.T) {
+	store := CredentialStore{
+		" FINNHUB ": {Key: "demo-key"},
+		"binance":  {Key: "bin-key", Secret: "bin-secret"},
+		"empty":    {},
+	}
+
+	normalized := store.Normalized()
+	if len(normalized) != 2 {
+		t.Fatalf("expected 2 normalized entries, got %+v", normalized)
+	}
+	if _, ok := normalized["finnhub"]; !ok {
+		t.Fatalf("expected normalized finnhub entry, got %+v", normalized)
+	}
+
+	creds, ok := normalized.Get("BINANCE")
+	if !ok || creds.Secret != "bin-secret" {
+		t.Fatalf("expected binance credentials, got %+v", creds)
+	}
+
+	redacted := normalized.Redacted()
+	if redacted["binance"].Secret == "bin-secret" {
+		t.Fatalf("expected redacted secret, got %+v", redacted["binance"])
 	}
 }

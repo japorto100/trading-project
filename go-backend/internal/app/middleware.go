@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,10 +14,12 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 const requestIDHeader = "X-Request-ID"
+const providerCredentialsHeader = "X-Tradeview-Provider-Credentials"
 
 type loggingResponseWriter struct {
 	http.ResponseWriter
@@ -53,6 +57,14 @@ func withRequestIDAndLogging(next http.Handler) http.Handler {
 		w.Header().Set(requestIDHeader, requestID)
 		r.Header.Set(requestIDHeader, requestID)
 		ctx := requestctx.WithRequestID(r.Context(), requestID)
+		if encodedCreds := strings.TrimSpace(r.Header.Get(providerCredentialsHeader)); encodedCreds != "" {
+			creds, err := parseProviderCredentialsHeader(encodedCreds)
+			if err != nil {
+				http.Error(w, "invalid provider credentials header", http.StatusBadRequest)
+				return
+			}
+			ctx = requestctx.WithProviderCredentials(ctx, creds)
+		}
 		if span := trace.SpanFromContext(ctx); span.IsRecording() {
 			span.SetAttributes(attribute.String("http.request_id", requestID))
 		}
@@ -116,7 +128,7 @@ func withCORS(next http.Handler, allowedOrigins []string) http.Handler {
 			headers.Set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS")
 			headers.Set(
 				"Access-Control-Allow-Headers",
-				"Content-Type, Authorization, X-Request-ID, X-User-Role, X-Auth-User, X-Auth-JTI",
+				"Content-Type, Authorization, X-Request-ID, X-User-Role, X-Auth-User, X-Auth-JTI, X-Tradeview-Provider-Credentials",
 			)
 			headers.Set("Access-Control-Max-Age", "600")
 		}
@@ -161,6 +173,23 @@ func isAllowedOrigin(origin string, allowedOrigins []string) bool {
 // RequestIDFromContext returns the propagated request id if middleware attached one.
 func RequestIDFromContext(ctx context.Context) string {
 	return requestctx.RequestID(ctx)
+}
+
+func ProviderCredentialsFromContext(ctx context.Context, provider string) (baseconnectors.CredentialSet, bool) {
+	return requestctx.ProviderCredential(ctx, provider)
+}
+
+func parseProviderCredentialsHeader(value string) (baseconnectors.CredentialStore, error) {
+	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(value))
+	if err != nil {
+		return nil, fmt.Errorf("decode provider credentials header: %w", err)
+	}
+
+	var creds baseconnectors.CredentialStore
+	if err := json.Unmarshal(raw, &creds); err != nil {
+		return nil, fmt.Errorf("unmarshal provider credentials header: %w", err)
+	}
+	return creds.Normalized(), nil
 }
 
 func newUUIDv4() string {

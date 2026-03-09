@@ -1,18 +1,14 @@
 package gct
 
-// TODO(Phase 5a open): gRPC paths for GetAccountInfo and GetExchanges are not
-// implemented here because the compiled gctrpc.GoCryptoTraderServiceClient stub
-// (vendor-forks/gocryptotrader/gctrpc) does not expose those methods in the
-// generated proto client.  When upgrading GCT or regenerating the proto stubs,
-// add getAccountInfoGRPC / getExchangesGRPC methods analogous to getTickerGRPC
-// and re-enable them behind the existing c.cfg.PreferGRPC guard.
-// Tracked in EXECUTION_PLAN.md Phase 5a open backlog.
-
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	gctrpc "github.com/thrasher-corp/gocryptotrader/gctrpc"
+	"google.golang.org/grpc/codes"
 )
 
 // CurrencyBalance holds balance data for a single currency on an exchange.
@@ -44,6 +40,16 @@ type ExchangeInfo struct {
 
 // GetAccountInfo fetches live balance data for the given exchange via GCT JSON-RPC.
 func (c *Client) GetAccountInfo(ctx context.Context, exchange string, assetType asset.Item) (AccountInfo, error) {
+	if c.cfg.PreferGRPC {
+		info, err := c.getAccountInfoGRPC(ctx, exchange, assetType)
+		if err == nil {
+			return info, nil
+		}
+		if !shouldFallbackFromGRPC(err) {
+			return AccountInfo{}, err
+		}
+	}
+
 	body := map[string]any{
 		"exchange":  exchange,
 		"assetType": assetType.String(),
@@ -89,6 +95,16 @@ func (c *Client) GetAccountInfo(ctx context.Context, exchange string, assetType 
 
 // GetExchanges returns the list of enabled exchanges from GCT via JSON-RPC.
 func (c *Client) GetExchanges(ctx context.Context) ([]ExchangeInfo, error) {
+	if c.cfg.PreferGRPC {
+		exchanges, err := c.getExchangesGRPC(ctx)
+		if err == nil {
+			return exchanges, nil
+		}
+		if !shouldFallbackFromGRPC(err) {
+			return nil, err
+		}
+	}
+
 	var raw struct {
 		Exchanges []struct {
 			Name       string   `json:"name"`
@@ -105,4 +121,99 @@ func (c *Client) GetExchanges(ctx context.Context) ([]ExchangeInfo, error) {
 		exchanges = append(exchanges, ExchangeInfo{Name: e.Name, AssetTypes: e.AssetTypes})
 	}
 	return exchanges, nil
+}
+
+func (c *Client) getAccountInfoGRPC(ctx context.Context, exchange string, assetType asset.Item) (AccountInfo, error) {
+	serviceClient, err := c.grpcServiceClient(ctx)
+	if err != nil {
+		return AccountInfo{}, err
+	}
+
+	requestContext, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	response, callErr := serviceClient.GetAccountBalances(requestContext, &gctrpc.GetAccountBalancesRequest{
+		Exchange:  exchange,
+		AssetType: strings.ToLower(assetType.String()),
+	})
+	if callErr != nil {
+		return AccountInfo{}, wrapRPCError("GetAccountBalances", callErr)
+	}
+	return fromGRPCAccountInfo(response), nil
+}
+
+func (c *Client) getExchangesGRPC(ctx context.Context) ([]ExchangeInfo, error) {
+	serviceClient, err := c.grpcServiceClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	requestContext, cancel := c.withTimeout(ctx)
+	defer cancel()
+
+	response, callErr := serviceClient.GetExchanges(requestContext, &gctrpc.GetExchangesRequest{Enabled: true})
+	if callErr != nil {
+		return nil, wrapRPCError("GetExchanges", callErr)
+	}
+	return fromGRPCExchanges(response), nil
+}
+
+func fromGRPCAccountInfo(response *gctrpc.GetAccountBalancesResponse) AccountInfo {
+	if response == nil {
+		return AccountInfo{}
+	}
+
+	info := AccountInfo{Exchange: response.GetExchange()}
+	for _, subAcc := range response.GetAccounts() {
+		acc := ExchangeAccount{ID: subAcc.GetId()}
+		for _, cur := range subAcc.GetCurrencies() {
+			available := cur.GetFree()
+			if available <= 0 {
+				available = cur.GetTotalValue() - cur.GetHold()
+			}
+			if cur.GetFreeWithoutBorrow() > 0 {
+				available = cur.GetFreeWithoutBorrow()
+			}
+			acc.Currencies = append(acc.Currencies, CurrencyBalance{
+				Currency:          cur.GetCurrency(),
+				Total:             cur.GetTotalValue(),
+				Hold:              cur.GetHold(),
+				Available:         available,
+				FreeWithoutBorrow: cur.GetFreeWithoutBorrow(),
+			})
+		}
+		info.Accounts = append(info.Accounts, acc)
+	}
+	return info
+}
+
+func fromGRPCExchanges(response *gctrpc.GetExchangesResponse) []ExchangeInfo {
+	if response == nil {
+		return nil
+	}
+
+	names := strings.Split(response.GetExchanges(), ",")
+	exchanges := make([]ExchangeInfo, 0, len(names))
+	for _, name := range names {
+		trimmed := strings.TrimSpace(name)
+		if trimmed == "" {
+			continue
+		}
+		exchanges = append(exchanges, ExchangeInfo{Name: trimmed})
+	}
+	return exchanges
+}
+
+func shouldFallbackFromGRPC(err error) bool {
+	var rpcError *RPCError
+	if !errors.As(err, &rpcError) {
+		return false
+	}
+
+	switch rpcError.Code {
+	case codes.Unimplemented, codes.Unavailable, codes.DeadlineExceeded:
+		return true
+	default:
+		return false
+	}
 }

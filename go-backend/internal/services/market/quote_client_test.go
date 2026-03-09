@@ -5,10 +5,11 @@ import (
 	"errors"
 	"testing"
 
+	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/router/adaptive"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
-	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
 
 type fakeCryptoTickerClient struct {
@@ -323,5 +324,28 @@ func TestQuoteClient_AutoFailoverRecordsClassifiedRouterFailures(t *testing.T) {
 	}
 	if got := binance.FailureClasses["timeout"]; got != 1 {
 		t.Fatalf("expected timeout failure count 1, got %d", got)
+	}
+}
+
+func TestQuoteClient_GetTickerTargetUsesGatewayMarketTarget(t *testing.T) {
+	crypto := &fakeCryptoTickerClient{ticker: gct.Ticker{Last: 42000}}
+	client := NewQuoteClient(crypto, nil, nil, nil)
+
+	ticker, err := client.GetTickerTarget(context.Background(), contracts.MarketTarget{
+		Exchange:  " binance ",
+		AssetType: " spot ",
+		Pair:      contracts.Pair{Base: " btc ", Quote: " usdt "},
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if ticker.Last != 42000 {
+		t.Fatalf("expected last 42000, got %f", ticker.Last)
+	}
+	if crypto.lastExchange != "binance" {
+		t.Fatalf("expected normalized exchange, got %q", crypto.lastExchange)
+	}
+	if crypto.lastPair.Base.String() != "BTC" || crypto.lastPair.Quote.String() != "USDT" {
+		t.Fatalf("expected normalized pair BTC/USDT, got %s/%s", crypto.lastPair.Base, crypto.lastPair.Quote)
 	}
 }

@@ -63,3 +63,11 @@ func TestBacktestCapabilitiesHandler_Returns502WhenDirectoryMissing(t *testing.T
 		t.Fatalf("expected status 502, got %d", response.Code)
 	}
 }
+
+func TestDefaultStrategyExamplesDir_UsesGoCryptoTraderPath(t *testing.T) {
+	got := defaultStrategyExamplesDir()
+	want := filepath.Join("go-crypto-trader", "backtester", "config", "strategyexamples")
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}

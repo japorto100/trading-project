@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
@@ -43,6 +44,11 @@ func (c *StreamClient) GetTicker(ctx context.Context, exchange string, pair curr
 	return c.quoteRouter.GetTicker(ctx, exchange, pair, assetType)
 }
 
+func (c *StreamClient) GetTickerTarget(ctx context.Context, target contracts.MarketTarget) (gct.Ticker, error) {
+	exchange, pair, assetType := normalizeMarketTarget(target)
+	return c.GetTicker(ctx, exchange, pair, assetType)
+}
+
 func (c *StreamClient) OpenTickerStream(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item) (<-chan gct.Ticker, <-chan error, error) {
 	if strings.EqualFold(exchange, "FINNHUB") {
 		if c.stockStream == nil {
@@ -55,4 +61,9 @@ func (c *StreamClient) OpenTickerStream(ctx context.Context, exchange string, pa
 		return nil, nil, fmt.Errorf("crypto stream client unavailable")
 	}
 	return c.cryptoStream.OpenTickerStream(ctx, exchange, pair, assetType)
+}
+
+func (c *StreamClient) OpenTickerStreamTarget(ctx context.Context, target contracts.MarketTarget) (<-chan gct.Ticker, <-chan error, error) {
+	exchange, pair, assetType := normalizeMarketTarget(target)
+	return c.OpenTickerStream(ctx, exchange, pair, assetType)
 }

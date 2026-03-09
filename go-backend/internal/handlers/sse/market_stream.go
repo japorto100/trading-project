@@ -6,113 +6,24 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"tradeviewfusion/go-backend/internal/contracts"
+	"tradeviewfusion/go-backend/internal/handlers/marketparams"
 	"tradeviewfusion/go-backend/internal/messaging"
 	marketstreaming "tradeviewfusion/go-backend/internal/services/market/streaming"
 )
 
-var streamSymbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
 var marketStreamSnapshotStore = marketstreaming.NewSnapshotStore()
 var marketStreamBuilders sync.Map
 
-type streamExchangeConfig struct {
-	upstream          string
-	source            string
-	allowedAssetTypes map[string]struct{}
-	defaultQuote      string
-	symbolFormat      string
-}
-
-var streamAllowedExchanges = map[string]streamExchangeConfig{
-	"auto": {
-		upstream: "AUTO",
-		source:   "router",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-			"equity":  {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument_or_pair",
-	},
-	"binance": {
-		upstream: "Binance",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USDT",
-		symbolFormat: "pair",
-	},
-	"kraken": {
-		upstream: "Kraken",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "pair",
-	},
-	"coinbase": {
-		upstream: "Coinbase",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "pair",
-	},
-	"okx": {
-		upstream: "OKX",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USDT",
-		symbolFormat: "pair",
-	},
-	"bybit": {
-		upstream: "Bybit",
-		source:   "gct",
-		allowedAssetTypes: map[string]struct{}{
-			"spot":    {},
-			"margin":  {},
-			"futures": {},
-		},
-		defaultQuote: "USDT",
-		symbolFormat: "pair",
-	},
-	"finnhub": {
-		upstream: "FINNHUB",
-		source:   "finnhub",
-		allowedAssetTypes: map[string]struct{}{
-			"equity": {},
-		},
-		defaultQuote: "USD",
-		symbolFormat: "instrument_or_pair",
-	},
-}
-
 type streamTickerClient interface {
-	GetTicker(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error)
-	OpenTickerStream(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item) (<-chan gct.Ticker, <-chan error, error)
+	GetTickerTarget(ctx context.Context, target contracts.MarketTarget) (gct.Ticker, error)
+	OpenTickerStreamTarget(ctx context.Context, target contracts.MarketTarget) (<-chan gct.Ticker, <-chan error, error)
 }
 
 type streamParams struct {
@@ -121,6 +32,7 @@ type streamParams struct {
 	UpstreamExchange string
 	AssetType        string
 	Pair             gct.Pair
+	Target           contracts.MarketTarget
 	Source           string
 	Timeframe        string
 	AlertRules       []marketstreaming.AlertRule
@@ -133,8 +45,6 @@ func MarketStreamHandler(client streamTickerClient, natsPub messaging.Publisher)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
-		assetItem, _ := asset.New(params.AssetType)
 
 		w.Header().Set("Content-Type", "text/event-stream")
 		w.Header().Set("Cache-Control", "no-cache")
@@ -297,12 +207,7 @@ func MarketStreamHandler(client streamTickerClient, natsPub messaging.Publisher)
 			}
 		}
 
-		tickerChannel, streamErrorChannel, streamError := client.OpenTickerStream(
-			r.Context(),
-			params.UpstreamExchange,
-			params.Pair,
-			assetItem,
-		)
+		tickerChannel, streamErrorChannel, streamError := client.OpenTickerStreamTarget(r.Context(), params.Target)
 		if streamError != nil {
 			enablePolling("live stream unavailable, switched to polling")
 		} else {
@@ -370,7 +275,7 @@ func MarketStreamHandler(client streamTickerClient, natsPub messaging.Publisher)
 				}
 				enablePolling("live stream error: " + streamErr.Error())
 			case <-pollingTick:
-				ticker, tickerErr := client.GetTicker(r.Context(), params.UpstreamExchange, params.Pair, assetItem)
+				ticker, tickerErr := client.GetTickerTarget(r.Context(), params.Target)
 				if tickerErr != nil {
 					_ = writeSSEEvent(w, "upstream_error", map[string]string{
 						"message": "upstream quote unavailable",
@@ -401,12 +306,7 @@ func MarketStreamHandler(client streamTickerClient, natsPub messaging.Publisher)
 			case <-reconnectTick:
 				reconnectAttempts++
 				emitStreamStatus("reconnecting", "attempting live stream reconnect")
-				nextTickerChannel, nextStreamErrorChannel, reconnectErr := client.OpenTickerStream(
-					r.Context(),
-					params.UpstreamExchange,
-					params.Pair,
-					assetItem,
-				)
+				nextTickerChannel, nextStreamErrorChannel, reconnectErr := client.OpenTickerStreamTarget(r.Context(), params.Target)
 				if reconnectErr != nil {
 					_ = writeSSEEvent(w, "upstream_error", map[string]string{
 						"message": "live stream reconnect failed",
@@ -432,34 +332,21 @@ func resolveStreamParams(r *http.Request) (streamParams, error) {
 	assetType := strings.ToLower(streamValueOrDefault(r.URL.Query().Get("assetType"), "spot"))
 	timeframeRaw := strings.TrimSpace(r.URL.Query().Get("timeframe"))
 
-	exchangeConfig, ok := streamAllowedExchanges[exchange]
-	if !ok {
-		return streamParams{}, fmt.Errorf("unsupported exchange")
-	}
-	if exchange == "auto" {
-		resolvedExchange, resolvedCfg, err := resolveAutoStreamExchange(assetType)
-		if err != nil {
-			return streamParams{}, err
-		}
-		exchange = resolvedExchange
-		exchangeConfig = resolvedCfg
-	}
-	pair, normalizedSymbol, ok := resolveStreamSymbol(symbol, exchangeConfig)
-	if !ok {
-		return streamParams{}, fmt.Errorf("invalid symbol format, expected BASE/QUOTE")
-	}
-	pair = normalizeStreamPairForExchange(exchange, pair)
-	if _, ok := exchangeConfig.allowedAssetTypes[assetType]; !ok {
-		return streamParams{}, fmt.Errorf("unsupported assetType")
+	resolved, err := marketparams.ResolveTarget(symbol, exchange, assetType, marketparams.StreamExchangeConfigs, marketparams.ResolveOptions{
+		ResolveAutoExchange: resolveAutoStreamExchange,
+	})
+	if err != nil {
+		return streamParams{}, err
 	}
 
 	params := streamParams{
-		Symbol:           normalizedSymbol,
-		Exchange:         exchange,
-		UpstreamExchange: exchangeConfig.upstream,
-		AssetType:        assetType,
-		Pair:             pair,
-		Source:           exchangeConfig.source,
+		Symbol:           resolved.Symbol,
+		Exchange:         resolved.Exchange,
+		UpstreamExchange: resolved.UpstreamExchange,
+		AssetType:        resolved.AssetType,
+		Pair:             currency.NewPair(currency.NewCode(resolved.Pair.Base), currency.NewCode(resolved.Pair.Quote)),
+		Target:           resolved.Target,
+		Source:           resolved.Source,
 	}
 	if timeframeRaw != "" {
 		timeframe, err := marketstreaming.ParseTimeframe(timeframeRaw)
@@ -478,11 +365,11 @@ func resolveStreamParams(r *http.Request) (streamParams, error) {
 	return params, nil
 }
 
-func resolveAutoStreamExchange(assetType string) (string, streamExchangeConfig, error) {
+func resolveAutoStreamExchange(assetType string) (string, marketparams.ExchangeConfig, error) {
 	if assetType == "equity" {
-		cfg, ok := streamAllowedExchanges["finnhub"]
+		cfg, ok := marketparams.StreamExchangeConfigs["finnhub"]
 		if !ok {
-			return "", streamExchangeConfig{}, fmt.Errorf("auto exchange resolution failed for equity")
+			return "", marketparams.ExchangeConfig{}, fmt.Errorf("auto exchange resolution failed for equity")
 		}
 		return "finnhub", cfg, nil
 	}
@@ -495,9 +382,9 @@ func resolveAutoStreamExchange(assetType string) (string, streamExchangeConfig, 
 		candidate = "kraken"
 	}
 
-	cfg, ok := streamAllowedExchanges[candidate]
+	cfg, ok := marketparams.StreamExchangeConfigs[candidate]
 	if !ok || candidate == "auto" || candidate == "finnhub" {
-		return "", streamExchangeConfig{}, fmt.Errorf("unsupported auto crypto exchange")
+		return "", marketparams.ExchangeConfig{}, fmt.Errorf("unsupported auto crypto exchange")
 	}
 	return candidate, cfg, nil
 }
@@ -507,83 +394,6 @@ func streamValueOrDefault(value, fallback string) string {
 		return fallback
 	}
 	return value
-}
-
-func streamParseSymbol(symbol string) (currency.Pair, bool) {
-	normalized := strings.TrimSpace(strings.ToUpper(symbol))
-	normalized = strings.ReplaceAll(normalized, "-", "/")
-	normalized = strings.ReplaceAll(normalized, "_", "/")
-
-	parts := strings.Split(normalized, "/")
-	if len(parts) != 2 {
-		return currency.EMPTYPAIR, false
-	}
-	if !streamSymbolPartPattern.MatchString(parts[0]) || !streamSymbolPartPattern.MatchString(parts[1]) {
-		return currency.EMPTYPAIR, false
-	}
-
-	return currency.NewPair(currency.NewCode(parts[0]), currency.NewCode(parts[1])), true
-}
-
-func streamParseInstrumentSymbol(symbol string) (string, bool) {
-	normalized := strings.TrimSpace(strings.ToUpper(symbol))
-	normalized = strings.ReplaceAll(normalized, "-", "")
-	normalized = strings.ReplaceAll(normalized, "_", "")
-
-	if !streamSymbolPartPattern.MatchString(normalized) {
-		return "", false
-	}
-	return normalized, true
-}
-
-func resolveStreamSymbol(symbol string, config streamExchangeConfig) (currency.Pair, string, bool) {
-	switch config.symbolFormat {
-	case "instrument_or_pair":
-		if pair, ok := streamParseSymbol(symbol); ok {
-			return pair, strings.ToUpper(pair.Base.String() + "/" + pair.Quote.String()), true
-		}
-		instrument, ok := streamParseInstrumentSymbol(symbol)
-		if !ok {
-			return currency.EMPTYPAIR, "", false
-		}
-		quote := config.defaultQuote
-		if quote == "" {
-			quote = "USD"
-		}
-		return currency.NewPair(currency.NewCode(instrument), currency.NewCode(strings.ToUpper(quote))), instrument, true
-	default:
-		pair, ok := streamParseSymbol(symbol)
-		if !ok {
-			return currency.EMPTYPAIR, "", false
-		}
-		return pair, strings.ToUpper(pair.Base.String() + "/" + pair.Quote.String()), true
-	}
-}
-
-func normalizeStreamPairForExchange(exchange string, pair currency.Pair) currency.Pair {
-	normalized := pair
-	base := strings.ToUpper(strings.TrimSpace(normalized.Base.String()))
-	quote := strings.ToUpper(strings.TrimSpace(normalized.Quote.String()))
-	switch strings.ToLower(strings.TrimSpace(exchange)) {
-	case "kraken":
-		if base == "BTC" {
-			base = "XBT"
-		}
-		if quote == "" {
-			quote = "USD"
-		}
-	case "binance", "okx", "bybit":
-		if quote == "" || quote == "USD" {
-			quote = "USDT"
-		}
-	case "coinbase":
-		if quote == "" {
-			quote = "USD"
-		}
-	}
-	normalized.Base = currency.NewCode(base)
-	normalized.Quote = currency.NewCode(quote)
-	return normalized
 }
 
 func writeSSEEvent(w http.ResponseWriter, event string, payload any) error {

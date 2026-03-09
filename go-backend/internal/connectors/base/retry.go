@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	gctrequest "github.com/thrasher-corp/gocryptotrader/exchanges/request"
 )
 
 func isIdempotentMethod(method string) bool {
@@ -39,6 +41,22 @@ func shouldRetry(method string, resp *http.Response, err error) bool {
 		return true
 	}
 	return resp.StatusCode >= http.StatusInternalServerError
+}
+
+type RetryPlan struct {
+	ShouldRetry bool
+	Delay       time.Duration
+}
+
+func RetryDecision(method string, resp *http.Response, err error, now time.Time) RetryPlan {
+	if !shouldRetry(method, resp, err) {
+		return RetryPlan{}
+	}
+
+	if delay := gctrequest.RetryAfter(resp, now); delay > 0 {
+		return RetryPlan{ShouldRetry: true, Delay: delay}
+	}
+	return RetryPlan{ShouldRetry: true, Delay: retryBackoff(0)}
 }
 
 // retryBackoff is reserved for future connector retry logic.

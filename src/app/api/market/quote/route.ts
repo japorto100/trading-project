@@ -4,6 +4,11 @@ import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
 import { fetchQuoteViaGateway } from "@/lib/server/market-gateway-quotes";
 import {
+	PROVIDER_CREDENTIALS_COOKIE,
+	PROVIDER_CREDENTIALS_HEADER,
+	resolveGatewayProviderCredentialsHeader,
+} from "@/lib/server/provider-credentials";
+import {
 	evaluateTriggeredOrdersForSymbol,
 	evaluateTriggeredOrdersForSymbols,
 } from "@/lib/server/orders-store";
@@ -17,6 +22,10 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	const userRole = request.headers.get("x-user-role")?.trim() || undefined;
+	const providerCredentialsHeader = resolveGatewayProviderCredentialsHeader({
+		incomingHeader: request.headers.get(PROVIDER_CREDENTIALS_HEADER),
+		cookieValue: request.cookies.get(PROVIDER_CREDENTIALS_COOKIE)?.value,
+	});
 	try {
 		const searchParams = request.nextUrl.searchParams;
 		const symbol = searchParams.get("symbol");
@@ -32,7 +41,12 @@ export async function GET(request: NextRequest) {
 			const symbolPrices: Record<string, number> = {};
 			await Promise.all(
 				symbolList.map(async (sym) => {
-					const gatewayQuote = await fetchQuoteViaGateway(sym, requestId, userRole);
+					const gatewayQuote = await fetchQuoteViaGateway(
+						sym,
+						requestId,
+						userRole,
+						providerCredentialsHeader,
+					);
 					if (!gatewayQuote) {
 						return;
 					}
@@ -72,7 +86,12 @@ export async function GET(request: NextRequest) {
 		}
 
 		const canonicalSymbol = canonicalizeFusionSymbol(symbol);
-		const gatewayQuote = await fetchQuoteViaGateway(canonicalSymbol, requestId, userRole);
+		const gatewayQuote = await fetchQuoteViaGateway(
+			canonicalSymbol,
+			requestId,
+			userRole,
+			providerCredentialsHeader,
+		);
 		if (!gatewayQuote) {
 			return withRequestIdHeader(
 				NextResponse.json({ error: "Gateway quote request failed" }, { status: 502 }),
