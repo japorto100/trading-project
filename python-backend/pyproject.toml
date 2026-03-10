@@ -51,7 +51,7 @@ dependencies = [
 
 [project.optional-dependencies]
 ml = [
-    "numpy==2.2.2",
+    "numpy==2.4.3",
     "scikit-learn==1.6.1",
 ]
 
