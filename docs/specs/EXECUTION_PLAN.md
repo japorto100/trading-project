@@ -67,6 +67,8 @@ Dafuer gelten:
 | References Evaluate / To-Watch | `execution/references_projects_evaluate_delta.md` | aktiver Evaluate-to-Decision-Plan |
 | Frontend Refinement / Performance | `execution/frontend_refinement_perf_delta.md` | aktiver Frontend-Refinement-/Perf-Delta-Plan |
 | Ecosystem Optionality | `execution/ecosystem_optionality_delta.md` | aktiver Plugin-/Partner-/Payment-/Rollout-Delta-Plan |
+| Future Quant / Advanced Architecture | `execution/future_quant_advanced_architecture_delta.md` | aktiver Trigger-/Adoption-Delta-Plan |
+| Platform DX / Quality | `execution/platform_dx_quality_delta.md` | aktiver DX-/Quality-/Supply-Chain-Delta-Plan |
 
 ---
 
@@ -97,7 +99,10 @@ Dafuer gelten:
 | 21 Frontend Refinement | **PLANNED** | Aufraeumen, Zod Contracts, weitere Strukturverbesserungen | `execution/frontend_refinement_perf_delta.md`, `execution/cross_cutting_verify.md` |
 | 22 Advanced Frontend / Perf | **PLANNED** | spaetere UI-/chart-/GPU- oder workspace-lastige Themen | `execution/frontend_refinement_perf_delta.md`, `execution/geomap_closeout.md` |
 | 23 Platform Readiness | **CODE COMPLETE, promotion-governance verify open** | Capability Registry / Governance / readiness basis vorhanden; UIL-/Promotion-Governance ueber `execution/uil_candidate_promotion_delta.md` | `execution/uil_candidate_promotion_delta.md`, `execution/root_geo_references_coverage.md` |
+| 23a Platform DX / Quality Hardening | **PLANNED** | Reproduzierbares Setup, Hook-/Test-/Security-Gates und Supply-Chain-Hygiene operationalisieren | `execution/platform_dx_quality_delta.md`, `execution/frontend_refinement_perf_delta.md` |
 | 24 Ecosystem Optionality | **CODE COMPLETE, hardening verify open** | Plugin/Partner/Payment/Rollout-Spezifikationen vorhanden; Runtime-Hardening und reversible Rollout-Gates ueber dedizierten Owner offen | `execution/ecosystem_optionality_delta.md`, `execution/references_projects_evaluate_delta.md`, `execution/infra_provider_delta.md`, `execution/source_onboarding_and_keys.md` |
+| 25 Future Quant Expansion | **PLANNED** | Trigger-basierte Uebernahme aus `Future-Quant-trading.md` (AFML/QT/PfF) nur mit Evidence und Owner-Routing | `execution/future_quant_advanced_architecture_delta.md`, `execution/compute_delta.md`, `execution/domain_intelligence_delta.md` |
+| 26 Advanced Architecture Adoption | **PLANNED** | Uebertragbare GenAI/LLM-Architekturmuster aus `Advanced-architecture-for-the-future.md` in konkrete, gate-faehige Slices ueberfuehren | `execution/future_quant_advanced_architecture_delta.md`, `execution/agent_memory_context_delta.md`, `execution/claim_verification_delta.md` |
 
 ### Regel: Execution-Owner je Phase ist Pflicht
 
@@ -120,6 +125,7 @@ Execution-MD angelegt und dann die Phase referenziert.
 - Phase 14: `docs/references/sources/*`, `references/status.md` und
   `execution/source_onboarding_and_keys.md` bei jeder neuen oder geaenderten
   Quelle mitpflegen
+- Storage Layer: Go-owned Artefakt-Baseline ist geliefert; als naechstes SeaweedFS host-nativ und danach Garage auf dieselbe signed Gateway-Boundary heben
 
 ### B. Architektur-Delta statt Rewrite
 
@@ -133,6 +139,8 @@ Execution-MD angelegt und dann die Phase referenziert.
 - **GEOMAP_FOUNDATION / GEOMAP_MODULE_CATALOG:** Basemap/Geocoding/Rendering + d3-Modulstrategie
 - **GEOMAP_VERIFY_GATES:** E2E-Abnahme, Draw-Workflow, Save-Fehlerpfad, Performance-Baseline
 - **GEOMAP_PRODUCT_AND_POLICY / GEOMAP_ROADMAP_AND_MILESTONES:** Milestones, UX-Restpunkte und SOTA-Backlog
+- **PHAROS_AI_REVIEW:** externer Flat-/Conflict-Referenzreview, inkl. Monitoring des fuer `2026-03-12` angekuendigten Agent-Layers
+- **GeoMap Basemap-Referenzstack:** PMTiles (Protomaps), OpenMapTiles, Planetiler (alt: tilemaker), optional MapLibre Flat-Mode; Globe-Core bleibt d3-geo
 
 Arbeits-Checkliste: `execution/geomap_closeout.md` (Doc-Abarbeitung Sek. 0).
 
@@ -181,13 +189,16 @@ Arbeits-Checkliste: `execution/geomap_closeout.md` (Doc-Abarbeitung Sek. 0).
 | Source-/Key-Onboarding | `execution/source_onboarding_and_keys.md` | Env-/Doku-Pflichten fuer neue Quellen |
 | References-Katalog-Pflege | `references/status.md`, `references/sources/*`, `references/projects/*` | neue Quellen/Kandidaten muessen parallel zur Umsetzung nachgezogen werden |
 | Compute split / Rust boundary | `execution/compute_delta.md` | `G1-G7` |
-| Agent/Memory/Context Runtime | `execution/agent_memory_context_delta.md` | `AMC1-AMC6`, `AMC.V1-AMC.V4` |
+| Agent/Memory/Context Runtime | `execution/agent_memory_context_delta.md` | `AMC1-AMC9`, `AMC.V1-AMC.V5` |
 | Claim Verification | `execution/claim_verification_delta.md` | `CV1-CV5`, `CV.V1-CV.V4` |
 | UIL / Candidate Promotion | `execution/uil_candidate_promotion_delta.md` | `UIL1-UIL5`, `UIL.V1-UIL.V4` |
 | Domain Intelligence | `execution/domain_intelligence_delta.md` | `DI1-DI5`, `DI.V1-DI.V3` |
 | References Evaluate Decision Gates | `execution/references_projects_evaluate_delta.md` | `RPE1-RPE5`, `RPE.V1-RPE.V3` |
-| Frontend Refinement / Perf | `execution/frontend_refinement_perf_delta.md` | `FE1-FE6`, `FE.V1-FE.V4` |
-| Ecosystem Optionality Hardening | `execution/ecosystem_optionality_delta.md` | `ECO1-ECO6`, `ECO.V1-ECO.V4` |
+| Frontend Refinement / Perf | `execution/frontend_refinement_perf_delta.md` | `FE1-FE9`, `FE.V1-FE.V5` |
+| Ecosystem Optionality Hardening | `execution/ecosystem_optionality_delta.md` | `ECO1-ECO8`, `ECO.V1-ECO.V5` |
+| Platform DX / Quality Hardening | `execution/platform_dx_quality_delta.md` | `PDQ1-PDQ6`, `PDQ.V1-PDQ.V4` |
+| Future Quant / Advanced Architecture Adoption | `execution/future_quant_advanced_architecture_delta.md` | `FQAA1-FQAA6`, `FQAA.V1-FQAA.V4` |
+| Knowledgebase Integration (Entropy/Political Economy) | `execution/agent_memory_context_delta.md`, `execution/domain_intelligence_delta.md` | `AMC7-AMC9`, `AMC.V5`, `DI6` |
 | Root/Geo/References Coverage | `execution/root_geo_references_coverage.md` | `COV.ROOT.*`, `COV.GEO.*`, `COV.REF.*` |
 | Coverage Completion Governance | `execution/root_geo_references_coverage.md`, `execution/cross_cutting_verify.md` | nur geschlossen, wenn COV-Checkpoints Evidence + Propagation Targets haben |
 
@@ -211,6 +222,13 @@ Die Execution-Specs leben unter `docs/specs/execution/`:
 - `references_projects_evaluate_delta.md` — References-Projects Evaluate-/Decision-Delta
 - `frontend_refinement_perf_delta.md` — Frontend-Refinement-/Performance-Delta
 - `ecosystem_optionality_delta.md` — Plugin-/Partner-/Payment-/Rollout-Delta
+- `future_quant_advanced_architecture_delta.md` — Future-Quant-/Advanced-Architecture Trigger-Delta
+- `platform_dx_quality_delta.md` — Platform-DX-/Quality-/Supply-Chain-Delta
+
+Phase 25/26 sind bewusst als **trigger-basierte Optionsphasen** definiert:
+
+- kein Start ohne nachgewiesenen Trigger (siehe `FQAA*`)
+- keine direkte Prioritaet vor offenen Verify-/Hardening-Gates der Phasen 1-24
 
 Weitere domain-spezifische Execution-Specs koennen bei Bedarf angelegt werden.
 
@@ -227,11 +245,20 @@ Weitere domain-spezifische Execution-Specs koennen bei Bedarf angelegt werden.
 | Gateway / Provider | `GO_GATEWAY.md`, `gct-gateway-connections.md`, `go-research-financial-data-aggregation-2025-2026.md`, `references/status.md`, `REFERENCE_SOURCE_STATUS.md` |
 | Reference / benchmark / archive | ueber `docs/README.md` und `docs/archive/` klassifiziert |
 
+### Zusatz-Kontext fuer CLI-Agents (optional, mit Vorsicht)
+
+- `docs/archive/` darf fuer tieferen Verlaufskontext gelesen werden, ist aber
+  potenziell **outdated** und nie primaere Normquelle.
+- `docs/books/` enthaelt tiefe Referenzen mit teils sehr grossen Dateien; nur
+  gezielt und abschnittsweise lesen, nicht als first-read fuer operative Arbeit.
+- Normative Reihenfolge bleibt: `docs/specs/*.md` -> `docs/specs/execution/*.md`
+  -> Root-Owner-Dokumente -> optional `archive/books`.
+
 ---
 
 ## 8. Naechste Architektur- und Delivery-Slices
 
-1. Provider-Credential-Transport von `finnhub` auf weitere sinnvolle read-only
+1. Provider-Credential-Transport von `finnhub` und `fred` auf weitere sinnvolle read-only
    Provider ausrollen.
 2. Mehr read-only GCT-/Gateway-Slices auf dieselbe neutrale `MarketTarget`-
    Vertragsgrenze heben.
@@ -244,6 +271,11 @@ Weitere domain-spezifische Execution-Specs koennen bei Bedarf angelegt werden.
    Schicht zu entwerten.
 7. Offene Verify-Gates systematisch schliessen, bevor neue grosse Themenflaechen
    aufgemacht werden.
+8. Future-Quant- und Advanced-Architecture-Themen nur trigger- und evidence-basiert
+   ueber `execution/future_quant_advanced_architecture_delta.md` in aktive Phasen heben.
+9. Knowledgebase-nahe Root-Docs (`POLITICAL_ECONOMY_KNOWLEDGE.md`, `ENTROPY_NOVELTY.md`) primaer ueber Memory/KG und erst danach ueber Domain-Signalpfade operationalisieren.
+10. Platform-DX-/Quality-Hardening (`execution/platform_dx_quality_delta.md`) mit
+    Setup-, Hook-, Test- und Security-Gates evidence-basiert schliessen.
 
 ---
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/requestctx"
@@ -49,5 +50,16 @@ func TestPostJSON_PropagatesRequestIDAndJSONHeaders(t *testing.T) {
 	}
 	if gotBody != `{"q":"oil"}` {
 		t.Fatalf("unexpected request body %q", gotBody)
+	}
+}
+
+func TestPostJSON_MapsTransportError(t *testing.T) {
+	client := NewClient(Config{BaseURL: "http://127.0.0.1:1"})
+	_, _, err := client.PostJSON(context.Background(), "cluster-headlines", []byte(`{"q":"oil"}`))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if got := err.Error(); got == "" || !strings.Contains(got, "softsignals request failed") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

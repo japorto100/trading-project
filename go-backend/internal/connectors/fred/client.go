@@ -12,10 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 const DefaultBaseURL = "https://api.stlouisfed.org/fred"
@@ -29,6 +30,15 @@ type Config struct {
 type Client struct {
 	baseClient *base.Client
 	apiKey     string
+}
+
+func (c *Client) apiKeyForContext(ctx context.Context) string {
+	if creds, ok := requestctx.ProviderCredential(ctx, "fred"); ok {
+		if key := strings.TrimSpace(creds.Key); key != "" {
+			return key
+		}
+	}
+	return strings.TrimSpace(c.apiKey)
 }
 
 func NewClient(cfg Config) *Client {
@@ -93,7 +103,8 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 			Cause:      fmt.Errorf("unsupported fred assetType"),
 		}
 	}
-	if c.apiKey == "" {
+	apiKey := c.apiKeyForContext(ctx)
+	if apiKey == "" {
 		return nil, &gct.RequestError{
 			Path:       "/series/observations",
 			StatusCode: http.StatusUnauthorized,
@@ -118,7 +129,7 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 
 	query := url.Values{}
 	query.Set("series_id", seriesID)
-	query.Set("api_key", c.apiKey)
+	query.Set("api_key", apiKey)
 	query.Set("file_type", "json")
 	query.Set("sort_order", "desc")
 	query.Set("limit", fmt.Sprintf("%d", limit))

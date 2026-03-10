@@ -446,9 +446,9 @@ Beispiele für dort verankerte Optionen:
 ### 8.8 Geo-/Rendering-spezifische Performance-Optionen
 
 Ziel-Dokumente:
-- `docs/specs/geo/GEOMAP_OVERVIEW.md`
-- `docs/specs/geo/GEOMAP_VERIFY_GATES.md` (Performance-Baseline Sek. 4)
-- `docs/specs/geo/GEOMAP_FOUNDATION.md` (Rendering Foundation Sek. 4)
+- `docs/geo/GEOMAP_OVERVIEW.md`
+- `docs/geo/GEOMAP_VERIFY_GATES.md` (Performance-Baseline Sek. 4)
+- `docs/geo/GEOMAP_FOUNDATION.md` (Rendering Foundation Sek. 4)
 - `docs/specs/EXECUTION_PLAN.md`
 
 Beispiele für dort verankerte Optionen:

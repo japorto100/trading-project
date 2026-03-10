@@ -48,11 +48,16 @@ bun run build
 - Prefer `rg`/`fd` over `grep`/`find` for discovery and code search.
 - Prefer `jq`/`yq` for structured output processing.
 - Use `gh` for GitHub workflows when available.
+- Prefer `D:\DevCache` as install root and PATH target for user-managed CLIs. Current preferred PATH order: `D:\DevCache\cargo\.cargo\bin` then `D:\DevCache\bin`.
 - Installer ownership:
-  - System CLIs -> `choco`
+  - System CLIs -> prefer portable/user-level placement under `D:\DevCache`; use `choco` only when no clean D-drive path exists or the tool is intentionally system-managed.
   - Rust CLIs -> `cargo` / `cargo-binstall`
   - Python CLIs -> `uv tool`
   - Node CLIs -> `pnpm -g`
+- Current verified baseline:
+  - `cargo-binstall`, `starship`, `atuin`, `coreutils.exe` -> `D:\DevCache\cargo\.cargo\bin`
+  - `gh`, `direnv` -> `D:\DevCache\bin`
+  - `winget`, `curl` may remain on system paths.
 - Always verify tool availability and version after install (`command -v`, `<tool> --version`).
 - `uutils-coreutils` is optional and does not replace `grep`/`sed`/`awk`.
 
@@ -102,7 +107,7 @@ Key Prisma models in `prisma/schema.prisma` (all use String instead of enums for
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (30144 symbols, 87944 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (53132 symbols, 151711 relationships, 300 execution flows).
 
 ## Always Start Here
 

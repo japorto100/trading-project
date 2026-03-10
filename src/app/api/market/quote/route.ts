@@ -4,14 +4,14 @@ import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
 import { fetchQuoteViaGateway } from "@/lib/server/market-gateway-quotes";
 import {
+	evaluateTriggeredOrdersForSymbol,
+	evaluateTriggeredOrdersForSymbols,
+} from "@/lib/server/orders-store";
+import {
 	PROVIDER_CREDENTIALS_COOKIE,
 	PROVIDER_CREDENTIALS_HEADER,
 	resolveGatewayProviderCredentialsHeader,
 } from "@/lib/server/provider-credentials";
-import {
-	evaluateTriggeredOrdersForSymbol,
-	evaluateTriggeredOrdersForSymbols,
-} from "@/lib/server/orders-store";
 import { getErrorMessage } from "@/lib/utils";
 
 function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {

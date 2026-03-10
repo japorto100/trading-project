@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -102,6 +103,22 @@ func TestWithRequestIDAndLogging_RejectsInvalidProviderCredentialsHeader(t *test
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/quote", nil)
 	req.Header.Set(providerCredentialsHeader, "%%%bad-base64%%%")
+	res := httptest.NewRecorder()
+	handler.ServeHTTP(res, req)
+
+	if res.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d", res.Code)
+	}
+}
+
+func TestWithRequestIDAndLogging_RejectsOversizedProviderCredentialsHeader(t *testing.T) {
+	handler := withRequestIDAndLogging(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/quote", nil)
+	oversizedJSON := `{"finnhub":{"key":"` + strings.Repeat("a", 7000) + `"}}`
+	req.Header.Set(providerCredentialsHeader, base64.StdEncoding.EncodeToString([]byte(oversizedJSON)))
 	res := httptest.NewRecorder()
 	handler.ServeHTTP(res, req)
 

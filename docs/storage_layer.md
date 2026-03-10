@@ -105,6 +105,24 @@ Ein Kandidat gilt als "baseline usable", wenn alle Punkte gruen sind:
 
 ---
 
+## 6.1 Aktueller Implementierungsstand
+
+Stand heute ist die erste produktnahe Gateway-Baseline bereits im Code:
+
+- Go besitzt die Artefakt-Frontdoor (`/api/v1/storage/artifacts/*`).
+- Upload und Download laufen ueber kurzlebige signierte Gateway-URLs.
+- Metadaten liegen in einer relationalen SQLite-Tabelle (`artifact_metadata`).
+- Die lokale Blob-Ablage ist vorerst filesystem-backed, damit die Boundary und Fehlerpfade ohne S3-Mock sauber testbar bleiben.
+
+Das ist bewusst **nicht** die abgeschlossene Kandidatenentscheidung fuer den finalen lokalen Object Store.
+
+Naechster Schritt:
+
+- SeaweedFS host-nativ als erster S3-kompatibler Default-Local-Stack an dieselbe Go-Boundary haengen
+- Garage als Vergleichskandidat mit denselben Smoke- und Fehlerpfaden evaluieren
+
+---
+
 ## 7) Verknuepfte Spezifikationen
 
 - Architektur: `docs/specs/ARCHITECTURE.md`

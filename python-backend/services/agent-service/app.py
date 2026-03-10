@@ -11,7 +11,7 @@ PYTHON_BACKEND_ROOT = Path(__file__).resolve().parents[2]
 if str(PYTHON_BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(PYTHON_BACKEND_ROOT))
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect  # noqa: E402
+from fastapi import WebSocket, WebSocketDisconnect  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from services._shared import create_service_app  # noqa: E402

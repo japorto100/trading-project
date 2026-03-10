@@ -30,6 +30,7 @@
 | D3-Modul-Katalog, Feature->Module-Matrix, Bundle-Budgets | `GEOMAP_MODULE_CATALOG.md` |
 | Draw/E2E/Performance Verify | `GEOMAP_VERIFY_GATES.md` |
 | Milestones/Execution-Reihenfolge | `GEOMAP_ROADMAP_AND_MILESTONES.md` |
+| Externe Referenz-Reviews (z. B. Pharos AI) | `PHAROS_AI_REVIEW.md` |
 
 ---
 
@@ -37,3 +38,12 @@
 
 Die vorherigen Root-Dateien wurden fuer Traceability unter `docs/archive/` als
 `*_2026-03-09_pre-split.md` gesichert.
+
+## Evaluate-compressed Uebernahme (Status)
+
+Die Uebernahme aus `evaluate-compressed.md` ist als Scope-Entscheidung in den
+Geo-Specs verankert:
+
+- Uebernahme-/Nicht-Uebernahme-Logik (1/2/3/4) in `GEOMAP_DATA_CONTRACTS_AND_FEEDBACK.md` (Sek. 35.4f),
+- Provider- und Basemap-Mindestanforderungen in `GEOMAP_SOURCES_AND_PROVIDER_POLICY.md`,
+- Abnahmekriterien fuer Staedte/Seen/Fluesse in `GEOMAP_VERIFY_GATES.md` (Sek. 6).

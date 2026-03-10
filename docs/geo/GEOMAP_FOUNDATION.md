@@ -255,6 +255,21 @@ Eine flache/regionale Ansicht (Mercator-Projektion, bspw. für Regionen-Zoom) is
 **optionaler Second Mode** vorgesehen und auf Phase 4/v2.5+ verschoben. Sie teilt dieselbe
 `d3-geo`-Grundlage.
 
+### Externe Referenzbestaetigung (Pharos AI, Review 2026-03-10)
+
+Das Referenzreview in [`PHAROS_AI_REVIEW.md`](./PHAROS_AI_REVIEW.md) bestaetigt die
+fachliche Sinnhaftigkeit eines zweiten, operativen Flat-/Regional-Modus fuer dichte
+Conflict-Layer.
+
+Normative Konsequenz:
+
+- Globe bleibt **Primary Strategic View**
+- Flat/Regional bleibt **Optional Analyst View**
+- `MapLibre`/`deck.gl`/`PMTiles` sind weiterhin **kein Core-Replacement**, sondern
+  gate-gesteuerte Ergaenzungen fuer den Flat/Regional-Modus
+- ein spaeterer Flat-Mode nutzt **dieselben fachlichen Layer-/Story-/Filter-Vertraege**
+  wie der Globe-Mode
+
 #### deck.gl / MapLibre / h3-lite = Gate-gesteuert
 
 Alternativbibliotheken werden **nur** eingeführt, wenn ein oder mehrere der folgenden
@@ -267,6 +282,19 @@ Entry-Gate-Trigger ausgelöst werden:
 | **Trigger C** | H3-Radius-Query-Latenz > 5 ms für 1000-Event-Datensatz in Browser (P95) | Einführung `h3-lite` WASM für hexagonale Binning-Queries |
 
 Ohne Trigger-Auslösung: keine neuen Render-Bibliotheken.
+
+### Erweiterte Trigger-Interpretation fuer Conflict-Layer
+
+Zusätzlich zu Trigger A/B/C gilt:
+
+- hohe regionale Konfliktdichte allein rechtfertigt **keinen** Globe-Rewrite
+- sie kann aber einen **Flat/Regional Analyst View** rechtfertigen
+- dieser Modus ist bevorzugt, wenn:
+  - Threat-Zones, Strike-/Missile-Arcs, Target-/Asset-Lagen und Story-Playback in enger
+    Region im Vordergrund stehen
+  - die Analystenarbeit eher operativ/taktisch als global-strategisch ist
+
+Siehe dazu [`PHAROS_AI_REVIEW.md`](./PHAROS_AI_REVIEW.md).
 
 ### Begründung
 

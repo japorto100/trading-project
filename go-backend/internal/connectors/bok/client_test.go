@@ -4,11 +4,14 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 func TestGetSeries_ParsesECOSPayloadLatestFirst(t *testing.T) {
@@ -87,5 +90,30 @@ func TestParseSeriesSpec(t *testing.T) {
 				t.Fatalf("buildSeriesID(%q) = %q, want %q", tc.in, got, tc.want)
 			}
 		}
+	}
+}
+
+func TestGetSeries_UsesRequestScopedAPIKey(t *testing.T) {
+	var gotPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_, _ = w.Write([]byte(`{"StatisticSearch":{"list_total_count":1,"row":[{"TIME":"202401","DATA_VALUE":"3.5"}]}}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL})
+	ctx := requestctx.WithProviderCredentials(context.Background(), base.CredentialStore{
+		"bok": {Key: "request-key"},
+	})
+
+	points, err := client.GetSeries(ctx, currency.NewPair(currency.NewCode("BOK_ECOS_722Y001_M_0101000"), currency.NewCode("USD")), asset.Empty, 1)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(points) != 1 {
+		t.Fatalf("expected 1 point, got %d", len(points))
+	}
+	if !strings.Contains(gotPath, "/request-key/json/") {
+		t.Fatalf("expected request-scoped API key in path, got %q", gotPath)
 	}
 }

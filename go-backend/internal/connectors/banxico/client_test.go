@@ -6,9 +6,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 func TestGetSeries_ParsesBanxicoPayloadAndLimitsLatestFirst(t *testing.T) {
@@ -86,5 +88,30 @@ func TestGetSeries_RequiresToken(t *testing.T) {
 	}
 	if status, ok := gct.StatusCode(err); !ok || status != http.StatusUnauthorized {
 		t.Fatalf("expected unauthorized request error, got %v", err)
+	}
+}
+
+func TestGetSeries_UsesRequestScopedToken(t *testing.T) {
+	var gotToken string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotToken = r.Header.Get("Bmx-Token")
+		_, _ = w.Write([]byte(`{"bmx":{"series":[{"idSerie":"SF43718","datos":[{"fecha":"02/02/2026","dato":"20.25"}]}]}}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL})
+	ctx := requestctx.WithProviderCredentials(context.Background(), base.CredentialStore{
+		"banxico": {Key: "request-token"},
+	})
+
+	points, err := client.GetSeries(ctx, currency.NewPair(currency.NewCode("SF43718"), currency.NewCode("USD")), asset.Empty, 1)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if gotToken != "request-token" {
+		t.Fatalf("expected request-scoped token, got %q", gotToken)
+	}
+	if len(points) != 1 {
+		t.Fatalf("expected 1 point, got %d", len(points))
 	}
 }

@@ -122,7 +122,7 @@ vorbereitet, aber noch nicht die dominante Alltags-Laufzeit des Systems.
 | Rollen | `viewer`, `analyst`, `trader`, `admin` Richtung vorhanden |
 | Go-Enforcement | JWT-/RBAC-/RateLimit-Scaffolds und Security-Header vorhanden; produktive Policy-Richtung klar |
 | GCT-Hardening | GCT-Prefix, Hardening-Checks, Audit-Scaffolds, AES-GCM-Helfer vorhanden |
-| Provider-Credentials | user-supplied read-only credential path fuer erste Market-Pfade aktiv |
+| Provider-Credentials | user-supplied read-only credential path fuer erste Market-Pfade aktiv; `finnhub`, `fred`, `banxico` und `bok` request-scoped verifiziert |
 
 ### Wichtig
 

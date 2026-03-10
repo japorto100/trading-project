@@ -25,6 +25,8 @@
 - `docs/AGENT_TOOLS.md`
 - `docs/MEMORY_ARCHITECTURE.md`
 - `docs/CONTEXT_ENGINEERING.md`
+- `docs/POLITICAL_ECONOMY_KNOWLEDGE.md`
+- `docs/ENTROPY_NOVELTY.md`
 - `docs/specs/EXECUTION_PLAN.md`
 - `docs/specs/SYSTEM_STATE.md`
 - `docs/specs/ARCHITECTURE.md`
@@ -39,6 +41,9 @@
 - [ ] **AMC4** Context-Assembly: Quellenrangfolge und Konfliktaufloesung dokumentiert
 - [ ] **AMC5** Degradationspfad: fehlende Quelle/Tool/Memory liefert kontrollierten Fallback
 - [ ] **AMC6** Runtime-Metriken: Request-ID, Latenzklasse und Fehlerklasse sichtbar
+- [ ] **AMC7** Knowledgebase-Ingestion: politische/oekonomische Konzepte aus `POLITICAL_ECONOMY_KNOWLEDGE.md` in Semantic-Memory/KG strukturiert aufgenommen
+- [ ] **AMC8** Entropy-Novelty-Konzepte als semantische Knoten/Signale mit Retrieval-Regeln verankert
+- [ ] **AMC9** Trennung truth/belief/scenario fuer Knowledgebase-Slices explizit verifiziert (kein stilles Mischen)
 
 ---
 
@@ -48,6 +53,7 @@
 - [ ] **AMC.V2** Memory-Semantik fuer Follow-up-Fragen
 - [ ] **AMC.V3** Policy-Error-Path (blocked tool / missing capability)
 - [ ] **AMC.V4** Context-Conflict-Path (mehrere widerspruechliche Quellen)
+- [ ] **AMC.V5** Knowledgebase-Retrieval gibt fuer Political-Economy/Entropy konsistente, zitierbare Ergebnisse
 
 ---
 
@@ -70,6 +76,8 @@ Pro geschlossenem Punkt:
 - `docs/AGENT_TOOLS.md`
 - `docs/MEMORY_ARCHITECTURE.md`
 - `docs/CONTEXT_ENGINEERING.md`
+- `docs/POLITICAL_ECONOMY_KNOWLEDGE.md`
+- `docs/ENTROPY_NOVELTY.md`
 
 ---
 

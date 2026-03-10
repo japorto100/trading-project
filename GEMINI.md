@@ -50,11 +50,16 @@ bun run build
 - Prefer `rg`/`fd` over `grep`/`find` for exploration and search.
 - Use `jq`/`yq` for JSON/YAML processing in scripts and triage.
 - Use `gh` for GitHub operations when available.
+- Prefer `D:\DevCache` as install root and PATH target for user-managed CLIs. Current preferred PATH order: `D:\DevCache\cargo\.cargo\bin` then `D:\DevCache\bin`.
 - Installer ownership:
-  - System CLIs -> `choco`
+  - System CLIs -> prefer portable/user-level placement under `D:\DevCache`; use `choco` only when no clean D-drive path exists or the tool is intentionally system-managed.
   - Rust CLIs -> `cargo` / `cargo-binstall`
   - Python CLIs -> `uv tool`
   - Node CLIs -> `pnpm -g`
+- Current verified baseline:
+  - `cargo-binstall`, `starship`, `atuin`, `coreutils.exe` -> `D:\DevCache\cargo\.cargo\bin`
+  - `gh`, `direnv` -> `D:\DevCache\bin`
+  - `winget`, `curl` may remain on system paths.
 - Verify each tool after install (`command -v`, `<tool> --version`).
 - `uutils-coreutils` is optional and does not replace `grep`/`sed`/`awk`.
 
@@ -130,4 +135,3 @@ mcp__gitnexus__impact   repo=tradeview-fusion  symbol="..."
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
-

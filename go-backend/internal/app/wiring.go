@@ -14,8 +14,6 @@ import (
 
 	"tradeviewfusion/go-backend/internal/auditjsonl"
 	"tradeviewfusion/go-backend/internal/cache"
-	"tradeviewfusion/go-backend/internal/messaging"
-	"tradeviewfusion/go-backend/internal/observability"
 	"tradeviewfusion/go-backend/internal/capability"
 	"tradeviewfusion/go-backend/internal/connectors/acled"
 	"tradeviewfusion/go-backend/internal/connectors/adb"
@@ -49,10 +47,13 @@ import (
 	"tradeviewfusion/go-backend/internal/connectors/worldbank"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
+	"tradeviewfusion/go-backend/internal/messaging"
+	"tradeviewfusion/go-backend/internal/observability"
 	"tradeviewfusion/go-backend/internal/router/adaptive"
 	backtestServices "tradeviewfusion/go-backend/internal/services/backtest"
 	geopoliticalServices "tradeviewfusion/go-backend/internal/services/geopolitical"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
+	"tradeviewfusion/go-backend/internal/storage"
 )
 
 func NewServerFromEnv() (*Server, error) {
@@ -353,9 +354,38 @@ func NewServerFromEnv() (*Server, error) {
 		}
 	}
 
+	artifactStore, err := storage.NewSQLiteMetadataStore(envOr("ARTIFACT_STORAGE_METADATA_DB_PATH", "data/storage/artifacts.db"))
+	if err != nil {
+		return nil, fmt.Errorf("init artifact metadata store: %w", err)
+	}
+	artifactService, err := storage.NewService(storage.Config{
+		Provider:      storage.ProviderKind(envOr("ARTIFACT_STORAGE_PROVIDER", string(storage.ProviderFilesystem))),
+		BaseDir:       envOr("ARTIFACT_STORAGE_BASE_DIR", "data/storage/objects"),
+		SigningSecret: artifactSigningSecretFromEnv(),
+		TTL:           durationMsOr("ARTIFACT_STORAGE_SIGNED_URL_TTL_MS", 15*60*1000),
+		Store:         artifactStore,
+		S3: storage.S3Config{
+			Endpoint:        envOr("ARTIFACT_STORAGE_S3_ENDPOINT", ""),
+			Region:          envOr("ARTIFACT_STORAGE_S3_REGION", "us-east-1"),
+			Bucket:          envOr("ARTIFACT_STORAGE_S3_BUCKET", ""),
+			AccessKeyID:     envOr("ARTIFACT_STORAGE_S3_ACCESS_KEY_ID", ""),
+			SecretAccessKey: envOr("ARTIFACT_STORAGE_S3_SECRET_ACCESS_KEY", ""),
+			UsePathStyle:    boolOr("ARTIFACT_STORAGE_S3_USE_PATH_STYLE", true),
+			CreateBucket:    boolOr("ARTIFACT_STORAGE_S3_CREATE_BUCKET", true),
+		},
+	})
+	if err != nil {
+		_ = artifactStore.Close()
+		return nil, fmt.Errorf("init artifact storage service: %w", err)
+	}
+	artifactGatewayBaseURL := artifactGatewayBaseURLFromEnv(host, port)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))
 	mux.HandleFunc("/api/v1/gct/health", httpHandlers.HealthHandler(gctClient))
+	mux.HandleFunc("/api/v1/storage/artifacts/upload-url", httpHandlers.ArtifactUploadURLHandler(artifactService, artifactGatewayBaseURL))
+	mux.HandleFunc("/api/v1/storage/artifacts/upload/", httpHandlers.ArtifactUploadHandler(artifactService))
+	mux.HandleFunc("/api/v1/storage/artifacts/", httpHandlers.ArtifactMetadataHandler(artifactService))
 	if muxRouterSnapshotter != nil {
 		mux.HandleFunc("/api/v1/router/providers", httpHandlers.RouterProvidersHandler(muxRouterSnapshotter))
 	}
@@ -686,7 +716,9 @@ func NewServerFromEnv() (*Server, error) {
 	if boolOr("OTEL_ENABLED", false) {
 		handler = otelhttp.NewHandler(handler, "go-gateway")
 	}
-	return NewServer(host, port, handler), nil
+	server := NewServer(host, port, handler)
+	server.closeFn = artifactStore.Close
+	return server, nil
 }
 
 func envOr(key, fallback string) string {
@@ -875,4 +907,33 @@ func isProductionRuntime() bool {
 		}
 	}
 	return false
+}
+
+func artifactGatewayBaseURLFromEnv(host, port string) string {
+	if configured := strings.TrimSpace(envOr("ARTIFACT_STORAGE_PUBLIC_BASE_URL", "")); configured != "" {
+		return strings.TrimRight(configured, "/")
+	}
+	resolvedHost := strings.TrimSpace(host)
+	if resolvedHost == "" || resolvedHost == "0.0.0.0" {
+		resolvedHost = "127.0.0.1"
+	}
+	return fmt.Sprintf("http://%s:%s", resolvedHost, strings.TrimSpace(port))
+}
+
+func artifactSigningSecretFromEnv() string {
+	candidates := []string{
+		strings.TrimSpace(envOr("ARTIFACT_STORAGE_SIGNING_SECRET", "")),
+		strings.TrimSpace(envOr("AUTH_JWT_SECRET", "")),
+		strings.TrimSpace(envOr("AUTH_SECRET", "")),
+		strings.TrimSpace(envOr("NEXTAUTH_SECRET", "")),
+	}
+	for _, candidate := range candidates {
+		if candidate != "" {
+			return candidate
+		}
+	}
+	if !isProductionRuntime() {
+		return "local-dev-artifact-signing-secret"
+	}
+	return ""
 }

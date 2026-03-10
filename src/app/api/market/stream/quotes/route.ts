@@ -321,7 +321,11 @@ function createGoMultiplexQuotesStreamResponse(
 				closed = true;
 				abortController.abort();
 				if (heartbeatTimer) clearInterval(heartbeatTimer);
-				controller.close();
+				try {
+					controller.close();
+				} catch {
+					// Stream may already be closed by the runtime while cancellation propagates.
+				}
 			};
 			closeStream = close;
 

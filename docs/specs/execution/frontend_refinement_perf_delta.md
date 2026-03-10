@@ -23,6 +23,7 @@
 
 - `docs/specs/FRONTEND_ARCHITECTURE.md`
 - `docs/FRONTEND_COMPONENTS.md`
+- `docs/specs/ERRORS.md`
 - `docs/specs/EXECUTION_PLAN.md`
 - `docs/specs/execution/cross_cutting_verify.md`
 - `docs/geo/GEOMAP_VERIFY_GATES.md`
@@ -37,6 +38,9 @@
 - [ ] **FE4** a11y Baseline fuer priorisierte Surfaces (Labels, Keyboard, Fokuspfade)
 - [ ] **FE5** Performance-Baseline fuer UI-kritische Screens dokumentieren
 - [ ] **FE6** Chart-/Viz-Performance-Evaluationspfad (inkl. ChartGPU-Entscheid) sauber protokollieren
+- [ ] **FE7** TanStack Query Defaults pro Surface verifizieren (`staleTime`, `gcTime`, retry, refetch-Regeln)
+- [ ] **FE8** Mutation-Error-Paths (optimistic rollback, form/action errors) fuer Kernflows explizit testen
+- [ ] **FE9** Query-Key- und Invalidation-Konzept fuer Portfolio/Market/Memory-Surfaces vereinheitlichen
 
 ---
 
@@ -46,6 +50,7 @@
 - [ ] **FE.V2** Performance-Gates fuer Phase 22 mit Messprotokoll abgeschlossen
 - [ ] **FE.V3** kritische Browser-Flows ohne Query-/Hydration-/State-Fehler
 - [ ] **FE.V4** A11y-Quick-Acceptance auf priorisierten Screens dokumentiert
+- [ ] **FE.V5** TanStack-Query-Fehler- und Retry-Verhalten ist fuer Kernsurfaces reproduzierbar nachgewiesen
 
 ---
 

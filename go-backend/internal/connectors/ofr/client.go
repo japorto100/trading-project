@@ -5,8 +5,11 @@ package ofr
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -32,6 +35,12 @@ type Client struct {
 	defaultPath string
 }
 
+type seriesPayload struct {
+	Timeseries struct {
+		Aggregation [][]any `json:"aggregation"`
+	} `json:"timeseries"`
+}
+
 func NewClient(cfg Config) *Client {
 	baseURL := strings.TrimSpace(cfg.BaseURL)
 	if baseURL == "" {
@@ -41,26 +50,179 @@ func NewClient(cfg Config) *Client {
 	if timeout <= 0 {
 		timeout = 6 * time.Second
 	}
-	return &Client{
+		return &Client{
 		httpClient: base.NewClient(base.Config{
 			BaseURL:    baseURL,
 			Timeout:    timeout,
 			RetryCount: 1,
 		}),
-		defaultPath: "/v1",
+		defaultPath: "/series/full",
 	}
 }
 
-func (c *Client) GetTicker(ctx context.Context, _ currency.Pair, _ asset.Item) (gct.Ticker, error) {
-	_ = ctx
-	return gct.Ticker{}, &gct.RequestError{
-		Path:       c.defaultPath,
-		StatusCode: http.StatusNotImplemented,
-		Cause:      fmt.Errorf("%s connector scaffold: implement GetSeries for FSI/credit dataflow", seriesPrefix),
+func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
+	series, err := c.GetSeries(ctx, pair, assetType, 1)
+	if err != nil {
+		return gct.Ticker{}, err
 	}
+	if len(series) == 0 {
+		return gct.Ticker{}, &gct.RequestError{
+			Path:       c.defaultPath,
+			StatusCode: http.StatusNotFound,
+			Cause:      fmt.Errorf("no observations"),
+		}
+	}
+	value := series[0].Value
+	lastUpdated := series[0].Timestamp
+	if lastUpdated <= 0 {
+		lastUpdated = time.Now().Unix()
+	}
+	canonical := normalizeCanonical(pair.Base.String())
+	return gct.Ticker{
+		Pair:        currency.NewPair(currency.NewCode(canonical), currency.NewCode("USD")),
+		Currency:    canonical,
+		LastUpdated: lastUpdated,
+		Last:        value,
+		Bid:         value,
+		Ask:         value,
+		High:        value,
+		Low:         value,
+		Volume:      0,
+	}, nil
 }
 
-func (c *Client) GetSeries(ctx context.Context, _ currency.Pair, _ asset.Item, _ int) ([]gct.SeriesPoint, error) {
-	_ = ctx
-	return nil, fmt.Errorf("OFR connector scaffold: implement GetSeries")
+func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+	if !gct.IsSemanticAssetType(assetType, "macro") {
+		return nil, &gct.RequestError{
+			Path:       c.defaultPath,
+			StatusCode: http.StatusBadRequest,
+			Cause:      fmt.Errorf("unsupported ofr assetType"),
+		}
+	}
+	if c == nil || c.httpClient == nil {
+		return nil, fmt.Errorf("ofr client unavailable")
+	}
+	if limit <= 0 {
+		limit = 1
+	}
+	if limit > 1000 {
+		limit = 1000
+	}
+
+	mnemonic, canonical, err := parseSeriesSymbol(pair.Base.String())
+	if err != nil {
+		return nil, &gct.RequestError{
+			Path:       c.defaultPath,
+			StatusCode: http.StatusBadRequest,
+			Cause:      err,
+		}
+	}
+
+	endDate := time.Now().UTC()
+	lookbackDays := max(limit*3, 14)
+	startDate := endDate.AddDate(0, 0, -lookbackDays)
+	query := url.Values{}
+	query.Set("mnemonic", mnemonic)
+	query.Set("start_date", startDate.Format("2006-01-02"))
+	query.Set("end_date", endDate.Format("2006-01-02"))
+	query.Set("remove_nulls", "true")
+
+	req, err := c.httpClient.NewRequest(ctx, http.MethodGet, c.defaultPath, query, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build ofr request: %w", err)
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, &gct.RequestError{Path: c.defaultPath, Cause: err}
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, &gct.RequestError{
+			Path:       c.defaultPath,
+			StatusCode: resp.StatusCode,
+			Cause:      fmt.Errorf("ofr series request failed"),
+		}
+	}
+
+	var payload map[string]seriesPayload
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, &gct.RequestError{Path: c.defaultPath, Cause: fmt.Errorf("decode ofr response: %w", err)}
+	}
+	series, ok := payload[mnemonic]
+	if !ok {
+		return nil, &gct.RequestError{
+			Path:       c.defaultPath,
+			StatusCode: http.StatusNotFound,
+			Cause:      fmt.Errorf("missing OFR mnemonic payload for %s", canonical),
+		}
+	}
+	converted := make([]gct.SeriesPoint, 0, len(series.Timeseries.Aggregation))
+	for _, entry := range series.Timeseries.Aggregation {
+		if len(entry) < 2 {
+			continue
+		}
+		rawDate, ok := entry[0].(string)
+		if !ok || strings.TrimSpace(rawDate) == "" {
+			continue
+		}
+		parsedTime, parseErr := time.Parse("2006-01-02", rawDate)
+		if parseErr != nil {
+			continue
+		}
+		value, ok := entry[1].(float64)
+		if !ok {
+			continue
+		}
+		converted = append(converted, gct.SeriesPoint{
+			Timestamp: parsedTime.UTC().Unix(),
+			Value:     value,
+		})
+	}
+	if len(converted) == 0 {
+		return nil, &gct.RequestError{
+			Path:       c.defaultPath,
+			StatusCode: http.StatusNotFound,
+			Cause:      fmt.Errorf("no parsable observations for %s", canonical),
+		}
+	}
+	ensureLatestFirst(converted)
+	if len(converted) > limit {
+		converted = converted[:limit]
+	}
+	return converted, nil
+}
+
+func parseSeriesSymbol(raw string) (string, string, error) {
+	canonical := normalizeCanonical(raw)
+	if canonical == "" {
+		return "", "", fmt.Errorf("invalid OFR symbol")
+	}
+	mnemonic := strings.TrimSpace(strings.TrimPrefix(canonical, seriesPrefix))
+	if mnemonic == "" || !strings.Contains(mnemonic, "-") {
+		return "", "", fmt.Errorf("invalid OFR symbol: expected OFR_<DATASET>-<SERIES_IDENTIFIER>")
+	}
+	return mnemonic, canonical, nil
+}
+
+func normalizeCanonical(raw string) string {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return ""
+	}
+	upper := strings.ToUpper(value)
+	if strings.HasPrefix(upper, seriesPrefix) {
+		return seriesPrefix + value[len(seriesPrefix):]
+	}
+	return seriesPrefix + upper
+}
+
+func ensureLatestFirst(points []gct.SeriesPoint) {
+	if len(points) < 2 {
+		return
+	}
+	if points[0].Timestamp >= points[len(points)-1].Timestamp {
+		return
+	}
+	slices.Reverse(points)
 }

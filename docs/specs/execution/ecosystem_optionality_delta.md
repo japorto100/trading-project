@@ -27,6 +27,7 @@
 - `docs/specs/PAYMENT_ADAPTER.md`
 - `docs/specs/ROLLOUT_GATES.md`
 - `docs/specs/CAPABILITY_REGISTRY.md`
+- `docs/specs/ERRORS.md`
 - `docs/specs/EXECUTION_PLAN.md`
 
 ---
@@ -39,6 +40,8 @@
 - [ ] **ECO4** Quota-/Audit-Pfade fuer mutierende Aktionen verifizieren
 - [ ] **ECO5** Payment-Adapter nur ueber feature-gated, additive Domainpfade aktivieren
 - [ ] **ECO6** Rollout-Stage-Gates mit KPI-/Rollback-Evidence operationalisieren
+- [ ] **ECO7** Feature-Flag-Pfade (`Unleash`/`Flagsmith` oder aequivalente Runtime-Flags) fuer Plugin/Partner/Payment klar dokumentieren
+- [ ] **ECO8** Kill-Switch-Rollout pruefen (global + pro capability) inkl. degraded-mode Kennzeichnung
 
 ---
 
@@ -48,6 +51,7 @@
 - [ ] **ECO.V2** Partner-Boundary Contract-Test fuer mindestens einen read-capability path
 - [ ] **ECO.V3** Rollback-Kriterium reproduzierbar ausloesbar (manuell oder automatisiert)
 - [ ] **ECO.V4** Payment-Adapter deaktiviert/aktiviert ohne Core-Bypass nachgewiesen
+- [ ] **ECO.V5** Feature-Flag-Aenderung wirkt kontrolliert auf Runtime-Stages (internal/pilot/limited/general)
 
 ---
 

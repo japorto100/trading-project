@@ -1,0 +1,15 @@
+services:
+  garage:
+    build:
+      context: ./tools/garage
+    container_name: tradeview-garage
+    ports:
+      - "3900:3900"
+      - "3901:3901"
+      - "3902:3902"
+      - "3903:3903"
+      - "3904:3904"
+    volumes:
+      - ./tools/garage/meta:/var/lib/garage/meta
+      - ./tools/garage/data:/var/lib/garage/data
+    command: ["garage", "-c", "/etc/garage.toml", "server"]

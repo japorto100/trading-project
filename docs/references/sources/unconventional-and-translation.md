@@ -16,6 +16,22 @@
 
 ---
 
+## Expliziter Quellenkatalog
+
+| Quelle | Rolle |
+|--------|-------|
+| `NBS China` | Nicht-englische offizielle China-Statistik |
+| `PBoC` | Chinesische Zentralbank-/Policy-Quellen |
+| `lokale Behoerden / ministry sites` | Regionale Primaerquellen ausserhalb englischer APIs |
+| `Yahoo (unofficial)` | Inoffizieller fallback feed mit klarer provenance caveat |
+| `NSE India` | Inoffizieller / semi-offizieller access path je nach endpoint |
+| `investing.com` | Sekundaere / scraping-nahe Referenz, nie Primaerquelle |
+| `YouTube transcripts` | OSINT / narrative / speech extraction |
+| `Reddit` | Community / retail / social signal input |
+| `Community signals / chat exports` | Unkonventionelle Discovery-Inputs mit Human-in-the-loop |
+
+---
+
 ## Arbeitsregel
 
 - Diese Quellen sind keine primaeren Truth-Layer.

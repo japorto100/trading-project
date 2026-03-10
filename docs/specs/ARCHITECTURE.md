@@ -148,7 +148,7 @@ flowchart TB
 | ML/Analytics/Inference | Python | Compute-only, kontrollierte Side Effects |
 | High-Performance Kernels | Rust via PyO3 | Deterministische Inputs/Outputs, Benchmarks |
 | Scheduling/Batch | Scheduler + Go Orchestrator | Retry/DLQ/Idempotenz verpflichtend |
-| Object Storage Layer | SeaweedFS/Garage via S3 API | immutable-by-default Artefakte, lifecycle/retention, checksums |
+| Object Storage Layer | SeaweedFS/Garage via S3 API, initial Go filesystem baseline for local wiring | immutable-by-default Artefakte, lifecycle/retention, checksums, signed gateway-owned access |
 | Secrets | Go-side Secret Management | Keine Frontend- oder Client-Leaks |
 
 ---
@@ -404,6 +404,14 @@ Schnittordnung innerhalb der bestehenden Struktur.
 - `simulation-workbench` (Branching, Szenariovergleich, Timeline)
 - `portfolio-workspace` (Exposure, Relevance, Watchlist-Kontext)
 - `notes-journal` (persoenliche Forschung/Thesen)
+
+#### 17.1a GeoMap Basemap-/Overlay-Contract (verbindlich)
+
+- **Globe bleibt Core-View** (d3-geo Hybrid, Canvas/SVG); kein Big-Bang-Ersatz.
+- **Flat/Label-Mode ist optional** und kann fuer dichten Regionalkontext mit MapLibre aktiviert werden.
+- **Basemap Data Contract:** `place`, `water`, `waterway` als Mindestset; `boundaries/land` nach Bedarf.
+- **Tile/Build Referenzstack:** PMTiles (Protomaps), OpenMapTiles-Schema, Planetiler (alternativ tilemaker), MVT/MBTiles kompatibel.
+- **Overlay Contract:** Events/Candidates/User-Layer bleiben API-/Stream-basiert und werden strikt getrennt von Basemap-Tiles betrieben.
 
 ### 17.2 Go Control Plane
 

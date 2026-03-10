@@ -334,7 +334,7 @@ Arbeitsregel:
 - wenn GCT spaeter enger in-process oder nur noch selektiv als Library genutzt
   wird, kann diese Auth-Grenze neu bewertet werden
 
-## Benchmark-Baseline (Sprint 4, 06. Mär 2026)
+## Benchmark-Baseline (Refresh, 10. Mär 2026)
 
 **Platform:** Windows 10, Intel Core i7-2600 @ 3.40 GHz, GOMAXPROCS=8
 **Go:** 1.26, `go test -bench=. -benchmem -benchtime=3s`
@@ -342,12 +342,14 @@ Arbeitsregel:
 
 | Benchmark | ns/op | B/op | allocs/op |
 |:----------|------:|-----:|----------:|
-| `BenchmarkApplyTick` (single-thread) | 72.54 | 0 | 0 |
-| `BenchmarkApplyTickParallel` (8 goroutines) | 188.3 | 0 | 0 |
-| `BenchmarkSnapshot` (100 candles) | 1367 | 4864 | 1 |
+| `BenchmarkVWAP` | 1578 | 0 | 0 |
+| `BenchmarkVWAPBatch` | 15240 | 0 | 0 |
+| `BenchmarkApplyTick` (single-thread) | 75.66 | 0 | 0 |
+| `BenchmarkApplyTickParallel` (8 goroutines) | 197.4 | 0 | 0 |
+| `BenchmarkSnapshot` (100 candles) | 1527 | 4864 | 1 |
 
 **Lock-Contention Analysis:**
-- Parallel/Single ratio: 188.3 / 72.54 ≈ **2.6×** → exceeds 2× threshold
+- Parallel/Single ratio: 197.4 / 75.66 ≈ **2.61×** → exceeds 2× threshold
 - Indicates `sync.RWMutex` write-lock contention under concurrent writers
 - Recommendation: evaluate shard-lock (per-symbol CandleBuilder) or `sync.Map` in Phase 19
 
@@ -355,17 +357,17 @@ Arbeitsregel:
 - Zero allocations on hot path (ApplyTick): excellent — no GC pressure
 - Snapshot allocates once (slice copy): expected and unavoidable
 
-**Verify:** `go test -bench=. -benchmem ./internal/services/market/streaming/...` reproduzierbar.
+**Verify:** `go test -bench=. -benchmem -benchtime=3s ./internal/services/market/streaming` reproduzierbar.
 
 ## Offene Verify-Luecke
 
-Aktuell bleibt vor dem naechsten groesseren Streaming-Slice vor allem ein Punkt
-bewusst offen:
+Der fruehere Hinweis auf einen haengenden Re-Run von `internal/handlers/sse` ist
+nicht mehr aktuell:
 
-- `internal/handlers/sse` sollte als eigener fokussierter Paket-/Build-/Testlauf
-  erneut untersucht werden, weil ein frueherer Re-Run bereits vor Testausgabe
-  hing und die Resolver-Umstellung dort nur klein, aber nicht final verifiziert
-  war
+- ein fokussierter Paketlauf `go test ./internal/handlers/sse` ist auf dem
+  aktuellen Stand gruen
+- offen bleiben damit nicht mehr Paket-Build-Probleme, sondern die spaeteren
+  Browser-/Live-Verifies fuer echte Stream-Reconnect-/Watchlist-Pfade
 
 ## Zusammenfassung
 

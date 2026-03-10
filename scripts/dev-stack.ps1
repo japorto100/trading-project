@@ -1,13 +1,14 @@
-# Start full stack: Go Gateway + GCT + Python (Rust-powered) services + Next.js + NATS + Observability
+# Start full stack: Go Gateway + GCT + Python (Rust-powered) services + Next.js + SeaweedFS + NATS + Observability
 # Usage: from repo root: bun run dev:full:gct:python
 # All services run by default. Pass -Skip* flags to disable individual services.
-# Optional: -SkipGo, -SkipGCT, -SkipPython, -SkipNext, -SkipNats, -SkipObservability, -InstallMl
+# Optional: -SkipGo, -SkipGCT, -SkipPython, -SkipNext, -SkipSeaweedfs, -SkipNats, -SkipObservability, -InstallMl
 
 param(
     [switch]$SkipGo,
     [switch]$SkipGCT,
     [switch]$SkipPython,
     [switch]$SkipNext,
+    [switch]$SkipSeaweedfs,
     [switch]$SkipNats,
     [switch]$SkipObservability,    # Skip OpenObserve OTel tracing (normally on :5080/5081)
     [switch]$InstallMl,
@@ -21,12 +22,40 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $goBackendDir = Join-Path $repoRoot "go-backend"
 $pythonBackendRoot = Join-Path $repoRoot "python-backend"
 $venvPython = Join-Path $pythonBackendRoot ".venv\Scripts\python.exe"
-$cargoBin = Join-Path $env:USERPROFILE ".cargo\bin"
+$preferredCargoHome = if (-not [string]::IsNullOrWhiteSpace($env:CARGO_HOME)) { $env:CARGO_HOME } else { "D:\DevCache\cargo\.cargo" }
+$preferredRustupHome = if (-not [string]::IsNullOrWhiteSpace($env:RUSTUP_HOME)) { $env:RUSTUP_HOME } else { "D:\DevCache\rustup" }
+$cargoBin = Join-Path $preferredCargoHome "bin"
 $rustTargetDir = Join-Path $pythonBackendRoot "rust_core\target-local"
 $processes = @()
 $managedServices = @{}
 $logsRoot = Join-Path $repoRoot "logs\dev-stack"
 $uvCmd = $null
+$seaweedDir = Join-Path $repoRoot "tools\seaweedfs"
+$seaweedExe = Join-Path $seaweedDir "weed.exe"
+$seaweedDataDir = Join-Path $seaweedDir "data"
+$seaweedS3Config = Join-Path $seaweedDir "s3.json"
+
+function Ensure-SeaweedFSAvailable {
+    if (Test-Path $seaweedExe) {
+        return $seaweedExe
+    }
+
+    Write-Host "[seaweedfs] Downloading SeaweedFS 4.15 for Windows amd64..." -ForegroundColor Cyan
+    New-Item -ItemType Directory -Path $seaweedDir -Force | Out-Null
+    $archivePath = Join-Path $seaweedDir "windows_amd64.zip"
+    $releaseUrl = "https://github.com/seaweedfs/seaweedfs/releases/download/4.15/windows_amd64.zip"
+    Invoke-WebRequest -Uri $releaseUrl -OutFile $archivePath -UseBasicParsing
+    Expand-Archive -Path $archivePath -DestinationPath $seaweedDir -Force
+
+    $extracted = Get-ChildItem $seaweedDir -Recurse -Filter "weed.exe" | Select-Object -First 1
+    if (-not $extracted) {
+        throw "[seaweedfs] weed.exe not found after archive extraction."
+    }
+    if ($extracted.FullName -ne $seaweedExe) {
+        Move-Item $extracted.FullName $seaweedExe -Force
+    }
+    return $seaweedExe
+}
 
 function Ensure-AirAvailable {
     # Returns the full path to air.exe, or $null if unavailable.
@@ -68,6 +97,18 @@ function Ensure-AirAvailable {
 }
 
 # Ensure Rust toolchain binaries and cache path are stable for PyO3 builds in dev flow.
+if (-not (Test-Path $preferredCargoHome)) {
+    New-Item -ItemType Directory -Path $preferredCargoHome -Force | Out-Null
+}
+if (-not (Test-Path $preferredRustupHome)) {
+    New-Item -ItemType Directory -Path $preferredRustupHome -Force | Out-Null
+}
+if ([string]::IsNullOrWhiteSpace($env:CARGO_HOME)) {
+    $env:CARGO_HOME = $preferredCargoHome
+}
+if ([string]::IsNullOrWhiteSpace($env:RUSTUP_HOME)) {
+    $env:RUSTUP_HOME = $preferredRustupHome
+}
 if (Test-Path $cargoBin) {
     if (-not (($env:Path -split ';') -contains $cargoBin)) {
         $env:Path = "$cargoBin;$env:Path"
@@ -341,6 +382,33 @@ try {
         }
     }
 
+    # 0d) SeaweedFS object storage (Default ON, skip via -SkipSeaweedfs flag)
+    # Alternative: docker compose -f docker-compose.seaweedfs.yml up -d
+    if (-not $SkipSeaweedfs) {
+        $resolvedSeaweedExe = Ensure-SeaweedFSAvailable
+        if (-not (Test-Path $seaweedDataDir)) { New-Item -ItemType Directory -Path $seaweedDataDir -Force | Out-Null }
+        if (-not (Test-Path $seaweedS3Config)) {
+            throw "[seaweedfs] Missing S3 config at $seaweedS3Config"
+        }
+
+        Register-ManagedService -Name "seaweedfs" -Port 8333 -StartAction {
+            Write-Host "[seaweedfs] Starting on :8333 (master :9333, volume :8080, filer :8888)..." -ForegroundColor Cyan
+            Start-LoggedProcess -Name "seaweedfs" -FilePath $resolvedSeaweedExe -ArgumentList @(
+                "server",
+                "-dir=$seaweedDataDir",
+                "-s3",
+                "-s3.config=$seaweedS3Config",
+                "-ip=127.0.0.1",
+                "-master.port=9333",
+                "-volume.port=18080",
+                "-filer.port=8888",
+                "-s3.port=8333"
+            ) -WorkingDirectory $seaweedDir
+        }
+        Start-ManagedService -Name "seaweedfs" | Out-Null
+        Ensure-PortReady -Port 8333 -Name "seaweedfs" -TimeoutSecs 45
+    }
+
     # Verify critical cross-service vars
     Write-Host "Go Gateway:   $($env:GO_GATEWAY_BASE_URL)"
     Write-Host "Indicator:    $($env:INDICATOR_SERVICE_URL)"
@@ -505,6 +573,9 @@ try {
     if (-not $SkipNext) {
         Ensure-PortReady -Port 3000 -Name "nextjs" -TimeoutSecs 120
     }
+    if (-not $SkipSeaweedfs) {
+        Ensure-PortReady -Port 8333 -Name "seaweedfs" -TimeoutSecs 45
+    }
     if (-not $SkipGo) {
         Ensure-PortReady -Port 9060 -Name "go-gateway" -TimeoutSecs 180
     }
@@ -519,6 +590,10 @@ try {
     Write-Host "`n--- Stack Ready ---" -ForegroundColor Green
     Write-Host "Next.js UI:   http://localhost:3000"
     Write-Host "Go Gateway:   http://127.0.0.1:9060"
+    if (-not $SkipSeaweedfs) {
+        Write-Host "SeaweedFS S3:  http://127.0.0.1:8333"
+        Write-Host "SeaweedFS UI:  http://127.0.0.1:9333  | Filer: http://127.0.0.1:8888"
+    }
     Write-Host "Python API:   8081, 8091, 8092, 8093, 8094 (agent)"
     if (-not $SkipGCT) { Write-Host "GCT gRPC:     127.0.0.1:9052" }
     if (-not $SkipObservability) { Write-Host "OpenObserve:  http://localhost:5080  (Traces/Logs/Metrics)" -ForegroundColor Cyan }

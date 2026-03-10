@@ -20,6 +20,36 @@ jobs:
       - name: Biome lint
         run: bun run lint
 
+  typecheck-frontend:
+    name: Typecheck Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Prisma generate
+        run: bun run db:generate
+      - name: Typecheck
+        run: bunx tsc --noEmit
+
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Prisma generate
+        run: bun run db:generate
+      - name: Build
+        run: bun run build
+
   build-go:
     name: Build Go
     runs-on: ubuntu-latest
@@ -48,6 +78,20 @@ jobs:
         working-directory: go-backend
         run: go test ./...
 
+  vet-go:
+    name: Vet Go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go-backend/go.mod
+          cache: true
+          cache-dependency-path: go-backend/go.sum
+      - name: Go vet
+        working-directory: go-backend
+        run: go vet ./...
+
   lint-python:
     name: Lint Python
     runs-on: ubuntu-latest
@@ -59,3 +103,15 @@ jobs:
       - name: Ruff check
         working-directory: python-backend
         run: uv run ruff check .
+
+  test-python-smoke:
+    name: Test Python Smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: latest
+      - name: Pytest smoke
+        working-directory: python-backend
+        run: uv run pytest tests/test_otel_factory.py tests/test_ipc_grpc.py -q

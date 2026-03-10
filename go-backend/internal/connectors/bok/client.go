@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 const DefaultBaseURL = "https://ecos.bok.or.kr"
@@ -32,6 +33,15 @@ type Config struct {
 type Client struct {
 	baseClient *base.Client
 	apiKey     string
+}
+
+func (c *Client) apiKeyForContext(ctx context.Context) string {
+	if creds, ok := requestctx.ProviderCredential(ctx, "bok"); ok {
+		if key := strings.TrimSpace(creds.Key); key != "" {
+			return key
+		}
+	}
+	return strings.TrimSpace(c.apiKey)
 }
 
 type seriesSpec struct {
@@ -90,7 +100,8 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	if c == nil || c.baseClient == nil {
 		return nil, fmt.Errorf("bok client unavailable")
 	}
-	if strings.TrimSpace(c.apiKey) == "" {
+	apiKey := c.apiKeyForContext(ctx)
+	if apiKey == "" {
 		return nil, &gct.RequestError{Path: defaultStatisticPath, StatusCode: http.StatusUnauthorized, Cause: fmt.Errorf("missing BOK_ECOS_API_KEY")}
 	}
 	spec, ok := parseSeriesSpec(pair.Base.String())
@@ -111,7 +122,7 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 		return nil, &gct.RequestError{Path: defaultStatisticPath, StatusCode: http.StatusBadRequest, Cause: fmt.Errorf("unsupported BOK ECOS cycle")}
 	}
 
-	path := fmt.Sprintf("%s/%s/json/%s/1/%d/%s/%s/%s/%s/%s", defaultStatisticPath, c.apiKey, defaultLanguage, limit, spec.StatCode, spec.Cycle, startCode, endCode, spec.ItemCode1)
+	path := fmt.Sprintf("%s/%s/json/%s/1/%d/%s/%s/%s/%s/%s", defaultStatisticPath, apiKey, defaultLanguage, limit, spec.StatCode, spec.Cycle, startCode, endCode, spec.ItemCode1)
 	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, path, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build bok request: %w", err)

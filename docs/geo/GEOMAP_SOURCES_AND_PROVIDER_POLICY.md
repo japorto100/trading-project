@@ -12,6 +12,27 @@
 - Normative GeoMap-Spec unter `docs/specs/geo/`
 - Root-GeoMap-Dateien sind nach Split archiviert und aus aktivem Root entfernt
 
+### Basemap Feature Minimum (aus evaluate-compressed abgeleitet)
+
+Fuer den aktuellen GeoMap-Scope (kein Google-Maps-Ersatz) gilt als Mindestanforderung:
+
+- `place` Layer fuer Staedte/Orte (mindestens capital/city/town),
+- `water` Layer fuer Seen/Wasserflaechen,
+- `waterway` Layer fuer Fluesse/Kanaele.
+
+Technologie-/Projektbezug (verbindliche Referenz fuer GeoMap-Entscheide):
+
+- **PMTiles (Protomaps)** als bevorzugtes statisches Tile-Artefakt,
+- **OpenMapTiles** als gaengiges Layer-/Schema-Fundament,
+- **Planetiler** (alternativ `tilemaker`) fuer Tile-Builds aus OSM-Extrakten,
+- **MapLibre GL JS** nur fuer optionalen Flat/Regional-Mode (Globe-Core bleibt unveraendert).
+
+Betriebsregel dazu:
+
+- Basemap-Features kommen aus kontrollierten Tile-/Provider-Pfaden (nicht aus oeffentlichen Free-Endpoints als Produktions-Rueckgrat),
+- Geocoding/Place-Resolution laufen ueber abstrahierten Provider-Layer mit Cache/Fallback,
+- Attribution/Lizenzhinweise bleiben sichtbar im UI.
+
 ---
 
 ## 6. Source strategy: tiers and trust

@@ -43,21 +43,47 @@
 
 Gesamtcheckliste fuer effektives Abarbeiten aller GeoMap-Dokumente.
 
+### 0.0 GEOMAP_OVERVIEW
+
+- [ ] **GO.1** — Read-Order, Owner-Matrix und Archivhinweis gelesen; keine Geo-Arbeit ausserhalb der Owner-Dokumente begruendet
+- [ ] **GO.2** — `evaluate-compressed`-Uebernahme verstanden: Daten-/Provider-Minima in Sources/Verify verankert
+
 ### 0.1 GEOMAP_FOUNDATION
 
 - [ ] **FD.1** — Policy-Check: world-atlas als primäre Quelle, keine verbotenen Tiles (Leaflet/MapLibre/Google), Geocoding-Tiers 1–3 verstanden
 - [ ] **FD.2** — Geocoding Phase 12: `provider.ts`, `nominatim.ts`, `cache.ts`, `chain.ts`, `index.ts` (Implementierungs-Plan Sek. 2)
 - [ ] **FD.3** — PMTiles-Contract: Gate B verstanden, Static vs. Live Layers, keine PMTiles vor Trigger
 - [ ] **FD.4** — Rendering Foundation (Sek. 4): Gates A/B/C, d3-geo Core, deck.gl/MapLibre nur gate-gesteuert
+- [ ] **FD.5** — Basemap-Library-Referenz fuer GeoMap dokumentiert: PMTiles (Protomaps), OpenMapTiles, Planetiler (alt: tilemaker), MapLibre nur optional fuer Flat/Regional-Mode
 
-### 0.2 GEOMAP_VERIFY_GATES
+### 0.2 GEOMAP_DATA_CONTRACTS_AND_FEEDBACK
+
+- [ ] **DC.1** — Feedback-Driven Review (Sek. 3) normativ gespiegelt: `signal/noise/uncertain`, Override-Reasons, Multi-Analyst-Flow
+- [ ] **DC.2** — Canonical Contracts fuer `GeoEvent`, `GeoCandidate`, `GeoTimelineEntry` gegen Runtime-Istzustand geprueft
+- [ ] **DC.3** — Review-/Feedback-API-Restpunkte (`/review`, `/feedback/metrics`, `/feedback/disagreements`) gegen Contract owner-geprueft
+- [ ] **DC.4** — Evaluation-Harness-/Explain-Why-/Contradiction-Backlog aus Data-Contracts in SOTA-/Test-IDs gespiegelt
+- [ ] **DC.5** — Timeline-Contract deckt Replay-/Story-Anforderungen fuer v2 ausreichend oder ist explizit als Delta markiert
+
+### 0.3 GEOMAP_SOURCES_AND_PROVIDER_POLICY
+
+- [ ] **SP.1** — Source-Tiers A/B/C, Hard-Signal-first und Soft-Signal-Candidate-Policy gelesen und gegen aktuellen Ingest gespiegelt
+- [ ] **SP.2** — Basemap-Minimum (`place`/`water`/`waterway`) und Flat/Regional-Stack-Regel aus Provider-Policy in Verify/Foundation gespiegelt
+- [ ] **SP.3** — Source-Bias-/Cross-Bias-Regeln gegen Candidate-Scoring/Review-Backlog gespiegelt
+- [ ] **SP.4** — Source Appendix fuer v0-v2 relevante Provider und Geo-Sources auf Vollstaendigkeit geprueft
+- [ ] **SP.5** — Metadata-first-/Legal-/Reliability-Regeln gegen aktuelle GeoMap-Routen und Stores gespiegelt
+
+### 0.4 GEOMAP_VERIFY_GATES
 
 - [ ] **V.1** — E2E-Abnahme durchgeführt (Checkliste Sek. 3: seed, Earth/Moon, Layer-Toggles, Draw, Save-Fehlerpfad)
 - [ ] **V.2** — Draw-Workflow manuell verifiziert (Marker, Line, Polygon, Text, Undo, Redo, Delete)
 - [ ] **V.3** — Save-Fehlerpfad getestet (API aus → Fehlermeldung, kein Datenverlust)
 - [ ] **V.4** — Performance-Baseline Szenario A/B/C (`GEOMAP_VERIFY_GATES.md` Sek. 4): Messprotokoll durchgefuehrt, FPS notiert
+- [ ] **V.5** — Basemap-Sichtbarkeits-Gate bestanden (`place`/`water`/`waterway`) inkl. 3-Regionen-Check
+- [ ] **V.6** — Replay-/Timeline-Gate bestanden: Zeitfenster-Auswahl, Scrub/Brush, Zoom-Presets, Timeline-Reset
+- [ ] **V.7** — Story-/Kamera-Gate bestanden: Story fokussiert Karte, Zeitfenster und Detailansicht konsistent
+- [ ] **V.8** — Overlay-Chrome-Gate bestanden: `timeline`/`filters`/`legend` separat von Daten-Layern schaltbar
 
-### 0.3 GEOMAP_PRODUCT_AND_POLICY + ROADMAP
+### 0.5 GEOMAP_PRODUCT_AND_POLICY + ROADMAP
 
 - [ ] **M.1** — UX offen (Sek. 5): Keyboard Shortcuts 9.3, Accessibility 9.4, Multi-Select 9.2
 - [ ] **M.2** — Milestone C (sources): soft-signal adapter scaffolds, perf + a11y pass
@@ -67,14 +93,19 @@ Gesamtcheckliste fuer effektives Abarbeiten aller GeoMap-Dokumente.
 - [ ] **M.6** — Proposed defaults (Sek. 29): sort, asset edits owner-only, export, timeline
 - [ ] **M.7** — Feedback-Driven Review (Sek. 3): System-Klassifikation, Analysten-Entscheidungen, Collaborative Review — OFFEN
 - [ ] **M.8** — SOTA-Backlog (Sek. 35): Policy-as-Code, Evaluation Harness, Explain-Why, OffscreenCanvas/supercluster Worker
+- [ ] **M.9** — Externe Referenzreview-Dokumente gepflegt (aktuell: `PHAROS_AI_REVIEW.md`) und gegen GeoMap-Roadmap gespiegelt
+- [ ] **M.10** — `pharos-ai` Monitoring-Datum `2026-03-12` fuer Agent-Layer-Open-Sourcing verfolgt und Folgeentscheid dokumentiert
 
-### 0.4 GEOMAP_MODULE_CATALOG
+### 0.6 GEOMAP_MODULE_CATALOG
 
 - [ ] **O.1** — d3-Module v1.1: d3-scale, d3-scale-chromatic, d3-interpolate, d3-transition, d3-timer, d3-ease (falls noch nicht installiert)
 - [ ] **O.2** — Severity Heatmap: hardcoded → scaleSequential + interpolateYlOrRd (`GEOMAP_MODULE_CATALOG.md` Sek. 2.1)
 - [ ] **O.3** — Animation: setInterval → d3.timer (Frame-synchron, `GEOMAP_MODULE_CATALOG.md`)
 - [ ] **O.4** — d3-Module v1.5 (Game Theory + Timeline): d3-hierarchy, d3-shape, d3-brush, d3-axis, d3-legend, d3-annotation
 - [ ] **O.5** — Feature→Module-Matrix (Sek. 10): Regime-State Layer, CBDC Status, Financial Openness, etc. prüfen
+- [ ] **O.6** — Flat/Regional-Analystenmodus im Modul-Katalog normativ gespiegelt (deck.gl / MapLibre / PMTiles als Second-Mode, nicht Globe-Replacement)
+- [ ] **O.7** — Externe Referenz-Reviews in Modulentscheidungen gespiegelt (aktuell: `PHAROS_AI_REVIEW.md`)
+- [ ] **O.8** — Replay-/Timeline-Module normativ gespiegelt: `d3-brush`, `d3-axis`, `d3-array`, `d3-shape` fuer Conflict-Replay und Story-Zeitfenster
 
 ---
 
@@ -100,6 +131,11 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 
 - [~] **E.1** — geospatial stack upgrade (deck.gl fuer High-Density wenn Lastgrenzen gerissen)
 - [~] **E.2** — advanced filters/search: dediziertes Filter-UI-Panel, facettierte Suche
+- [ ] **E.3** — Flat/Regional Analyst View als eigener Render-Modus gescoped (ohne Globe-Core zu ersetzen)
+- [ ] **E.4** — deck.gl + MapLibre als optionaler Zweitmodus spezifiziert, inklusive Daten-/Layer-Boundary
+- [ ] **E.5** — PMTiles-Einsatz fuer Flat/Regional-Mode gegen Basemap-/Attribution-/Hosting-Contract bewertet
+- [ ] **E.6** — zentrale MapFilterEngine fuer Conflict/Macro/Context/Soft-Signals gescoped (dataset-zentriert, facettiert, view-agnostisch)
+- [ ] **E.7** — Overlay-Chrome-Contract gescoped (`timeline`, `filters`, `legend`, Panels getrennt von Daten-Layer-Toggles)
 
 ---
 
@@ -114,6 +150,13 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **F.6** — Seed-Datensatz / Demo-Szenario (JSON-Files befuellen)
 - [ ] **F.7** — ReliefWeb-Integration (Code, nicht nur ENV)
 - [ ] **F.8** — Reddit-Integration (v2 geplant)
+- [ ] **F.9** — Shared Layer Contract fuer Globe + Flat definiert (Story, Filter, Timeline, Selection, Layer IDs)
+- [ ] **F.10** — Shared Map Payload Contract fuer Globe + Flat definiert (view-agnostisch, renderer-driven)
+- [ ] **F.11** — Replay-/Timeline-Controller umgesetzt: Zeitfenster, Zoom-Presets, Scrub/Brush, Reset
+- [ ] **F.12** — Story-driven camera + timeline activation umgesetzt
+- [ ] **F.13** — Overlay-Chrome-Visibility von Daten-Layer-Visibility sauber getrennt
+- [ ] **F.14** — generischer Selection-/Detail-Contract fuer Conflict-Objekte eingefuehrt
+- [ ] **F.15** — Responsive Analyst-Layouts fuer Desktop/Mobile/Landscape konsolidiert
 
 ---
 
@@ -122,6 +165,8 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **API.1** — `POST /api/geopolitical/candidates/:id/review` (GeoAnalystFeedback Body)
 - [ ] **API.2** — `GET /api/geopolitical/feedback/metrics`
 - [ ] **API.3** — `GET /api/geopolitical/feedback/disagreements`
+- [ ] **API.4** — Metadata-first-/legal-safe source persistence fuer GeoMap verifiziert (keine unzulaessige Volltext-Speicherung)
+- [ ] **API.5** — Source-health / provider-outage / rate-budget-Verhalten fuer GeoMap-Routen owner-konsistent dokumentiert
 
 ---
 
@@ -130,6 +175,9 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **T.1** — Unit: scoring logic, dedup logic, state transitions, schema validation
 - [ ] **T.2** — Integration: ingestion → candidate → review → persistence, timeline append
 - [ ] **T.3** — E2E: draw + marker workflow, candidate review lifecycle, region click → filtered feed, timeline interactions
+- [ ] **T.4** — View-Consistency-Test: gleicher Datensatz wird in Globe und Flat konsistent gefiltert / selektiert / erzählt
+- [ ] **T.5** — Replay-/Timeline-Test: Zeitfenster-Filter beeinflusst Karte, Listen und Story-Highlights konsistent
+- [ ] **T.6** — Overlay-Chrome-Test: Ausblenden von Timeline/Legend/Filters beeinflusst keine Daten-Layer und umgekehrt
 
 ---
 
@@ -143,6 +191,8 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **SOTA.6** — Evaluation Harness (Precision/Recall, Override Rate, Kappa, Dashboard)
 - [ ] **SOTA.7** — Policy-as-Code (v2)
 - [ ] **SOTA.8** — OffscreenCanvas / supercluster Worker (Performance)
+- [ ] **SOTA.9** — Dual-View Analyst UX: strategischer Globe + operativer Flat/Regional-Mode
+- [ ] **SOTA.10** — Story-driven Replay UX: Karte, Zeitfenster, Details und Narrative laufen ueber denselben Contract
 
 ---
 
@@ -157,6 +207,8 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] Keyboard Shortcuts (1 von 9)
 - [ ] Exports (JSON/PNG/PDF)
 - [ ] a11y Pass (keine aria-Labels)
+- [ ] replay/story controller (Zeitfenster + Kamera + Detailzustand fehlen als konsistenter Layer)
+- [ ] overlay chrome separation (UI-Chrome und Daten-Layer-Toggles noch nicht sauber getrennt)
 
 **Ops:**
 - [~] alert routing test (Route vorhanden, kein UI, kein E2E-Test)
@@ -169,6 +221,8 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **INF.2** — LLM-Summary-Gap: NLP-Pipeline fuer echte Zusammenfassung
 - [ ] **INF.3** — Persistence: Zeichnungen/Marker von localStorage nach Prisma migrieren
 - [ ] **INF.4** — Zombie-Processes (Windows Dev): Go-Gateway sauberes Shutdown
+- [ ] **INF.5** — Externes Referenz-Monitoring: `pharos-ai` Agent-Layer-Open-Sourcing ab `2026-03-12` beobachten und Auswirkungen auf Conflict-/Source-Layer bewerten
+- [ ] **INF.6** — Source-Bias-/Cross-Bias-Operationalisierung fuer GeoMap-Candidates geplant (mindestens als Rules-/Review-Backlog)
 
 ---
 
@@ -178,9 +232,12 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 |:------|:---------|
 | GeoMap Master-Spec | `docs/geo/GEOMAP_OVERVIEW.md` |
 | GeoMap Product/Policy | `docs/geo/GEOMAP_PRODUCT_AND_POLICY.md` |
+| GeoMap Data Contracts | `docs/geo/GEOMAP_DATA_CONTRACTS_AND_FEEDBACK.md` |
+| GeoMap Sources/Provider Policy | `docs/geo/GEOMAP_SOURCES_AND_PROVIDER_POLICY.md` |
 | GeoMap Foundation | `docs/geo/GEOMAP_FOUNDATION.md` (Basemap, Geocoding, PMTiles, Rendering) |
 | GeoMap Verify | `docs/geo/GEOMAP_VERIFY_GATES.md` (E2E, Draw, Save-Fehlerpfad, Performance-Baseline) |
 | GeoMap Options | `docs/geo/GEOMAP_MODULE_CATALOG.md` (d3-Module, Feature→Module-Matrix) |
+| Externe Referenzreview | `docs/geo/PHAROS_AI_REVIEW.md` |
 | Gesamtroadmap | [`../EXECUTION_PLAN.md`](../EXECUTION_PLAN.md) |
 
 ---

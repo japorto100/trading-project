@@ -15,6 +15,7 @@
 4. **Python und GCT sind interne Downstreams, keine Browser-Frontdoors.**
 5. **Rust ist Compute-Layer, kein direkter Browser- oder Policy-Endpunkt.**
 6. **Mutationen, Security und Secrets duerfen nicht in stillen Client-Fallbacks enden.**
+7. **Provider werden hinter stabilen Route-Familien integriert, nicht ueber neue Public-Pfade pro Quelle.**
 
 ---
 
@@ -37,9 +38,23 @@
 - Next.js rekonstruiert fuer Market-Pfade kontrolliert den
   `X-Tradeview-Provider-Credentials` Header aus dem serverlesbaren Cookie
   `tradeview_provider_credentials`.
+- Der Cookie ist fuer diese Bruecke verschluesselt, `HttpOnly`,
+  `SameSite=Strict`, auf `/api/market` begrenzt und darf nicht als Plain-JSON
+  in `localStorage` gespiegelt werden.
 - Go dekodiert den Header in einen request-scoped `CredentialStore`.
 - Connectoren duerfen diesen Store selektiv nutzen, muessen aber saubere Error-
   Pfade statt stiller Fallbacks liefern.
+
+### Routing- und Strukturregel
+
+- Die Public-API wird entlang fachlicher Faehigkeiten geschnitten
+  (`quote`, `ohlcv`, `orderbook`, `stream`, `providers`, `macro history`),
+  nicht entlang einzelner Provider.
+- Request-scoped Credentials, Providerwahl und Capability-Mapping sind interne
+  Gateway-Verantwortung.
+- Next.js darf dafuer wenige stabile BFF-Routen besitzen, soll aber nicht pro
+  neuem Provider neue Route-Dateien oder neue oeffentliche Pfadfamilien
+  einfuehren.
 
 ### Fehlervertrag
 

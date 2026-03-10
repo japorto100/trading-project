@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/requestctx"
@@ -65,5 +66,18 @@ func TestPostJSON_UsesBaseClientAndPropagatesRequestID(t *testing.T) {
 	}
 	if gotBody != `{"symbol":"BTCUSD"}` {
 		t.Fatalf("unexpected request body %q", gotBody)
+	}
+}
+
+func TestPostJSON_MapsTransportError(t *testing.T) {
+	t.Helper()
+
+	client := NewClient(Config{BaseURL: "http://127.0.0.1:1"})
+	_, _, err := client.PostJSON(context.Background(), "signals/composite", []byte(`{"symbol":"BTCUSD"}`))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if got := err.Error(); got == "" || !strings.Contains(got, "indicatorservice request failed") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

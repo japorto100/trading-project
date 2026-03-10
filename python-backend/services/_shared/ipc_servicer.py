@@ -10,11 +10,11 @@ _PROTO_PARENT = Path(__file__).resolve().parents[2] / "proto"
 if str(_PROTO_PARENT) not in sys.path:
     sys.path.insert(0, str(_PROTO_PARENT))
 
-import grpc
-from starlette.testclient import TestClient
+import grpc  # noqa: E402
+from starlette.testclient import TestClient  # noqa: E402
 
-from ipc import ipc_pb2
-from ipc.ipc_pb2_grpc import PythonIPCServicer, add_PythonIPCServicer_to_server
+from ipc import ipc_pb2  # noqa: E402
+from ipc.ipc_pb2_grpc import PythonIPCServicer, add_PythonIPCServicer_to_server  # noqa: E402
 
 
 class ForwardRequestServicer(PythonIPCServicer):

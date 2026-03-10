@@ -27,7 +27,7 @@
 3. **SYSTEM_STATE.md** — IST/SOLL pro Schicht
 4. **Spec fuer den Arbeitsbereich** — z.B. API_CONTRACTS, AUTH_SECURITY, FRONTEND_ARCHITECTURE
 5. **Execution-Spec bei Bedarf** — z.B. `execution/geomap_closeout.md` fuer GeoMap-Arbeit oder `execution/source_onboarding_and_keys.md` fuer neue Quellen/Keys
-6. **Root-Domain-Docs bei Bedarf** — z.B. Deep-Reference zu Geo-Themen; normative Geo-Owner liegen in `docs/specs/geo/*.md`
+6. **Root-Domain-Docs bei Bedarf** — z.B. Deep-Reference zu Geo-Themen; normative Geo-Owner liegen in `docs/geo/*.md`
 7. **Books/Research nur bei explizitem Bedarf** — nicht als Standard-Lesepfad
 
 ---
@@ -43,7 +43,7 @@
 | Auth / Policy / Secrets? | `docs/specs/security/*.md` |
 | Frontend-Regeln? | `FRONTEND_ARCHITECTURE.md` |
 | Architektur-Leitplanken? | `ARCHITECTURE.md` |
-| Tiefer Domain-Kontext? | Root-Docs (Deep-Reference) + `docs/specs/geo/*.md` als normative Geo-Owner |
+| Tiefer Domain-Kontext? | Root-Docs (Deep-Reference) + `docs/geo/*.md` als normative Geo-Owner |
 
 ---
 

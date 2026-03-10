@@ -179,18 +179,20 @@ func parseSeriesSymbol(raw string) (map[string]string, string, error) {
 	payload := strings.TrimPrefix(canonical, seriesPrefix)
 	payload = strings.ReplaceAll(payload, ".", "_")
 	parts := strings.Split(payload, "_")
-	if len(parts) != len(wdiDimensionOrder) {
+	if len(parts) < len(wdiDimensionOrder) {
+		return nil, "", fmt.Errorf("invalid WB WDI symbol: expected FREQ_SERIES_REF_AREA (e.g. A_SP_POP_TOTL_USA)")
+	}
+	freq := strings.TrimSpace(strings.ToUpper(parts[0]))
+	refArea := strings.TrimSpace(strings.ToUpper(parts[len(parts)-1]))
+	series := strings.TrimSpace(strings.ToUpper(strings.Join(parts[1:len(parts)-1], "_")))
+	if freq == "" || series == "" || refArea == "" {
 		return nil, "", fmt.Errorf("invalid WB WDI symbol: expected FREQ_SERIES_REF_AREA (e.g. A_SP_POP_TOTL_USA)")
 	}
 	dims := make(map[string]string, len(wdiDimensionOrder))
-	for idx, dimKey := range wdiDimensionOrder {
-		part := strings.TrimSpace(strings.ToUpper(parts[idx]))
-		if part == "" {
-			part = "."
-		}
-		dims[dimKey] = part
-	}
-	canonical = seriesPrefix + strings.Join(parts, "_")
+	dims["FREQ"] = freq
+	dims["SERIES"] = series
+	dims["REF_AREA"] = refArea
+	canonical = seriesPrefix + strings.Join([]string{freq, series, refArea}, "_")
 	return dims, canonical, nil
 }
 

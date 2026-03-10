@@ -109,6 +109,7 @@ Bei neuen Quellen oder Keys sind mindestens diese Stellen zu pruefen:
 | Thema | Variable(n) | Ort |
 |-------|--------------|-----|
 | Gateway-Basis | `GO_GATEWAY_BASE_URL` | Root `.env.*` |
+| Secure provider-cookie storage | `PROVIDER_CREDENTIALS_COOKIE_SECRET`, `PROVIDER_CREDENTIALS_COOKIE_MAX_AGE_SECONDS` | Root `.env.*` |
 | Geopolitical Modes | `GEOPOLITICAL_INGEST_*`, `GEOPOLITICAL_*` | Root `.env.*` |
 | Indicator-/Soft-Signal URLs | `INDICATOR_SERVICE_URL`, `GEOPOLITICAL_SOFT_SIGNAL_URL` | Root `.env.*` und Go `.env.*` bei direkter Service-Nutzung |
 

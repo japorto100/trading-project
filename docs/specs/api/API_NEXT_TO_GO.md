@@ -36,6 +36,17 @@ Nicht Owner dieses Dokuments:
   keine Backend-Daten noetig sind, z. B. `GET /api/market/providers` auf Basis
   statischer Registry-Metadaten.
 
+### Strukturziel 2026
+
+Fuer Market-/Provider-Arbeit gilt als Zielzustand:
+
+- wenige stabile Next-BFF-Familien
+- wenige stabile Gateway-Familien
+- neue Provider werden primaer im Go-Gateway ueber Registry, Resolver,
+  Capability-Metadaten und Connector-Adapter eingezogen
+- weder Next.js noch Go sollen fuer jeden Provider neue oeffentliche
+  Route-Familien bekommen, solange dieselbe fachliche Faehigkeit geliefert wird
+
 ---
 
 ## 2. Public Gateway Baseline
@@ -45,6 +56,12 @@ Nicht Owner dieses Dokuments:
 | `GET /health` | Gateway-Health |
 | `GET /api/v1/gct/health` | geschuetzte GCT-Health-Basis |
 | `GET /api/v1/router/providers` | optionaler Router-/Provider-Snapshot |
+
+Regel:
+
+- Diese Gateway-Baseline ist klein und stabil zu halten.
+- Provider-Rollout erweitert bevorzugt interne Registry-/Adapter-Schichten statt
+  neue Public-Gateway-Pfade.
 
 ---
 
@@ -79,7 +96,14 @@ Nicht Owner dieses Dokuments:
 
 ### Request-scoped Credential Consumer
 
-Aktuell: `finnhub`. Naechste: `fred`, `banxico`, `bok`. Entscheidung pro Provider: user-supplied | gateway-owned | nicht freigegeben.
+Aktuell verifiziert: `finnhub`, `fred`, `banxico`, `bok`.
+Naechste Kandidaten: weitere auth-pflichtige read-only Quellen nach Einzelentscheidung.
+Entscheidung pro Provider: `user-supplied` | `gateway-owned` | `nicht freigegeben`.
+
+Regel:
+
+- Die Entscheidung pro Provider aendert die Credential- und Registry-Logik,
+  nicht die oeffentliche Market-Route-Familie.
 
 ---
 
@@ -99,6 +123,8 @@ Aktuell: `finnhub`. Naechste: `fred`, `banxico`, `bok`. Entscheidung pro Provide
 - Legacy-/Polling-Fallbacks fail-closed in Prod
 - `X-Request-ID` bleibt im Streaming-Pfad erhalten
 - auth-pflichtige Provider duerfen nicht still auf Frontend-Fallbacks zurueckfallen
+- `stream`-Faehigkeit bleibt eine gemeinsame Route-Familie; neue Provider werden
+  hinter denselben SSE-/Resolver-Grenzen integriert
 
 ---
 
@@ -196,7 +222,27 @@ Kurzbeispiele:
 
 ---
 
-## 9. Agent / Analysis Contracts
+## 9. Storage / Artifact Contracts
+
+Pfadfamilie: `Browser -> Next.js -> Go -> signed artifact route -> object layer`
+
+| Endpoint | Zweck |
+|:---------|:------|
+| `POST /api/v1/storage/artifacts/upload-url` | Artefakt registrieren und kurzlebige Upload-URL ausgeben |
+| `PUT /api/v1/storage/artifacts/upload/{id}?token=...` | Upload ueber signierten Go-Pfad |
+| `GET /api/v1/storage/artifacts/{id}` | Metadaten + optionaler Download-Link |
+| `GET /api/v1/storage/artifacts/{id}/download?token=...` | Download ueber signierten Go-Pfad |
+
+Invarianten:
+
+- Browser bekommt keine Root-Credentials fuer Object-Storage.
+- Ownership, retention class, content metadata und lifecycle liegen in Go + relationalem Metadaten-Store.
+- Signed URLs sind kurzlebig und werden vom Gateway signiert.
+- Lokale Baseline ist filesystem-backed; SeaweedFS/Garage folgen als S3-kompatible Provider auf derselben Boundary.
+
+---
+
+## 10. Agent / Analysis Contracts
 
 Pfadfamilien:
 

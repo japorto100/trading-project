@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DefaultCOTURL = "https://www.cftc.gov/files/dea/cotarchives/2024/futures/financials/deacot20241231.csv"
+	DefaultCOTURL = "https://www.cftc.gov/files/dea/history/fut_fin_txt_2026.zip"
 )
 
 func NewCOTFetcher(httpClient *http.Client) *base.BulkFetcher {
@@ -23,7 +23,7 @@ func NewCOTFetcher(httpClient *http.Client) *base.BulkFetcher {
 		Name:       "CFTC_COT",
 		URL:        DefaultCOTURL,
 		Schedule:   "0 6 * * 1", // weekly Monday 6am
-		Format:     base.BulkFormatCSV,
+		Format:     base.BulkFormatCSVZIP,
 		ParseFunc:  parseCOTCSV,
 		HTTPClient: httpClient,
 	})

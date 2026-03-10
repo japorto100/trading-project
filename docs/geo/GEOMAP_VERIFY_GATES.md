@@ -128,3 +128,70 @@ akzeptabel; der Median muss das Ziel erreichen.
 
 - [`GEOMAP_FOUNDATION.md`](./specs/geo/GEOMAP_FOUNDATION.md) — Basemap, Geocoding, PMTiles, Rendering (inkl. Gates A/B/C)
 - [`adr/ADR-002-GeoMap-Rendering-Foundation.md`](./archive/ADR-002-GeoMap-Rendering-Foundation.md) — Archiv (Inhalt in GEOMAP_FOUNDATION Sek. 4)
+
+---
+
+## 6. Basemap Sichtbarkeits-Gate (Staedte/Seen/Fluesse)
+
+**Ziel:** Nachweis, dass GeoMap-Basemap die Mindestorientierung liefert (kein Routing-/Google-Feature-Gate).
+
+**Technikbezug fuer dieses Gate:** OSM-basierte Vector-Tiles (z. B. PMTiles/Protomaps, OpenMapTiles-Schema), optional gerendert in MapLibre Flat-Mode; Globe-Core bleibt d3-geo-basiert.
+
+### 6.1 Gate-Kriterien (Pass/Fail)
+
+- `place` Labels sichtbar (mind. capital/city/town) in mehreren Zoomstufen.
+- `water` Flaechen (Seen) sichtbar und vom Land klar unterscheidbar.
+- `waterway` Linien (Fluesse) sichtbar, bei Zoom-In differenzierter.
+- Sprach-Fallback funktioniert: `name:de` -> `name:en` -> `name`.
+- Attribution im UI sichtbar.
+
+### 6.2 Reproduzierbare Testliste (3 Regionen)
+
+1. **DACH:** Berlin, Zurich, Lake Constance, Rhine
+2. **Nordamerika:** New York, Toronto, Lake Superior, Mississippi
+3. **Asien:** Tokyo, Seoul, Lake Biwa, Yangtze
+
+### 6.3 Abnahmeprotokoll
+
+- Build/Run in Production-Config.
+- Jede Region in mindestens 3 Zoomstufen pruefen (weit/mittel/nah).
+- Screenshots mit sichtbaren Labeln und Wasser-Features dokumentieren.
+- Pass nur, wenn alle 3 Regionen komplett gruen sind.
+
+---
+
+## 7. Replay-, Story- und Overlay-Gates
+
+**Ziel:** Nachweis, dass GeoMap nicht nur statische Layer zeigt, sondern einen analystentauglichen
+Replay-/Story-Workflow traegt.
+
+### 7.1 Replay-/Timeline-Gate
+
+- Zeitfenster kann aktiv gesetzt und wieder auf gesamten Zeitraum zurueckgesetzt werden.
+- Timeline-Scrub/Brush aendert sichtbare Events, Marker und Story-Hervorhebungen konsistent.
+- Zeit-Presets (z. B. `24H`, `7D`, `1M`, `ALL`) schalten ohne Inkonsistenzen.
+- Timeline ist kein reines Anzeigeelement, sondern beeinflusst den sichtbaren Datensatz.
+
+### 7.2 Story-/Kamera-Gate
+
+- Auswahl einer Story setzt Kartenfokus oder Kamera nachvollziehbar auf den relevanten Raum.
+- Story kann das aktive Zeitfenster mitsetzen oder eingrenzen.
+- Story-Hervorhebungen bleiben mit Timeline und Detailansicht konsistent.
+- Reset loest Story-Zustand, Zeitfenster und Fokus kontrolliert auf.
+
+### 7.3 Overlay-Chrome-Gate
+
+- `timeline`, `filters`, `legend` und vergleichbare UI-Chrome-Elemente sind separat schaltbar.
+- Das Ausblenden von UI-Chrome veraendert keine Daten-Layer.
+- Das Ausblenden von Daten-Layern veraendert keine UI-Chrome-Sichtbarkeit.
+- Analysten koennen eine reduzierte Arbeitsansicht herstellen, ohne Datenzustand zu verlieren.
+
+### 7.4 Abnahmeprotokoll
+
+1. GeoMap mit Seed-Datensatz starten
+2. Zeitfenster auf Teilintervall eingrenzen
+3. Verifizieren, dass Marker, Timeline und Detailansicht denselben Ausschnitt zeigen
+4. Story aktivieren und Kamerafokus + Zeitfenster dokumentieren
+5. `timeline`, `filters`, `legend` einzeln aus-/einblenden
+6. Daten-Layer separat toggeln und auf Seiteneffekte pruefen
+7. Reset-Workflow dokumentieren

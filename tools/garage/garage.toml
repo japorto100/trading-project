@@ -1,0 +1,27 @@
+metadata_dir = "D:/tradingview-clones/tradeview-fusion/tools/garage/meta"
+data_dir = "D:/tradingview-clones/tradeview-fusion/tools/garage/data"
+db_engine = "sqlite"
+
+replication_factor = 1
+
+rpc_bind_addr = "127.0.0.1:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "1a156bd72127f5bbe389020549dad13848efa4409598f4cee0345b3607d443b4"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "127.0.0.1:3900"
+root_domain = ".s3.garage.localhost"
+
+[s3_web]
+bind_addr = "127.0.0.1:3902"
+root_domain = ".web.garage.localhost"
+index = "index.html"
+
+[k2v_api]
+api_bind_addr = "127.0.0.1:3904"
+
+[admin]
+api_bind_addr = "127.0.0.1:3903"
+admin_token = "tIaSBsznur2tCllp3BB4R+WO6sbCcAKSUfwAhoiCW7w="
+metrics_token = "NleeNkim41/q8SGsFI5qqqc8xX4c1bENH19xKqGAlL4="

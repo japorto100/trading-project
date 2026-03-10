@@ -39,7 +39,7 @@ Nicht Teil dieses Dokuments:
 | `InsecureSkipVerifyTLS` moeglich | MitM zu GCT | HOCH | Sofortmassnahme |
 | residuale Auth-/Policy-Gates | Baseline noch nicht voll verifiziert | HOCH | Phase-1-Residual |
 | Audit-/Rate-Limit-Haertung unvollstaendig | zu schwache Governance an sensitiven Pfaden | HOCH | Folge-Hardening |
-| provider credentials transitional | noch keine finale broker-/vault-grade Loesung | MITTEL | Folge-Hardening |
+| provider credentials transitional | BFF-Cookie jetzt verschluesselt und ohne Secret-`localStorage`, aber noch keine finale broker-/vault-grade Loesung | MITTEL | Folge-Hardening |
 | CSP/CORS/Monitoring nicht final | Blindspots / zu breite Policies | MITTEL | Folge-Hardening |
 | `.env` Klartext | Schutz nur ueber File-Rechte | MITTEL | Folge-Hardening |
 

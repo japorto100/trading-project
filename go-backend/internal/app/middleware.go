@@ -20,6 +20,9 @@ import (
 
 const requestIDHeader = "X-Request-ID"
 const providerCredentialsHeader = "X-Tradeview-Provider-Credentials"
+const maxProviderCredentialsHeaderBytes = 8192
+const maxProviderCredentialsCount = 16
+const maxProviderCredentialFieldBytes = 4096
 
 type loggingResponseWriter struct {
 	http.ResponseWriter
@@ -58,6 +61,10 @@ func withRequestIDAndLogging(next http.Handler) http.Handler {
 		r.Header.Set(requestIDHeader, requestID)
 		ctx := requestctx.WithRequestID(r.Context(), requestID)
 		if encodedCreds := strings.TrimSpace(r.Header.Get(providerCredentialsHeader)); encodedCreds != "" {
+			if len(encodedCreds) > maxProviderCredentialsHeaderBytes {
+				http.Error(w, "invalid provider credentials header", http.StatusBadRequest)
+				return
+			}
 			creds, err := parseProviderCredentialsHeader(encodedCreds)
 			if err != nil {
 				http.Error(w, "invalid provider credentials header", http.StatusBadRequest)
@@ -189,7 +196,28 @@ func parseProviderCredentialsHeader(value string) (baseconnectors.CredentialStor
 	if err := json.Unmarshal(raw, &creds); err != nil {
 		return nil, fmt.Errorf("unmarshal provider credentials header: %w", err)
 	}
-	return creds.Normalized(), nil
+	normalized := creds.Normalized()
+	if len(normalized) > maxProviderCredentialsCount {
+		return nil, fmt.Errorf("provider credentials header exceeds provider limit")
+	}
+	for provider, credentialSet := range normalized {
+		if len(strings.TrimSpace(provider)) > maxProviderCredentialFieldBytes {
+			return nil, fmt.Errorf("provider credentials header contains oversized provider name")
+		}
+		fields := []string{
+			credentialSet.Key,
+			credentialSet.Secret,
+			credentialSet.Passphrase,
+			credentialSet.ClientID,
+			credentialSet.SubAccount,
+		}
+		for _, field := range fields {
+			if len(strings.TrimSpace(field)) > maxProviderCredentialFieldBytes {
+				return nil, fmt.Errorf("provider credentials header contains oversized credential field")
+			}
+		}
+	}
+	return normalized, nil
 }
 
 func newUUIDv4() string {

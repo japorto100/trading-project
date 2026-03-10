@@ -392,7 +392,7 @@ export function useGeopoliticalWorkspaceData() {
 			source.removeEventListener("timeline.appended", invalidateGeoEvents);
 			source.close();
 		};
-	}, [fetchAll, queryClient]);
+	}, [queryClient]);
 
 	return {
 		fetchAll,

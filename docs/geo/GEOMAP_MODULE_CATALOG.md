@@ -353,6 +353,7 @@ Voronoi-Diagramme und Delaunay-Triangulation auf der **flachen** 2D-Ebene. Fuer 
 **Feature:** "Zeitreise-Modus" -- Slider am unteren Kartenrand, scrubben durch die letzten 30 Tage. Karte zeigt Events + Szenarien + Marktreaktionen zum gewaehlten Zeitpunkt.
 
 > Doc-Ref: AGENT_TOOLS Sek. 10.2 "Timeline-Slider", GEOPOLITICAL_MAP_MASTERPLAN Sek. 29 "Timeline Playback"
+> Externe Referenz: [`PHAROS_AI_REVIEW.md`](./PHAROS_AI_REVIEW.md) bestaetigt Replay-/Zeitfenster-Interaktion als realen Analysten-Use-Case fuer den spaeteren Conflict-Layer.
 
 ### 4.2 `d3-dispatch` -- Custom Events
 
@@ -553,6 +554,10 @@ geoInertiaDrag(svg, (rotation) => {
 | **Einschraenkung** | Bricht mit `geoOrthographic` Globe -- muesste als Flat-Map oder mit deck.gl Globe-Mode geloest werden |
 | **Aufwand** | ~1-2 Wochen |
 
+**Externe Referenz:** Das Review in [`PHAROS_AI_REVIEW.md`](./PHAROS_AI_REVIEW.md) zeigt,
+dass `deck.gl` fuer einen operativen Flat-Conflict-View sehr gut passt. Das staerkt die
+Einordnung als **Second-Mode-Technologie**, nicht als Globe-Replacement.
+
 **Konkrete Use Cases:**
 - Trade Corridors als `PathLayer` (GEOPOLITICAL_MAP_MASTERPLAN Sek. 35.13c)
 - Event-Density als `HeatmapLayer` (nicht Country-Fill, sondern Punkt-basiert)
@@ -752,6 +757,13 @@ npm install @deck.gl/core @deck.gl/react @deck.gl/layers   # WebGL Overlays
 - **Performance-Gate:** reproduzierbare Lasttests zeigen reale Engpaesse im Hybrid-Stack.
 - **Use-Case-Gate:** es gibt priorisierte High-Density-Layer (z. B. Trade-Corridors/PathLayer), die GPU klar rechtfertigen.
 - **View-Gate:** Globe bleibt Primary; Flat/Regional-View ist explizit als zusaetzlicher Modus akzeptiert.
+- **Conflict-Ops-Gate:** es gibt einen expliziten Conflict-Layer-Slice mit regionaler
+  Analystenarbeit, bei dem Threat-Zones, Strike-/Missile-Arcs, Targets, Assets und Story-
+  Playback im Flat-Mode klar besser funktionieren als im Globe-Mode.
+- **Replay-Gate:** es gibt einen klaren Bedarf fuer Zeitfenster, Story-Aktivierung und
+  analystisches Replay, der im Globe-Core allein nicht elegant loesbar ist.
+
+**Referenzreview:** [`PHAROS_AI_REVIEW.md`](./PHAROS_AI_REVIEW.md)
 
 ### v3 -- Spezialisierungen
 

@@ -145,3 +145,19 @@ func TestClientSearch_ParsesResults(t *testing.T) {
 		t.Fatalf("unexpected results: %+v", results)
 	}
 }
+
+func TestClientSearch_MapsUpstreamStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL})
+	_, err := client.Search(context.Background(), "AAP")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if got := err.Error(); got != "financebridge search upstream status 502" {
+		t.Fatalf("unexpected error: %s", got)
+	}
+}

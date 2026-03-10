@@ -1,0 +1,21 @@
+pre-commit:
+  parallel: true
+  commands:
+    frontend-lint:
+      glob: "src/**/*.{ts,tsx}"
+      run: bun run lint
+    gofmt:
+      glob: "go-backend/**/*.go"
+      run: git diff --cached --name-only --diff-filter=ACMR | grep '^go-backend/.*\.go$' | sed 's#^go-backend/##' | xargs -r gofmt -w
+    python-ruff:
+      glob: "python-backend/**/*.py"
+      run: cd python-backend && uv run ruff check .
+
+pre-push:
+  commands:
+    frontend-quality:
+      run: bunx tsc --noEmit && bun run lint && bun run build
+    go-quality:
+      run: cd go-backend && go test ./internal/app ./internal/handlers/http ./internal/handlers/sse ./internal/storage
+    python-smoke:
+      run: cd python-backend && uv run pytest tests/test_otel_factory.py tests/test_ipc_grpc.py -q

@@ -24,6 +24,7 @@
 - `docs/GAME_THEORY.md`
 - `docs/ENTROPY_NOVELTY.md`
 - `docs/POLITICAL_ECONOMY_KNOWLEDGE.md`
+- `docs/MEMORY_ARCHITECTURE.md`
 - `docs/Future-Quant-trading.md`
 - `docs/references/sources/sovereign-and-corridors.md`
 - `docs/specs/EXECUTION_PLAN.md`
@@ -37,6 +38,7 @@
 - [ ] **DI3** political-economy features mit nachvollziehbarem mapping operationalisieren
 - [ ] **DI4** sovereign/corridor indicators als ingestierbare Signale definieren
 - [ ] **DI5** domain-signale mit bestehenden phase-gates verbinden (statt Parallelwelt)
+- [ ] **DI6** Domain-Signale mit Semantic-Memory-Knoten synchronisieren (Primary: Memory, Secondary: Domain)
 
 ---
 
@@ -63,6 +65,7 @@
 - `docs/GAME_THEORY.md`
 - `docs/ENTROPY_NOVELTY.md`
 - `docs/POLITICAL_ECONOMY_KNOWLEDGE.md`
+- `docs/MEMORY_ARCHITECTURE.md`
 - `docs/references/sources/sovereign-and-corridors.md`
 
 ---

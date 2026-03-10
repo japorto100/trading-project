@@ -31,6 +31,25 @@ Nicht der Zweck dieses Dokuments:
 | [`api/API_NEXT_TO_GO.md`](./api/API_NEXT_TO_GO.md) | Next.js -> Go, Gateway-Baseline, Market, Streaming, Geo, Strategy, Portfolio, Memory, Agent/Auth |
 | [`api/API_INTERNAL_SERVICES.md`](./api/API_INTERNAL_SERVICES.md) | Go -> Python, Go -> Rust, Go -> GCT, interne Memory-/Agent-/Compute-/Execution-Boundaries |
 
+### Route-Family Rule (normativ)
+
+API-Vertraege werden fuer dieses Repo entlang stabiler Route-Familien gepflegt,
+nicht pro einzelnem Provider oder Datenlieferanten.
+
+Das bedeutet:
+
+- Browser-/BFF-Surface bleibt bei wenigen stabilen Familien wie
+  `/api/market/quote`, `/api/market/ohlcv`, `/api/market/stream`,
+  `/api/market/stream/quotes`, `/api/market/providers`.
+- Gateway-Surface bleibt bei wenigen stabilen Familien wie
+  `/api/v1/quote`, `/api/v1/ohlcv`, `/api/v1/orderbook`,
+  `/api/v1/stream/market`, `/api/v1/macro/history`.
+- Neue Provider werden primaer hinter der Go-Registry-/Adapter-Grenze
+  eingebaut und sollen keine neue oeffentliche Route-Familie erzwingen, solange
+  sie dieselbe Domänenfaehigkeit bedienen.
+- Provider-spezifische Besonderheiten gehoeren in Resolver, Capability-Metadaten,
+  Connectoren und Source-/Env-Dokumentation, nicht in neue Frontend-Pfadfamilien.
+
 ---
 
 ## Dokument-Ownership

@@ -38,6 +38,37 @@ Nicht Owner dieses Dokuments:
 | Auth / Security | `/api/auth/*` | Session-/Auth.js- und Security-Surfaces |
 | Server Actions | app/pages Server Actions | nur wenn keine direkte Domain-Bypass-Logik entsteht |
 
+### Market-BFF Strukturregel
+
+`/api/market/*` ist als kleine, stabile Route-Familie gedacht. Daraus folgt:
+
+- neue Datenquellen fuehren nicht automatisch zu neuen Browser-Pfaden
+- provider-spezifische Fetch- oder Cookie-Logik wird nicht in neue
+  per-provider Route-Dateien verteilt
+- zulaessige Market-BFF-Familien sind bevorzugt:
+  - `/api/market/quote`
+  - `/api/market/ohlcv`
+  - `/api/market/stream`
+  - `/api/market/stream/quotes`
+  - `/api/market/providers`
+  - `/api/market/provider-credentials`
+
+Neue Browserpfade entstehen nur dann, wenn eine neue fachliche Faehigkeit
+entsteht, nicht nur ein neuer Provider hinter derselben Faehigkeit.
+
+### `/api/market/provider-credentials`
+
+- Browser darf nur diese BFF-Mutation fuer request-scoped Provider-Secrets
+  verwenden.
+- Die Route schreibt keinen Browser-`localStorage`-Secret-State mehr voraus.
+- Der Persistenzpfad ist:
+  - Browser -> Next.js Route
+  - Next.js -> verschluesselter `HttpOnly` Cookie auf `/api/market`
+  - Next.js -> kontrollierte Rekonstruktion des
+    `X-Tradeview-Provider-Credentials` Headers fuer Go-Market-Pfade
+- Die Mutation muss einzelne Provider gezielt `merge/remove` koennen; leere
+  UI-Felder duerfen nicht implizit alle gespeicherten Secrets loeschen.
+
 ### Next-only State Observation
 
 Diese APIs gehoeren zur Browser-/Next-Grenze und laufen **nicht** ueber Go:

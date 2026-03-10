@@ -200,6 +200,11 @@
 ### Danach (v2):
 
 - deck.gl Integration (Rendering Stufe 2)
+- optionaler Flat/Regional Analyst View (MapLibre + deck.gl, gate-gesteuert)
+- Replay-/Timeline-Controller mit Zeitfenster, Presets und Story-Kopplung
+- zentrale MapFilterEngine fuer Conflict/Macro/Context/Soft-Signal-Layer
+- Overlay-Chrome-Trennung (`timeline`/`filters`/`legend` getrennt von Daten-Layer-Toggles)
+- generischer Selection-/Detail-Contract fuer Conflict-Objekte
 - Entity Graph (in-memory, TypeScript)
 - JSON Rules Engine (Policy-as-Code)
 - Briefing Mode Export
@@ -237,11 +242,15 @@
 ### Naechste geplante Plan-Updates
 
 - Nach Shell-Refactoring: Milestone F + Sek. 35.9 (CRDT-Readiness) aktualisieren
+- Nach weiterem `pharos-ai`-Review: Replay-/Story-/Filter-Muster gegen GeoMap-Istzustand nachziehen
+- Nach `2026-03-12`: Agent-Layer-Open-Sourcing von `pharos-ai` gegen unseren Conflict-/Source-Layer bewerten
 - Nach erstem Seed-Datensatz: Daten-Ist-Zustand + Sek. 35.6 (Golden Set) aktualisieren
 - Nach Canvas-Hybrid-Migration: Sek. 35.4 Stufe 1 als erledigt markieren
 - Nach Test-Suite: Engineering Checklist aktualisieren
 - Nach v2-Features (Timeline Playback, Exports, Advanced Filters): Milestone E aktualisieren
 - Nach Rust h3o Integration: Sek. 35.4 Stufe 3 + RUST_LANGUAGE_IMPLEMENTATION.md Sek. 13 aktualisieren
+- Nach 2026-03-12: `pharos-ai` Agent-Layer-Monitoring auswerten und in
+  `PHAROS_AI_REVIEW.md` / `execution/geomap_closeout.md` fortschreiben
 
 
 ---

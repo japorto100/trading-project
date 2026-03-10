@@ -37,6 +37,7 @@
 - [ ] **RPE3** Entscheide in Kategorien `adopt/defer/reject` mit Begruendung
 - [ ] **RPE4** adoptierte Kandidaten werden in passenden Owner-Execution-MD ueberfuehrt
 - [ ] **RPE5** root-bridge (`REFERENCE_PROJECTS.md`) bleibt mit references-katalog konsistent
+- [ ] **RPE6** stueckweise publizierte OSS-Projekte besitzen ein explizites Monitoring-Datum und Re-Evaluate-Trigger (aktuell: `pharos-ai` Agent-Layer around `2026-03-12`)
 
 ---
 
@@ -63,6 +64,7 @@
 - `docs/references/projects/evaluate.md`
 - `docs/references/projects/to-watch.md`
 - `docs/REFERENCE_PROJECTS.md`
+- `docs/geo/PHAROS_AI_REVIEW.md`
 - je nach Entscheidung: `compute_delta.md`, `infra_provider_delta.md`, `agent_memory_context_delta.md`, `domain_intelligence_delta.md`
 
 ---

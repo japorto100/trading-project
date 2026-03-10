@@ -166,7 +166,7 @@ export function WatchlistPanel({
 			alive = false;
 			stopFallbackPolling();
 		};
-	}, [symbolsKey]);
+	}, [queryClient, symbolsKey]);
 
 	const streamAgeLabel = useMemo(() => {
 		if (!streamLastUpdateAt) return "n/a";

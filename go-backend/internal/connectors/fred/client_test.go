@@ -6,9 +6,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 func TestGetTicker_ReturnsLatestObservation(t *testing.T) {
@@ -75,5 +77,30 @@ func TestGetSeries_ReturnsObservations(t *testing.T) {
 	}
 	if series[0].Value != 3.2 {
 		t.Fatalf("expected first value 3.2, got %f", series[0].Value)
+	}
+}
+
+func TestGetSeries_UsesRequestScopedCredential(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Query().Get("api_key"); got != "request-token" {
+			t.Fatalf("expected request-scoped api_key, got %q", got)
+		}
+		_, _ = w.Write([]byte(`{"observations":[{"date":"2026-02-14","value":"3.2"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{
+		BaseURL: server.URL,
+	})
+	ctx := requestctx.WithProviderCredentials(context.Background(), base.CredentialStore{
+		"fred": {Key: "request-token"},
+	})
+
+	series, err := client.GetSeries(ctx, currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), asset.Empty, 1)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(series) != 1 {
+		t.Fatalf("expected 1 observation, got %d", len(series))
 	}
 }

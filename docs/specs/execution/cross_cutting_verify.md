@@ -54,7 +54,7 @@
 | Phase 10 agent verify | offen | `10.v1-10.v3` |
 | Phase 12 broad geo verify | offen | contradiction/alert/pdf export |
 | Phase 13 browser remainder | teilweise offen | `13.v4` |
-| Phase 14 provider verify | offen | `14.v1-14.v3` |
+| Phase 14 provider verify | teilweise | non-live success-/sanctions-/error-evidence vorhanden; live/browser/provider-remainder offen |
 
 ---
 
@@ -143,6 +143,16 @@
 - [ ] **14.v1** representative provider success-path
 - [ ] **14.v2** representative sanctions/source verify sauber dokumentieren
 - [ ] **14.v3** error-path / schema-drift / timeout-path schliessen
+
+### Phase-14 Status (2026-03-10)
+
+- non-live Evidence liegt inzwischen vor fuer:
+  - representative provider success-paths ueber Go-Connector-Tests
+  - sanctions/source verify ueber `OFAC` / `UN` / `SECO` / `EU` plus GeoMap-source-pack
+  - error-path classification fuer mehrere Provider-/Bridge-Pfade (`financebridge`, `indicatorservice`, `softsignals`, `memory`, `agentservice`, `acled`, `gdelt`, `gametheory`)
+- offen bleiben fuer Phase 14 vor allem:
+  - echte Browser-/Live-Gates im Frontend/BFF-Pfad
+  - restliche Live-/Timeout-/Schema-Drift-Verifies fuer noch nicht voll gehobene Quellen
 
 ---
 

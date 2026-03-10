@@ -164,11 +164,16 @@ bun run db:generate            # Generate Prisma client
 - Prefer modern tools for agent operations: `rg`, `fd`, `bat`, `eza`, `jq`, `yq`, `fzf`, `zoxide`, `delta`.
 - Search rule: use `rg`/`fd` first; do not default to `grep`/`find` unless needed for compatibility.
 - GitHub operations should use `gh` where available (PRs, checks, issue triage).
+- Prefer `D:\DevCache` as install root and PATH target for user-managed CLIs. Current preferred PATH order: `D:\DevCache\cargo\.cargo\bin` then `D:\DevCache\bin`.
 - Installer ownership by tool family:
-  - System CLIs -> `choco`
+  - System CLIs -> prefer portable/user-level placement under `D:\DevCache`; use `choco` only when no clean D-drive path exists or the tool is intentionally system-managed
   - Rust CLIs -> `cargo` / `cargo-binstall`
   - Python CLIs -> `uv tool`
   - Node CLIs -> `pnpm -g`
+- Current verified baseline:
+  - `cargo-binstall`, `starship`, `atuin`, `coreutils.exe` -> `D:\DevCache\cargo\.cargo\bin`
+  - `gh`, `direnv` -> `D:\DevCache\bin`
+  - `winget`, `curl` may remain on system paths
 - Keep installs reproducible: prefer pinned major versions for critical tools and verify with `command -v <tool>` + `--version`.
 - `uutils-coreutils` is optional and does not replace the full Unix toolchain (e.g. not `grep`/`sed`/`awk`).
 
@@ -247,7 +252,7 @@ bun run db:generate            # Generate Prisma client
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (30144 symbols, 87944 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (53132 symbols, 151711 relationships, 300 execution flows).
 
 ## Always Start Here
 

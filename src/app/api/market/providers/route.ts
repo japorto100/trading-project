@@ -41,6 +41,8 @@ function isProviderAvailableViaGateway(name: string, gatewayReachable: boolean):
 		case "finnhub":
 		case "ecb":
 		case "fred":
+		case "banxico":
+		case "bok":
 		case "yfinance":
 		case "demo":
 		case "imf":

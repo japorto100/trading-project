@@ -735,6 +735,41 @@ Bei 5.000+ Events kann die supercluster-Berechnung (Zoom-abhaengiges Clustering)
 
 **EXECUTION_PLAN:** Phase 4 (Szenario B), Phase 12 (supercluster Worker bei High-Density).
 
+#### 35.4f Evaluate-compressed Adoption Scope (1/2/3/4)
+
+Zielklarstellung: GeoMap bleibt GeoMap (strategischer Globe + Event-/Candidate-Overlays). Kein Ziel "Google-Maps-Alternative".
+
+**1) Verbindlich uebernehmen (jetzt):**
+- Basemap-Features fuer Lesbarkeit/Orientierung: `place` (city/town/capital), `water` (Seen), `waterway` (Fluesse), plus `boundaries/land` nach Bedarf.
+- Trennung bleibt verbindlich: Basemap (statisch/selten geaendert) vs. Live-Overlays (Events/Candidates/User-Layer via API/Streams).
+- Provider-Policy bleibt verbindlich: keine oeffentlichen OSM-Tile/Nominatim-Instanzen als Produktions-Backbone.
+- OSM-/Provider-Attribution sichtbar im UI.
+- Relevante Libraries/Projekte fuer diesen Scope explizit:
+  - Basemap/Tiles: **PMTiles (Protomaps)**, **OpenMapTiles**, **MVT/MBTiles**
+  - Build-Pipeline: **Planetiler** (alternativ tilemaker)
+  - Rendering (optional Flat/Regional-Mode): **MapLibre GL JS**
+  - Bestehender Globe-Core bleibt: **d3-geo** + Canvas/SVG Hybrid
+
+**2) Wo updaten (Owner in Geo-MDs):**
+- Data Contract (dieses Dokument): Mindest-Layer + Label-/Zoom-Regeln.
+- Provider-Policy (`GEOMAP_SOURCES_AND_PROVIDER_POLICY.md`): Basemap/Geocoding-Betriebsregeln inkl. Cache/Fallback.
+- Verify Gates (`GEOMAP_VERIFY_GATES.md`): Akzeptanz-Gate "Staedte/Seen/Fluesse sichtbar" mit reproduzierbarer Checkliste.
+
+**3) Zusatz - explizit nicht jetzt uebernehmen (out-of-scope aktuell):**
+- Voller Routing-Stack (`Valhalla`, `OSRM`, `GraphHopper`) ohne klaren Navigations-Use-Case.
+- Eigene Traffic-Pipeline (`OpenTraffic`) ohne eigene Probe-Datenbasis.
+- Street-level/3D-Stacks (`Mapillary`, `OpenDroneMap`, `COLMAP`, `OGC 3D Tiles`) ohne priorisierten Produktbedarf.
+- `maplibre-rs` Renderer in Production (weiterhin unreif laut Gate-Logik).
+
+**4) Minimales Update-Paket (Pflicht fuer diesen Scope):**
+- `BasemapFeatureContract` dokumentieren: `place`, `water`, `waterway` als Mindestset.
+- `LabelPolicy` dokumentieren: Zoom-Schwellen, Prioritaeten, Sprach-Fallback (`name:de` -> `name:en` -> `name`).
+- `OpsPolicy` dokumentieren: Attribution, Provider-Abstraktion, Caching/Fallback.
+- Verify-Gate mit 3 Regionen und festen Referenzobjekten (Staedte/Seen/Fluesse) gruener Status vor Rollout.
+- Konkrete Layer-Quelle fuer diesen Scope:
+  - `place`/`water`/`waterway` aus OSM-basierten Vector-Tiles (PMTiles/OpenMapTiles-kompatibel)
+  - Overlays (Events/Candidates) weiterhin getrennt aus GeoMap-APIs/Streams
+
 ### 35.5 Policy-as-Code fuer Noise-Kontrolle
 
 **Ziel:** Regeln maschinenlesbar, debuggbar, tunable machen.

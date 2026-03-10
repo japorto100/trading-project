@@ -45,14 +45,14 @@ bewerten, ohne die jeweilige Quell-MD gelesen zu haben.
 | `AGENT_TOOLS.md` | tools/capabilities | `agent_memory_context_delta.md` (neu) | `COV.ROOT.011` tool-policy + capability verify aufgenommen |
 | `MEMORY_ARCHITECTURE.md` | memory graph | `agent_memory_context_delta.md` (neu) | `COV.ROOT.012` memory integrity + retrieval checkpoints |
 | `CONTEXT_ENGINEERING.md` | context assembly | `agent_memory_context_delta.md` (neu) | `COV.ROOT.013` context quality/evidence checkpoints |
-| `CLAIM_VERIFICATION_ARCHITECTURE.md` | claim/evidence | `claim_verification_delta.md` (neu) | `COV.ROOT.014` contradiction/evidence/trace verify |
+| `CLAIM_VERIFICATION_ARCHITECTURE.md` | claim/evidence | `claim_verification_delta.md` (primary) + `agent_memory_context_delta.md` (secondary) | `COV.ROOT.014` contradiction/evidence/trace verify + memory-aware retrieval |
 | `GAME_THEORY.md` | domain intelligence | `domain_intelligence_delta.md` (neu) | `COV.ROOT.015` simulation/strategy acceptance gates |
-| `ENTROPY_NOVELTY.md` | domain signals | `domain_intelligence_delta.md` (neu) | `COV.ROOT.016` signal novelty checkpoints |
-| `POLITICAL_ECONOMY_KNOWLEDGE.md` | domain knowledge | `domain_intelligence_delta.md` (neu) | `COV.ROOT.017` macro-political signal integration gates |
+| `ENTROPY_NOVELTY.md` | domain signals | `domain_intelligence_delta.md` (primary) + `agent_memory_context_delta.md` (secondary) | `COV.ROOT.016` signal novelty checkpoints + semantic-memory anchoring |
+| `POLITICAL_ECONOMY_KNOWLEDGE.md` | domain knowledge | `agent_memory_context_delta.md` (primary) + `domain_intelligence_delta.md` (secondary) | `COV.ROOT.017` macro-political knowledgebase -> memory -> signal integration gates |
 | `REFERENCE_PROJECTS.md` | root bridge | `references_projects_evaluate_delta.md` (neu) | `COV.ROOT.018` bridge->references handoff verifiziert |
 | `REFERENCE_SOURCE_STATUS.md` | root bridge | `source_onboarding_and_keys.md` + `infra_provider_delta.md` | `COV.ROOT.019` bridge-status konsistent mit `references/status.md` |
-| `Advanced-architecture-for-the-future.md` | long-range ref | `EXECUTION_PLAN.md` | `COV.ROOT.020` nur als optional backlog-radar markiert |
-| `Future-Quant-trading.md` | long-range ref | `compute_delta.md` + `domain_intelligence_delta.md` (neu) | `COV.ROOT.021` nur konkrete, testbare slices extrahiert |
+| `Advanced-architecture-for-the-future.md` | long-range ref | `future_quant_advanced_architecture_delta.md` (neu) | `COV.ROOT.020` Trigger-basierte Adoption statt losem Radar |
+| `Future-Quant-trading.md` | long-range ref | `future_quant_advanced_architecture_delta.md` (neu) + `compute_delta.md` | `COV.ROOT.021` explizit operationalisiert, clusterweise ueberfuehrt |
 | `FRONTEND_COMPONENTS.md` | UI component ref | `frontend_refinement_perf_delta.md` (neu) | `COV.ROOT.022` UI-gates mit component-surface geprueft |
 | `MRKTEDGE.AI-deep research chatgptp2.md` | benchmark ref | `references_projects_evaluate_delta.md` (neu) | `COV.ROOT.023` evaluate/decision-gate statt lose Referenz |
 

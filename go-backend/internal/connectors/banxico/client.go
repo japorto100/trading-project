@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 const DefaultBaseURL = "https://www.banxico.org.mx/SieAPIRest"
@@ -31,6 +32,15 @@ type Config struct {
 type Client struct {
 	baseClient *base.Client
 	apiToken   string
+}
+
+func (c *Client) apiTokenForContext(ctx context.Context) string {
+	if creds, ok := requestctx.ProviderCredential(ctx, "banxico"); ok {
+		if token := strings.TrimSpace(creds.Key); token != "" {
+			return token
+		}
+	}
+	return strings.TrimSpace(c.apiToken)
 }
 
 func NewClient(cfg Config) *Client {
@@ -87,7 +97,8 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	if c == nil || c.baseClient == nil {
 		return nil, fmt.Errorf("banxico client unavailable")
 	}
-	if c.apiToken == "" {
+	apiToken := c.apiTokenForContext(ctx)
+	if apiToken == "" {
 		return nil, &gct.RequestError{Path: defaultSeriesPath, StatusCode: http.StatusUnauthorized, Cause: fmt.Errorf("missing BANXICO_API_TOKEN")}
 	}
 	seriesID, ok := normalizeSeriesID(pair.Base.String())
@@ -107,7 +118,7 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 		return nil, fmt.Errorf("build banxico request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Bmx-Token", c.apiToken)
+	req.Header.Set("Bmx-Token", apiToken)
 
 	resp, err := c.baseClient.Do(req)
 	if err != nil {

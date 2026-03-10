@@ -108,3 +108,14 @@ openobserve_data/
 # Phase 3: NATS server binary — downloaded by dev-stack.ps1 -Nats
 tools/nats/nats-server.exe
 .gitnexus
+
+# Local storage/runtime artifacts for SeaweedFS / Garage
+tools/seaweedfs/data/
+tools/seaweedfs/weed.exe
+tools/seaweedfs/windows_amd64.zip
+tools/garage/data/
+tools/garage/meta/
+tools/garage/target/
+tools/garage/*.exe
+tools/garage/src-v2.2.0/
+tools/garage/garage-v2.2.0.tar.gz

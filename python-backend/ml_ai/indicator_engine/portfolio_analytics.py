@@ -5,9 +5,11 @@ All computation uses numpy/scipy/pandas; no external API calls.
 """
 from __future__ import annotations
 
+import asyncio
 import os
-import httpx
 from typing import Literal, cast
+
+import httpx
 import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -154,8 +156,6 @@ class OptimizeResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Correlation
 # ---------------------------------------------------------------------------
-
-import asyncio
 
 def _group_by_cluster(symbols: list[str], labels: list[int]) -> list[list[str]]:
     groups: dict[int, list[str]] = {}

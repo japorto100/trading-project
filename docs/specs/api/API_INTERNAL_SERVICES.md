@@ -35,6 +35,8 @@ Nicht Owner dieses Dokuments:
 - Browser oder externe Clients sprechen Python **nie direkt** fuer
   produktive Domainpfade
 - Go bleibt Policy-, routing- und audit-tragende Boundary
+- Go organisiert Provider-/Downstream-Vielfalt bevorzugt ueber interne Registry-,
+  Resolver- und Adapter-Grenzen statt ueber immer neue Public-API-Slices
 
 ### 1.2 Servicefamilien
 
@@ -151,6 +153,21 @@ Normative Abgrenzung:
 - JSON-RPC fallback
 - GCT bleibt interner execution-/exchange-naher Upstream hinter Go
 - Go ist Owner fuer Rollen, Audit, Request-ID, Rate Limits und user-context
+
+### Registry-/Adapter-Regel fuer Go
+
+Fuer die Gateway-Organisation gilt als Best-Practice:
+
+- Standardbibliothek und schlanke Packages zuerst
+- wenige stabile Public-Endpunkte
+- interne Erweiterung ueber Provider-Registry, Capability-Metadaten,
+  Symbol-/Asset-Resolver und Connector-Adapter
+- request-scoped User-/Credential-Kontext ueber `context.Context`
+- strukturierte Logs ueber `slog`
+
+Go 1.26 aendert diese Grundrichtung nicht; die stdlib-Routing-Verbesserungen ab
+Go 1.22 bleiben der bevorzugte Referenzpunkt fuer neue Routing-Arbeit, auch wenn
+bestehende `gorilla/mux`-Teile nicht blind sofort ersetzt werden.
 
 ### 3.2 Boundary-Vertrag
 

@@ -128,3 +128,26 @@ func TestClientFetchEvents_DefaultQueryAndLimitClamp(t *testing.T) {
 		t.Fatalf("expected zero events, got %d", len(items))
 	}
 }
+
+func TestClientFetchEvents_MapsUpstreamStatus(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{
+		BaseURL:        server.URL,
+		RequestTimeout: 2 * time.Second,
+		RequestRetries: 0,
+	})
+
+	_, err := client.FetchEvents(context.Background(), Query{Limit: 10})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if got := err.Error(); got != "gdelt request failed with status 502" {
+		t.Fatalf("unexpected error: %s", got)
+	}
+}

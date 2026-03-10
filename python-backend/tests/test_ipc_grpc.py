@@ -15,12 +15,12 @@ _PROTO_PARENT = Path(__file__).resolve().parents[1] / "proto"
 if str(_PROTO_PARENT) not in sys.path:
     sys.path.insert(0, str(_PROTO_PARENT))
 
-import grpc
-from fastapi import FastAPI
-from ipc import ipc_pb2
-from ipc.ipc_pb2_grpc import PythonIPCStub
+import grpc  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from ipc import ipc_pb2  # noqa: E402
+from ipc.ipc_pb2_grpc import PythonIPCStub  # noqa: E402
 
-from services._shared.grpc_server import start_grpc_server
+from services._shared.grpc_server import start_grpc_server  # noqa: E402
 
 
 def _minimal_app() -> FastAPI:

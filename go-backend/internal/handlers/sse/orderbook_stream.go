@@ -44,19 +44,24 @@ func OrderbookStreamHandler(client orderbookStreamClient) http.HandlerFunc {
 		flusher.Flush()
 
 		for {
+			if snapshotChannel == nil && errorChannel == nil {
+				return
+			}
 			select {
 			case <-r.Context().Done():
 				return
 			case err, ok := <-errorChannel:
 				if !ok {
-					return
+					errorChannel = nil
+					continue
 				}
 				_ = writeSSEEvent(w, "upstream_error", map[string]string{"message": err.Error()})
 				flusher.Flush()
 				return
 			case snapshot, ok := <-snapshotChannel:
 				if !ok {
-					return
+					snapshotChannel = nil
+					continue
 				}
 				_ = writeSSEEvent(w, "orderbook", snapshot)
 				flusher.Flush()
