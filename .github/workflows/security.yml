@@ -16,7 +16,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: returntocorp/semgrep-action@v1
         with:
           config: "p/ci"
@@ -28,7 +28,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Trivy scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
