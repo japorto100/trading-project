@@ -17,7 +17,7 @@ dependencies = [
     # python_runtime_eval_delta: Granian (Rust/Tokio ASGI server, drop-in for uvicorn)
     # eval GRN.V1-V4 before Phase 20 rollout decision. Pin loosely for eval flexibility.
     "granian>=2.0.0",
-    "yfinance==0.2.65",
+    "yfinance==1.2.0",
     "pandas-stubs>=3.0.0.260204",
     "scipy-stubs>=1.17.1.0",
     "scikit-learn-stubs>=0.0.3",
