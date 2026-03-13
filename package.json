@@ -87,7 +87,7 @@
 		"@types/d3-hierarchy": "^3.1.7",
 		"@types/d3-selection": "^3.0.11",
 		"@types/d3-zoom": "^3.0.8",
-		"@vercel/otel": "^1.3.0",
+		"@vercel/otel": "^2.1.1",
 		"ccxt": "^4.5.38",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
