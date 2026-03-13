@@ -378,7 +378,7 @@ export function useGeopoliticalWorkspaceData() {
 		if (typeof window === "undefined" || typeof window.EventSource === "undefined") return;
 		const source = new window.EventSource("/api/geopolitical/stream");
 		const invalidateGeoEvents = () => {
-			void queryClient.invalidateQueries({ queryKey: ["geo-events"] });
+			void queryClient.invalidateQueries({ queryKey: ["geo", "events"] });
 		};
 		source.addEventListener("candidate.new", invalidateGeoEvents);
 		source.addEventListener("candidate.updated", invalidateGeoEvents);

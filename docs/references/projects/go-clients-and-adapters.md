@@ -11,7 +11,7 @@
 | Referenz | Typ | Rolle fuer uns |
 |----------|-----|----------------|
 | `GoCryptoTrader` | GitHub-Projekt | CEX-Crypto-Upstream, Read-/Execution-nahe Baseline |
-| `finnhub-go` | GitHub-Projekt | API-Coverage-/Pattern-Referenz, eigener Connector existiert |
+| `finnhub-go` | GitHub-Projekt | API-Coverage-/Pattern-Referenz; eigener Connector bleibt primaer, Re-Open nur bei klarer Coverage-Luecke oder Wartungsvorteil |
 
 ---
 
@@ -19,7 +19,6 @@
 
 | Referenz | Typ | Rolle fuer uns |
 |----------|-----|----------------|
-| `goexchange` | GitHub-Projekt | Pattern-Referenz fuer weitere Exchange-Adapter |
 | `CCXT Go` | GitHub-Projekt / Subsystem | Beobachten nur bei echtem Go-Multi-Exchange-Bedarf |
 | `go-alpha-vantage` | GitHub-Projekt | Kleine API-Referenz, derzeit kein Kernkandidat |
 

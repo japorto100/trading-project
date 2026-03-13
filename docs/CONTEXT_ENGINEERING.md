@@ -3,7 +3,7 @@
 > **Stand:** 22. Februar 2026
 > **Zweck:** Definiert die Context-Strategie fuer alle Consumer im System: Welche Memory-Schichten werden fuer welchen Query-Typ angezapft, wie wird Relevanz bewertet, wie werden Multi-Source-Ergebnisse gemerged, und wie wird das Token-Budget fuer LLM-Agents verwaltet.
 > **Abgrenzung zu MEMORY_ARCHITECTURE.md:** Memory definiert *was wo gespeichert wird* (Infrastruktur, Schemas, Persistenz). Context Engineering definiert *was wann fuer wen zusammengestellt wird* (Policies, Scoring, Budgets). Memory ist die Bibliothek. Context Engineering ist der Bibliothekar.
-> **Referenz-Dokumente:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) (M1-M5, Zwei-Schichten-KG, Fast/Slow Lane), [`archive/KG_ONTOLOGY.md`](./archive/KG_ONTOLOGY.md) (Ontologie-Quellen; archivierte Referenz), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) (Vier Agent-Rollen, Guards), [`GAME_THEORY.md`](./GAME_THEORY.md) (Krisenlogik, Strategeme), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (RAG/Reasoning Patterns), [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) (CE 2.0 Research: DyCP, LLMLingua-2, RAG-Debatte, Self-Baking)
+> **Referenz-Dokumente:** [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) (M1-M5, Zwei-Schichten-KG, Fast/Slow Lane), [`archive/KG_ONTOLOGY.md`](./archive/KG_ONTOLOGY.md) (Ontologie-Quellen; archivierte Referenz), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) (Vier Agent-Rollen, Guards), [`GAME_THEORY.md`](./GAME_THEORY.md) (Krisenlogik, Strategeme), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (RAG/Reasoning Patterns), [`RAG_GRAPHRAG_STRATEGY_2026.md`](./RAG_GRAPHRAG_STRATEGY_2026.md) (Dual Pipeline, Query-Modi, GraphRAG/UQ-Einsatzregeln), [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) (CE 2.0 Research: DyCP, LLMLingua-2, RAG-Debatte, Self-Baking)
 > **Primaer betroffen:** Python-Backend (Agent-Pipeline, Context Assembler), Frontend (User-KG Queries, Merge-Layer), Go Gateway (SSE Context-Updates)
 
 ---
@@ -30,6 +30,26 @@
 - **Vier Consumer, nicht einer.** Neben LLM-Agents brauchen auch die Frontend-UI, die Signal-Pipeline und der Merge-Layer (Frontend-KG + Backend-KG) kontextuelle Daten. Jeder hat andere Latenz-Anforderungen, andere Formate und andere Relevanz-Kriterien.
 - **Context ist eine Runtime-Entscheidung.** Memory ist statisch konfiguriert (Redis TTL, KG-Schema, Episodic-Tabelle). Context wird zur Laufzeit dynamisch zusammengestellt -- abhaengig von der Query, dem User, dem Marktregime und der Verfuegbarkeit der Quellen.
 - **Fehlerquelle Nr. 1 bei Agent-Systemen.** Die haeufigste Ursache fuer schlechte Agent-Ergebnisse ist nicht das Modell, sondern falscher oder fehlender Kontext. Dieses Dokument macht die Context-Strategie explizit und testbar.
+
+### 1.1 Verbindliche Vorstufe: Persistence vor Retrieval
+
+Context Assembly liest nicht direkt aus Source-Onboarding oder ungeprueften
+Rohdownloads. Die Betriebsreihenfolge ist:
+
+`source selection -> source onboarding -> fetch/cache/snapshot -> normalize -> retrieval/context`
+
+Das heisst:
+
+- Raw snapshots gehoeren zuerst in die Source-Persistence-Schicht.
+- Der Context Assembler arbeitet auf normalisierten Fakten, Episoden,
+  KG-Knoten und bewusst freigegebenen Vector-Dokumenten.
+- Embeddings oder Retrieval aus unnormalisierten ZIP/CSV/XML/JSON-Rohdaten sind
+  kein gueltiger Produktionspfad.
+
+Owner dieser Vorstufen:
+
+- `docs/specs/execution/source_persistence_snapshot_delta.md`
+- `docs/specs/execution/vector_ingestion_delta.md`
 
 ---
 
@@ -335,8 +355,9 @@ Wenn nach Phase 1 der verfuegbare Kontext das Budget immer noch ueberschreitet, 
 - **ReMe** ([agentscope-ai/ReMe](https://github.com/agentscope-ai/ReMe), Apache 2.0): `compact_memory`, `compact_tool_result`, `memory_search`. `LLM_BASE_URL` auf Ollama = self-hosted.
 - **OpenClaw** ([openclaw/openclaw](https://github.com/openclaw/openclaw), MIT): Built-in Compaction, `/compact` Befehl, Session-JSONL-Persistenz.
 - **Context Gateway** ([Compresr-ai/Context-Gateway](https://github.com/Compresr-ai/Context-Gateway), Apache 2.0): Agentic Proxy mit History-Compaction.
+- **ClawVault** ([Versatly/clawvault](https://github.com/Versatly/clawvault), OSS): Referenz fuer agentische Workspace-/Storage-Persistenz (Pattern-Fit, kein automatischer Runtime-Standard).
 
-**Self-Hosted:** ReMe/OpenClaw brauchen ein LLM für Summarization – kein Cloud-API nötig, Ollama/vLLM/SGLang reicht. Siehe `MEMORY_ARCHITECTURE.md` Sek. 5.5.
+**Self-Hosted:** ReMe/OpenClaw brauchen ein LLM fuer Summarization – kein Cloud-API noetig, Ollama/vLLM/SGLang reicht. ClawVault ist eher Storage-/Workflow-Pattern als reiner Compactor. Siehe `MEMORY_ARCHITECTURE.md` Sek. 5.5.
 
 ### 5.4 Priority-Stack bei Ueberlauf
 
@@ -824,7 +845,10 @@ Abhaengig von der Game-Theory v2 Implementation.
 | Sek. 5 (Token-Budget) | [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 5.5 | M5 Context Assembly Grundstruktur |
 | Sek. 5.3 (Kompression: DyCP, LLMLingua-2) | [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) Sek. 2.1 | CE 2.0 Research: Dynamische Kompressionsstrategien |
 | Sek. 5 (RAG vs. Long Context) | [`context_engineering_2.0_research.md`](./research/context_engineering_2.0_research.md) Sek. 2.2 | CE 2.0 Research: Context Rot, Lost in Middle, 1250x Kosten |
+| Sek. 3 + 5 + 6 (Routing/Assembly/Verify) | [`RAG_GRAPHRAG_STRATEGY_2026.md`](./RAG_GRAPHRAG_STRATEGY_2026.md) | Search/Compare/Verify/Global-Modi, Hybrid Retrieval und Rerank als Baseline |
 | Sek. 6 (Merging) | [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md) Sek. 5.2, 7 | Sync-Strategie + Architektur-Diagramm |
+| Sek. 1.1 (Persistence vor Retrieval) | [`specs/execution/source_persistence_snapshot_delta.md`](./specs/execution/source_persistence_snapshot_delta.md) | Raw snapshot/cache/normalize Grenze vor Context Assembly |
+| Sek. 1.1 (Persistence vor Retrieval) | [`specs/execution/vector_ingestion_delta.md`](./specs/execution/vector_ingestion_delta.md) | Embedding-/Provenance-Vertrag fuer Retrieval-faehige Artefakte |
 | Sek. 8 (Agent-Rollen, Teil I) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 2 | Vier Pipeline-Agent-Rollen: Extractor, Verifier, Guard, Synthesizer |
 | **Sek. 8 (Agent-Rollen, Teil II)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 12-13** | **Sieben erweiterte Rollen: Router, Planner, Orchestrator, Research Agent, Knowledge Synthesizer, Evaluator, Monitor -- mit je eigener Context-Policy** |
 | Sek. 8.2 (Extractor kein Episodic) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 4 | BTE/DRS Extractor soll unbefangen arbeiten |

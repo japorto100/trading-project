@@ -1,7 +1,8 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { memo, useEffect, useMemo, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
@@ -9,6 +10,8 @@ import type { WatchlistSortMode, WatchlistStreamState } from "./watchlist/types"
 import { WatchlistFilterBar } from "./watchlist/WatchlistFilterBar";
 import { WatchlistRow } from "./watchlist/WatchlistRow";
 import { WatchlistStreamStatus } from "./watchlist/WatchlistStreamStatus";
+
+const VIRTUAL_THRESHOLD = 50;
 
 interface WatchlistPanelProps {
 	symbols: FusionSymbol[];
@@ -39,6 +42,8 @@ export function WatchlistPanel({
 	const [streamReconnects, setStreamReconnects] = useState(0);
 	const [streamLastUpdateAt, setStreamLastUpdateAt] = useState<number | null>(null);
 	const [clockMs, setClockMs] = useState<number>(Date.now());
+
+	const parentRef = useRef<HTMLDivElement>(null);
 
 	const symbolsKey = useMemo(() => symbols.map((s) => s.symbol).join(","), [symbols]);
 
@@ -219,53 +224,98 @@ export function WatchlistPanel({
 			.slice(0, 3);
 	}, [quotes, symbols]);
 
-	return (
-		<ScrollArea className="flex-1 min-h-0 p-2">
-			<WatchlistFilterBar
-				query={query}
-				sortMode={sortMode}
-				visibleCount={visibleSymbols.length}
-				favoriteCount={favorites.length}
-				topMovers={topMovers}
-				onQueryChange={setQuery}
-				onCycleSortMode={() => {
-					setSortMode((prev) => {
-						if (prev === "default") return "movers";
-						if (prev === "movers") return "favorites";
-						return "default";
-					});
-				}}
-			/>
-			<div className="space-y-1">
-				{visibleSymbols.length === 0 ? (
-					<div className="px-2 py-6 text-sm text-muted-foreground">No symbols in this list.</div>
-				) : (
-					visibleSymbols.map((symbol) => {
-						const quote = quotes[symbol.symbol];
-						const isSelected = currentSymbol === symbol.symbol;
-						const isFavorite = favorites.includes(symbol.symbol);
+	const rowVirtualizer = useVirtualizer({
+		count: visibleSymbols.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: () => 44,
+		overscan: 8,
+	});
 
-						return (
-							<WatchlistRow
-								key={symbol.symbol}
-								symbol={symbol}
-								quote={quote}
-								isSelected={isSelected}
-								isFavorite={isFavorite}
-								onSelectSymbol={onSelectSymbol}
-								onToggleFavorite={onToggleFavorite}
-							/>
-						);
-					})
+	const useVirtual = visibleSymbols.length > VIRTUAL_THRESHOLD;
+
+	return (
+		<div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+			<div className="px-2 pt-2">
+				<WatchlistFilterBar
+					query={query}
+					sortMode={sortMode}
+					visibleCount={visibleSymbols.length}
+					favoriteCount={favorites.length}
+					topMovers={topMovers}
+					onQueryChange={setQuery}
+					onCycleSortMode={() => {
+						setSortMode((prev) => {
+							if (prev === "default") return "movers";
+							if (prev === "movers") return "favorites";
+							return "default";
+						});
+					}}
+				/>
+			</div>
+
+			<div className="flex-1 min-h-0 overflow-hidden">
+				{visibleSymbols.length === 0 ? (
+					<div className="px-4 py-6 text-sm text-muted-foreground">No symbols in this list.</div>
+				) : useVirtual ? (
+					// Virtual path — only renders visible rows; activates above VIRTUAL_THRESHOLD items
+					<div ref={parentRef} className="h-full overflow-y-auto px-2">
+						<div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
+							{rowVirtualizer.getVirtualItems().map((vRow) => {
+								const symbol = visibleSymbols[vRow.index];
+								return (
+									<div
+										key={vRow.key}
+										style={{
+											position: "absolute",
+											top: 0,
+											left: 0,
+											right: 0,
+											transform: `translateY(${vRow.start}px)`,
+											paddingBottom: 4,
+										}}
+									>
+										<WatchlistRow
+											symbol={symbol}
+											quote={quotes[symbol.symbol]}
+											isSelected={currentSymbol === symbol.symbol}
+											isFavorite={favorites.includes(symbol.symbol)}
+											onSelectSymbol={onSelectSymbol}
+											onToggleFavorite={onToggleFavorite}
+										/>
+									</div>
+								);
+							})}
+						</div>
+					</div>
+				) : (
+					// Standard path — plain ScrollArea for small lists (≤ VIRTUAL_THRESHOLD items)
+					<ScrollArea className="h-full px-2">
+						<div className="space-y-1 pb-2">
+							{visibleSymbols.map((symbol) => (
+								<WatchlistRow
+									key={symbol.symbol}
+									symbol={symbol}
+									quote={quotes[symbol.symbol]}
+									isSelected={currentSymbol === symbol.symbol}
+									isFavorite={favorites.includes(symbol.symbol)}
+									onSelectSymbol={onSelectSymbol}
+									onToggleFavorite={onToggleFavorite}
+								/>
+							))}
+						</div>
+					</ScrollArea>
 				)}
 			</div>
-			<WatchlistStreamStatus
-				loadingQuotes={loadingQuotes}
-				streamState={streamState}
-				streamAgeLabel={streamAgeLabel}
-				streamReconnects={streamReconnects}
-			/>
-		</ScrollArea>
+
+			<div className="px-2 pb-2">
+				<WatchlistStreamStatus
+					loadingQuotes={loadingQuotes}
+					streamState={streamState}
+					streamAgeLabel={streamAgeLabel}
+					streamReconnects={streamReconnects}
+				/>
+			</div>
+		</div>
 	);
 }
 

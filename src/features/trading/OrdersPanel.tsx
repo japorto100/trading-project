@@ -46,7 +46,7 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 		dataUpdatedAt,
 		refetch: refetchOrders,
 	} = useQuery({
-		queryKey: ["orders", profileKey, symbol],
+		queryKey: ["portfolio", "orders", profileKey, symbol],
 		queryFn: async () => {
 			const params = new URLSearchParams({ profileKey, symbol });
 			const controller = new AbortController();
@@ -139,10 +139,10 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 
 			const payload = (await response.json()) as { order?: PaperOrder };
 			if (payload.order) {
-				queryClient.setQueryData<PaperOrder[]>(["orders", profileKey, symbol], (prev) => [
-					payload.order as PaperOrder,
-					...(prev ?? []),
-				]);
+				queryClient.setQueryData<PaperOrder[]>(
+					["portfolio", "orders", profileKey, symbol],
+					(prev) => [payload.order as PaperOrder, ...(prev ?? [])],
+				);
 			}
 
 			toast({
@@ -172,7 +172,7 @@ export function OrdersPanel({ symbol, markPrice }: OrdersPanelProps) {
 				throw new Error(`Update order failed (${response.status})`);
 			}
 
-			queryClient.setQueryData<PaperOrder[]>(["orders", profileKey, symbol], (prev) =>
+			queryClient.setQueryData<PaperOrder[]>(["portfolio", "orders", profileKey, symbol], (prev) =>
 				(prev ?? []).map((order) => (order.id === id ? { ...order, status } : order)),
 			);
 		} catch (error) {

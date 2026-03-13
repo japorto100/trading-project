@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/storage"
 )
 
 func TestClientFetchEvents_WithBearerToken(t *testing.T) {
@@ -245,5 +246,104 @@ func TestClientFetchEvents_MapsUpstreamStatus(t *testing.T) {
 	}
 	if requestErr.StatusCode != http.StatusServiceUnavailable {
 		t.Fatalf("expected status 503, got %d", requestErr.StatusCode)
+	}
+}
+
+func TestClientFetchEvents_RecordsSnapshotMetadataAndRawPayload(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("ETag", `"acled-etag"`)
+		w.Header().Set("Last-Modified", "Thu, 12 Mar 2026 11:00:00 GMT")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status": 200,
+			"data": []map[string]any{
+				{
+					"event_id_cnty":  "ACLED-1",
+					"event_date":     "2026-03-12",
+					"country":        "Ukraine",
+					"region":         "Eastern Europe",
+					"event_type":     "Battles",
+					"sub_event_type": "Armed clash",
+					"actor1":         "Actor A",
+					"actor2":         "Actor B",
+					"fatalities":     2,
+					"location":       "Kyiv",
+					"latitude":       50.45,
+					"longitude":      30.52,
+					"source":         "example",
+					"notes":          "snapshot test",
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	tempDir := t.TempDir()
+	t.Setenv("ARTIFACT_STORAGE_PROVIDER", "filesystem")
+	t.Setenv("ARTIFACT_STORAGE_BASE_DIR", filepath.Join(tempDir, "state"))
+
+	client := NewClient(Config{
+		BaseURL:           server.URL,
+		APIToken:          "token-123",
+		SnapshotStorePath: filepath.Join(tempDir, "state", "acled.json"),
+	})
+
+	events, err := client.FetchEvents(context.Background(), Query{Country: "Ukraine", Limit: 10})
+	if err != nil {
+		t.Fatalf("fetch events: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	rawFiles, err := filepath.Glob(filepath.Join(tempDir, "state", "source-snapshots", "raw", "acled", "*.json"))
+	if err != nil {
+		t.Fatalf("glob raw files: %v", err)
+	}
+	if len(rawFiles) != 1 {
+		t.Fatalf("expected 1 raw snapshot file, got %d", len(rawFiles))
+	}
+	normalizedFiles, err := filepath.Glob(filepath.Join(tempDir, "state", "source-snapshots", "normalized", "acled", "*.json"))
+	if err != nil {
+		t.Fatalf("glob normalized files: %v", err)
+	}
+	if len(normalizedFiles) != 1 {
+		t.Fatalf("expected 1 normalized snapshot file, got %d", len(normalizedFiles))
+	}
+	if rawPayload, err := os.ReadFile(rawFiles[0]); err != nil || len(rawPayload) == 0 {
+		t.Fatalf("read raw payload: %v", err)
+	}
+	if normalizedPayload, err := os.ReadFile(normalizedFiles[0]); err != nil || len(normalizedPayload) == 0 {
+		t.Fatalf("read normalized payload: %v", err)
+	}
+
+	snapshotID := filepath.Base(rawFiles[0])
+	snapshotID = snapshotID[:len(snapshotID)-len(filepath.Ext(snapshotID))]
+	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(tempDir, "state", "source-snapshots", "source_snapshots.db"))
+	if err != nil {
+		t.Fatalf("open metadata store: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = metaStore.Close()
+	})
+
+	snapshot, err := metaStore.GetSourceSnapshot(snapshotID)
+	if err != nil {
+		t.Fatalf("get snapshot: %v", err)
+	}
+	if snapshot.SourceID != "acled" {
+		t.Fatalf("source id = %q", snapshot.SourceID)
+	}
+	if snapshot.SourceClass != "api-snapshot" {
+		t.Fatalf("source class = %q", snapshot.SourceClass)
+	}
+	if snapshot.DatasetName != "acled-events" {
+		t.Fatalf("dataset name = %q", snapshot.DatasetName)
+	}
+	if snapshot.ParserVersion != "acled-events-normalized-v1" {
+		t.Fatalf("parser version = %q", snapshot.ParserVersion)
+	}
+	if snapshot.SnapshotStatus != storage.SourceSnapshotNormalized {
+		t.Fatalf("snapshot status = %q", snapshot.SnapshotStatus)
 	}
 }

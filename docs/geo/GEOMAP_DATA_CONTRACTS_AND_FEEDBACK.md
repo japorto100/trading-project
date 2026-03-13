@@ -1,6 +1,6 @@
 # GeoMap Data Contracts and Feedback
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 13. Maerz 2026
 > **Zweck:** Datenmodelle, API-Vertraege, Feedback-/Review-Logik und SOTA-Qualitaetsbacklog.
 > **Source-of-Truth-Rolle:** Owner fuer Candidate/Event/Timeline-Vertraege, Feedback-Flow, Eval-Harness und ML-Assist-Richtlinien.
 > **Quelle:** migriert aus `docs/GEOMAP_OVERVIEW.md` (Pre-Split-Archiv in `docs/archive/`).
@@ -224,6 +224,13 @@ export interface GeoAnalystFeedback {
 }
 ```
 
+**Runtime-Delta (2026-03-10):**
+
+- Die aktuelle Runtime in `src/lib/geopolitical/types.ts` kennt fuer `GeoCandidate.state` weiterhin nur `open | accepted | rejected | snoozed | expired`.
+- `systemClassification`, `systemReason` und `GeoAnalystFeedback[]` sind normativ definiert, aber noch nicht in den aktiven Stores / API-Routen angekommen.
+- Die Legacy-Routen `accept` / `reject` / `snooze` sind weiter der reale Pfad; zusaetzlich existiert ein separater `reclassify`-Pfad.
+- `/review`, `/feedback/metrics` und `/feedback/disagreements` sind noch nicht produktiv auf diesem Contract.
+
 ### 13.3 Timeline entry type
 
 ```ts
@@ -245,6 +252,66 @@ export interface GeoTimelineEntry {
   diffSummary: string;
 }
 ```
+
+### 13.4 Ontology/Graph extension contracts (Search-Around, Track, Writeback)
+
+Abgeleitet aus `Important-geov2plus-Open-Source-Alternative zu Palantir Foundry Map-ontologie.md`
+und normativ gebuendelt in `GEOMAP_ONTOLOGY_GRAPH_RUNTIME.md`.
+
+```ts
+export type GeoInterpolationMode =
+  | "LINEAR"
+  | "NEAREST"
+  | "PREVIOUS"
+  | "NEXT"
+  | "NONE";
+
+export interface GeoTrackPoint {
+  seriesId: string;
+  entityId: string;
+  at: string; // ISO timestamp
+  position: { lat: number; lng: number };
+  speed?: number;
+  heading?: number;
+}
+
+export interface GeoTrackSeries {
+  id: string;
+  entityId: string;
+  interpolation: GeoInterpolationMode;
+  points: GeoTrackPoint[];
+}
+
+export interface GeoSearchAroundEdge {
+  sourceRid: string;
+  targetRid: string;
+  relation: string;
+  confidence?: number; // 0..1
+}
+
+export interface GeoSearchAroundResults {
+  nodeRids: string[];
+  edges: GeoSearchAroundEdge[];
+  timeWindow?: { from: string; to: string };
+  metrics?: Record<string, number>;
+}
+
+export interface GeoWritebackAudit {
+  actor: string;
+  actionType: "point" | "shape" | "state_change" | "link_update";
+  reason: string;
+  before?: unknown;
+  after: unknown;
+  policyDecisionId?: string;
+  at: string;
+}
+```
+
+Pflichtregel:
+
+- Search-Around liefert typisierte Graph-Ergebnisse (`nodeRids`, `edges`, optional `metrics`),
+- GeoTrack nutzt expliziten Interpolationsmodus,
+- Writeback-Mutationen erzeugen append-first Auditdaten.
 
 ---
 
@@ -268,6 +335,14 @@ export interface GeoTimelineEntry {
 - `GET /api/geopolitical/sources/health`
 - **`GET /api/geopolitical/feedback/metrics`** (NEU: Accept Rate, Override Rate, Kappa, Top Override Reasons)
 - **`GET /api/geopolitical/feedback/disagreements`** (NEU: Faelle wo Analysten uneinig sind)
+- **`POST /api/geopolitical/search-around`** (NEU: liefert `GeoSearchAroundResults`)
+- **`POST /api/geopolitical/writeback/actions`** (NEU: validierte Kartenaktion + Audit-Append)
+- **`GET /api/geopolitical/tracks`** (NEU: geotemporale Serien inkl. Interpolationsmodus)
+
+**Runtime-Delta (2026-03-10):**
+
+- `GET /api/geopolitical/evaluation` existiert und liefert bereits Review-/Contradiction-Zusammenfassungen.
+- Die dedizierten Feedback-Endpunkte aus diesem Abschnitt sind weiterhin Zielbild, nicht Istzustand.
 
 ### 14.2 SSE endpoint
 
@@ -1151,5 +1226,6 @@ Toolbar: [Conflict] [Sanctions] [Trade] [Energy] ... [Central Banks ▼]
 
 - `GEOMAP_OVERVIEW.md`
 - `GEOMAP_FOUNDATION.md`
+- `GEOMAP_ONTOLOGY_GRAPH_RUNTIME.md`
 - `GEOMAP_MODULE_CATALOG.md`
 - `GEOMAP_VERIFY_GATES.md`

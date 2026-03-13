@@ -2,7 +2,7 @@
 
 > **Stand:** 22. Februar 2026
 > **Zweck:** Definiert das Gesamtbild fuer Caching, Persistenz, Wissensrepraesentation und Agent-Memory in TradeView Fusion. Von kurzfristigen TTL-Caches bis zu langfristigem Knowledge-Graph-basiertem Agentenwissen.
-> **Referenz-Dokumente:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md) (Sek. 8: Knowledge Graph), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) (Sek. 0.3-0.7: Cache-Strategie), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (Sek. 7: RAG/Reasoning), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 8: KG Domain D Seed-Schema), [`archive/KG_ONTOLOGY.md`](./archive/KG_ONTOLOGY.md) (formales Schema, Ontologie-Quellen; archivierte Referenz)
+> **Referenz-Dokumente:** [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md) (Sek. 8: Knowledge Graph), [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) (Sek. 0.3-0.7: Cache-Strategie), [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) (Sek. 7: RAG/Reasoning), [`RAG_GRAPHRAG_STRATEGY_2026.md`](./RAG_GRAPHRAG_STRATEGY_2026.md) (Dual Pipeline, Hybrid Retrieval, GraphRAG/UQ-Strategie), [`POLITICAL_ECONOMY_KNOWLEDGE.md`](./POLITICAL_ECONOMY_KNOWLEDGE.md) (Sek. 8: KG Domain D Seed-Schema), [`archive/KG_ONTOLOGY.md`](./archive/KG_ONTOLOGY.md) (formales Schema, Ontologie-Quellen; archivierte Referenz), [`geo/GEOMAP_ONTOLOGY_GRAPH_RUNTIME.md`](./geo/GEOMAP_ONTOLOGY_GRAPH_RUNTIME.md) (Geo-spezifischer Ontologie-/Graph-Owner fuer Search-Around, Tracks und Writeback)
 > **Referenz-Buecher:**
 > - "The Behavior Ops Manual" (Chase Hughes, 2022) -- BTE/DRS als strukturiertes Wissen im Knowledge Graph
 > - "Die 36 Strategeme" (Prof. Rieck) -- Krisenlogik als relationales Wissen im Knowledge Graph
@@ -597,6 +597,18 @@ Kein Pinecone/Weaviate (Cloud-Lock-in vermeiden).
 - **Einsatz:** Research-Reports, PDF-Analysen, Excel-Daten vor Embedding
 - **Quelle:** [microsoft/markitdown](https://github.com/microsoft/markitdown)
 
+#### Agentic Storage Pattern (ClawVault)
+
+**ClawVault** ist als Pattern-Referenz fuer agentische Workspace-Persistenz
+interessant (zustandsbehaftete Arbeitsartefakte, Resume-orientierte Ablage),
+aber kein direkter Runtime-Standard fuer den Produktkern.
+
+- **Einsatz fuer uns:** Pattern-Quelle fuer versionierte Agent-Artefakte, nicht
+  als blindes Framework-Adopt.
+- **Fokus:** Write-Path-Disziplin (`draft/review/approved/published`),
+  Auditierbarkeit, kontrollierte Persistenz.
+- **Quelle:** [Versatly/clawvault](https://github.com/Versatly/clawvault)
+
 **Abhaengigkeit:** M2a (Backend-KG) sollte vorher oder parallel stehen, damit RAG Fakten-Retrieval und Semantik-Retrieval trennen kann. LLM-Integration (M5) muss zumindest prototypisch vorhanden sein.
 
 ### 5.5 Stufe M5: Agent Working Memory (Context Management)
@@ -803,7 +815,7 @@ edges:
 
 **Gesamt Backend:** ~300-500 Nodes (statisch) + ~50-200 Live-Nodes. Klein genug fuer NetworkX-Prototyp, skalierbar in FalkorDB.
 
-**GraphMERT (Phase 2):** Nach initialem KG-Aufbau (IE-Pipeline: Entity Linking + Relation Extraction) kann GraphMERT als Batch-Job den Slow-Lane-KG refinieren: Tail-Prediction, strukturelle Validierung, FActScore-Verbesserung. Code: [jha-lab/graphmert_umls](https://github.com/jha-lab/graphmert_umls). Siehe `REFERENCE_PROJECTS.md`.
+**GraphMERT (Phase 2):** Nach initialem KG-Aufbau (IE-Pipeline: Entity Linking + Relation Extraction) kann GraphMERT als Batch-Job den Slow-Lane-KG refinieren: Tail-Prediction, strukturelle Validierung, FActScore-Verbesserung. Code: [jha-lab/graphmert_umls](https://github.com/jha-lab/graphmert_umls). Owner bleibt dieses Dokument; kein allgemeiner `references/projects/evaluate.md`-Kandidat mehr.
 
 **IE-Pipeline (Entity Linking, Relation Extraction):** Fuer spaetere Erweiterung: ReLiK (Entity Linking + Relation Extraction), SapBERT (biomed/UMLS), Fin-E5 (Finance-Embeddings, FinMTEB). Bei Konkretisierung der IE-Pipeline in REFERENCE_PROJECTS ergaenzen.
 
@@ -969,12 +981,16 @@ User klickt auf Iran-Sanctions Event in GeoMap
 | Sek. 5.3 (Episodic) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 4.7.1 | Concept Drift Detection via Override-Tracking |
 | Sek. 5.3 (Episodic) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 5.4 | Candidate accept/reject Feedback Loop |
 | Sek. 5.4 (Vector Store) | [`Advanced-architecture-for-the-future.md`](./Advanced-architecture-for-the-future.md) Sek. 7 | RAG fuer Trading-Knowledge |
+| Sek. 5.2 + 5.4 (Hybrid Retrieval) | [`RAG_GRAPHRAG_STRATEGY_2026.md`](./RAG_GRAPHRAG_STRATEGY_2026.md) | Decision-Matrix fuer Vector/KG/SQL, Rerank-Baseline, GraphRAG-Differenzierung |
+| Sek. 10.6 (Source Persistence) | [`specs/execution/source_persistence_snapshot_delta.md`](./specs/execution/source_persistence_snapshot_delta.md) | Raw snapshot/cache/normalize Grenze vor Memory-Ingestion |
+| Sek. 10.6 (Vector Ingestion) | [`specs/execution/vector_ingestion_delta.md`](./specs/execution/vector_ingestion_delta.md) | Embedding-/Provenance-Vertrag fuer Retrieval-faehige Artefakte |
 | Sek. 5.5 (Working Memory) | [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 2 | Vier Pipeline-Agent-Rollen brauchen Context Assembly |
 | **Sek. 5.3 (M3 Erweiterung)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 12-13** | **routing_log, workflow_log, research_log, evaluation_log fuer Orchestration-Layer + neue Rollen** |
 | **Sek. 5.5 (M5 Erweiterung)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 15.1** | **MemoryAccessPolicy in Agent Registry steuert welcher Agent welche Memory-Schichten lesen/schreiben darf** |
 | **Sek. 5.5 (M5 Erweiterung)** | **[`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md) Sek. 13.4** | **Monitor Agent aggregiert M3-Logs fuer sieben Monitoring-Dimensionen (Entropy, Override-Rate, etc.)** |
 | Sek. 7 (Architektur) | [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek. 5b | redb OHLCV-Cache (Rust-spezifisch, komplementaer zu Redis) |
 | Sek. 5.2 M2b (Frontend User-KG) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35.8 | TS In-Memory Entity Graph → wird durch KuzuDB WASM User-KG ersetzt |
+| Sek. 5.2 + 6 (KG Gesamtbild, Geo-Spezialisierung) | [`geo/GEOMAP_ONTOLOGY_GRAPH_RUNTIME.md`](./geo/GEOMAP_ONTOLOGY_GRAPH_RUNTIME.md) | Geo-Ontologie/Graph/Search-Around/Track/Writeback werden als Geo-Owner auf derselben KG-Gesamtarchitektur gefuehrt (nicht isoliert) |
 | Sek. 5.2 M2b (Encryption) | [`CLIENT_DATA_ENCRYPTION.md`](./specs/security/CLIENT_DATA_ENCRYPTION.md) | Client-Side Data Encryption: WebAuthn PRF + Server-Fallback, AES-256-GCM auf IDBFS |
 | Sek. 5.2 (GraphRAG, Embedding Limits) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) + zitierte CE-2.0-Papers | CE 2.0 Validierung: Formaler Beweis KG > Vector, GraphRAG Terminologie |
 | Sek. 9.8 (Self-Baking) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) | CE 2.0 Konzept: Episodic→Semantic Verdichtung |
@@ -1212,6 +1228,32 @@ Pflicht-Telemetrie:
 - `cache.hit_rate`
 - `cache.fallback_active`
 - `cache.errors`
+
+### 10.6 Source Persistence und Vector-Ingestion (verbindliche Abgrenzung)
+
+Memory baut nicht direkt auf ungefilterten Quellen-Rohdaten auf. Dazwischen
+liegt eine eigenstaendige Persistence-Stufe:
+
+`source selection -> source onboarding -> fetch/cache/snapshot -> normalize -> memory/vector ingestion`
+
+Arbeitsregel:
+
+- **Raw snapshots** aus `file-snapshot` Quellen gehoeren in den Object Store und
+  in einen relationalen Snapshot-Index, nicht direkt in Semantic Memory.
+- **API-hot caches** bleiben Working-Memory-/Latency-Layer und werden nicht
+  still zum Source of Truth.
+- **Vector Ingestion** ist ein downstream consumer normalisierter Artefakte.
+  Embeddings duerfen nicht direkt aus ungeprueften ZIP/CSV/XML/JSON-Rohdaten
+  entstehen.
+- **Semantic Memory** konsumiert entweder strukturierte, normalisierte Fakten
+  fuer KG-/Truth-Knoten oder provenance-markierte Textsegmente fuer Retrieval.
+
+Owner fuer diese Zwischenstufen:
+
+- Rohsnapshot-/Persistenzvertrag:
+  `docs/specs/execution/source_persistence_snapshot_delta.md`
+- Vector-/Embedding-Vertrag:
+  `docs/specs/execution/vector_ingestion_delta.md`
 
 ---
 

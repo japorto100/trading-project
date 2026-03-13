@@ -28,11 +28,13 @@ type Config struct {
 	BaseURL        string
 	APIKey         string
 	RequestTimeout time.Duration
+	CacheTTL       time.Duration
 }
 
 type Client struct {
-	baseClient *base.Client
-	apiKey     string
+	baseClient    *base.Client
+	apiKey        string
+	responseCache *base.JSONHotCache
 }
 
 func (c *Client) apiKeyForContext(ctx context.Context) string {
@@ -60,8 +62,9 @@ func NewClient(cfg Config) *Client {
 		timeout = 4 * time.Second
 	}
 	return &Client{
-		baseClient: base.NewClient(base.Config{BaseURL: baseURL, Timeout: timeout, RetryCount: 1}),
-		apiKey:     strings.TrimSpace(cfg.APIKey),
+		baseClient:    base.NewClient(base.Config{BaseURL: baseURL, Timeout: timeout, RetryCount: 1}),
+		apiKey:        strings.TrimSpace(cfg.APIKey),
+		responseCache: base.NewJSONHotCache("bok-series", cfg.CacheTTL),
 	}
 }
 
@@ -113,6 +116,14 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	}
 	if limit > 500 {
 		limit = 500
+	}
+	canonicalSeriesID := buildSeriesID(spec)
+	cacheKey := base.StableCacheKey(canonicalSeriesID, strconv.Itoa(limit))
+	if c.responseCache != nil {
+		var cached []gct.SeriesPoint
+		if c.responseCache.Get(ctx, cacheKey, &cached) && len(cached) > 0 {
+			return cached, nil
+		}
 	}
 
 	endTime := time.Now().UTC()
@@ -182,6 +193,9 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	ensureLatestFirst(points)
 	if len(points) > limit {
 		points = points[:limit]
+	}
+	if c.responseCache != nil {
+		c.responseCache.Set(ctx, cacheKey, points)
 	}
 	return points, nil
 }

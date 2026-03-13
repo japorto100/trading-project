@@ -1,6 +1,6 @@
-﻿import { getMarkerSeverityColor } from "@/features/geopolitical/d3/scales";
+import { getMarkerSeverityColor } from "@/features/geopolitical/d3/scales";
 import { getMarkerSymbolLabel, getMarkerSymbolPath } from "@/features/geopolitical/markerSymbols";
-import { formatPoint } from "@/features/geopolitical/shell/types";
+import { buildGeoEventSelectionDetail } from "@/features/geopolitical/selection-detail";
 import type { GeoEvent } from "@/lib/geopolitical/types";
 
 interface MarkerListPanelProps {
@@ -35,6 +35,8 @@ export function MarkerListPanel({ events, selectedEventId, onSelectEvent }: Mark
 						const severityColor = getMarkerSeverityColor(event.severity);
 						const symbolPath = getMarkerSymbolPath(event.symbol, 90);
 						const symbolLabel = getMarkerSymbolLabel(event.symbol);
+						const detail = buildGeoEventSelectionDetail(event);
+
 						return (
 							<button
 								key={event.id}
@@ -65,23 +67,32 @@ export function MarkerListPanel({ events, selectedEventId, onSelectEvent }: Mark
 											</svg>
 										</span>
 										<div>
-											<div className="font-medium leading-tight">{event.title}</div>
-											<div className="mt-0.5 text-[10px] text-muted-foreground">{symbolLabel}</div>
+											<div className="font-medium leading-tight">{detail.title}</div>
+											<div className="mt-0.5 text-[10px] text-muted-foreground">
+												{detail.subtitle ?? symbolLabel}
+											</div>
 										</div>
 									</div>
-									<span className="text-[10px] text-muted-foreground">
-										S{event.severity}/C{event.confidence}
-									</span>
+									<span className="text-[10px] text-muted-foreground">{symbolLabel}</span>
 								</div>
 								<div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-									<span>{formatPoint(event)}</span>
-									<span className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px]">
-										<span
-											className="h-1.5 w-1.5 rounded-full"
-											style={{ backgroundColor: severityColor }}
-										/>
-										Severity {event.severity}
-									</span>
+									<span className="truncate">{detail.secondaryMeta[0] ?? "n/a"}</span>
+									<div className="flex flex-wrap items-center justify-end gap-1">
+										{detail.primaryMeta.map((item) => (
+											<span
+												key={item}
+												className="inline-flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[10px]"
+											>
+												{item === `S${event.severity}` ? (
+													<span
+														className="h-1.5 w-1.5 rounded-full"
+														style={{ backgroundColor: severityColor }}
+													/>
+												) : null}
+												{item}
+											</span>
+										))}
+									</div>
 								</div>
 							</button>
 						);

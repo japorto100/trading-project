@@ -5,6 +5,8 @@
 > **Abgrenzung:** `CONTEXT_ENGINEERING.md` definiert WAS der Agent braucht. Dieses Dokument definiert WIE er es bekommt (Werkzeuge).
 > **Abgrenzung:** `AGENT_ARCHITECTURE.md` definiert Rollen und Workflows. Dieses Dokument definiert die Toolbox die jede Rolle nutzt.
 > **Abgrenzung:** `MEMORY_ARCHITECTURE.md` definiert Speicher-Schichten. Dieses Dokument definiert die Read/Write-Interfaces zu diesen Schichten.
+> **Ergaenzung Security-Layer:** [`AGENT_SECURITY.md`](./AGENT_SECURITY.md) definiert Capability Envelope, Retrieval Broker, Tool Proxy und Agentic-Storage-Write-Grenzen.
+> **Ergaenzung Harness-Layer:** [`AGENT_HARNESS.md`](./AGENT_HARNESS.md) buendelt Runtime-Harness-Prinzipien, OpenSandbox-Execution-Boundary und Guardrail-Governance.
 > **Referenz-Dokumente:** [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md)
 > **Externe Referenzen:**
 > - [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) -- Browser-Debugging und Automation
@@ -37,6 +39,8 @@
 12. [Ist-Zustand vs. Soll-Zustand](#12-ist-zustand-vs-soll-zustand)
 13. [Stufenplan](#13-stufenplan)
 14. [Querverweise](#14-querverweise)
+15. [Formale Planungssprachen -- PDDL / ADL (Phase 22+)](#15-formale-planungssprachen--pddl--adl-phase-22)
+16. [Konsolidierungs-Addendum -- Merge/Claim/Simulation Tools](#16-konsolidierungs-addendum----mergeclaimsimulation-tools)
 
 ---
 
@@ -477,6 +481,87 @@ Direkte arXiv API fuer Full-Text-Zugriff (Emergent Mind hat nur Metadaten).
 
 Skill-Templates für Trading-relevante Daten: `alpha-vantage`, `fred-economic-data`, `exploratory-data-analysis`, `market-research-reports`, `hedgefundmonitor`. Als Referenz für eigene Tool-Skills nutzbar.
 
+### 7.5 Evaluation-Kandidaten: OSINT Agent Tools (noch nicht final)
+
+> **Status:** Evaluation / nicht final freigegeben
+>
+> Die folgenden Tools sind als **moegliche Agent-Tools** aufgenommen, nicht als
+> verbindlicher Scope. Vor Produktivnutzung sind Legal-, Security-, Rate-Limit-,
+> und Qualitaetspruefung verpflichtend.
+
+#### Candidate A: user-scanner (Identity/Presence Enrichment)
+
+- **Quelle:** [kaifcodec/user-scanner](https://github.com/kaifcodec/user-scanner)
+- **Was es ist:** CLI/Python-Toolkit fuer Username- und Email-Presence-Checks ueber viele Plattformen.
+- **Primärer Modus bei uns:** Agent-Tool (nicht primär User-UI).
+- **Geeigneter Use-Case:**
+  - Entitaets-Anreicherung: `username/email -> Plattform-Presence-Signal`
+  - Recherche-Unterstuetzung fuer Social/Entity Correlation
+  - Input fuer Risiko-/Vertrauens-Scoring (als schwaches Signal, nie allein)
+- **Wichtige Klarstellung:** Kein vollwertiger Bot-Detektor. Nur Presence-Signal.
+- **Tool-Skizze (intern):**
+  - `identity_presence_scan(query: {username?, email?}, scope, timeout)`
+  - Output: strukturierte Trefferliste + Fehlergruende + Confidence-Flags
+
+#### Candidate B: quevidkit (Video Tamper Forensics)
+
+- **Quelle:** [thumpersecure/quevidkit](https://github.com/thumpersecure/quevidkit)
+- **Was es ist:** Forensik-Toolkit zur Analyse moeglicher Video-Manipulation (CLI/REST/Web).
+- **Primärer Modus bei uns:** Agent-Tool fuer Analysten-Assistenz (nicht primär Enduser-Bedienung).
+- **Geeigneter Use-Case:**
+  - Verifikation von OSINT/UGC-Videoevidence
+  - "Suspicious vs. likely authentic" als Hilfssignal im Event-Workflow
+  - Evidenz-Report fuer Analyst-Review (Begruendung + Confidence)
+- **Wichtige Klarstellung:** Liefert Wahrscheinlichkeiten/Indizien, keine juristische Gewissheit.
+- **Tool-Skizze (intern):**
+  - `video_tamper_check(input: {file|url}, preset, sensitivity)`
+  - Output: Label, Wahrscheinlichkeit, Segment-Hinweise, Erklaerung, Report-Link
+
+#### Candidate C: Spin (Investigation Browser / Workflow-Referenz)
+
+- **Quelle:** [thumpersecure/Spin](https://github.com/thumpersecure/Spin)
+- **Was es ist:** OSINT-Desktop-Browser mit Fokus auf Investigation-Workflows (Identity-Profile, Correlation-Graph, Research-Flows, OPSEC-orientierte Nutzung).
+- **Primärer Modus bei uns:** Architektur-/UX-Referenz (nicht als direkte Datenquelle, nicht als Core-Abhaengigkeit).
+- **Geeigneter Use-Case:**
+  - Inspiration fuer Investigation-Workspace (Entity-Graph + Timeline + Pivot-Flows)
+  - Inspiration fuer Agent-Rollen im Recherche-Kontext
+  - Inspiration fuer "multi-profile research session" Muster
+- **Wichtige Klarstellung:** Spin ist kein klassischer Feed-Provider. Relevanz liegt in Workflow-Ideen, nicht in direkten Marktdaten.
+- **Tool-Skizze (intern, abgeleitet):**
+  - Kein direkter Wrapper geplant in Phase 1
+  - Stattdessen selektive Feature-Uebernahme als eigene interne Tools/UI-Surfaces
+
+#### Entscheidungsregel fuer alle Kandidaten
+
+- Start als **optionaler Agent-Adapter** hinter Feature-Flag.
+- Keine harten Trading-Entscheidungen nur auf Basis dieser Tools.
+- Erst nach erfolgreicher Evaluation in den Standard-Toolring uebernehmen.
+
+### 7.6 Optionale Websearch-Quelle: Ahmia
+
+- **Quelle:** [Ahmia](https://ahmia.fi/)
+- **Rolle bei uns:** Optionale Search-Quelle fuer den Agent im Websearch-Kontext (Darkweb-/Onion-nahe Discovery, nur wenn explizit aktiviert).
+- **Einordnung:** Kein primaerer Finanz-/Makro-Feed; nur Zusatzsignal fuer Research/Threat-Context.
+- **Implementationshinweis:** Zunaechst als URL-basierte optionale Query-Quelle fuehren (kein harter Runtime-Contract).
+- **Guardrails:**
+  - strikt optional per Feature-Flag
+  - keine autonomen Handelsableitungen
+  - Ergebnis immer als "unverified external context" labeln
+
+### 7.7 Optionale Websearch-/Verifizierungsquelle: Wayback (Internet Archive)
+
+- **Quelle:** [Wayback Machine](https://web.archive.org/)
+- **Rolle bei uns:** Optionale Verifikationsquelle fuer historische Webseitenstaende
+  ("was stand wann online?").
+- **Einordnung:** Kein Live-Market-Feed; hoher Nutzen fuer Research, Provenance,
+  Narrativ-Checks und Ruecktests von Headlines/Statements.
+- **Implementationshinweis:** Zunaechst als on-demand Recherche-Quelle fuer den
+  Agent fuehren, nicht als permanenter Polling-Core.
+- **Guardrails:**
+  - fair-use/rate-limit respektieren
+  - Ergebnisse mit Timestamp/Capture-Quelle ausgeben
+  - keine direkte Handelsableitung ohne weitere Bestaetigung
+
 ---
 
 ## 8. Communication Channels
@@ -765,6 +850,73 @@ Welche Rolle bekommt welche Tools? Principle of Least Privilege.
 
 ---
 
+## 15. Formale Planungssprachen — PDDL / ADL (Phase 22+)
+
+> **Stand:** 12. Maerz 2026 | **Phase-Slot:** 22b (PLANNED)
+
+### Ueberblick
+
+| Sprache | Was es ist | Solver noetig | Wann relevant |
+|:--------|:-----------|:-------------|:--------------|
+| **JSON Tool Schemas** | Informelle Funktionsbeschreibung fuer LLM Tool-Use | Nein | **Primaer — jetzt** |
+| **PDDL** | Planning Domain Definition Language (STRIPS-Basis). Formale Beschreibung von Aktionen, Zustaenden, Zielen | Ja (FastDownward, FF-Planner) | Phase 22+ wenn formaler Plan-Validator benoetigt |
+| **ADL** | Action Description Language — PDDL-Erweiterung mit konditionalen Effekten und Quantoren. Expressiver als PDDL | Ja (FastDownward unterstuetzt ADL) | Phase 22+ gleichzeitig mit PDDL |
+| **OpenAPI / JSON Schema** | Maschinen-lesbare API-Beschreibung | Nein | Tool-Definitionen, MCP-Server-Specs |
+
+### Strategische Einordnung
+
+Heute nutzen wir JSON Tool Schemas fuer alle Agent-Tool-Definitionen — das ist
+das, was Claude / OpenAI-kompatible Modelle erwarten. PDDL/ADL wuerde einen
+zusaetzlichen formalen Plan-Validator ermöglichen:
+
+```
+Agent generiert Plan (JSON-Steps)
+  └── PDDL-Validator prüft: Ist der Plan konsistent mit Domain-Constraints?
+        ├── Valide → Ausfuehren
+        └── Invalid → Replanning-Loop
+```
+
+**Vorteil:** Formale Verifizierung von Agent-Plans bevor Ausfuehrung. Besonders
+relevant fuer: Order-Execution-Chains (kein Doppelkauf), GeoMap Scenario-Baum
+(konsistente Spielzuege), Multi-Step-Tool-Use mit Constraints.
+
+### Semantik und Scope (Phase 22b)
+
+- Ziel ist **nicht** "alles in PDDL", sondern ein formales Constraint-Layer fuer
+  komplexe Agent-Ablaufplanung.
+- Besonders relevant sind temporale/numerische Constraints: Dauer, Deadlines,
+  Ressourcenbudgets, erlaubte Parallelitaet und Replan-Trigger.
+- Der technische Zielpfad ist kompatibel mit einem Compile-Ansatz
+  `PDDL 2.1 (durative/numeric) -> diskretes PDDL+` fuer Solver-Backends.
+- Fuer den ersten Pilot gilt die Modellierungsannahme
+  **non-self-overlapping actions** (konservativer Start, geringeres Risiko).
+
+### Nicht-Ziele
+
+- Kein Ersatz fuer Low-Latency-Order-Execution.
+- Kein Ersatz fuer normale REST-/CRUD-Workflow-Validierung.
+- Keine Modellierung weicher, rein heuristischer Ranking-Entscheide in PDDL.
+
+### Adoption-Bedingung
+
+PDDL/ADL einplanen **wenn:**
+- Agent-Plans komplex genug sind dass JSON-Validierung nicht ausreicht
+- Formale Constraint-Checks noetig sind (finanzielle Limits, geopolitische Regeln)
+- Team hat Kapazitaet fuer Solver-Integration (FastDownward in Python via subprocess)
+
+**Heute:** JSON Tool Schemas + Pydantic-Validierung reichen. PDDL ist Zukunftsoption.
+
+### Naechste Schritte (Phase 22b)
+
+- [ ] **PDL.V1** Pilot-Domain "Morning Research Run" modellieren
+      (API-Limits, Datenfrische, CPU-Budget, Fallback-Provider, Deadline)
+- [ ] **PDL.V2** Solver-Pfad lokal testen (FastDownward per Python subprocess;
+      optional zweiter Pfad via unified_planning fuer Vergleich)
+- [ ] **PDL.V3** Go/No-Go mit Messwerten entscheiden:
+      Plan-Validitaet, p95 Planzeit, Deadline-Adherence, Replan-Rate
+
+---
+
 ## 14. Querverweise
 
 | Dieses Dokument | Referenziertes Dokument | Verbindung |
@@ -779,10 +931,12 @@ Welche Rolle bekommt welche Tools? Principle of Least Privilege.
 | Sek. 10 (GeoMap Simulation) | [`GAME_THEORY.md`](./GAME_THEORY.md) Sek. 5.3-5.4 | Spielbaeume + Evolutionary GT visualisiert |
 | Sek. 10 (GeoMap Simulation) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek. 35 | Entity Graph + Transmission Paths |
 | Sek. 11 (Tool Access) | [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md) Sek. 8 | MemoryAccessPolicy erweitert um ToolAccessPolicy |
+| Sek. 15 (PDDL/ADL) | [`AGENT_SECURITY.md`](./AGENT_SECURITY.md) Sek. 2-7 | Formale Planpruefung bleibt unter Security-Grenzen fuer Tooling/Storage |
+| Sek. 6/7/11 (Retrieval/Tools) | [`RAG_GRAPHRAG_STRATEGY_2026.md`](./RAG_GRAPHRAG_STRATEGY_2026.md) | Hybrid Retrieval, Query-Modi, Rerank/UQ-Anforderungen fuer Tooling-Pfade |
 
 ---
 
-## 15. Konsolidierungs-Addendum -- Merge/Claim/Simulation Tools
+## 16. Konsolidierungs-Addendum -- Merge/Claim/Simulation Tools
 
 Ergaenzende Tool-Familie fuer den Overlay-/Claim-/Branch-Vertrag:
 
@@ -793,7 +947,7 @@ Ergaenzende Tool-Familie fuer den Overlay-/Claim-/Branch-Vertrag:
 | `create_simulation_branch` | Branch aus Event/Claim/Snapshot erzeugen | bounded-write |
 | `attach_evidence` | Evidence an Claim/Branch verknuepfen | bounded-write |
 
-### 15.1 Capability-Scoping (verbindlich)
+### 16.1 Capability-Scoping (verbindlich)
 
 - `get_overlay_context`: `viewer+` (nur fuer eigenen user scope)
 - `evaluate_claim`: `analyst+` oder policy-freigegebener Agent

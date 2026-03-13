@@ -41,6 +41,8 @@ for ($attempt = 1; $attempt -le [Math]::Max(1, $RetryCount); $attempt++) {
         if (-not (Test-Path $wheelhouse)) {
             New-Item -ItemType Directory -Path $wheelhouse | Out-Null
         }
+        # Remove stale wheels so uv always installs the freshly built version
+        Get-ChildItem $wheelhouse -Filter "tradeviewfusion_rust_core-*.whl" -ErrorAction SilentlyContinue | Remove-Item -Force
 
         Push-Location $pythonBackendRoot
         if ($Release) {
@@ -60,7 +62,22 @@ for ($attempt = 1; $attempt -le [Math]::Max(1, $RetryCount); $attempt++) {
         Pop-Location
 
         if ($SmokeTest) {
-            & $venvPython -c "import tradeviewfusion_rust_core as m; required=('composite_sma50_slope_norm','calculate_heartbeat','calculate_indicators_batch','redb_cache_set','redb_cache_get'); missing=[name for name in required if not hasattr(m,name)]; print('rust_core_missing', missing); raise SystemExit(1 if missing else 0)"
+            # Verify public API + batch dispatch (MACD/ADX/Stochastic/WMA/HMA)
+            $smokeFile = [System.IO.Path]::GetTempFileName() + ".py"
+            Set-Content -Path $smokeFile -Encoding UTF8 -Value @'
+import sys, tradeviewfusion_rust_core as m
+required = ("composite_sma50_slope_norm","calculate_heartbeat","calculate_indicators_batch","redb_cache_set","redb_cache_get")
+missing = [n for n in required if not hasattr(m, n)]
+if missing: sys.exit(f"rust_core_missing: {missing}")
+closes = [100.0 + i*0.5 for i in range(60)]
+result = m.calculate_indicators_batch(list(range(60)),closes,[c+0.5 for c in closes],[c-0.5 for c in closes],closes,[1000.0]*60,["macd_12_26_9","adx_14","stoch_14_3","wma_10","hma_9"])
+expected = ["macd_line_12_26_9","macd_signal_12_26_9","macd_hist_12_26_9","adx_14","di_plus_14","di_minus_14","stoch_k_14_3","stoch_d_14_3","wma_10","hma_9"]
+missing2 = [k for k in expected if k not in result]
+if missing2: sys.exit(f"rust_core_batch_missing: {missing2}")
+print("rust_core smoke OK -- all indicators verified")
+'@
+            & $venvPython $smokeFile
+            Remove-Item $smokeFile -ErrorAction SilentlyContinue
         }
 
         Write-Host "[rust-core] Rebuild successful."

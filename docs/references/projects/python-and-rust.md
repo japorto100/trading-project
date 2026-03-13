@@ -10,8 +10,8 @@
 
 | Referenz | Typ | Rolle fuer uns |
 |----------|-----|----------------|
-| `pandas-ta` | Library | Algorithmen-Referenz, nicht langfristige Kernbasis |
-| `TA-Lib` | Library | Korrektheits- und Referenz-Benchmark |
+| `pandas-ta` | Library | Algorithmen-Referenz und Research-Orakel, nicht langfristige Kernbasis |
+| `TA-Lib` | Library | Korrektheits- und Referenz-Benchmark, kein Ziel-Stack |
 | `TA (technical-analysis)` | Library | Offen, geringere Prioritaet |
 
 ---
@@ -21,7 +21,7 @@
 | Referenz | Typ | Rolle fuer uns |
 |----------|-----|----------------|
 | `PyO3` | Library / Runtime-Baustein | Kern-Technologie fuer Rust-Python-Bridge |
-| `Kand` | GitHub-Projekt / Library | Kandidat fuer `rust-core/` |
+| `Kand` | GitHub-Projekt / Library | **DEFER (12.03.2026)** — Evaluation abgeschlossen; kein Drop-in (kein PyO3, NaN-Mismatch, Ichimoku/HMA/VWAP fehlen); als Reference-Oracle nutzen; Details: `../../specs/execution/rust_kand_evaluation_delta.md` |
 | `VectorTA` | Library / Projekt | Fallback bei groesserer Indicator-Tiefe |
 | `ChartGPU` | GitHub-Projekt | Alternativer Chart-Performance-Pfad |
 | `Tauri v2` | Plattform | Nur spaeter bei echtem Desktop-Druck |

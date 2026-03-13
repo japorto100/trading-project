@@ -655,20 +655,29 @@ Tauri nutzt das System-WebView (WebKit auf Mac, WebView2/Edge auf Windows, WebKi
 
 ## 8. Beobachten: Rust AI Agent Frameworks
 
-### Stand Februar 2026
+### Stand Maerz 2026 (aktualisiert 12.03.2026)
 
-Neue Rust-Frameworks fuer AI Agents:
-- **ADK-Rust** ([adk-rust.com](https://www.adk-rust.com/)): Multi-Agent Workflows, Model-agnostic (Gemini, OpenAI, Anthropic), Visual Workflow Design
-- **AgentSDK** ([agentsdk.build](https://www.agentsdk.build/)): Type-safe, async-first, Streaming, Observability, Multi-Model-Routing
-- **AiRust**: Trainable, local-first Agents, PDF-Extraction, Context Memory
+**Prioritaere Kandidaten fuer Phase 22+:**
 
-### Relevanz fuer uns
+| Framework / Crate | Rolle | Vergleich Python | Reife | Relevanz fuer uns |
+|:------------------|:------|:----------------|:------|:------------------|
+| **Rig** (`rig-rs`) | Single-Agent Framework: LLM + Tools + RAG. Typsichere Tool-Definitionen (Rust-Structs). Tokio-basiert. Provider-agnostisch (OpenAI-compat). | Nächster Vergleich: **PydanticAI** (beide typ-sicher, beide einfach, keine Chain-Komplexität) | v0.x, aktiv, ~6-8k Stars (Maerz 2026) | **HOCH** — fuer Rust-Agent-Layer (Phase 22+) wenn Python nicht mehr genug |
+| **instructor-rs** | Strukturierter LLM-Output in Rust-Structs; Retry-Loop bei Validierungsfehlern | Direktes Aequivalent: **instructor** (Jason Liu, Python). Gleiche Idee, andere Sprache. | Frueh, aktiv | **MITTEL** — Tool-Use-Validierung im Rust Signal Processor (Phase 20+) |
+| **async-openai** | OpenAI-API-kompatibler Rust-Client. Da Anthropic, Ollama, vLLM alle `/v1/chat/completions` exposieren: ein Client fuer alle Provider. | Python: `openai` SDK (identisches Konzept, nur Rust) | Reif, stabil | **HOCH** — LLM-Provider-Agnostizismus in Rust-Komponenten |
+| **ADK-Rust** | Multi-Agent Workflows, Model-agnostic, Visual Workflow Design | LangGraph (Python) | Frueher Stand | BEOBACHTEN |
+| **AgentSDK** | Type-safe, async-first, Multi-Model-Routing | CrewAI/AutoGen | Frueher Stand | BEOBACHTEN |
+| **Kalosm** | Lokale Modelle (Llama, Whisper), Vision-Input | Transformers lokal via Python | Nischenanwendung | DEFER |
+| **llm-chain** | LangChain-Klon in Rust | LangChain (Python) | Verliert Momentum | SKIP |
 
-Unsere Soft-Signal-Pipelines (cluster-headlines, social-surge, narrative-shift) und Game-Theory-Analyse koennten langfristig als Multi-Agent-System in Rust laufen. Vorteile: Determinismus, Speicher-Effizienz, Compiler-Safety.
+### Empfehlung
 
-### Empfehlung: Beobachten, aber AI-Safety-Layer ist schon jetzt relevant
+Python-Ecosystem (HuggingFace, PyTorch, FinBERT/FinGPT/XLM-R) ist 2026 fuer ML/Inference unangreifbar. Rust-Agent-Frameworks sind fuer **Orchestrierung und Tool-Routing** interessant, nicht fuer Model-Inference.
 
-Python-Ecosystem fuer ML/AI (HuggingFace, PyTorch, Sentiment-Modelle wie FinBERT/FinGPT/XLM-R) ist 2026 noch unangreifbar. Rust AI Agents sind fuer Orchestrierung interessant, nicht fuer Model-Inference. Fruehestens 2027 erneut evaluieren.
+- **Rig + async-openai**: Phase 22+ evaluieren wenn Agent-Chat-UI Backend skaliert oder Python-Overhead messbar wird
+- **instructor-rs**: Phase 20+ fuer strukturierten Tool-Use in Rust Signal Processor
+- Python Agent-Service bleibt primary (G4 in compute_delta.md)
+
+**Ollama / vLLM Interface:** `async-openai` ist der richtige Rust-Client dafuer. Auf Go-Seite: Route `/api/llm/chat` im Gateway die je nach Config zu Anthropic / Ollama / vLLM routet. Noch nicht explizit implementiert — Phase 22a Slot (siehe `execution/agent_chat_ui_delta.md` Sek. 8).
 
 **Aber:** Der untenstehende AI-Safety-Layer-Aspekt ist *schon heute* relevant und wird 2026 immer wichtiger, unabhaengig davon ob wir Rust-Agent-Frameworks einsetzen.
 

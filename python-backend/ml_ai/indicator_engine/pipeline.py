@@ -205,6 +205,62 @@ class FibonacciConfluenceResponse(BaseModel):
     metadata: dict[str, Any]
 
 
+class MACDRequest(IndicatorServiceRequest):
+    fast: int = Field(default=12, ge=2, le=100)
+    slow: int = Field(default=26, ge=2, le=200)
+    signal: int = Field(default=9, ge=2, le=50)
+
+
+class MACDResponse(BaseModel):
+    macd_line: list[IndicatorPoint]
+    signal_line: list[IndicatorPoint]
+    histogram: list[IndicatorPoint]
+    metadata: dict[str, Any]
+
+
+class StochasticRequest(IndicatorServiceRequest):
+    k_period: int = Field(default=14, ge=2, le=200)
+    d_period: int = Field(default=3, ge=2, le=50)
+
+
+class StochasticResponse(BaseModel):
+    k: list[IndicatorPoint]
+    d: list[IndicatorPoint]
+    metadata: dict[str, Any]
+
+
+class ADXRequest(IndicatorServiceRequest):
+    period: int = Field(default=14, ge=2, le=200)
+
+
+class ADXResponse(BaseModel):
+    adx: list[IndicatorPoint]
+    di_plus: list[IndicatorPoint]
+    di_minus: list[IndicatorPoint]
+    metadata: dict[str, Any]
+
+
+class HMARequest(IndicatorServiceRequest):
+    period: int = Field(default=9, ge=2, le=500)
+
+
+class VWAPRequest(IndicatorServiceRequest):
+    pass
+
+
+class KeltnerRequest(IndicatorServiceRequest):
+    ema_period: int = Field(default=20, ge=2, le=200)
+    atr_period: int = Field(default=10, ge=2, le=200)
+    multiplier: float = Field(default=2.0, ge=0.5, le=5.0)
+
+
+class KeltnerResponse(BaseModel):
+    upper: list[IndicatorPoint]
+    middle: list[IndicatorPoint]
+    lower: list[IndicatorPoint]
+    metadata: dict[str, Any]
+
+
 @dataclass(frozen=True)
 class Pivot:
     index: int
@@ -379,6 +435,33 @@ def kama(values: list[float], period: int, fast: int = 2, slow: int = 30) -> lis
     return result
 
 
+def wma(values: list[float], period: int) -> list[float]:
+    """Weighted Moving Average — linearly weighted, most recent bar has highest weight."""
+    if not values:
+        return []
+    out: list[float] = []
+    for i in range(len(values)):
+        start = max(0, i + 1 - period)
+        window = values[start : i + 1]
+        w = list(range(1, len(window) + 1))
+        w_sum = sum(w)
+        out.append(sum(v * wt for v, wt in zip(window, w)) / w_sum)
+    return out
+
+
+def hma(values: list[float], period: int) -> list[float]:
+    """Hull Moving Average = WMA(2*WMA(n/2) - WMA(n), sqrt(n)).
+    Reduces lag vs SMA/EMA while staying smooth."""
+    if len(values) < period:
+        return values[:]
+    half = max(1, period // 2)
+    sqrt_p = max(1, int(period**0.5))
+    wma_half = wma(values, half)
+    wma_full = wma(values, period)
+    diff = [2.0 * h - f for h, f in zip(wma_half, wma_full)]
+    return wma(diff, sqrt_p)
+
+
 def rsi(values: list[float], period: int = 14) -> list[float]:
     if len(values) < 2:
         return [50.0 for _ in values]
@@ -399,6 +482,138 @@ def rsi(values: list[float], period: int = 14) -> list[float]:
             rs = gain_value / loss_value
             output.append(100.0 - (100.0 / (1.0 + rs)))
     return output
+
+
+def macd(
+    values: list[float],
+    fast: int = 12,
+    slow: int = 26,
+    signal: int = 9,
+) -> tuple[list[float], list[float], list[float]]:
+    """MACD = EMA(fast) - EMA(slow); signal = EMA(macd, signal); histogram = macd - signal.
+    Book ref: mastering-finance-python.md L5264-5298."""
+    ema_fast = ema(values, fast)
+    ema_slow = ema(values, slow)
+    macd_line = [f - s for f, s in zip(ema_fast, ema_slow)]
+    signal_line = ema(macd_line, signal)
+    histogram = [m - s for m, s in zip(macd_line, signal_line)]
+    return macd_line, signal_line, histogram
+
+
+def stochastic(
+    points: list[OHLCVPoint],
+    k_period: int = 14,
+    d_period: int = 3,
+) -> tuple[list[float], list[float]]:
+    """Stochastic Oscillator: %K = (C - LowestLow) / (HighestHigh - LowestLow) * 100.
+    %D = SMA(%K, d_period)."""
+    h = highs(points)
+    lo = lows(points)
+    c = closes(points)
+    k_values: list[float] = []
+    for i in range(len(c)):
+        start = max(0, i + 1 - k_period)
+        period_h = max(h[start : i + 1])
+        period_l = min(lo[start : i + 1])
+        denom = period_h - period_l
+        k_values.append(100.0 * (c[i] - period_l) / denom if denom != 0.0 else 50.0)
+    d_values = sma(k_values, d_period)
+    return k_values, d_values
+
+
+def adx_series(
+    points: list[OHLCVPoint],
+    period: int = 14,
+) -> tuple[list[float], list[float], list[float]]:
+    """Full ADX + DI+ + DI- series using true OHLCV.
+    Uses Wilder smoothing (alpha = 1/period).
+    Returns (adx, di_plus, di_minus) — all same length as input."""
+    h = highs(points)
+    lo = lows(points)
+    c = closes(points)
+    n = len(c)
+    if n < 2:
+        return [0.0] * n, [0.0] * n, [0.0] * n
+
+    tr_list: list[float] = [0.0]
+    pdm_list: list[float] = [0.0]
+    mdm_list: list[float] = [0.0]
+    for i in range(1, n):
+        tr = max(h[i] - lo[i], abs(h[i] - c[i - 1]), abs(lo[i] - c[i - 1]))
+        up = h[i] - h[i - 1]
+        down = lo[i - 1] - lo[i]
+        pdm = up if (up > down and up > 0.0) else 0.0
+        mdm = down if (down > up and down > 0.0) else 0.0
+        tr_list.append(tr)
+        pdm_list.append(pdm)
+        mdm_list.append(mdm)
+
+    def _wilder_sum(vals: list[float], p: int) -> list[float]:
+        """Wilder smoothing with sum-based init (for ATR and DM)."""
+        if len(vals) < p:
+            return [0.0] * len(vals)
+        first = sum(vals[:p])
+        result = [0.0] * (p - 1) + [first]
+        for v in vals[p:]:
+            result.append(result[-1] - result[-1] / p + v)
+        return result
+
+    def _wilder_avg(vals: list[float], p: int) -> list[float]:
+        """Wilder smoothing with average-based init (for ADX)."""
+        if len(vals) < p:
+            return [0.0] * len(vals)
+        first = sum(vals[:p]) / p
+        result = [0.0] * (p - 1) + [first]
+        for v in vals[p:]:
+            result.append(result[-1] - result[-1] / p + v / p)
+        return result
+
+    atr_s = _wilder_sum(tr_list, period)
+    pdi_s = _wilder_sum(pdm_list, period)
+    mdi_s = _wilder_sum(mdm_list, period)
+
+    dx_list: list[float] = []
+    di_plus: list[float] = []
+    di_minus: list[float] = []
+    for a, p, m in zip(atr_s, pdi_s, mdi_s):
+        dip = 100.0 * p / a if a else 0.0
+        dim = 100.0 * m / a if a else 0.0
+        denom = dip + dim
+        dx_list.append(100.0 * abs(dip - dim) / denom if denom else 0.0)
+        di_plus.append(dip)
+        di_minus.append(dim)
+
+    adx_out = _wilder_avg(dx_list, period)
+    return adx_out, di_plus, di_minus
+
+
+def vwap(points: list[OHLCVPoint]) -> list[float]:
+    """VWAP = cumulative(typical_price * volume) / cumulative(volume).
+    Typical price = (high + low + close) / 3. No daily reset."""
+    result: list[float] = []
+    cum_tpv = 0.0
+    cum_vol = 0.0
+    for p in points:
+        tp = (p.high + p.low + p.close) / 3.0
+        cum_tpv += tp * p.volume
+        cum_vol += p.volume
+        result.append(cum_tpv / cum_vol if cum_vol > 0.0 else p.close)
+    return result
+
+
+def keltner_channels(
+    points: list[OHLCVPoint],
+    ema_period: int = 20,
+    atr_period: int = 10,
+    multiplier: float = 2.0,
+) -> tuple[list[float], list[float], list[float]]:
+    """Keltner Channels: middle = EMA(close), upper/lower = middle ± multiplier * ATR.
+    Returns (upper, middle, lower)."""
+    mid = ema(closes(points), ema_period)
+    atr_vals = calculate_atr(points, atr_period)
+    upper = [m + multiplier * a for m, a in zip(mid, atr_vals)]
+    lower = [m - multiplier * a for m, a in zip(mid, atr_vals)]
+    return upper, mid, lower
 
 
 def obv(points: list[OHLCVPoint]) -> list[float]:
@@ -1774,6 +1989,73 @@ def calculate_bollinger_on_rsi(payload: BollingerVariantRequest) -> BollingerOnR
         mid=mid,
         lower=lower_out,
         metadata={"indicator": "BB_RSI", "period": payload.period, "numStd": payload.numStd},
+    )
+
+
+def calculate_macd(payload: MACDRequest) -> MACDResponse:
+    """MACD endpoint: line, signal, histogram. Book ref: mastering-finance-python.md L5264."""
+    series = closes(payload.ohlcv)
+    macd_line, signal_line, histogram = macd(series, payload.fast, payload.slow, payload.signal)
+    pts = payload.ohlcv
+    return MACDResponse(
+        macd_line=[IndicatorPoint(time=pts[i].time, value=macd_line[i]) for i in range(len(pts))],
+        signal_line=[IndicatorPoint(time=pts[i].time, value=signal_line[i]) for i in range(len(pts))],
+        histogram=[IndicatorPoint(time=pts[i].time, value=histogram[i]) for i in range(len(pts))],
+        metadata={"fast": payload.fast, "slow": payload.slow, "signal": payload.signal},
+    )
+
+
+def calculate_stochastic(payload: StochasticRequest) -> StochasticResponse:
+    """Stochastic %K/%D endpoint."""
+    k_vals, d_vals = stochastic(payload.ohlcv, payload.k_period, payload.d_period)
+    pts = payload.ohlcv
+    return StochasticResponse(
+        k=[IndicatorPoint(time=pts[i].time, value=k_vals[i]) for i in range(len(pts))],
+        d=[IndicatorPoint(time=pts[i].time, value=d_vals[i]) for i in range(len(pts))],
+        metadata={"k_period": payload.k_period, "d_period": payload.d_period},
+    )
+
+
+def calculate_adx(payload: ADXRequest) -> ADXResponse:
+    """ADX + DI+ + DI- endpoint."""
+    adx_vals, dip_vals, dim_vals = adx_series(payload.ohlcv, payload.period)
+    pts = payload.ohlcv
+    return ADXResponse(
+        adx=[IndicatorPoint(time=pts[i].time, value=adx_vals[i]) for i in range(len(pts))],
+        di_plus=[IndicatorPoint(time=pts[i].time, value=dip_vals[i]) for i in range(len(pts))],
+        di_minus=[IndicatorPoint(time=pts[i].time, value=dim_vals[i]) for i in range(len(pts))],
+        metadata={"period": payload.period},
+    )
+
+
+def calculate_hma(payload: HMARequest) -> IndicatorResponse:
+    """Hull MA endpoint."""
+    series = closes(payload.ohlcv)
+    hma_vals = hma(series, payload.period)
+    return IndicatorResponse(
+        data=[IndicatorPoint(time=payload.ohlcv[i].time, value=hma_vals[i]) for i in range(len(payload.ohlcv))],
+        metadata={"indicator": "HMA", "period": payload.period},
+    )
+
+
+def calculate_vwap(payload: VWAPRequest) -> IndicatorResponse:
+    """VWAP endpoint — cumulative, no daily reset."""
+    vwap_vals = vwap(payload.ohlcv)
+    return IndicatorResponse(
+        data=[IndicatorPoint(time=payload.ohlcv[i].time, value=vwap_vals[i]) for i in range(len(payload.ohlcv))],
+        metadata={"indicator": "VWAP"},
+    )
+
+
+def calculate_keltner(payload: KeltnerRequest) -> KeltnerResponse:
+    """Keltner Channels endpoint."""
+    upper, mid, lower = keltner_channels(payload.ohlcv, payload.ema_period, payload.atr_period, payload.multiplier)
+    pts = payload.ohlcv
+    return KeltnerResponse(
+        upper=[IndicatorPoint(time=pts[i].time, value=upper[i]) for i in range(len(pts))],
+        middle=[IndicatorPoint(time=pts[i].time, value=mid[i]) for i in range(len(pts))],
+        lower=[IndicatorPoint(time=pts[i].time, value=lower[i]) for i in range(len(pts))],
+        metadata={"ema_period": payload.ema_period, "atr_period": payload.atr_period, "multiplier": payload.multiplier},
     )
 
 

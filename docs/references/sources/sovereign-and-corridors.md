@@ -16,6 +16,43 @@
 
 ---
 
+## Tiering-Schnitt (SS4)
+
+### Global baseline
+
+| Quelle | Warum Baseline |
+|--------|----------------|
+| `IMF COFER` | globaler Reserve- und De-Dollarization-Anker |
+| `UN Comtrade` | Standardbasis fuer bilaterale Trade-Corridors |
+| `WGI` | Governance-Baseline |
+| `Chinn-Ito KAOPEN` | Capital-openness-Baseline |
+
+### Tier-1 official / specialist
+
+| Quelle | Warum Tier-1 |
+|--------|--------------|
+| `Atlantic Council CBDC Tracker` | klarer CBDC-Speziallayer mit direktem Produktwert |
+| `SWIFT RMB Tracker` | Settlement-/Internationalization-Sonderwert fuer RMB-Signale |
+| `WTO disputes / trade materials` | formalisierter Trade-friction-Layer |
+| `Fragile States Index` | expliziter Stress-/fragility-Sonderwert fuer Sovereign-Risk-Overlays |
+
+### Tier-1-Mehrwert gegenueber der Baseline
+
+| Quelle | Baseline-Vergleich | Konkreter Mehrwert |
+|--------|--------------------|--------------------|
+| `Atlantic Council CBDC Tracker` | `IMF COFER` / `UN Comtrade` | operative CBDC-Rollout- und Pilot-Sicht statt nur Reserve- oder Trade-Basisdaten |
+| `SWIFT RMB Tracker` | `IMF COFER` | schnellere und spezifischere RMB-Settlement-/Internationalization-Signale als globale Reserve-Aggregate |
+| `WTO disputes / trade materials` | `UN Comtrade` | formalisierte Trade-Frictions und Streitfaelle statt nur Handelsvolumen; hoehere Policy-Relevanz |
+| `Fragile States Index` | `WGI` / `Chinn-Ito KAOPEN` | expliziter Fragility-/state-stress-Layer fuer Sovereign-Overlays, den Governance- und Capital-Openness-Baselines nicht direkt liefern |
+
+### Long-tail deferred
+
+| Quelle | Warum deferred |
+|--------|----------------|
+| `Atlantic Council Dollar / geoeconomic tracking`, `Heritage EFI`, `CPI`, `Henley Passport Index`, `reserve / sanctions / trust overlays` | nuetzlich fuer spaetere Composite- oder Attractiveness-Slices, aber aktuell nicht alles gleichzeitig delivery-wuerdig |
+
+---
+
 ## Expliziter Quellenkatalog
 
 ### CBDC / De-Dollarization
@@ -56,8 +93,16 @@
 
 ---
 
+## Arbeitsregel
+
+- Source-Onboarding startet hier nicht direkt aus Kataloginteresse, sondern erst nach Tiering in `../../specs/execution/source_selection_delta.md`.
+- Default zuerst auf globale Reserve-, Governance- und Trade-Baselines; zusammengesetzte Attractiveness- und Geoeconomics-Layer nur bei echtem Produktbedarf.
+
+---
+
 ## Querverweise
 
 - `../../specs/geo/GEOMAP_PRODUCT_AND_POLICY.md`
+- `../../specs/execution/source_selection_delta.md`
 - `../../ENTROPY_NOVELTY.md`
 - `../../POLITICAL_ECONOMY_KNOWLEDGE.md`

@@ -1,6 +1,8 @@
 import { MapPinPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { getMarkerSeverityColor } from "@/features/geopolitical/d3/scales";
 import { getMarkerSymbolPath, MARKER_SYMBOL_LEGEND } from "@/features/geopolitical/markerSymbols";
 
@@ -9,11 +11,23 @@ const severityLevels = [1, 2, 3, 4, 5] as const;
 interface MapLeftSidebarProps {
 	markerPlacementArmed: boolean;
 	onToggleMarkerPlacement: () => void;
+	showFiltersToolbar: boolean;
+	onShowFiltersToolbarChange: (next: boolean) => void;
+	showBodyLayerLegend: boolean;
+	onShowBodyLayerLegendChange: (next: boolean) => void;
+	showTimelinePanel: boolean;
+	onShowTimelinePanelChange: (next: boolean) => void;
 }
 
 export function MapLeftSidebar({
 	markerPlacementArmed,
 	onToggleMarkerPlacement,
+	showFiltersToolbar,
+	onShowFiltersToolbarChange,
+	showBodyLayerLegend,
+	onShowBodyLayerLegendChange,
+	showTimelinePanel,
+	onShowTimelinePanelChange,
 }: MapLeftSidebarProps) {
 	return (
 		<aside className="flex h-full w-full flex-col overflow-hidden bg-transparent">
@@ -24,6 +38,66 @@ export function MapLeftSidebar({
 			</div>
 			<ScrollArea className="flex-1">
 				<div className="space-y-3 p-3">
+					<section className="rounded-md border border-border bg-card p-3">
+						<h2 className="text-sm font-semibold">Overlay Chrome</h2>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Toggle UI chrome independently from the data layers on the map.
+						</p>
+						<div className="mt-3 space-y-2">
+							<Label
+								htmlFor="geomap-filters-toolbar-toggle"
+								className="justify-between gap-3 rounded border border-border/70 bg-background/60 px-2 py-2"
+							>
+								<div className="space-y-0.5">
+									<span className="text-xs font-semibold">Filters Toolbar</span>
+									<span className="block text-[11px] text-muted-foreground">
+										Top map filters and stats chips
+									</span>
+								</div>
+								<Switch
+									id="geomap-filters-toolbar-toggle"
+									checked={showFiltersToolbar}
+									onCheckedChange={onShowFiltersToolbarChange}
+									aria-label="Toggle filters toolbar overlay"
+								/>
+							</Label>
+							<Label
+								htmlFor="geomap-legend-overlay-toggle"
+								className="justify-between gap-3 rounded border border-border/70 bg-background/60 px-2 py-2"
+							>
+								<div className="space-y-0.5">
+									<span className="text-xs font-semibold">Body Legend</span>
+									<span className="block text-[11px] text-muted-foreground">
+										Bottom-left body point legend overlay
+									</span>
+								</div>
+								<Switch
+									id="geomap-legend-overlay-toggle"
+									checked={showBodyLayerLegend}
+									onCheckedChange={onShowBodyLayerLegendChange}
+									aria-label="Toggle body layer legend overlay"
+								/>
+							</Label>
+							<Label
+								htmlFor="geomap-timeline-panel-toggle"
+								className="justify-between gap-3 rounded border border-border/70 bg-background/60 px-2 py-2"
+							>
+								<div className="space-y-0.5">
+									<span className="text-xs font-semibold">Timeline Workspace</span>
+									<span className="block text-[11px] text-muted-foreground">
+										Inspector tab for timeline and replay tooling
+									</span>
+								</div>
+								<Switch
+									id="geomap-timeline-panel-toggle"
+									checked={showTimelinePanel}
+									onCheckedChange={onShowTimelinePanelChange}
+									aria-label="Toggle timeline workspace tab"
+								/>
+							</Label>
+						</div>
+					</section>
+
 					<section className="rounded-md border border-border bg-card p-3">
 						<h2 className="text-sm font-semibold">Marker Actions</h2>
 						<p className="mt-1 text-xs text-muted-foreground">
@@ -36,10 +110,11 @@ export function MapLeftSidebar({
 							className="mt-3 w-full"
 							onClick={onToggleMarkerPlacement}
 							aria-pressed={markerPlacementArmed}
-							aria-label="Toggle marker placement mode"
+							aria-label="Toggle marker placement mode (shortcut M)"
+							title="Shortcut: M"
 						>
 							<MapPinPlus className="mr-2 h-4 w-4" />
-							{markerPlacementArmed ? "Set Marker Active" : "Set Marker"}
+							{markerPlacementArmed ? "Set Marker Active (M)" : "Set Marker (M)"}
 						</Button>
 					</section>
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { buildGeoCandidateSelectionDetail } from "@/features/geopolitical/selection-detail";
 import type { GeoCandidate } from "@/lib/geopolitical/types";
 
 interface CandidateQueueProps {
@@ -39,62 +40,67 @@ export function CandidateQueue({
 				{candidates.length === 0 ? (
 					<p className="text-xs text-muted-foreground">No open candidates.</p>
 				) : (
-					candidates.map((candidate) => (
-						<div key={candidate.id} className="rounded-md border border-border bg-background p-2">
-							<div className="flex items-center justify-between gap-2">
-								<span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-									{candidate.triggerType}
-								</span>
-								<span className="text-[11px] text-muted-foreground">
-									conf {candidate.confidence.toFixed(2)} | S{candidate.severityHint} |{" "}
-									{candidate.routeTarget ?? "geo"} | {candidate.reviewAction ?? "human_review"}
-								</span>
+					candidates.map((candidate) => {
+						const detail = buildGeoCandidateSelectionDetail(candidate);
+						return (
+							<div key={candidate.id} className="rounded-md border border-border bg-background p-2">
+								<div className="flex items-center justify-between gap-2">
+									<span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+										{detail.subtitle ?? candidate.triggerType}
+									</span>
+									<span className="text-[11px] text-muted-foreground">
+										{detail.primaryMeta.join(" | ")}
+									</span>
+								</div>
+								<p className="mt-1 text-sm">{detail.title}</p>
+								{detail.summary ? (
+									<p className="mt-1 text-[11px] text-muted-foreground">{detail.summary}</p>
+								) : null}
+								{detail.secondaryMeta.length > 0 ? (
+									<p className="mt-1 text-[11px] text-muted-foreground">
+										{detail.secondaryMeta.join(" • ")}
+									</p>
+								) : null}
+								<div className="mt-2 flex gap-2">
+									<Button
+										size="sm"
+										disabled={busy}
+										onClick={() => onAccept(candidate.id)}
+										aria-label={`Accept candidate ${candidate.headline}`}
+									>
+										Signal
+									</Button>
+									<Button
+										size="sm"
+										variant="outline"
+										disabled={busy}
+										onClick={() => onSnooze(candidate.id)}
+										aria-label={`Snooze candidate ${candidate.headline}`}
+									>
+										Uncertain
+									</Button>
+									<Button
+										size="sm"
+										variant="destructive"
+										disabled={busy}
+										onClick={() => onReject(candidate.id)}
+										aria-label={`Reject candidate ${candidate.headline}`}
+									>
+										Noise
+									</Button>
+									<Button
+										size="sm"
+										variant="ghost"
+										disabled={busy}
+										onClick={() => onReclassify(candidate.id)}
+										aria-label={`Reclassify candidate ${candidate.headline}`}
+									>
+										Reclassify
+									</Button>
+								</div>
 							</div>
-							<p className="mt-1 text-sm">{candidate.headline}</p>
-							{candidate.regionHint && (
-								<p className="mt-1 text-[11px] text-muted-foreground">
-									region: {candidate.regionHint}
-								</p>
-							)}
-							<div className="mt-2 flex gap-2">
-								<Button
-									size="sm"
-									disabled={busy}
-									onClick={() => onAccept(candidate.id)}
-									aria-label={`Accept candidate ${candidate.headline}`}
-								>
-									Signal
-								</Button>
-								<Button
-									size="sm"
-									variant="outline"
-									disabled={busy}
-									onClick={() => onSnooze(candidate.id)}
-									aria-label={`Snooze candidate ${candidate.headline}`}
-								>
-									Uncertain
-								</Button>
-								<Button
-									size="sm"
-									variant="destructive"
-									disabled={busy}
-									onClick={() => onReject(candidate.id)}
-									aria-label={`Reject candidate ${candidate.headline}`}
-								>
-									Noise
-								</Button>
-								<Button
-									size="sm"
-									variant="ghost"
-									disabled={busy}
-									onClick={() => onReclassify(candidate.id)}
-									aria-label={`Reclassify candidate ${candidate.headline}`}
-								>
-									Reclassify
-								</Button>
-							</div>
-						</div>
-					))
+						);
+					})
 				)}
 			</div>
 			<div className="mt-3 rounded-md border border-border bg-background p-2">

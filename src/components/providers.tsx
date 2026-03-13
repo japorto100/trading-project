@@ -3,6 +3,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { queryClient } from "@/lib/query-client";
 
@@ -17,10 +18,17 @@ const InactivityMonitor = dynamic(
 
 export function Providers({ children }: { children: ReactNode }) {
 	return (
-		<QueryClientProvider client={queryClient}>
-			<SessionProvider>
-				<InactivityMonitor>{children}</InactivityMonitor>
-			</SessionProvider>
-		</QueryClientProvider>
+		<ThemeProvider
+			attribute="class"
+			defaultTheme="dark"
+			themes={["light", "dark", "blue-dark", "green-dark"]}
+			disableTransitionOnChange
+		>
+			<QueryClientProvider client={queryClient}>
+				<SessionProvider>
+					<InactivityMonitor>{children}</InactivityMonitor>
+				</SessionProvider>
+			</QueryClientProvider>
+		</ThemeProvider>
 	);
 }

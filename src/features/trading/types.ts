@@ -5,7 +5,20 @@ export type SidebarPanel =
 	| "orders"
 	| "portfolio"
 	| "macro"
-	| "strategy";
+	| "strategy"
+	| "orderbook";
+
+export interface OrderbookLevel {
+	price: number;
+	amount: number;
+}
+
+export interface OrderbookSnapshot {
+	exchange: string;
+	assetType: string;
+	bids: OrderbookLevel[];
+	asks: OrderbookLevel[];
+}
 export type WatchlistTab =
 	| "all"
 	| "favorites"
@@ -38,4 +51,23 @@ export interface SignalSnapshot {
 	heartbeatScore: number;
 	heartbeatCycleBars: number | null;
 	atr: number | null;
+}
+
+// Composite signal API response shapes
+export interface CompositeSignalRouteComponent {
+	score?: number;
+	details?: Record<string, unknown>;
+}
+
+export interface CompositeSignalRouteData {
+	signal?: "buy" | "sell" | "neutral";
+	confidence?: number;
+	components?: Record<string, CompositeSignalRouteComponent>;
+	timestamp?: number;
+}
+
+export interface CompositeSignalRouteResponse {
+	success?: boolean;
+	data?: CompositeSignalRouteData;
+	error?: string;
 }

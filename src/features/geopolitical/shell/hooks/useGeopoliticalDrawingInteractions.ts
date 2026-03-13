@@ -78,6 +78,10 @@ export function useGeopoliticalDrawingInteractions({
 }: UseGeopoliticalDrawingInteractionsParams) {
 	const handleMapClick = useCallback(
 		async (coords: GeoCoordinate) => {
+			if (drawingMode === "cursor") {
+				return;
+			}
+
 			if (drawingMode === "line") {
 				if (!pendingLineStart) {
 					setPendingLineStart(coords);

@@ -252,7 +252,7 @@ bun run db:generate            # Generate Prisma client
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (53132 symbols, 151711 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (57729 symbols, 182610 relationships, 300 execution flows).
 
 ## Always Start Here
 

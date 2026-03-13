@@ -27,11 +27,13 @@ type Config struct {
 	BaseURL        string
 	APIToken       string
 	RequestTimeout time.Duration
+	CacheTTL       time.Duration
 }
 
 type Client struct {
-	baseClient *base.Client
-	apiToken   string
+	baseClient    *base.Client
+	apiToken      string
+	responseCache *base.JSONHotCache
 }
 
 func (c *Client) apiTokenForContext(ctx context.Context) string {
@@ -58,7 +60,8 @@ func NewClient(cfg Config) *Client {
 			Timeout:    timeout,
 			RetryCount: 1,
 		}),
-		apiToken: strings.TrimSpace(cfg.APIToken),
+		apiToken:      strings.TrimSpace(cfg.APIToken),
+		responseCache: base.NewJSONHotCache("banxico-series", cfg.CacheTTL),
 	}
 }
 
@@ -110,6 +113,13 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	}
 	if limit > 500 {
 		limit = 500
+	}
+	cacheKey := base.StableCacheKey(seriesID, strconv.Itoa(limit))
+	if c.responseCache != nil {
+		var cached []gct.SeriesPoint
+		if c.responseCache.Get(ctx, cacheKey, &cached) && len(cached) > 0 {
+			return cached, nil
+		}
 	}
 
 	path := fmt.Sprintf("%s/%s/datos", defaultSeriesPath, seriesID)
@@ -168,6 +178,9 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	ensureLatestFirst(points)
 	if len(points) > limit {
 		points = points[:limit]
+	}
+	if c.responseCache != nil {
+		c.responseCache.Set(ctx, cacheKey, points)
 	}
 	return points, nil
 }

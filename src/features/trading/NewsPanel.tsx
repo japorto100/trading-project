@@ -104,7 +104,7 @@ export function NewsPanel({ symbol }: NewsPanelProps) {
 		error: queryError,
 		refetch: refetchNews,
 	} = useQuery({
-		queryKey: ["news", symbol],
+		queryKey: ["market", "news", symbol],
 		queryFn: async () => {
 			const params = new URLSearchParams({ symbol, limit: "24" });
 			const controller = new AbortController();

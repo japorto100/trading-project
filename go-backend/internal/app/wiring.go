@@ -103,11 +103,13 @@ func NewServerFromEnv() (*Server, error) {
 		WSBaseURL:      envOr("FINNHUB_WS_BASE_URL", finnhub.DefaultWSBaseURL),
 		APIKey:         envOr("FINNHUB_API_KEY", ""),
 		RequestTimeout: durationMsOr("FINNHUB_HTTP_TIMEOUT_MS", 4000),
+		CacheTTL:       durationMsOr("FINNHUB_CACHE_TTL_MS", 15000),
 	})
 	fredClient := fred.NewClient(fred.Config{
 		BaseURL:        envOr("FRED_BASE_URL", fred.DefaultBaseURL),
 		APIKey:         envOr("FRED_API_KEY", ""),
 		RequestTimeout: durationMsOr("FRED_HTTP_TIMEOUT_MS", 4000),
+		CacheTTL:       durationMsOr("FRED_CACHE_TTL_MS", 300000),
 	})
 	bcbClient := bcb.NewClient(bcb.Config{
 		BaseURL:        envOr("BCB_BASE_URL", bcb.DefaultBaseURL),
@@ -117,11 +119,13 @@ func NewServerFromEnv() (*Server, error) {
 		BaseURL:        envOr("BANXICO_BASE_URL", banxico.DefaultBaseURL),
 		APIToken:       envOr("BANXICO_API_TOKEN", ""),
 		RequestTimeout: durationMsOr("BANXICO_HTTP_TIMEOUT_MS", 4000),
+		CacheTTL:       durationMsOr("BANXICO_CACHE_TTL_MS", 300000),
 	})
 	bokClient := bok.NewClient(bok.Config{
 		BaseURL:        envOr("BOK_ECOS_BASE_URL", bok.DefaultBaseURL),
 		APIKey:         envOr("BOK_ECOS_API_KEY", ""),
 		RequestTimeout: durationMsOr("BOK_ECOS_HTTP_TIMEOUT_MS", 4000),
+		CacheTTL:       durationMsOr("BOK_ECOS_CACHE_TTL_MS", 300000),
 	})
 	bcraClient := bcra.NewClient(bcra.Config{
 		BaseURL:        envOr("BCRA_BASE_URL", bcra.DefaultBaseURL),
@@ -169,11 +173,13 @@ func NewServerFromEnv() (*Server, error) {
 	ofrClient := ofr.NewClient(ofr.Config{
 		BaseURL:        envOr("OFR_BASE_URL", ofr.DefaultBaseURL),
 		RequestTimeout: durationMsOr("OFR_HTTP_TIMEOUT_MS", 6000),
+		CacheTTL:       durationMsOr("OFR_CACHE_TTL_MS", 300000),
 	})
 	macroClient.RegisterPrefixClient("OFR_", ofrClient)
 	nyfedClient := nyfed.NewClient(nyfed.Config{
 		BaseURL:        envOr("NYFED_BASE_URL", nyfed.DefaultBaseURL),
 		RequestTimeout: durationMsOr("NYFED_HTTP_TIMEOUT_MS", 6000),
+		CacheTTL:       durationMsOr("NYFED_CACHE_TTL_MS", 300000),
 	})
 	macroClient.RegisterPrefixClient("NYFED_", nyfedClient)
 	financeBridgeClient := financebridge.NewClient(financebridge.Config{
@@ -194,13 +200,14 @@ func NewServerFromEnv() (*Server, error) {
 		RequestTimeout: durationMsOr("GEOPOLITICAL_FRONTEND_API_TIMEOUT_MS", 8000),
 	})
 	acledClient := acled.NewClient(acled.Config{
-		BaseURL:        envOr("ACLED_BASE_URL", acled.DefaultBaseURL),
-		APIToken:       envOr("ACLED_API_TOKEN", ""),
-		Email:          envOr("ACLED_EMAIL", ""),
-		AccessKey:      envOr("ACLED_ACCESS_KEY", ""),
-		RequestTimeout: durationMsOr("ACLED_HTTP_TIMEOUT_MS", 5000),
-		MockEnabled:    boolOr("ACLED_MOCK_ENABLED", false),
-		MockDataPath:   envOr("ACLED_MOCK_DATA_PATH", "data/mock/acled-events.json"),
+		BaseURL:           envOr("ACLED_BASE_URL", acled.DefaultBaseURL),
+		APIToken:          envOr("ACLED_API_TOKEN", ""),
+		Email:             envOr("ACLED_EMAIL", ""),
+		AccessKey:         envOr("ACLED_ACCESS_KEY", ""),
+		RequestTimeout:    durationMsOr("ACLED_HTTP_TIMEOUT_MS", 5000),
+		MockEnabled:       boolOr("ACLED_MOCK_ENABLED", false),
+		MockDataPath:      envOr("ACLED_MOCK_DATA_PATH", "data/mock/acled-events.json"),
+		SnapshotStorePath: envOr("ACLED_SNAPSHOT_STATE_PATH", "data/providers/geopolitical/acled.json"),
 	})
 	if err := validateACLEDMockRuntime(boolOr("ACLED_MOCK_ENABLED", false)); err != nil {
 		return nil, err
@@ -224,10 +231,11 @@ func NewServerFromEnv() (*Server, error) {
 	geopoliticalEventsService := geopoliticalServices.NewEventsService(acledClient, gdeltGeoClient)
 	cfrClient := cfr.NewClient()
 	crisiswatchClient := crisiswatch.NewClient(crisiswatch.Config{
-		RSSURL:         envOr("CRISISWATCH_RSS_URL", crisiswatch.DefaultRSSURL),
-		RequestTimeout: durationMsOr("CRISISWATCH_HTTP_TIMEOUT_MS", 5000),
-		CacheTTL:       durationMsOr("CRISISWATCH_CACHE_TTL_MS", 300000),
-		PersistPath:    envOr("CRISISWATCH_CACHE_PERSIST_PATH", ""),
+		RSSURL:            envOr("CRISISWATCH_RSS_URL", crisiswatch.DefaultRSSURL),
+		RequestTimeout:    durationMsOr("CRISISWATCH_HTTP_TIMEOUT_MS", 5000),
+		CacheTTL:          durationMsOr("CRISISWATCH_CACHE_TTL_MS", 300000),
+		PersistPath:       envOr("CRISISWATCH_CACHE_PERSIST_PATH", ""),
+		SnapshotStorePath: envOr("CRISISWATCH_SNAPSHOT_STATE_PATH", "data/providers/geopolitical/crisiswatch.json"),
 	})
 	geopoliticalContextService := geopoliticalServices.NewContextService(cfrClient, crisiswatchClient)
 	gameTheoryClient := gametheory.NewClient(gametheory.Config{
@@ -291,9 +299,10 @@ func NewServerFromEnv() (*Server, error) {
 		RequestRetries: intOr("NEWS_HTTP_RETRIES", 1),
 	})
 	gdeltClient := newsConnectors.NewGDELTClient(newsConnectors.GDELTClientConfig{
-		BaseURL:        envOr("GDELT_BASE_URL", newsConnectors.DefaultGDELTBaseURL),
-		RequestTimeout: durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
-		RequestRetries: intOr("NEWS_HTTP_RETRIES", 1),
+		BaseURL:           envOr("GDELT_BASE_URL", newsConnectors.DefaultGDELTBaseURL),
+		RequestTimeout:    durationMsOr("NEWS_HTTP_TIMEOUT_MS", 4000),
+		RequestRetries:    intOr("NEWS_HTTP_RETRIES", 1),
+		SnapshotStorePath: envOr("GDELT_NEWS_SNAPSHOT_STATE_PATH", "data/providers/news/gdelt-news.json"),
 	})
 	finvizClient := newsConnectors.NewFinvizClient(newsConnectors.FinvizClientConfig{
 		BaseURL:        envOr("FINVIZ_RSS_BASE_URL", newsConnectors.DefaultFinvizBaseURL),

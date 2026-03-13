@@ -96,6 +96,9 @@ python-backend/.env
 
 # Phase 6: Memory Architecture — local KG and vector store data
 python-backend/data/kuzu/
+python-backend/data/kuzu.db
+python-backend/data/kuzu.db.wal
+python-backend/data/chroma.sqlite3
 python-backend/data/chroma/
 python-backend/data/episodic.db
 python-backend/data/kg_fallback.db

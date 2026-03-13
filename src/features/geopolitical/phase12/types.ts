@@ -3,7 +3,7 @@
 import type { GeoEvent } from "@/lib/geopolitical/types";
 
 export type AlertSeverityThreshold = "low" | "medium" | "high" | "critical";
-export type ExportFormat = "json" | "csv";
+export type ExportFormat = "json" | "csv" | "png" | "pdf";
 
 export interface AlertsPreviewResponse {
 	totalEvents: number;

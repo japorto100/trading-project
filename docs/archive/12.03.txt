@@ -1,0 +1,59 @@
+protocol buffers, flatbuffers => sollten wir eig haben?
+
+python 3.13 nogil um bottleneck zu entfernen + granian (tokio framework) anstatt uvicorn - vergleichen
+
+pyo3 allow_threads
+
+PDDL — Planning Domain Definition Language, ADL — Agent Definition Language, JSON/OpenAPI/Tool-Schemas => eingeplant bei agent , tools mds?
+
+
+https://chatgpt.com/c/69b04886-5ec4-8393-b9d6-14728e94498e => dataflow und weitere dinge sehr wichtig!
+
+https://github.com/OpenDCAI/AgentFlow ====> amazing
+
+
+BridgeTower, Nomic Embed (Vision & Text), Jina CLIP (v1 & v2) – Best Text-Image Alternative
+
+Gemini embedding 2
+https://colab.research.google.com/drive/1ocRHMzqHlUh813bxwNf8tdZIeVNVpCqU?usp=sharing
+https://www.youtube.com/watch?v=Xm_FGSuGCpE
+
+vergleichen mit zeroentropy embedder
+
+
+ollama, vllm verbindung mit unserem backend bzw schnittstelle vorbereiten
+
+arxiv 2510.12838v3 A2FM hybrid reasoning 21.2025 anschauen wahrscheinlich gibts erweiterung von dem oder generell bereits 
+(wurde ja beim WEF erwähnt bitte kritisch gegenprüfen ob das wirklich das hier war)
+
+
+ML/AI in rust:
+Schicht 1: Das unsichtbare, aber eiserne Fundament
+Bevor wir überhaupt "Künstliche Intelligenz" sagen, brauchen wir Werkzeuge, die das Chaos der Außenwelt bändigen.
+
+tokio (Die Zeitmaschine): Wenn ein Agentent-Schwarm arbeitet, warten viele Agenten gleichzeitig auf Antworten von APIs oder durchsuchen Datenbanken. tokio ist die asynchrone Laufzeitumgebung (Runtime) in Rust. Stell es dir wie einen hyperintelligenten Dirigenten vor, der Tausende von Aufgaben gleichzeitig orchestriert, ohne dass sich das System blockiert. Es ist der Grund, warum Rust-Agenten so unglaublich effizient skalieren.
+
+serde (Der strenge Übersetzer): Das ist vielleicht das wichtigste Werkzeug für Agenten überhaupt. Sprachmodelle spucken Text aus. Agenten brauchen aber strukturierte Daten (wie JSON), um Tools aufzurufen. serde (Serialization/Deserialization) zwingt die unvorhersehbare Text-Ausgabe des LLMs in ein striktes, fehlerfreies Datenkorsett. Wenn das Modell das Format auch nur minimal verfehlt, schlägt serde sofort Alarm, bevor der Fehler das System infizieren kann.
+
+Schicht 2: Die Brückenbauer (API-Clients)
+Wie spricht unser Code mit den Modellen, wenn wir sie nicht lokal laufen haben?
+
+async-openai: Das ist das absolute Arbeitstier. Es ist eine extrem saubere, asynchrone Implementierung der OpenAI-API. Da fast alle großen Modelle (Anthropic, lokale Modelle via Ollama oder vLLM) mittlerweile kompatibel zur OpenAI-Schnittstelle sind, nutzt man dieses Paket, um die eigentlichen "Gespräche" mit dem Modell zu führen.
+
+Schicht 3: Die Agenten-Frameworks (Die Dirigenten)
+Hier wird es jetzt richtig spannend. Das sind die Bibliotheken, die Agenten, Memory (Erinnerung) und Tools (Werkzeuge) miteinander verknüpfen.
+
+Rig (rig-rs): Wenn du heute einen Agenten in Rust bauen willst, ist Rig das aktuell eleganteste und vielversprechendste Framework. Es wurde exakt dafür entwickelt, LLM-Applikationen in Rust zu bauen. Es abstrahiert die verschiedenen Provider (OpenAI, Cohere, etc.), macht es unglaublich einfach, Vektordatenbanken anzubinden (für RAG - Retrieval-Augmented Generation) und vor allem: Es macht das Registrieren von Tools extrem sicher. Du schreibst eine normale Rust-Funktion, und Rig kümmert sich darum, dass das Modell weiß, wie es diese bedienen muss.
+
+instructor-rs: Erinnerst du dich an das Problem, dass Modelle oft nicht genau tun, was man will? instructor ist ein geniales Konzept (das aus der Python-Welt stammt, aber in Rust seine wahre Magie entfaltet). Es zwingt das LLM dazu, seine Antworten exakt in eine vordefinierte Rust-Datenstruktur (ein Struct) zu pressen. Es ist weniger ein komplettes Agenten-Framework und mehr ein extrem mächtiges Skalpell für strukturierten "Tool-Use".
+
+Kalosm: Wenn du möchtest, dass dein Agent nicht nur in der Cloud lebt, sondern lokal auf deinem Rechner läuft und vielleicht sogar Ohren (Audio-Eingabe) und Augen (Bild-Verarbeitung) hat, ist Kalosm faszinierend. Es ist ein Framework, das verschiedene lokale Modelle (Llama, Whisper für Audio) nahtlos in Rust integriert.
+
+llm-chain: Dies ist eines der älteren Frameworks, quasi der Versuch, LangChain in Rust nachzubauen. Es ist nützlich, wenn man sehr komplexe, vorgefertigte Ketten von Prompts bauen möchte, verliert aber aktuell ein wenig an Momentum gegenüber moderneren, flexibleren Ansätzen wie Rig.
+
+Zusammenfassend kann man sagen:
+Ein moderner, robuster KI-Agent in Rust besteht meistens aus einer Kombination von tokio für die Nebenläufigkeit, async-openai für die Kommunikation, serde für die Fehlerresistenz bei den Daten und einem Framework wie Rig, das all diese Fäden zu einem Agenten verwebt.
+
+Es ist, als würde man von einer gemütlichen Segeljolle (Python) auf ein hochmodernes Forschungsschiff (Rust) umsteigen: Man muss am Anfang mehr Knoten lernen und das Deck schrubben, aber dafür übersteht man auch den schwersten Sturm, ohne dass der Mast bricht.
+
+Sollen wir uns einmal gedanklich ansehen, wie so ein "Tool-Use" (also wenn der Agent z.B. eine Wetter-API aufruft) im Code durch Rig oder instructor konkret abgesichert wird?

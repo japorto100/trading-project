@@ -29,7 +29,7 @@ export function KellyAllocationPanel({ symbols }: { symbols: string[] }) {
 		isLoading: loading,
 		error: queryError,
 	} = useQuery<KellyResponse>({
-		queryKey: ["kelly-allocation", symbols],
+		queryKey: ["portfolio", "kelly", symbols],
 		queryFn: async () => {
 			const res = await fetch("/api/fusion/portfolio/analytics/kelly-allocation", {
 				method: "POST",

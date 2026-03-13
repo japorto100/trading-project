@@ -18,6 +18,7 @@
 | Knowledge / ML | `projects/knowledge-and-ml.md` | KG-, ML- und Research-Projekte |
 | Evaluate | `projects/evaluate.md` | aktive Evaluationskandidaten mit klaren Gates |
 | To Watch | `projects/to-watch.md` | Beobachten, pruefen, nicht committen |
+| Will Not Use | `projects/will-not-use.md` | bewusst ausgeschlossene oder unscharfe Kandidaten |
 | Quellen-Gruppen | `sources/README.md` | G1-G10-Legende und Mapping |
 | Market Data | `sources/market-data.md` | Commodities, Forex, Equities, Futures, Symbol-Universum |
 | Macro / Zentralbanken | `sources/macro-and-central-banks.md` | SDMX, Zentralbanken, globale Macro-Erweiterung |
@@ -25,6 +26,8 @@
 | Financial Stability | `sources/financial-stability-and-nbfi.md` | BIS, FSB, OFR, Shadow Banking, Stress-Layer |
 | Unkonventionell | `sources/unconventional-and-translation.md` | Non-English, Translation, YouTube, Reddit, inoffizielle Quellen |
 | Sovereign / Corridors | `sources/sovereign-and-corridors.md` | CBDC, De-Dollarization, Trade Corridors, Attractiveness |
+| Quellen-Intake Overlay | `sources/additional-intake-2026-03.md` | Zusatzbewertung neuer Kandidaten inkl. API-/Kosten-Kontext |
+| Monitoring | `monitor.md` | Beobachtungsliste fuer offene API-/Pricing-/Compliance-Faelle |
 | Aktiver Status | `status.md` | Implementiert, Scaffold, geplant |
 
 ---

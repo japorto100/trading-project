@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatPrice, formatVolume } from "@/features/trading/utils";
 
 interface TradingStats {
 	change: number;
@@ -15,11 +16,9 @@ interface TradingStats {
 
 interface BottomStatsProps {
 	stats: TradingStats;
-	formatPrice: (value: number) => string;
-	formatVolume: (value: number) => string;
 }
 
-export function BottomStats({ stats, formatPrice, formatVolume }: BottomStatsProps) {
+export function BottomStats({ stats }: BottomStatsProps) {
 	const [collapsed, setCollapsed] = useState(false);
 	const [pulse, setPulse] = useState<"up" | "down" | null>(null);
 	const prevPriceRef = useRef(stats.lastPrice);

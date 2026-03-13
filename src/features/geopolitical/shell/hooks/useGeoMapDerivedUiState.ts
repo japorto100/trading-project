@@ -1,4 +1,8 @@
 import { useMemo } from "react";
+import {
+	buildGeoFilterChips,
+	type GeoFilterStateSnapshot,
+} from "@/features/geopolitical/geo-filter-contract";
 import type { EventsSource } from "@/features/geopolitical/store";
 import type { GeoEvent, GeoRegion } from "@/lib/geopolitical/types";
 
@@ -10,6 +14,7 @@ interface UseGeoMapDerivedUiStateParams {
 	selectedEventId: string | null;
 	eventsSource: EventsSource;
 	activeRegionId: string;
+	minSeverityFilter: number;
 	setActiveRegionId: (next: string) => void;
 	searchQuery: string;
 	setSearchQuery: (next: string) => void;
@@ -40,6 +45,7 @@ export function useGeoMapDerivedUiState({
 	selectedEventId,
 	eventsSource,
 	activeRegionId,
+	minSeverityFilter,
 	setActiveRegionId,
 	searchQuery,
 	setSearchQuery,
@@ -72,93 +78,77 @@ export function useGeoMapDerivedUiState({
 	}, [events]);
 
 	const activeFilterChips = useMemo(() => {
-		const chips: GeoMapFilterChip[] = [];
-		if (eventsSource === "local") {
-			if (activeRegionId) {
-				chips.push({
-					key: "local-region",
-					label: `Region: ${activeRegionId}`,
-					clear: () => setActiveRegionId(""),
-				});
+		const snapshot: GeoFilterStateSnapshot = {
+			eventsSource,
+			activeRegionId,
+			searchQuery,
+			minSeverityFilter,
+			acledCountryFilter,
+			acledRegionFilter,
+			acledEventTypeFilter,
+			acledSubEventTypeFilter,
+			acledFromFilter,
+			acledToFilter,
+		};
+		return buildGeoFilterChips(snapshot).map((chip): GeoMapFilterChip => {
+			switch (chip.key) {
+				case "local-region":
+					return { ...chip, clear: () => setActiveRegionId("") };
+				case "local-q":
+				case "acled-q":
+					return { ...chip, clear: () => setSearchQuery("") };
+				case "acled-country":
+					return {
+						...chip,
+						clear: () => {
+							setAcledCountryFilter("");
+							setAcledPage(1);
+						},
+					};
+				case "acled-region":
+					return {
+						...chip,
+						clear: () => {
+							setAcledRegionFilter("");
+							setAcledPage(1);
+						},
+					};
+				case "acled-event-type":
+					return {
+						...chip,
+						clear: () => {
+							setAcledEventTypeFilter("");
+							setAcledPage(1);
+						},
+					};
+				case "acled-sub-event-type":
+					return {
+						...chip,
+						clear: () => {
+							setAcledSubEventTypeFilter("");
+							setAcledPage(1);
+						},
+					};
+				case "acled-from":
+					return {
+						...chip,
+						clear: () => {
+							setAcledFromFilter("");
+							setAcledPage(1);
+						},
+					};
+				case "acled-to":
+					return {
+						...chip,
+						clear: () => {
+							setAcledToFilter("");
+							setAcledPage(1);
+						},
+					};
+				default:
+					return { ...chip, clear: () => undefined };
 			}
-			if (searchQuery.trim()) {
-				chips.push({
-					key: "local-q",
-					label: `Search: ${searchQuery.trim()}`,
-					clear: () => setSearchQuery(""),
-				});
-			}
-			return chips;
-		}
-
-		if (acledCountryFilter.trim()) {
-			chips.push({
-				key: "acled-country",
-				label: `Country: ${acledCountryFilter.trim()}`,
-				clear: () => {
-					setAcledCountryFilter("");
-					setAcledPage(1);
-				},
-			});
-		}
-		if (acledRegionFilter.trim()) {
-			chips.push({
-				key: "acled-region",
-				label: `Region: ${acledRegionFilter.trim()}`,
-				clear: () => {
-					setAcledRegionFilter("");
-					setAcledPage(1);
-				},
-			});
-		}
-		if (acledEventTypeFilter.trim()) {
-			chips.push({
-				key: "acled-event-type",
-				label: `Type: ${acledEventTypeFilter.trim()}`,
-				clear: () => {
-					setAcledEventTypeFilter("");
-					setAcledPage(1);
-				},
-			});
-		}
-		if (acledSubEventTypeFilter.trim()) {
-			chips.push({
-				key: "acled-sub-event-type",
-				label: `Sub-Event: ${acledSubEventTypeFilter.trim()}`,
-				clear: () => {
-					setAcledSubEventTypeFilter("");
-					setAcledPage(1);
-				},
-			});
-		}
-		if (acledFromFilter.trim()) {
-			chips.push({
-				key: "acled-from",
-				label: `From: ${acledFromFilter.trim()}`,
-				clear: () => {
-					setAcledFromFilter("");
-					setAcledPage(1);
-				},
-			});
-		}
-		if (acledToFilter.trim()) {
-			chips.push({
-				key: "acled-to",
-				label: `To: ${acledToFilter.trim()}`,
-				clear: () => {
-					setAcledToFilter("");
-					setAcledPage(1);
-				},
-			});
-		}
-		if (searchQuery.trim()) {
-			chips.push({
-				key: "acled-q",
-				label: `Search: ${searchQuery.trim()}`,
-				clear: () => setSearchQuery(""),
-			});
-		}
-		return chips;
+		});
 	}, [
 		activeRegionId,
 		acledCountryFilter,
@@ -168,6 +158,7 @@ export function useGeoMapDerivedUiState({
 		acledSubEventTypeFilter,
 		acledToFilter,
 		eventsSource,
+		minSeverityFilter,
 		searchQuery,
 		setAcledCountryFilter,
 		setAcledEventTypeFilter,

@@ -1,5 +1,9 @@
 import { useMemo } from "react";
 import Supercluster from "supercluster";
+import {
+	buildGeoFlatViewBoundsFromCoordinates,
+	type GeoFlatViewBounds,
+} from "@/features/geopolitical/flat-view-handoff";
 import type { GeoMapMarkerPoint } from "@/features/geopolitical/rendering/useGeoMapProjectionModel";
 import {
 	GEO_MAP_INITIAL_SCALE,
@@ -24,6 +28,7 @@ export interface GeoMapMarkerCluster {
 	x: number;
 	y: number;
 	count: number;
+	bounds: GeoFlatViewBounds | null;
 }
 
 interface UseGeoMapMarkerClustersParams {
@@ -94,6 +99,13 @@ export function useGeoMapMarkerClusters({
 			if ("cluster" in props && props.cluster) {
 				const projected = projection([lng, lat]);
 				if (!projected) continue;
+				const leaves = index.getLeaves(props.cluster_id, props.point_count);
+				const bounds = buildGeoFlatViewBoundsFromCoordinates(
+					leaves.map((leaf) => ({
+						lat: leaf.geometry.coordinates[1],
+						lng: leaf.geometry.coordinates[0],
+					})),
+				);
 				clusters.push({
 					id: `cluster-${props.cluster_id}`,
 					lat,
@@ -101,6 +113,7 @@ export function useGeoMapMarkerClusters({
 					x: projected[0],
 					y: projected[1],
 					count: props.point_count,
+					bounds,
 				});
 				continue;
 			}

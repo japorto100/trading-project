@@ -15,13 +15,10 @@ import type { CompositeSignalInsights } from "@/features/trading/types";
 
 interface SignalInsightsBarProps {
 	lineState: "above" | "below" | "neutral";
-	sma50: number | null;
 	lastCrossLabel: string;
 	rvol: number | null;
 	cmf: number | null;
-	obv: number | null;
 	heartbeatScore: number;
-	heartbeatCycleBars: number | null;
 	atr: number | null;
 	compositeSignal: CompositeSignalInsights | null;
 }
@@ -34,13 +31,10 @@ function metricBadgeTone(value: number): string {
 
 export function SignalInsightsBar({
 	lineState,
-	sma50: _sma50,
 	lastCrossLabel,
 	rvol,
 	cmf,
-	obv: _obv,
 	heartbeatScore,
-	heartbeatCycleBars: _heartbeatCycleBars,
 	atr,
 	compositeSignal,
 }: SignalInsightsBarProps) {

@@ -1,6 +1,12 @@
 "use client";
 
 import { create } from "zustand";
+import type { GeoFlatViewHandoff } from "@/features/geopolitical/flat-view-handoff";
+import {
+	buildGeoFlatViewStateFromHandoff,
+	type GeoFlatViewState,
+} from "@/features/geopolitical/flat-view-state";
+import type { GeoStoryFocusPreset } from "@/features/geopolitical/geo-story-focus";
 import {
 	DEFAULT_EDIT_FORM,
 	type DrawingMode,
@@ -25,8 +31,9 @@ import type { MarketNewsArticle } from "@/lib/news/types";
 export type EventsSource = "local" | "acled" | "gdelt";
 export type ContextSource = "all" | "cfr" | "crisiswatch";
 export type GeoMapBody = "earth" | "moon";
-export type GeoMapViewMode = "single" | "compare";
+export type GeoMapViewMode = "globe" | "flat";
 export type GeoEarthChoroplethMode = "severity" | "regime" | "macro";
+export type GeoReplayRangeMs = [number, number];
 export interface GeoLatLngPoint {
 	lat: number;
 	lng: number;
@@ -72,6 +79,11 @@ interface GeoMapWorkspaceState {
 	selectedSymbol: string;
 	selectedEventId: string | null;
 	selectedDrawingId: string | null;
+	selectedTimelineId: string | null;
+	storyFocusPresets: GeoStoryFocusPreset[];
+	activeStoryFocusPresetId: string | null;
+	pendingFlatViewHandoff: GeoFlatViewHandoff | null;
+	flatViewState: GeoFlatViewState | null;
 	activeRegionId: string;
 	searchQuery: string;
 	minSeverityFilter: number;
@@ -91,6 +103,12 @@ interface GeoMapWorkspaceState {
 	showRegionLayer: boolean;
 	showHeatmap: boolean;
 	showSoftSignals: boolean;
+	showFiltersToolbar: boolean;
+	showBodyLayerLegend: boolean;
+	showTimelinePanel: boolean;
+	timelineViewRangeMs: GeoReplayRangeMs | null;
+	timelineSelectedTimeMs: number | null;
+	activeReplayRangeMs: GeoReplayRangeMs | null;
 	bodyPointLayerVisibility: Record<string, boolean>;
 	earthChoroplethMode: GeoEarthChoroplethMode;
 	mapBody: GeoMapBody;
@@ -131,6 +149,12 @@ interface GeoMapWorkspaceActions {
 	setSelectedSymbol: (next: Updater<string>) => void;
 	setSelectedEventId: (next: Updater<string | null>) => void;
 	setSelectedDrawingId: (next: Updater<string | null>) => void;
+	setSelectedTimelineId: (next: Updater<string | null>) => void;
+	setStoryFocusPresets: (next: Updater<GeoStoryFocusPreset[]>) => void;
+	setActiveStoryFocusPresetId: (next: Updater<string | null>) => void;
+	setPendingFlatViewHandoff: (next: Updater<GeoFlatViewHandoff | null>) => void;
+	setFlatViewState: (next: Updater<GeoFlatViewState | null>) => void;
+	applyPendingFlatViewHandoff: () => void;
 	selectEvent: (eventId: string) => void;
 	selectDrawing: (drawingId: string) => void;
 	clearSelection: () => void;
@@ -153,6 +177,12 @@ interface GeoMapWorkspaceActions {
 	setShowRegionLayer: (next: Updater<boolean>) => void;
 	setShowHeatmap: (next: Updater<boolean>) => void;
 	setShowSoftSignals: (next: Updater<boolean>) => void;
+	setShowFiltersToolbar: (next: Updater<boolean>) => void;
+	setShowBodyLayerLegend: (next: Updater<boolean>) => void;
+	setShowTimelinePanel: (next: Updater<boolean>) => void;
+	setTimelineViewRangeMs: (next: Updater<GeoReplayRangeMs | null>) => void;
+	setTimelineSelectedTimeMs: (next: Updater<number | null>) => void;
+	setActiveReplayRangeMs: (next: Updater<GeoReplayRangeMs | null>) => void;
 	setBodyPointLayerVisibility: (next: Updater<Record<string, boolean>>) => void;
 	toggleBodyPointLayerVisibility: (layerId: string) => void;
 	resetBodyPointLayerVisibility: () => void;
@@ -182,7 +212,7 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 	loading: true,
 	busy: false,
 	error: null,
-	drawingMode: "marker",
+	drawingMode: "cursor",
 	drawingTextLabel: "Note",
 	drawingColor: "#22d3ee",
 	pendingLineStart: null,
@@ -199,6 +229,11 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 	selectedSymbol: "tank",
 	selectedEventId: null,
 	selectedDrawingId: null,
+	selectedTimelineId: null,
+	storyFocusPresets: [],
+	activeStoryFocusPresetId: null,
+	pendingFlatViewHandoff: null,
+	flatViewState: null,
 	activeRegionId: "",
 	searchQuery: "",
 	minSeverityFilter: 1,
@@ -218,10 +253,16 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 	showRegionLayer: true,
 	showHeatmap: true,
 	showSoftSignals: true,
+	showFiltersToolbar: true,
+	showBodyLayerLegend: true,
+	showTimelinePanel: true,
+	timelineViewRangeMs: null,
+	timelineSelectedTimeMs: null,
+	activeReplayRangeMs: null,
 	bodyPointLayerVisibility: {},
 	earthChoroplethMode: "severity",
 	mapBody: "earth",
-	mapViewMode: "single",
+	mapViewMode: "globe",
 
 	setEvents: (next) => set((state) => ({ events: resolveUpdater(state.events, next) })),
 	setCandidates: (next) => set((state) => ({ candidates: resolveUpdater(state.candidates, next) })),
@@ -278,9 +319,57 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 		set((state) => ({ selectedEventId: resolveUpdater(state.selectedEventId, next) })),
 	setSelectedDrawingId: (next) =>
 		set((state) => ({ selectedDrawingId: resolveUpdater(state.selectedDrawingId, next) })),
-	selectEvent: (eventId) => set({ selectedEventId: eventId, selectedDrawingId: null }),
-	selectDrawing: (drawingId) => set({ selectedDrawingId: drawingId, selectedEventId: null }),
-	clearSelection: () => set({ selectedEventId: null, selectedDrawingId: null }),
+	setSelectedTimelineId: (next) =>
+		set((state) => ({ selectedTimelineId: resolveUpdater(state.selectedTimelineId, next) })),
+	setStoryFocusPresets: (next) =>
+		set((state) => ({ storyFocusPresets: resolveUpdater(state.storyFocusPresets, next) })),
+	setActiveStoryFocusPresetId: (next) =>
+		set((state) => ({
+			activeStoryFocusPresetId: resolveUpdater(state.activeStoryFocusPresetId, next),
+		})),
+	setPendingFlatViewHandoff: (next) =>
+		set((state) => ({
+			pendingFlatViewHandoff: resolveUpdater(state.pendingFlatViewHandoff, next),
+		})),
+	setFlatViewState: (next) =>
+		set((state) => ({
+			flatViewState: resolveUpdater(state.flatViewState, next),
+		})),
+	applyPendingFlatViewHandoff: () =>
+		set((state) => {
+			if (state.pendingFlatViewHandoff === null) {
+				return state;
+			}
+			return {
+				flatViewState: buildGeoFlatViewStateFromHandoff(state.pendingFlatViewHandoff),
+				mapViewMode: "flat" as const,
+				pendingFlatViewHandoff: null,
+			};
+		}),
+	selectEvent: (eventId) =>
+		set({
+			selectedEventId: eventId,
+			selectedDrawingId: null,
+			selectedTimelineId: null,
+			activeStoryFocusPresetId: null,
+			pendingFlatViewHandoff: null,
+		}),
+	selectDrawing: (drawingId) =>
+		set({
+			selectedDrawingId: drawingId,
+			selectedEventId: null,
+			selectedTimelineId: null,
+			activeStoryFocusPresetId: null,
+			pendingFlatViewHandoff: null,
+		}),
+	clearSelection: () =>
+		set({
+			selectedEventId: null,
+			selectedDrawingId: null,
+			selectedTimelineId: null,
+			activeStoryFocusPresetId: null,
+			pendingFlatViewHandoff: null,
+		}),
 
 	setActiveRegionId: (next) =>
 		set((state) => ({ activeRegionId: resolveUpdater(state.activeRegionId, next) })),
@@ -320,6 +409,20 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 		set((state) => ({ showHeatmap: resolveUpdater(state.showHeatmap, next) })),
 	setShowSoftSignals: (next) =>
 		set((state) => ({ showSoftSignals: resolveUpdater(state.showSoftSignals, next) })),
+	setShowFiltersToolbar: (next) =>
+		set((state) => ({ showFiltersToolbar: resolveUpdater(state.showFiltersToolbar, next) })),
+	setShowBodyLayerLegend: (next) =>
+		set((state) => ({ showBodyLayerLegend: resolveUpdater(state.showBodyLayerLegend, next) })),
+	setShowTimelinePanel: (next) =>
+		set((state) => ({ showTimelinePanel: resolveUpdater(state.showTimelinePanel, next) })),
+	setTimelineViewRangeMs: (next) =>
+		set((state) => ({ timelineViewRangeMs: resolveUpdater(state.timelineViewRangeMs, next) })),
+	setTimelineSelectedTimeMs: (next) =>
+		set((state) => ({
+			timelineSelectedTimeMs: resolveUpdater(state.timelineSelectedTimeMs, next),
+		})),
+	setActiveReplayRangeMs: (next) =>
+		set((state) => ({ activeReplayRangeMs: resolveUpdater(state.activeReplayRangeMs, next) })),
 	setBodyPointLayerVisibility: (next) =>
 		set((state) => ({
 			bodyPointLayerVisibility: resolveUpdater(state.bodyPointLayerVisibility, next),

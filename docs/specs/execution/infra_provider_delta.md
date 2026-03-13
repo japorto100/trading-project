@@ -30,11 +30,17 @@
 - `docs/go-gct-gateway-connections.md`
 - `docs/references/status.md`
 - `docs/references/sources/README.md`
+- `docs/specs/execution/source_selection_delta.md`
 - `docs/specs/execution/source_onboarding_and_keys.md`
+- `docs/specs/execution/source_persistence_snapshot_delta.md`
 
 ### Arbeitsprinzip
 
+- Source-Selection und Tiering in `source_selection_delta.md` gehen jedem Runtime-Rollout voraus.
+- Source-Onboarding ist nicht der Endpunkt: Cache-/Snapshot-/Retention-Entscheidungen
+  fuer aktive Quellen folgen ueber `source_persistence_snapshot_delta.md`.
 - Provider-Rollout wird batchweise geschlossen, nicht als unverbundene Einzelaufgaben.
+- Runtime-Arbeit beginnt nur fuer Quellen, die als `global baseline` oder begruendete `tier-1 official`-Ausnahme dokumentiert sind.
 - Jede Batch-Schliessung braucht Verify-Evidence und Doku-Propagation in `references/*`.
 
 ---
@@ -136,6 +142,39 @@ Fuer auth-pflichtige Provider zusaetzlich:
 |:---------------|:-----------|
 | `ecb`, `bcb`, `bcra`, `tcmb`, `rbi`, `imf`, `oecd`, `worldbank`, `un`, `adb`, `ofr`, `nyfed` | je ein Success- und ein Invalid-/No-Data-Pfad statt Einzelueberengineering |
 
+### Priorisierte naechste Rollout-Zuege nach Source-Selection
+
+| Prioritaet | Quelle/Gruppe | Grund | Naechster Verify-Schritt |
+|:-----------|:--------------|:------|:--------------------------|
+| `P1` | `finnhub`, `fred`, `banxico`, `bok` | Tier-1-/Credential-Pfade sind transport- und env-seitig weitgehend geschlossen; Live-/Browser-Verify ist bewusst spaeterer Stack-Run | `MC2-MC5` und je ein echter Quote-/Error-Pfad pro Provider bei laufendem Stack |
+| `P2` | `EU Sanctions` | Tier-1 dokumentiert, Runtime nutzt aber noch normalisierten Feed statt primaerem offiziellen Machine-Readable-Pfad | offiziellen FSF-Fetch-Contract belastbar fixieren, dann Parser-/Watcher-Migration |
+| `P3` | `FINRA ATS` | klarer Tier-1-Speziallayer fuer Dark-Pool-/Microstructure-Slices, aktuell nur Scaffold | offiziellen Download-/Payload-Contract klaeren, dann `PV.1-PV.5` |
+| `P4` | `ADB` | einzige noch offene regionale Makro-Erweiterung im Baseline-/Tier-1-Rahmen | nur bei echtem Coverage-Gap aus Scaffold in Verify ueberfuehren |
+| `P5` | `FINMA Enforcement`, `SEC Enforcement RSS`, `FINRA Margin Statistics`, `BIS EWI`, `BIS RCAP`, `FSB NBFI Report` | fachlich priorisierte Specialist-Feeds, aber noch ohne dokumentierten Produkt-Trigger fuer aktives Onboarding | vorerst nur im Quellenkatalog und Status als `Geplant`; keine Env-/Rollout-Arbeit vor klarem Trigger |
+
+### Connector-Registrierung vs. Delivery-Status (2026-03-10)
+
+- Der aktive Quellenblock ist im Go-Wiring bereits breit registriert und env-seitig gefuehrt:
+  - Makro / Zentralbanken: `ecb`, `finnhub`, `fred`, `bcb`, `banxico`, `bok`, `bcra`, `tcmb`, `rbi`, `imf`, `oecd`, `worldbank`, `un`, `adb`, `ofr`, `nyfed`
+  - Geo / OSINT / Context: `acled`, `gdelt`, `cfr`, `crisiswatch`, `gametheory`, `seco`, `eu`, `ofac`, `un sanctions`
+  - interne Bridge-/Service-Pfade: `financebridge`, `indicatorservice`, `softsignals`, `geopoliticalnext`, `memory`, `agentservice`
+- `registriert` bedeutet explizit nicht automatisch `delivery-ready`:
+  - `ADB` bleibt Scaffold bis zu dokumentiertem Regional-Gap
+  - `SECO` bevorzugt jetzt offiziellen XML-Download, faellt aber bei transienten Problemen auf OpenSanctions zurueck
+  - `EU` bleibt trotz Wiring noch auf normalisiertem Default, bis der primaere offizielle Runtime-Fetch belastbar ist
+  - `FINRA ATS` bleibt trotz offiziellem OAuth/Bearer-Scaffold unter P3, bis Dataset-/Download-Haertung und Live-Run geschlossen sind
+  - interne Service-Connectoren sind transport- und smoke-seitig nutzbar, aber kein Ersatz fuer spaetere Live-Verify-Gates bei laufendem Stack
+
+### Harte Restliste fuer eingebaute Quellen (ohne neue Live-Arbeit)
+
+| Zustand | Quellen | Was fehlt noch |
+|:--------|:--------|:---------------|
+| `Done pending live-verify only` | `finnhub`, `fred`, `banxico`, `bok` | echter Stack-/Browser-/SSE-Run, sonst keine groessere Strukturarbeit mehr |
+| `Done pending official runtime switch` | `EU Sanctions` | primaeren offiziellen Fetch-/Download-Pfad belastbar machen und Default von normalisiertem Feed umlegen |
+| `Done pending scaffold hardening` | `FINRA ATS` | file-download-Zweig und spaeter Live-Run mit Credentials; Request-Haertung fuer Fields/Limit/Offset/CompareType und Async-Guard ist bereits geschlossen |
+| `Intentionally scaffolded` | `ADB` | nur bei dokumentiertem Coverage-Gap weiterziehen |
+| `Operationally done` | `ecb`, `bcb`, `bcra`, `tcmb`, `rbi`, `imf`, `oecd`, `worldbank`, `un`, `ofr`, `nyfed`, `cftc`, `ofac`, `un sanctions`, `geomap source pack`, `financebridge`, `indicatorservice`, `softsignals`, `geopoliticalnext`, `acled`, `gdelt`, `cfr`, `crisiswatch`, `gametheory`, `memory`, `agentservice`, `rss basket`, `finviz rss`, `gdelt news` | nur spaetere Live-Checks oder neue Produktanforderungen, kein unmittelbarer Code-/Doku-Blocker |
+
 ### Batch 2 Evidence (2026-03-10)
 
 - `oecd`:
@@ -187,7 +226,21 @@ Fuer auth-pflichtige Provider zusaetzlich:
   - Dafuer wurde der generische `base.BulkFetcher` um ZIP-Support erweitert, statt CFTC-spezifische Sonderlogik einzubauen
   - Tests decken jetzt den ZIP-Entpackungspfad im Base-Fetcher sowie den COT-CSV-Parser ab
 - `finra`:
-  - bleibt vorerst offen; die Primärdoku verweist klar auf Developer-/File-Download-Spezifikationen, aber in der aktuellen Session lag noch kein belastbar auslesbarer offizieller Endpoint-/Payload-Contract fuer den produktiven Fetcher vor
+  - bleibt offen, aber der offizielle Contract ist jetzt klarer eingegrenzt:
+    - OTC Transparency `weeklySummary` API via `POST https://api.finra.org/data/group/otcMarket/name/weeklySummary`
+    - zusaetzlich ATS file-download flow ueber FINRA-Spezifikation / HTML-grid
+    - Equity-/OTCMarket-Datasets verlangen Auth; fuer den produktiven Pfad ist deshalb neben URL und Payload auch ein FIP-/Bearer-Flow noetig
+  - der fruehere placeholder-GET-Stubs ist ersetzt:
+    - der Scaffold nutzt jetzt OAuth/Bearer + JSON-POST fuer `weeklySummary`
+    - env-seitig verdrahtet sind URL, Timeout, Token-URL, Client-ID/-Secret und direkter Bearer-Override
+  - produktionsreif ist der Pfad trotzdem noch nicht:
+    - offene Dataset-/Filter-Haertung ueber die ersten Guardrails hinaus
+    - offener file-download-Zweig
+    - noch kein verifizierter Live-Run gegen echte FINRA-Credentials
+  - immerhin ist der Scaffold jetzt env-seitig und testseitig verdrahtet:
+    - `FINRA_ATS_API_URL` und `FINRA_ATS_HTTP_TIMEOUT_MS` werden im Fetcher gelesen
+    - Paket-Tests fuer Env-Override, Bearer-Auth, Client-Credentials-Tokenflow und Request-Normalisierung sind vorhanden
+  - naechster Implementierungsschritt ist deshalb keine Grundarchitektur mehr, sondern Dataset-/Filter-Haertung auf dem offiziellen Contract
 
 ### Batch 4 — Internal / bridge / service provider
 
@@ -240,6 +293,17 @@ Fuer auth-pflichtige Provider zusaetzlich:
 - Regressions-/Suite-Nachweis:
   - `go test ./internal/connectors/financebridge ./internal/connectors/indicatorservice ./internal/connectors/softsignals ./internal/connectors/memory ./internal/connectors/agentservice ./internal/connectors/acled ./internal/connectors/gdelt ./internal/connectors/cfr ./internal/connectors/crisiswatch ./internal/connectors/gametheory`
 
+### News / Headline Feed Batch (2026-03-10)
+
+- Aktive Feed-Connectoren im Go-Gateway:
+  - generischer RSS-Basket ueber `NEWS_RSS_FEEDS`
+  - `Finviz RSS` ueber `FINVIZ_RSS_BASE_URL`
+  - `GDELT News` ueber denselben `GDELT_*`-Runtime-Vertrag wie der Geo-Event-Pfad, aber als separater News-Connector
+- Delivery-Status:
+  - env-seitig gefuehrt und jetzt in `source_onboarding_and_keys.md` / `references/status.md` gespiegelt
+  - `RSSClient`-Retry-Test ist vorhanden
+  - Live-Feed-Verify bleibt spaeterer Stack-Run; weitere Feed-Aufnahmen nur mit klarer Provenance- und Dedup-Regel
+
 ### Sanctions / GeoMap Evidence (2026-03-10)
 
 - Der sanctions-/diff-Pfad ist im aktuellen Go-Stack bereits ueber Watcher plus GeoMap-Integration belegt:
@@ -256,8 +320,12 @@ Fuer auth-pflichtige Provider zusaetzlich:
 - Quellenwahrheit im aktuellen Runtime-Slice:
   - `OFAC` laeuft ueber offiziellen XML-Feed
   - `UN` laeuft ueber offiziellen consolidated XML-Feed
-  - `SECO` ist offiziell als XML verfuegbar, laeuft aktuell aber ueber einen normalisierten JSON-Feed
-  - `EU` laeuft aktuell ueber einen normalisierten JSON-Feed; ein primaerer offizieller Machine-Readable-Fetch ist im Runtime-Slice noch nicht belegt
+- `SECO` ist offiziell als XML verfuegbar und wird jetzt als Primaerpfad bevorzugt
+- `SECO`: der Watcher kann die offizielle XML-Struktur parsen und faellt bei transienten Fetch-Problemen auf OpenSanctions zurueck; Paket-Tests fuer Default-/Fallback-Kette und XML-Minimalpfad sind gruen
+- `EU`: die offizielle FSF-Doku bestaetigt XML/CSV/PDF + RSS, aber der robuste Runtime-Contract fuer Robot-/Crawler-Zugriff ist noch nicht sauber genug belegt; deshalb bleibt der Runtime-Default vorerst normalisiert
+- `SECO` und `EU`:
+  - ihre Watcher sind jetzt ueber `SECO_SANCTIONS_URL` / `EU_SANCTIONS_URL` testbar und env-gesteuert
+  - Paket-Tests fuer die Env-Override-Pfade sind gruen
 - Regressions-/Suite-Nachweis:
   - `go test ./internal/connectors/un ./internal/connectors/eu ./internal/connectors/seco ./internal/connectors/geomapsources ./internal/handlers/http -run "Sanctions|GeoMapSourcePack|ParseUNSanctionsXML|ParseEUSanctionsJSON|ParseSECOSanctionsJSON"`
 
@@ -270,6 +338,7 @@ Fuer auth-pflichtige Provider zusaetzlich:
 | sqlc + pgxpool evaluation | teilweise | produktive DB-Grenze noch nicht gezogen |
 | CandleBuilder Lock-Contention | offen | Shard-Lock/sync.Map Phase 19; Baseline in go-gct-gateway-connections |
 | NATS JetStream | teilweise | Folgephasen fuer echte Async-Workloads offen |
+| FlatBuffers (Tick-Serialisierung) | offen | Erst relevant wenn Rust Signal Processor tatsaechlich sub-ms Ticks konsumiert; heute NATS-Payload ist JSON; FlatBuffers = zero-copy Alternative zu Protobuf fuer `market.{sym}.tick` Hot-Path; Protobuf bleibt fuer gRPC; Phase 20+ |
 | Object Storage Provider Rollout | teilweise | SeaweedFS host-nativ als Dev-Default verifiziert (Go-signed upload/download gegen S3-Endpunkt); produktnahe Dateitypen, Timeout-/Duplicate-/Interrupted-Error-Paths und Audit-Logs sind in Go verifiziert; Garage-Tooling ist angelegt, der host-native Windows-Build ist upstream durch Unix-only Code blockiert; CLI-S3-Smoke und HA-Follow-up bleiben offen |
 | Connect-/Go-native sync boundary | offen | bei neuen Go↔Go bzw. Go↔Rust service-grenzen bevorzugt bewerten |
 | SIMD / archsimd | offen | nur mit Profiling / Benchmarks entscheiden |
@@ -283,12 +352,14 @@ Fuer auth-pflichtige Provider zusaetzlich:
 1. `finnhub` live verifizieren und denselben Transport auf `fred` pruefen
 2. weitere read-only Connectoren auf `RetryDecision(...)` und `CredentialStore`
    heben
-3. GCT read-only slices weiter ueber `MarketTarget`-/shared-resolver-Grenzen
+3. offiziellen Runtime-Pfad fuer `SECO`/`EU Sanctions` gegen die aktuellen normalisierten Feeds schaerfen
+4. `FINRA ATS` nur dann aus dem Scaffold holen, wenn der offizielle Contract belastbar ist
+5. GCT read-only slices weiter ueber `MarketTarget`-/shared-resolver-Grenzen
    konsolidieren
-4. Capability-/router-Metadaten enger an echte Runtime-Adapter koppeln
-5. SSE-/Stream-Hardening fuer Reconnect, Replay und kontrollierten REST-Fallback
+6. Capability-/router-Metadaten enger an echte Runtime-Adapter koppeln
+7. SSE-/Stream-Hardening fuer Reconnect, Replay und kontrollierten REST-Fallback
    explizit verifizieren
-6. SeaweedFS-Gateway-Slice um CLI-S3-Smoke und eine belastbare Garage-Gegenprobe (Windows-Fork oder Containerpfad) ergaenzen
+8. SeaweedFS-Gateway-Slice um CLI-S3-Smoke und eine belastbare Garage-Gegenprobe (Windows-Fork oder Containerpfad) ergaenzen
 
 ### Object Storage HA / Replication Follow-up
 
@@ -339,6 +410,8 @@ Grund:
 |:------|:---------|
 | Gesamtroadmap | [`../EXECUTION_PLAN.md`](../EXECUTION_PLAN.md) |
 | Runtime-/Port-Wahrheit | [`../SYSTEM_STATE.md`](../SYSTEM_STATE.md) |
+| Source-Tiering / Auswahl | [`source_selection_delta.md`](./source_selection_delta.md) |
+| Source-Persistenz / Snapshots | [`source_persistence_snapshot_delta.md`](./source_persistence_snapshot_delta.md) |
 | Compute-Split Go/Python/Rust | [`compute_delta.md`](./compute_delta.md) |
 | GeoMap Source-/Provider-Policy | [`../../geo/GEOMAP_SOURCES_AND_PROVIDER_POLICY.md`](../../geo/GEOMAP_SOURCES_AND_PROVIDER_POLICY.md) |
 | Quellen-/Key-Onboarding | [`source_onboarding_and_keys.md`](./source_onboarding_and_keys.md) |

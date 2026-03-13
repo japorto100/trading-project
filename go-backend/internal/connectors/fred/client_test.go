@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
@@ -102,5 +103,34 @@ func TestGetSeries_UsesRequestScopedCredential(t *testing.T) {
 	}
 	if len(series) != 1 {
 		t.Fatalf("expected 1 observation, got %d", len(series))
+	}
+}
+
+func TestGetSeries_UsesHotCache(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		_, _ = w.Write([]byte(`{"observations":[{"date":"2026-02-14","value":"3.2"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{
+		BaseURL:  server.URL,
+		APIKey:   "token",
+		CacheTTL: time.Hour,
+	})
+
+	for range 2 {
+		series, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), asset.Empty, 1)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if len(series) != 1 {
+			t.Fatalf("expected 1 observation, got %d", len(series))
+		}
+	}
+
+	if callCount != 1 {
+		t.Fatalf("expected exactly one upstream call, got %d", callCount)
 	}
 }

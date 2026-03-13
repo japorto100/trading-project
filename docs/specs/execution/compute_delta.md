@@ -1,10 +1,12 @@
 # Compute-Split & Indicator Delta
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 12. Maerz 2026 (Rev. 2)
 > **Zweck:** Aktiver Delta-Plan fuer Go/Python/Rust-Ownership, Compute-Grenzen,
 > Rust-Hot-Paths und die verbleibenden offenen Indikator-/Research-Entscheidungen.
 > Dieses Dokument ist nicht mehr der Vollkatalog bereits inventarisierter
 > Buch-/Indikatorstaende.
+> **Aenderungshistorie:**
+> - Rev. 2 (12.03.2026): IST-Stand nachgezogen (NATS live, rust_core Batch-API live), G1-G8 als strategische Designentscheidungen klargestellt, Kand-Evaluation verlinkt
 
 ---
 
@@ -37,6 +39,34 @@
 
 - Jede Delta-Entscheidung braucht eine **Evidence-Basis** (Profiling, Benchmark, Lastpfad oder Akzeptanzgrund).
 - Bei Konflikt zwischen Root-Domain-Dokument und aktueller Umsetzung gilt: Root-Owner pruefen, Delta hier konkretisieren, danach State/Plan nachziehen.
+
+---
+
+## 0b. IST-Stand (12.03.2026)
+
+### Was bereits CODE-COMPLETE ist
+
+| Bereich | Stand | Details |
+|:--------|:------|:--------|
+| NATS Messaging Layer | **DONE** | `go-backend/internal/messaging/` — client, publisher, subscriber, NATS JetStream wired in wiring.go |
+| Go pkg/duplex + pkg/protocol | **DONE** | Exchange-Adapter-Interfaces fuer direkte Verbindungen (Binance Futures, IB) |
+| `rust_core` Batch-API | **DONE** | `python-backend/rust_core/src/lib.rs` — `calculate_indicators_batch` PyO3 endpoint; implementiert: SMA, EMA, RSI, ATR, BB-Bandwidth, BB-%B, R-Vol, Composite-SMA50-Slope, Heartbeat |
+| redb OHLCV Cache | **DONE** | `ohlcv_cache.rs` — `redb_cache_set` / `redb_cache_get` via PyO3 |
+| Pattern Detection Python | **DONE** | Phase 8 — Elliott, Harmonic, Price, Candlestick, TD-Timing in Python indicator-service |
+
+### Noch offen (G1-G8)
+
+G1-G8 sind **strategische Architektur-Designentscheidungen**, keine konkreten
+Implementierungsaufgaben. Sie erfordern einen bewussten Design-Entscheid mit
+Owner und Datum, kein sofortiges Coding.
+
+Prioritaet: G1, G2, G3, G4 zuerst (Ownership-Klarheit); G5, G6, G7, G8 danach.
+Phase-Slot: Pre-Phase-19 (Design) / Phase-20 (Implementation).
+
+### Kand Evaluation
+
+Rust-TA-Bibliothek `Kand` als Basis-Kandidat fuer `rust_core` bewertet in:
+`docs/specs/execution/rust_kand_evaluation_delta.md`
 
 ---
 
@@ -113,6 +143,13 @@ Was dabei **nicht** Ziel ist:
       NumPy/Polars bleiben, welche muessen nach Rust
 - [ ] priorisierte Rust-Portierungen fuer stabile Kerne festlegen:
       `HMA`, `KAMA`, `ALMA`, `Stochastic`, spaetere Pattern-/Composite-Kerne
+- [ ] **G8** — Python-Referenzlibs (`pandas-ta`, `TA-Lib`) explizit als Research-/Benchmark-Orakel einordnen; keine implizite Kernadoption
+
+### D. Binary Boundary Evaluation (Transport/Schema)
+
+- [ ] **G9** — Protobuf-Baseline gegen FlatBuffers evaluieren fuer
+      Go<->Rust/Python Compute-Boundary (Schema-Evolution, Decode-Latenz,
+      Payload-Groesse, Tooling-/Ops-Risiko)
 
 ---
 
@@ -172,17 +209,19 @@ Compute-Splits brauchen.
 
 ## 9. Evidence Requirements
 
-Fuer jeden geschlossenen Punkt (`G1-G7`) mindestens:
+Fuer jeden geschlossenen Punkt (`G1-G9`) mindestens:
 
 - Delta-ID und betroffener Service
 - Profiling-/Benchmark-/Lastpfad-Hinweis oder begruendete Ausnahme
 - dokumentierter Vorher/Nachher-Entscheid
 - Folgeupdate in `SYSTEM_STATE.md` und ggf. `ARCHITECTURE.md`
+- bei `G9`: Wire-/Codec-Microbench mit mindestens drei Payload-Klassen
+  (`small tick`, `medium feature batch`, `large replay window`)
 
 ---
 
 ## 10. Exit Criteria
 
-- `G1-G7` sind entschieden (umgesetzt oder bewusst deferred mit Owner/Datum)
+- `G1-G9` sind entschieden (umgesetzt oder bewusst deferred mit Owner/Datum)
 - Compute-Ownership ist in `SYSTEM_STATE.md` konsistent gespiegelt
 - Root-Fachdokumente (`INDICATOR_ARCHITECTURE.md`, `RUST_LANGUAGE_IMPLEMENTATION.md`) sind nicht im Widerspruch zur Delta-Realitaet

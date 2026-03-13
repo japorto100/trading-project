@@ -1,8 +1,12 @@
 package news
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -16,15 +20,18 @@ import (
 const DefaultGDELTBaseURL = "https://api.gdeltproject.org/api/v2/doc/doc"
 
 type GDELTClientConfig struct {
-	BaseURL        string
-	RequestTimeout time.Duration
-	RequestRetries int
+	BaseURL           string
+	RequestTimeout    time.Duration
+	RequestRetries    int
+	SnapshotStorePath string
 }
 
 type GDELTClient struct {
-	baseURL        string
-	requestRetries int
-	baseClient     *base.Client
+	baseURL            string
+	requestRetries     int
+	baseClient         *base.Client
+	snapshotRecorder   func(context.Context, base.FetchSnapshot) error
+	snapshotNormalizer func(context.Context, string, []byte, time.Time) error
 }
 
 func NewGDELTClient(cfg GDELTClientConfig) *GDELTClient {
@@ -46,6 +53,22 @@ func NewGDELTClient(cfg GDELTClientConfig) *GDELTClient {
 		baseClient: base.NewClient(base.Config{
 			Timeout:    timeout,
 			RetryCount: 0,
+		}),
+		snapshotRecorder: base.NewLocalSnapshotRecorder(base.LocalSnapshotRecorderConfig{
+			SourceID:      "gdelt-news",
+			Subdir:        "gdelt-news",
+			SourceClass:   "api-snapshot",
+			FetchMode:     "poll",
+			StorePath:     strings.TrimSpace(cfg.SnapshotStorePath),
+			DatasetName:   "gdelt-news",
+			CadenceHint:   "hourly",
+			ParserVersion: "gdelt-news-json-v1",
+		}),
+		snapshotNormalizer: base.NewLocalSnapshotNormalizer(base.LocalSnapshotRecorderConfig{
+			SourceID:      "gdelt-news",
+			Subdir:        "gdelt-news",
+			StorePath:     strings.TrimSpace(cfg.SnapshotStorePath),
+			ParserVersion: "gdelt-news-normalized-v1",
 		}),
 	}
 }
@@ -83,6 +106,8 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 			Seen  string `json:"seendate"`
 		} `json:"articles"`
 	}
+	var fetchedAt time.Time
+	snapshotID := ""
 
 	attempts := c.requestRetries + 1
 	for attempt := 1; attempt <= attempts; attempt++ {
@@ -119,8 +144,44 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 			return nil, nil
 		}
 
-		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-			_ = resp.Body.Close()
+		rawBody, readErr := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if readErr != nil {
+			if attempt < attempts {
+				if !sleepWithContext(ctx, backoffDuration(attempt)) {
+					return nil, ctx.Err()
+				}
+				continue
+			}
+			return nil, readErr
+		}
+
+		fetchedAt = time.Now().UTC()
+		if c.snapshotRecorder != nil {
+			sum := sha256.Sum256(rawBody)
+			snapshotID = base.LocalSnapshotID("gdelt-news", fetchedAt, hex.EncodeToString(sum[:]))
+			if recordErr := c.snapshotRecorder(ctx, base.FetchSnapshot{
+				WatcherName:   "GDELT_NEWS",
+				SourceURL:     parsedURL.String(),
+				ContentType:   strings.TrimSpace(resp.Header.Get("Content-Type")),
+				ContentLength: int64(len(rawBody)),
+				ETag:          strings.TrimSpace(resp.Header.Get("ETag")),
+				LastModified:  strings.TrimSpace(resp.Header.Get("Last-Modified")),
+				SHA256Hex:     hex.EncodeToString(sum[:]),
+				FetchedAt:     fetchedAt,
+				Payload:       append([]byte(nil), rawBody...),
+			}); recordErr != nil {
+				if attempt < attempts {
+					if !sleepWithContext(ctx, backoffDuration(attempt)) {
+						return nil, ctx.Err()
+					}
+					continue
+				}
+				return nil, recordErr
+			}
+		}
+
+		if err := json.NewDecoder(bytes.NewReader(rawBody)).Decode(&payload); err != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
 					return nil, ctx.Err()
@@ -129,7 +190,6 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 			}
 			return nil, err
 		}
-		_ = resp.Body.Close()
 		break
 	}
 
@@ -145,6 +205,27 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 			Source:      "gdelt",
 			PublishedAt: publishedAt,
 		})
+	}
+	if c.snapshotNormalizer != nil && snapshotID != "" {
+		normalizedPayload, err := json.Marshal(struct {
+			SourceID     string                    `json:"sourceId"`
+			NormalizedAt time.Time                 `json:"normalizedAt"`
+			QuerySymbol  string                    `json:"querySymbol"`
+			Limit        int                       `json:"limit"`
+			Items        []marketServices.Headline `json:"items"`
+		}{
+			SourceID:     "gdelt-news",
+			NormalizedAt: fetchedAt,
+			QuerySymbol:  symbol,
+			Limit:        limit,
+			Items:        items,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if err := c.snapshotNormalizer(ctx, snapshotID, normalizedPayload, fetchedAt); err != nil {
+			return nil, err
+		}
 	}
 	return items, nil
 }

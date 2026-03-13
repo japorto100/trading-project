@@ -21,6 +21,14 @@ const (
 	StatusUploadFailed  ArtifactStatus = "upload_failed"
 )
 
+type SourceSnapshotStatus string
+
+const (
+	SourceSnapshotFetched    SourceSnapshotStatus = "fetched"
+	SourceSnapshotNormalized SourceSnapshotStatus = "normalized"
+	SourceSnapshotFailed     SourceSnapshotStatus = "failed"
+)
+
 type Action string
 
 const (
@@ -91,4 +99,28 @@ type MetadataStore interface {
 	Create(artifact Artifact) error
 	Get(id string) (Artifact, error)
 	MarkUploaded(id string, result UploadResult) error
+}
+
+type SourceSnapshot struct {
+	ID             string
+	SourceID       string
+	SourceClass    string
+	FetchMode      string
+	SourceURL      string
+	ObjectKey      string
+	ContentType    string
+	ContentLength  int64
+	SHA256Hex      string
+	ETag           string
+	LastModified   string
+	ParserVersion  string
+	SnapshotStatus SourceSnapshotStatus
+	RetentionClass string
+	CadenceHint    string
+	DatasetName    string
+	PartitionKey   string
+	TraceID        string
+	ErrorClass     string
+	FetchedAt      time.Time
+	UpdatedAt      time.Time
 }

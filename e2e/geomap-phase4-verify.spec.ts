@@ -19,12 +19,14 @@ test.describe("Phase 4: GeoMap Closeout", () => {
 
 		// Draw controls live in the left "Draw mode" panel (not a toolbar role).
 		await expect(page.getByRole("heading", { name: /Draw mode/i })).toBeVisible();
-		await expect(page.getByRole("button", { name: /Switch draw mode to marker/i })).toBeVisible();
+		await expect(page.getByRole("button", { name: /Set Marker \(M\)|Set Marker Active \(M\)/i })).toBeVisible();
 		await expect(page.getByRole("button", { name: /Switch draw mode to line/i })).toBeVisible();
 		await expect(page.getByRole("button", { name: /Switch draw mode to polygon/i })).toBeVisible();
 		await expect(page.getByRole("button", { name: /Switch draw mode to text/i })).toBeVisible();
 		await expect(page.getByRole("button", { name: /Undo/i })).toBeVisible();
 		await expect(page.getByRole("button", { name: /Redo/i })).toBeVisible();
+		await expect(page.getByText(/Keyboard shortcuts/i)).toBeVisible();
+		await expect(page.getByText(/Ctrl\+Shift\+Z \/ Ctrl\+Y/i)).toBeVisible();
 	});
 
 	test("4.2 GeoMap E2E: Earth↔Moon toggle and Choropleth", async ({ page }) => {

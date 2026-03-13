@@ -225,10 +225,17 @@ function Start-ManagedService {
 
 function Start-ServiceProcess {
     param([string]$WorkingDir, [string]$Name, [string]$App, [int]$Port)
-    # Added --reload for SOTA developer experience
-    $uvicornArgs = @("-m", "uvicorn", $App, "--host", "127.0.0.1", "--port", "$Port", "--reload")
-    Write-Host "[$Name] Starting on port $Port (with auto-reload)"
-    $proc = Start-LoggedProcess -Name $Name -FilePath $venvPython -ArgumentList $uvicornArgs -WorkingDirectory $WorkingDir
+    # SERVER=granian uses Granian (Rust/Tokio ASGI) instead of uvicorn.
+    # Eval: python_runtime_eval_delta.md GRN.V1-V4. Default: uvicorn.
+    $serverChoice = if ($env:SERVER) { $env:SERVER.ToLower() } else { "uvicorn" }
+    if ($serverChoice -eq "granian") {
+        $args = @("-m", "granian", "--interface", "asgi", "--host", "127.0.0.1", "--port", "$Port", "--reload", $App)
+        Write-Host "[$Name] Starting on port $Port (granian/Tokio + reload)"
+    } else {
+        $args = @("-m", "uvicorn", $App, "--host", "127.0.0.1", "--port", "$Port", "--reload")
+        Write-Host "[$Name] Starting on port $Port (uvicorn + auto-reload)"
+    }
+    $proc = Start-LoggedProcess -Name $Name -FilePath $venvPython -ArgumentList $args -WorkingDirectory $WorkingDir
     return $proc
 }
 

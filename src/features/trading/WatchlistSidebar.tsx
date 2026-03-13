@@ -3,28 +3,25 @@
 import { List } from "lucide-react";
 import { WatchlistPanel } from "@/components/fusion/WatchlistPanel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useTradingWorkspaceStore } from "@/features/trading/store/tradingWorkspaceStore";
 import type { WatchlistTab } from "@/features/trading/types";
 import type { FusionSymbol } from "@/lib/fusion-symbols";
 
 interface WatchlistSidebarProps {
 	activeTab: WatchlistTab;
 	watchlistSymbols: FusionSymbol[];
-	currentSymbol: string;
-	favorites: string[];
 	onSetActiveTab: (tab: WatchlistTab) => void;
 	onSelectSymbol: (symbol: FusionSymbol) => void;
-	onToggleFavorite: (symbol: string) => void;
 }
 
 export function WatchlistSidebar({
 	activeTab,
 	watchlistSymbols,
-	currentSymbol,
-	favorites,
 	onSetActiveTab,
 	onSelectSymbol,
-	onToggleFavorite,
 }: WatchlistSidebarProps) {
+	const { currentSymbol, favorites, toggleFavorite } = useTradingWorkspaceStore();
+
 	return (
 		<aside
 			data-testid="watchlist-sidebar"
@@ -111,10 +108,10 @@ export function WatchlistSidebar({
 				</div>
 				<WatchlistPanel
 					symbols={watchlistSymbols}
-					currentSymbol={currentSymbol}
+					currentSymbol={currentSymbol.symbol}
 					favorites={favorites}
 					onSelectSymbol={onSelectSymbol}
-					onToggleFavorite={onToggleFavorite}
+					onToggleFavorite={toggleFavorite}
 				/>
 			</div>
 		</aside>

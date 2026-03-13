@@ -1,31 +1,40 @@
-﻿import { ArrowLeft, RefreshCw, WandSparkles } from "lucide-react";
+import { ArrowLeft, Layers3, RefreshCw, WandSparkles } from "lucide-react";
 import Link from "next/link";
 import { CrashTrigger } from "@/components/debug/crash-trigger";
 import { Button } from "@/components/ui/button";
+import type { GeoMapViewMode } from "@/features/geopolitical/store";
 
 interface MapShellHeaderProps {
 	eventsCount: number;
 	loading: boolean;
 	busy: boolean;
+	mapViewMode: GeoMapViewMode;
+	canOpenFlatView: boolean;
 	onRefresh: () => void;
 	onRunHardIngest: () => void;
 	onRunSoftIngest: () => void;
+	onOpenFlatView: () => void;
+	onBackToGlobe: () => void;
 }
 
 export function MapShellHeader({
 	eventsCount,
 	loading,
 	busy,
+	mapViewMode,
+	canOpenFlatView,
 	onRefresh,
 	onRunHardIngest,
 	onRunSoftIngest,
+	onOpenFlatView,
+	onBackToGlobe,
 }: MapShellHeaderProps) {
 	return (
-		<header className="flex h-12 items-center justify-between border-b border-border bg-background/50 backdrop-blur-md px-4 shrink-0 shadow-sm">
+		<header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background/50 px-4 shadow-sm backdrop-blur-md">
 			<div className="flex items-center gap-4">
 				<Link
 					href="/"
-					className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-success transition-colors"
+					className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-success"
 				>
 					<ArrowLeft className="h-3.5 w-3.5" />
 					Workspace
@@ -35,18 +44,28 @@ export function MapShellHeader({
 					<h1 className="text-xs font-black uppercase tracking-widest text-foreground">
 						Geopolitical Map
 					</h1>
-					<span className="text-[9px] uppercase font-bold text-muted-foreground/50 tracking-tight">
+					<span className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground/50">
 						Milestone A-E System
 					</span>
 				</div>
 			</div>
 			<div className="flex items-center gap-2">
 				<CrashTrigger />
-				<div className="h-4 w-px bg-border/50 mx-1" />
+				<div className="mx-1 h-4 w-px bg-border/50" />
+				<Button
+					variant={mapViewMode === "flat" ? "default" : "outline"}
+					size="sm"
+					className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider"
+					onClick={mapViewMode === "flat" ? onBackToGlobe : onOpenFlatView}
+					disabled={mapViewMode !== "flat" && !canOpenFlatView}
+				>
+					<Layers3 className="mr-2 h-3 w-3" />
+					{mapViewMode === "flat" ? "Globe View" : "Open Flat"}
+				</Button>
 				<Button
 					variant="ghost"
 					size="sm"
-					className="h-8 px-3 text-[10px] uppercase font-bold tracking-wider hover:bg-accent/50"
+					className="h-8 px-3 text-[10px] font-bold uppercase tracking-wider hover:bg-accent/50"
 					onClick={onRefresh}
 					disabled={loading || busy}
 				>
@@ -54,12 +73,12 @@ export function MapShellHeader({
 					Sync
 				</Button>
 
-				<div className="h-4 w-px bg-border/50 mx-1" />
+				<div className="mx-1 h-4 w-px bg-border/50" />
 
 				<Button
 					variant="secondary"
 					size="sm"
-					className="h-8 px-3 text-[10px] uppercase font-bold tracking-wider bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border-none shadow-none"
+					className="h-8 border-none bg-sky-500/10 px-3 text-[10px] font-bold uppercase tracking-wider text-sky-400 shadow-none hover:bg-sky-500/20"
 					onClick={onRunSoftIngest}
 					disabled={busy}
 				>
@@ -69,7 +88,7 @@ export function MapShellHeader({
 				<Button
 					variant="secondary"
 					size="sm"
-					className="h-8 px-3 text-[10px] uppercase font-bold tracking-wider bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border-none shadow-none"
+					className="h-8 border-none bg-amber-500/10 px-3 text-[10px] font-bold uppercase tracking-wider text-amber-400 shadow-none hover:bg-amber-500/20"
 					onClick={onRunHardIngest}
 					disabled={busy}
 				>
@@ -77,7 +96,7 @@ export function MapShellHeader({
 					Hard Ingest
 				</Button>
 
-				<div className="ml-2 rounded-md border border-border/50 bg-accent/20 px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase">
+				<div className="ml-2 rounded-md border border-border/50 bg-accent/20 px-2 py-1 text-[10px] font-bold uppercase text-muted-foreground">
 					{eventsCount} Events
 				</div>
 			</div>

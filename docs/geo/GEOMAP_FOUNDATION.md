@@ -1,6 +1,6 @@
 # GeoMap Foundation
 
-**Stand:** 09. Mär 2026
+**Stand:** 13. Maerz 2026
 **Scope:** Basemap, Geocoding, Tiles, Rendering — konsolidierte Policy und Architektur-Entscheidungen für GeoMap v2.
 
 > **Herkunft:** Zusammengeführt aus `BASEMAP_POLICY.md`, `GEOCODING_STRATEGY.md`, `PMTILES_CONTRACT.md` und `adr/ADR-002-GeoMap-Rendering-Foundation.md`. Originale archiviert in `docs/archive/`.
@@ -226,6 +226,29 @@ Gate B "Tile-Bandwidth-Trigger" gilt als ausgelöst, wenn:
 2. UND die Ursache in ineffizientem world-atlas Rendering liegt (nicht in Event-Data)
 3. UND PMTiles-Lösung einen messbaren FPS-Gewinn ≥ 15% zeigt (A/B-Test, n ≥ 50)
 
+### 3.1 Dynamic Tile Runtime Boundary (derived from geov2plus)
+
+Operationale Event-/Filter-Workloads sollen nicht ueber statisch vorgerenderte Tiles
+modelliert werden. Fuer dynamische Geo-Last gilt:
+
+- statische Basemap/Orientierung: PMTiles/OpenMapTiles (gate-gesteuert),
+- dynamische Overlays (Events/Candidates/Conflict): API/Stream oder dynamische MVT-Pfade,
+- optionaler Dynamic-Tile-Server (z. B. Martin oder pg_tileserv) nur fuer klar belegte
+  Query-/Filterfaelle mit messbarem Nutzen.
+
+Nicht-Ziel:
+
+- kein ungepruefter Wechsel auf vollstaendige Tile-Only-Architektur fuer alle Layer.
+
+### 3.2 Geometry/CRS/H3 guardrails
+
+Fuer GeoMap-Contracts bleibt verbindlich:
+
+- Persistenz-/Eingabe-CRS: WGS84 (`EPSG:4326`),
+- Rendering-Projektion ist view-abhaengig (Globe/Flat), ohne aenderung der Domain-Daten,
+- H3 ist fuer Aggregation/Indexierung erlaubt, aber keine automatische semantische
+  Gleichsetzung mit exakten Geoshapes ohne explizite Umwandlung.
+
 ---
 
 ## 4. Rendering Foundation (ADR-002)
@@ -254,6 +277,73 @@ Die primäre Ansicht ist und bleibt die **Orthographic Globe-Projektion** via `d
 Eine flache/regionale Ansicht (Mercator-Projektion, bspw. für Regionen-Zoom) ist als
 **optionaler Second Mode** vorgesehen und auf Phase 4/v2.5+ verschoben. Sie teilt dieselbe
 `d3-geo`-Grundlage.
+
+### Renderer- und Body-Leitplanken (Normativ)
+
+- `d3-geo` ist **nicht** als Fehlentscheidung zu behandeln. Es bleibt der normative Globe-Core fuer GeoMap v1/v2.
+- `deck.gl` / `MapLibre` sind als **zusaetzlicher Renderer** fuer den spaeteren Flat/Regional-/Conflict-Mode zu behandeln, nicht als Rewrite des Globe-Cores.
+- Renderer duerfen wechseln, das Fachmodell jedoch nicht: Filter-, Story-, Selection- und Layer-Contracts bleiben view-agnostisch.
+- `Earth` bleibt der primaere geopolitische Arbeitskoerper.
+- `Moon` ist aktuell ein spezialisierter Body-/Focus-Mode, **kein** zweiter gleichrangiger Analysten-Workspace fuer v2.
+- Ein gleichzeitiger `Earth + Moon`-Co-View oder echter Multi-Body-Szene-Modus ist **nicht** Teil von v2. Wenn spaeter ein physisch plausibler Multi-Body-/Orbit-Modus gewuenscht ist, ist das als eigener Scene-Renderer (`CesiumJS`/`Three.js`-Klasse) zu bewerten, nicht als erzwungene Ausdehnung des `d3-geo`-Globe.
+
+### View-Handoff-Regel (Normativ)
+
+Der spaetere Wechsel von Globe zu Flat/Regional darf **nicht** nur als statischer Toggle gedacht werden.
+Der bevorzugte Produktpfad ist ein **kontextueller Handoff**:
+
+- Region-Klick oder Event-/Cluster-Selektion kann einen regionalen Analystenmodus oeffnen
+- Story-/Timeline-Fokus kann Kamera, Zeitfenster und anschliessend auch den Flat-Viewport setzen
+- Draw-/Lasso-/Area-Selektion darf als expliziter `inspect in flat view`-Pfad dienen
+- ein manueller Toggle bleibt als Expertenfunktion erlaubt, ist aber nicht das alleinige UX-Modell
+
+Der Handoff muss mindestens mitgeben:
+
+- Viewport / Bounds
+- aktives Zeitfenster
+- aktive Filter
+- aktuelles Focus-/Selection-Objekt
+
+### Layer- und Signaltaxonomie (Normativ)
+
+GeoMap darf nicht jeden raumbezogenen oder halb-raeumlichen Input direkt auf den Globe legen.
+Es gilt eine Layer-Trennung:
+
+- **Geo Core:** harte geolokalisierbare und strategisch relevante Events/Signals
+- **Conflict Layer:** strikes, incidents, fronts, assets, targets, threat zones, replay
+- **Macro/State Layer:** regime state, sanctions, capital controls, elections, unrest intensity
+- **Context Layer:** News, reports, analyst context, soft signals
+- **Panel-first / hidden:** schwache, unscharfe oder nur textuelle Signale ohne klaren Kartenmehrwert
+
+Die Regel fuer v2/v2.5 lautet:
+
+- Globe zeigt den strategischen, kuratierten Kern
+- Flat/Regional traegt spaeter den dichteren operativen Conflict-/Asset-/Threat-Modus
+- dieselben Domain-Contracts bleiben shared; nur die Sichtbarkeit und Renderdichte unterscheiden sich
+
+### Basemap-Richness-Regel (Normativ)
+
+Basemap-Details werden je View bewusst begrenzt:
+
+- **Globe:** nur reduzierte Orientierungsfeatures mit hohem strategischem Nutzen
+  - `place`
+  - `water`
+  - `waterway`
+  - grosse Gebirge / Chokepoints nur wenn lesbar und analytisch begruendet
+- **Flat/Regional:** reichere Basemap ist erlaubt und spaeter zu erwarten
+  - Staedte
+  - Gewaesser / Fluesse
+  - Grenzen
+  - optional Terrain / Relief / PMTiles-basierte Orientierung
+
+PMTiles, detailreiche Tiles und staerkere Kartographie gehoeren primaer in den spaeteren Flat/Regional-Modus, nicht als v2-Zwang fuer den Globe-Core.
+
+Aktueller Runtime-Contract:
+
+- `src/features/geopolitical/basemap-richness.ts` spiegelt diese Regel als typisierte Policy fuer `earth/moon × globe/flat`.
+- `earth + globe` bleibt minimal und tile-frei.
+- `earth + flat` ist der erste erlaubte Pfad fuer reichere PMTiles-/MapLibre-Basemaps.
+- `moon + flat` bleibt fuer v2 bewusst deferred.
 
 ### Externe Referenzbestaetigung (Pharos AI, Review 2026-03-10)
 

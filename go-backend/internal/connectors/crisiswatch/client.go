@@ -1,11 +1,15 @@
 package crisiswatch
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,10 +26,11 @@ const (
 )
 
 type Config struct {
-	RSSURL         string
-	RequestTimeout time.Duration
-	CacheTTL       time.Duration
-	PersistPath    string
+	RSSURL            string
+	RequestTimeout    time.Duration
+	CacheTTL          time.Duration
+	PersistPath       string
+	SnapshotStorePath string
 }
 
 type Item struct {
@@ -38,10 +43,12 @@ type Item struct {
 }
 
 type Client struct {
-	rssURL      string
-	baseClient  *base.Client
-	cacheTTL    time.Duration
-	persistPath string
+	rssURL             string
+	baseClient         *base.Client
+	cacheTTL           time.Duration
+	persistPath        string
+	snapshotRecorder   func(context.Context, base.FetchSnapshot) error
+	snapshotNormalizer func(context.Context, string, []byte, time.Time) error
 
 	mu        sync.RWMutex
 	cachedAt  time.Time
@@ -72,6 +79,22 @@ func NewClient(cfg Config) *Client {
 		}),
 		cacheTTL:    cacheTTL,
 		persistPath: strings.TrimSpace(cfg.PersistPath),
+		snapshotRecorder: base.NewLocalSnapshotRecorder(base.LocalSnapshotRecorderConfig{
+			SourceID:      "crisiswatch",
+			Subdir:        "crisiswatch",
+			SourceClass:   "api-snapshot",
+			FetchMode:     "poll",
+			StorePath:     strings.TrimSpace(cfg.SnapshotStorePath),
+			DatasetName:   "crisiswatch-rss",
+			CadenceHint:   "hourly",
+			ParserVersion: "crisiswatch-rss-v1",
+		}),
+		snapshotNormalizer: base.NewLocalSnapshotNormalizer(base.LocalSnapshotRecorderConfig{
+			SourceID:      "crisiswatch",
+			Subdir:        "crisiswatch",
+			StorePath:     strings.TrimSpace(cfg.SnapshotStorePath),
+			ParserVersion: "crisiswatch-normalized-v1",
+		}),
 	}
 	client.loadPersistedCache()
 	return client
@@ -117,6 +140,30 @@ func (c *Client) fetchFromUpstream(ctx context.Context) ([]Item, error) {
 		return nil, fmt.Errorf("crisiswatch upstream status %d", resp.StatusCode)
 	}
 
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read crisiswatch rss: %w", err)
+	}
+	fetchedAt := time.Now().UTC()
+	snapshotID := ""
+	if c.snapshotRecorder != nil {
+		sum := sha256.Sum256(rawBody)
+		snapshotID = base.LocalSnapshotID("crisiswatch", fetchedAt, hex.EncodeToString(sum[:]))
+		if recordErr := c.snapshotRecorder(ctx, base.FetchSnapshot{
+			WatcherName:   "CRISISWATCH",
+			SourceURL:     c.rssURL,
+			ContentType:   strings.TrimSpace(resp.Header.Get("Content-Type")),
+			ContentLength: int64(len(rawBody)),
+			ETag:          strings.TrimSpace(resp.Header.Get("ETag")),
+			LastModified:  strings.TrimSpace(resp.Header.Get("Last-Modified")),
+			SHA256Hex:     hex.EncodeToString(sum[:]),
+			FetchedAt:     fetchedAt,
+			Payload:       append([]byte(nil), rawBody...),
+		}); recordErr != nil {
+			return nil, fmt.Errorf("record crisiswatch snapshot: %w", recordErr)
+		}
+	}
+
 	var doc struct {
 		Channel struct {
 			Items []struct {
@@ -128,7 +175,7 @@ func (c *Client) fetchFromUpstream(ctx context.Context) ([]Item, error) {
 			} `xml:"item"`
 		} `xml:"channel"`
 	}
-	if err := xml.NewDecoder(resp.Body).Decode(&doc); err != nil {
+	if err := xml.NewDecoder(bytes.NewReader(rawBody)).Decode(&doc); err != nil {
 		return nil, fmt.Errorf("decode crisiswatch rss: %w", err)
 	}
 
@@ -161,6 +208,23 @@ func (c *Client) fetchFromUpstream(ctx context.Context) ([]Item, error) {
 			PublishedAt: publishedAt,
 			Region:      maybeRegion,
 		})
+	}
+	if c.snapshotNormalizer != nil && snapshotID != "" {
+		normalizedPayload, err := json.Marshal(struct {
+			SourceID     string    `json:"sourceId"`
+			NormalizedAt time.Time `json:"normalizedAt"`
+			Items        []Item    `json:"items"`
+		}{
+			SourceID:     "crisiswatch",
+			NormalizedAt: fetchedAt,
+			Items:        items,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("marshal crisiswatch normalized snapshot: %w", err)
+		}
+		if err := c.snapshotNormalizer(ctx, snapshotID, normalizedPayload, fetchedAt); err != nil {
+			return nil, fmt.Errorf("normalize crisiswatch snapshot: %w", err)
+		}
 	}
 
 	return items, nil

@@ -133,6 +133,171 @@ fn bb_percent_b(values: &[f64], period: usize, num_std: f64) -> Vec<f64> {
     out
 }
 
+fn wma(values: &[f64], period: usize) -> Vec<f64> {
+    if values.is_empty() {
+        return Vec::new();
+    }
+    if period <= 1 {
+        return values.to_vec();
+    }
+    let mut out = Vec::with_capacity(values.len());
+    for i in 0..values.len() {
+        let start = (i + 1).saturating_sub(period);
+        let window = &values[start..=i];
+        let w = window.len();
+        let denom = (w * (w + 1)) as f64 / 2.0;
+        let total: f64 = window.iter().enumerate().map(|(j, v)| (j + 1) as f64 * v).sum();
+        out.push(total / denom);
+    }
+    out
+}
+
+fn hma(values: &[f64], period: usize) -> Vec<f64> {
+    if values.len() < period {
+        return values.to_vec();
+    }
+    let half = ((period as f64 / 2.0).round() as usize).max(1);
+    let sqrt_p = ((period as f64).sqrt().round() as usize).max(1);
+    let wma_half = wma(values, half);
+    let wma_full = wma(values, period);
+    let diff: Vec<f64> = wma_half
+        .iter()
+        .zip(wma_full.iter())
+        .map(|(h, f)| 2.0 * h - f)
+        .collect();
+    wma(&diff, sqrt_p)
+}
+
+fn macd_components(
+    closes: &[f64],
+    fast: usize,
+    slow: usize,
+    signal: usize,
+) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+    let ema_fast = ema(closes, fast);
+    let ema_slow = ema(closes, slow);
+    let macd_line: Vec<f64> = ema_fast
+        .iter()
+        .zip(ema_slow.iter())
+        .map(|(f, s)| f - s)
+        .collect();
+    let signal_line = ema(&macd_line, signal);
+    let hist: Vec<f64> = macd_line
+        .iter()
+        .zip(signal_line.iter())
+        .map(|(m, s)| m - s)
+        .collect();
+    (macd_line, signal_line, hist)
+}
+
+fn stochastic(
+    highs: &[f64],
+    lows: &[f64],
+    closes: &[f64],
+    k_period: usize,
+    d_period: usize,
+) -> (Vec<f64>, Vec<f64>) {
+    let n = closes.len();
+    let mut k_vals = Vec::with_capacity(n);
+    for i in 0..n {
+        let start = (i + 1).saturating_sub(k_period);
+        let highest_high = highs[start..=i]
+            .iter()
+            .cloned()
+            .fold(f64::NEG_INFINITY, f64::max);
+        let lowest_low = lows[start..=i]
+            .iter()
+            .cloned()
+            .fold(f64::INFINITY, f64::min);
+        let denom = highest_high - lowest_low;
+        let k = if denom < 1e-9 {
+            50.0
+        } else {
+            (closes[i] - lowest_low) / denom * 100.0
+        };
+        k_vals.push(k);
+    }
+    let d_vals = sma(&k_vals, d_period);
+    (k_vals, d_vals)
+}
+
+fn wilder_sum(vals: &[f64], period: usize) -> Vec<f64> {
+    let n = vals.len();
+    if n < period {
+        return vec![0.0; n];
+    }
+    let mut result = vec![0.0_f64; period - 1];
+    let init: f64 = vals[..period].iter().sum();
+    result.push(init);
+    for i in period..n {
+        let prev = *result.last().unwrap();
+        result.push(prev - prev / period as f64 + vals[i]);
+    }
+    result
+}
+
+fn wilder_avg(vals: &[f64], period: usize) -> Vec<f64> {
+    let n = vals.len();
+    if n < period {
+        return vec![0.0; n];
+    }
+    let mut result = vec![0.0_f64; period - 1];
+    let init: f64 = vals[..period].iter().sum::<f64>() / period as f64;
+    result.push(init);
+    for i in period..n {
+        let prev = *result.last().unwrap();
+        result.push(prev - prev / period as f64 + vals[i] / period as f64);
+    }
+    result
+}
+
+fn adx_components(
+    highs: &[f64],
+    lows: &[f64],
+    closes: &[f64],
+    period: usize,
+) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+    let n = closes.len();
+    if n < 2 {
+        return (vec![0.0; n], vec![0.0; n], vec![0.0; n]);
+    }
+    let mut tr = vec![0.0_f64];
+    let mut dm_plus = vec![0.0_f64];
+    let mut dm_minus = vec![0.0_f64];
+    for i in 1..n {
+        let h = highs[i];
+        let l = lows[i];
+        let prev_c = closes[i - 1];
+        let prev_h = highs[i - 1];
+        let prev_l = lows[i - 1];
+        tr.push(f64::max(
+            h - l,
+            f64::max((h - prev_c).abs(), (l - prev_c).abs()),
+        ));
+        let up_move = h - prev_h;
+        let down_move = prev_l - l;
+        dm_plus.push(if up_move > down_move && up_move > 0.0 { up_move } else { 0.0 });
+        dm_minus.push(if down_move > up_move && down_move > 0.0 { down_move } else { 0.0 });
+    }
+    let s_tr = wilder_sum(&tr, period);
+    let s_dmp = wilder_sum(&dm_plus, period);
+    let s_dmm = wilder_sum(&dm_minus, period);
+    let mut di_plus = Vec::with_capacity(n);
+    let mut di_minus = Vec::with_capacity(n);
+    let mut dx = Vec::with_capacity(n);
+    for i in 0..n {
+        let tr_v = s_tr[i];
+        let dip = if tr_v > 1e-9 { 100.0 * s_dmp[i] / tr_v } else { 0.0 };
+        let dim = if tr_v > 1e-9 { 100.0 * s_dmm[i] / tr_v } else { 0.0 };
+        di_plus.push(dip);
+        di_minus.push(dim);
+        let di_sum = dip + dim;
+        dx.push(if di_sum > 1e-9 { 100.0 * (dip - dim).abs() / di_sum } else { 0.0 });
+    }
+    let adx_vals = wilder_avg(&dx, period);
+    (adx_vals, di_plus, di_minus)
+}
+
 fn composite_sma50_slope_norm_impl(closes: &[f64]) -> Result<(f64, f64, f64), &'static str> {
     if closes.len() < 2 {
         return Err("at least 2 close values required");
@@ -296,28 +461,79 @@ fn calculate_indicators_batch_impl(
             out.insert(indicator.clone(), closes.to_vec());
             continue;
         }
+        // wma_N — weighted moving average
+        if let Some(period_str) = key.strip_prefix("wma_") {
+            let period = period_str.parse::<usize>().unwrap_or(1).max(1);
+            out.insert(indicator.clone(), wma(closes, period));
+            continue;
+        }
+        // hma_N — hull moving average
+        if let Some(period_str) = key.strip_prefix("hma_") {
+            let period = period_str.parse::<usize>().unwrap_or(9).max(1);
+            out.insert(indicator.clone(), hma(closes, period));
+            continue;
+        }
+        // macd_fast_slow_signal — inserts macd_line_*, macd_signal_*, macd_hist_*
+        if let Some(params) = key.strip_prefix("macd_") {
+            let parts: Vec<&str> = params.splitn(3, '_').collect();
+            let fast = parts.first().and_then(|s| s.parse().ok()).unwrap_or(12_usize).max(1);
+            let slow = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(26_usize).max(1);
+            let signal = parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(9_usize).max(1);
+            let (ml, sl, hist) = macd_components(closes, fast, slow, signal);
+            out.insert(format!("macd_line_{fast}_{slow}_{signal}"), ml);
+            out.insert(format!("macd_signal_{fast}_{slow}_{signal}"), sl);
+            out.insert(format!("macd_hist_{fast}_{slow}_{signal}"), hist);
+            continue;
+        }
+        // stoch_kp_dp — inserts stoch_k_*, stoch_d_*  (requires highs and lows)
+        if let Some(params) = key.strip_prefix("stoch_") {
+            let parts: Vec<&str> = params.splitn(2, '_').collect();
+            let k_period = parts.first().and_then(|s| s.parse().ok()).unwrap_or(14_usize).max(1);
+            let d_period = parts.get(1).and_then(|s| s.parse().ok()).unwrap_or(3_usize).max(1);
+            if highs.len() == len && lows.len() == len {
+                let (k, d) = stochastic(highs, lows, closes, k_period, d_period);
+                out.insert(format!("stoch_k_{k_period}_{d_period}"), k);
+                out.insert(format!("stoch_d_{k_period}_{d_period}"), d);
+            }
+            continue;
+        }
+        // adx_N — inserts adx_N, di_plus_N, di_minus_N  (requires highs and lows)
+        if let Some(period_str) = key.strip_prefix("adx_") {
+            let period = period_str.parse::<usize>().unwrap_or(14).max(1);
+            if highs.len() == len && lows.len() == len {
+                let (adx_v, dip, dim) = adx_components(highs, lows, closes, period);
+                out.insert(format!("adx_{period}"), adx_v);
+                out.insert(format!("di_plus_{period}"), dip);
+                out.insert(format!("di_minus_{period}"), dim);
+            }
+            continue;
+        }
     }
     Ok(out)
 }
 
 #[pyfunction]
-fn composite_sma50_slope_norm(closes: Vec<f64>) -> PyResult<(f64, f64, f64)> {
-    composite_sma50_slope_norm_impl(&closes).map_err(|msg| PyValueError::new_err(msg.to_string()))
+fn composite_sma50_slope_norm(py: Python<'_>, closes: Vec<f64>) -> PyResult<(f64, f64, f64)> {
+    // py.detach() releases the GIL for the duration of the computation (PyO3 0.22+ rename of allow_threads)
+    py.detach(move || composite_sma50_slope_norm_impl(&closes))
+        .map_err(|msg| PyValueError::new_err(msg.to_string()))
 }
 
 #[pyfunction]
 fn calculate_heartbeat(
+    py: Python<'_>,
     closes: Vec<f64>,
     highs: Vec<f64>,
     lows: Vec<f64>,
     sensitivity: f64,
 ) -> PyResult<f64> {
-    calculate_heartbeat_impl(&closes, &highs, &lows, sensitivity)
+    py.detach(move || calculate_heartbeat_impl(&closes, &highs, &lows, sensitivity))
         .map_err(|msg| PyValueError::new_err(msg.to_string()))
 }
 
 #[pyfunction]
 fn calculate_indicators_batch(
+    py: Python<'_>,
     timestamps: Vec<i64>,
     opens: Vec<f64>,
     highs: Vec<f64>,
@@ -326,27 +542,40 @@ fn calculate_indicators_batch(
     volumes: Vec<f64>,
     indicators: Vec<String>,
 ) -> PyResult<HashMap<String, Vec<f64>>> {
-    calculate_indicators_batch_impl(
-        &timestamps,
-        &opens,
-        &highs,
-        &lows,
-        &closes,
-        &volumes,
-        &indicators,
-    )
+    py.detach(move || {
+        calculate_indicators_batch_impl(
+            &timestamps,
+            &opens,
+            &highs,
+            &lows,
+            &closes,
+            &volumes,
+            &indicators,
+        )
+    })
     .map_err(|msg| PyValueError::new_err(msg.to_string()))
 }
 
 #[pyfunction]
-fn redb_cache_set(path: String, key: String, payload_json: String, ttl_ms: u64) -> PyResult<()> {
-    ohlcv_cache::cache_set(&path, &key, &payload_json, ttl_ms)
+fn redb_cache_set(
+    py: Python<'_>,
+    path: String,
+    key: String,
+    payload_json: String,
+    ttl_ms: u64,
+) -> PyResult<()> {
+    py.detach(move || ohlcv_cache::cache_set(&path, &key, &payload_json, ttl_ms))
         .map_err(|msg| PyValueError::new_err(msg.to_string()))
 }
 
 #[pyfunction]
-fn redb_cache_get(path: String, key: String, now_ms: Option<u64>) -> PyResult<Option<String>> {
-    ohlcv_cache::cache_get(&path, &key, now_ms)
+fn redb_cache_get(
+    py: Python<'_>,
+    path: String,
+    key: String,
+    now_ms: Option<u64>,
+) -> PyResult<Option<String>> {
+    py.detach(move || ohlcv_cache::cache_get(&path, &key, now_ms))
         .map_err(|msg| PyValueError::new_err(msg.to_string()))
 }
 
@@ -525,6 +754,149 @@ mod tests {
         for v in &got {
             assert_abs_diff_eq!(*v, 0.5, epsilon = 1e-9);
         }
+    }
+
+    #[test]
+    fn test_wma_period2_manual() {
+        // WMA(2) of [1,2,3]: weights [1,2], denom=3
+        // idx1: (1*1 + 2*2)/3 = 5/3
+        // idx2: (1*2 + 2*3)/3 = 8/3
+        let values = vec![1.0, 2.0, 3.0];
+        let got = wma(&values, 2);
+        assert_abs_diff_eq!(got[1], 5.0 / 3.0, epsilon = 1e-10);
+        assert_abs_diff_eq!(got[2], 8.0 / 3.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_wma_rising_above_sma() {
+        let values: Vec<f64> = (1..=10).map(|i| i as f64).collect();
+        let got = wma(&values, 10);
+        let sma_val = values.iter().sum::<f64>() / 10.0;
+        assert!(got[9] > sma_val);
+    }
+
+    #[test]
+    fn test_hma_length_preserved() {
+        let values: Vec<f64> = (0..60).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let got = hma(&values, 9);
+        assert_eq!(got.len(), values.len());
+    }
+
+    #[test]
+    fn test_hma_uptrend_rising_tail() {
+        let values: Vec<f64> = (0..80).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let got = hma(&values, 9);
+        let tail = &got[got.len() - 10..];
+        for i in 0..tail.len() - 1 {
+            assert!(tail[i] < tail[i + 1], "HMA tail should be rising");
+        }
+    }
+
+    #[test]
+    fn test_macd_uptrend_positive_line() {
+        let closes: Vec<f64> = (0..60).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let (ml, sl, hist) = macd_components(&closes, 12, 26, 9);
+        assert_eq!(ml.len(), 60);
+        assert_eq!(sl.len(), 60);
+        assert_eq!(hist.len(), 60);
+        assert!(ml[59] > 0.0, "MACD line should be positive in uptrend");
+    }
+
+    #[test]
+    fn test_macd_hist_is_line_minus_signal() {
+        let closes: Vec<f64> = (0..60).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let (ml, sl, hist) = macd_components(&closes, 12, 26, 9);
+        for i in 0..60 {
+            assert_abs_diff_eq!(hist[i], ml[i] - sl[i], epsilon = 1e-12);
+        }
+    }
+
+    #[test]
+    fn test_stochastic_uptrend_k_near_100() {
+        let closes: Vec<f64> = (0..60).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let highs: Vec<f64> = closes.iter().map(|c| c + 0.5).collect();
+        let lows: Vec<f64> = closes.iter().map(|c| c - 0.5).collect();
+        let (k, d) = stochastic(&highs, &lows, &closes, 14, 3);
+        assert_eq!(k.len(), 60);
+        assert_eq!(d.len(), 60);
+        assert!(k[59] > 80.0, "Stochastic K should be near 100 in uptrend, got {}", k[59]);
+    }
+
+    #[test]
+    fn test_stochastic_flat_is_50() {
+        let closes = vec![100.0_f64; 20];
+        let highs = vec![100.0_f64; 20];
+        let lows = vec![100.0_f64; 20];
+        let (k, _) = stochastic(&highs, &lows, &closes, 14, 3);
+        assert_abs_diff_eq!(k[19], 50.0, epsilon = 1e-9);
+    }
+
+    #[test]
+    fn test_adx_uptrend_di_plus_dominates() {
+        let closes: Vec<f64> = (0..60).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let highs: Vec<f64> = closes.iter().map(|c| c + 0.5).collect();
+        let lows: Vec<f64> = closes.iter().map(|c| c - 0.5).collect();
+        let (adx_v, dip, dim) = adx_components(&highs, &lows, &closes, 14);
+        assert_eq!(adx_v.len(), 60);
+        assert!(dip[59] > dim[59], "DI+ should dominate in uptrend");
+    }
+
+    #[test]
+    fn test_adx_bounded_0_100() {
+        let closes: Vec<f64> = (0..80).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let highs: Vec<f64> = closes.iter().map(|c| c + 0.5).collect();
+        let lows: Vec<f64> = closes.iter().map(|c| c - 0.5).collect();
+        let (adx_v, _, _) = adx_components(&highs, &lows, &closes, 14);
+        for v in &adx_v {
+            assert!(*v >= 0.0 && *v <= 100.0 + 1e-9, "ADX out of bounds: {v}");
+        }
+    }
+
+    #[test]
+    fn test_adx_strong_trend_above_20() {
+        let closes: Vec<f64> = (0..80).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let highs: Vec<f64> = closes.iter().map(|c| c + 0.5).collect();
+        let lows: Vec<f64> = closes.iter().map(|c| c - 0.5).collect();
+        let (adx_v, _, _) = adx_components(&highs, &lows, &closes, 14);
+        assert!(adx_v[79] > 20.0, "Strong uptrend ADX should be > 20, got {}", adx_v[79]);
+    }
+
+    #[test]
+    fn test_batch_macd_stoch_adx() {
+        let n = 60;
+        let closes: Vec<f64> = (0..n).map(|i| 100.0 + i as f64 * 0.5).collect();
+        let highs: Vec<f64> = closes.iter().map(|c| c + 0.5).collect();
+        let lows: Vec<f64> = closes.iter().map(|c| c - 0.5).collect();
+        let volumes = vec![1000.0_f64; n];
+        let timestamps: Vec<i64> = (0..n as i64).collect();
+
+        let out = calculate_indicators_batch_impl(
+            &timestamps,
+            &[],
+            &highs,
+            &lows,
+            &closes,
+            &volumes,
+            &[
+                "macd_12_26_9".to_string(),
+                "stoch_14_3".to_string(),
+                "adx_14".to_string(),
+                "wma_10".to_string(),
+                "hma_9".to_string(),
+            ],
+        )
+        .expect("batch ok");
+
+        assert_eq!(out["macd_line_12_26_9"].len(), n);
+        assert_eq!(out["macd_signal_12_26_9"].len(), n);
+        assert_eq!(out["macd_hist_12_26_9"].len(), n);
+        assert_eq!(out["stoch_k_14_3"].len(), n);
+        assert_eq!(out["stoch_d_14_3"].len(), n);
+        assert_eq!(out["adx_14"].len(), n);
+        assert_eq!(out["di_plus_14"].len(), n);
+        assert_eq!(out["di_minus_14"].len(), n);
+        assert_eq!(out["wma_10"].len(), n);
+        assert_eq!(out["hma_9"].len(), n);
     }
 
     #[test]

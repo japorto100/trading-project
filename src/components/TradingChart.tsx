@@ -1,6 +1,7 @@
 "use client";
 
 import { BarChart3, RefreshCw } from "lucide-react";
+import { useTheme } from "next-themes";
 import type { MouseEvent } from "react";
 import { memo, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ChartType, DrawingType } from "@/chart/types";
@@ -44,7 +45,6 @@ interface PatternData {
 interface TradingChartProps {
 	candleData: TradingChartCandle[];
 	indicators: IndicatorSettings;
-	isDarkMode: boolean;
 	chartType?: ChartType;
 	activeDrawingTool?: DrawingType | null;
 	drawingsLocked?: boolean;
@@ -139,7 +139,6 @@ function drawingReducer(state: DrawingState, action: DrawingAction): DrawingStat
 export function TradingChart({
 	candleData,
 	indicators,
-	isDarkMode,
 	chartType = "candlestick",
 	activeDrawingTool = null,
 	drawingsLocked = false,
@@ -155,6 +154,8 @@ export function TradingChart({
 	onCustomStartYearChange,
 	patternOverlay,
 }: TradingChartProps) {
+	const { resolvedTheme } = useTheme();
+	const isDarkMode = resolvedTheme !== "light";
 	const chartContainerRef = useRef<HTMLDivElement>(null);
 	const rsiChartContainerRef = useRef<HTMLDivElement>(null);
 	const chartRef = useRef<ChartHandle | null>(null);

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 const DefaultBaseURL = "https://data.financialresearch.gov/v1"
@@ -28,11 +28,13 @@ const (
 type Config struct {
 	BaseURL        string
 	RequestTimeout time.Duration
+	CacheTTL       time.Duration
 }
 
 type Client struct {
-	httpClient  *base.Client
-	defaultPath string
+	httpClient    *base.Client
+	defaultPath   string
+	responseCache *base.JSONHotCache
 }
 
 type seriesPayload struct {
@@ -50,13 +52,14 @@ func NewClient(cfg Config) *Client {
 	if timeout <= 0 {
 		timeout = 6 * time.Second
 	}
-		return &Client{
+	return &Client{
 		httpClient: base.NewClient(base.Config{
 			BaseURL:    baseURL,
 			Timeout:    timeout,
 			RetryCount: 1,
 		}),
-		defaultPath: "/series/full",
+		defaultPath:   "/series/full",
+		responseCache: base.NewJSONHotCache("ofr-series", cfg.CacheTTL),
 	}
 }
 
@@ -115,6 +118,13 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 			Path:       c.defaultPath,
 			StatusCode: http.StatusBadRequest,
 			Cause:      err,
+		}
+	}
+	cacheKey := base.StableCacheKey(canonical, fmt.Sprintf("%d", limit))
+	if c.responseCache != nil {
+		var cached []gct.SeriesPoint
+		if c.responseCache.Get(ctx, cacheKey, &cached) && len(cached) > 0 {
+			return cached, nil
 		}
 	}
 
@@ -189,6 +199,9 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	ensureLatestFirst(converted)
 	if len(converted) > limit {
 		converted = converted[:limit]
+	}
+	if c.responseCache != nil {
+		c.responseCache.Set(ctx, cacheKey, converted)
 	}
 	return converted, nil
 }

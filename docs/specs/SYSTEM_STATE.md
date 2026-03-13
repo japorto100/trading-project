@@ -137,8 +137,9 @@ vorbereitet, aber noch nicht die dominante Alltags-Laufzeit des Systems.
 
 | Bereich | IST | Richtung |
 |:--------|:----|:---------|
-| App-DB | Prisma + SQLite lokal | lokal weiter ok, spaeter gezielte Erweiterung |
+| App-DB | Prisma + SQLite lokal | fuer UI-/BFF-nahe Daten lokal weiter ok; Go-owned Domain- und Metadata-Layer mittelfristig in backend-owned relationale DB ziehen |
 | Memory | memory-service aktiv; KG/vector/episodic Infrastruktur existiert | weiter haerten statt neu erfinden |
+| Source Persistence | Rohdownloads und source-spezifische Snapshot-Klassen jetzt als eigene Architekturfrage erkannt, aber noch nicht vollstaendig als produktive Storage-Pipeline umgesetzt | klare Trennung `cache` vs. `raw snapshot` vs. `normalized snapshot` ueber Object Storage + relationalen Snapshot-Index |
 | GCT / Audit | JSONL + SQLite-nahe Audit-Bausteine vorhanden | spaeter Gateway-owned Domain-Audit / execution-state |
 | Redis | als Working-Memory-/cache-Baustein vorgesehen, teils bereits genutzt oder vorbereitet | zentraler Hot-Path Cache / working memory |
 | NATS JetStream | vorbereitet / teilweise implementiert | spaeter async backbone fuer Replay / fanout / compute lanes |
@@ -153,6 +154,20 @@ sondern nur dort, wo das Gateway selbst Domain-Truth besitzt:
 - idempotency / retry / workflow-state
 - broker-credential metadata
 - spaetere execution- und backtest-Artefakte
+
+Zusaetzliche Persistenzregel fuer Quellen:
+
+- Hot cache reduziert Latenz, ist aber kein Source of Truth
+- Raw snapshots liegen object-first
+- Snapshot-Metadaten und Parserstatus liegen relational
+- Vector-/retrieval-faehige Artefakte entstehen erst nach Normalisierung
+
+Ownership-Regel fuer den mittelfristigen DB-Schnitt:
+
+- Was Go als Write-Owner oder Policy-Owner kontrolliert, soll mittelfristig
+  nicht dauerhaft im frontend-/Prisma-nahen DB-Pfad bleiben
+- staging/prod Zielbild ist ein backend-owned relational metadata/index layer
+  fuer Go-owned Betriebs- und Snapshot-Daten
 
 ---
 
@@ -176,7 +191,7 @@ sichtbar bleiben. Kein Layer soll diese Zustaende stillschweigend vermischen.
 |:--------|:----|:---------|
 | Agent Runtime | agent-service / tooling / context assembly baseline vorhanden | E2E-Verify und echte Runtime-Hardening offen |
 | Langlauf-Orchestrierung | LangGraph spaeter im Python-Agent-Layer; Temporal nur gezielt spaeter | keine voreilige Doppel-Einfuehrung |
-| Memory | semantische / episodische / KG-nahe Schicht vorhanden | Wahrheit, belief, overlay, scenario sauberer trennen |
+| Memory | semantische / episodische / KG-nahe Schicht vorhanden | Wahrheit, belief, overlay, scenario sauberer trennen; Vector-Ingestion nur aus normalisierten und provenance-markierten Inputs |
 | Game Theory / Simulation | erste Baseline-Endpunkte vorhanden | GeoMap-gekoppelter Simulationsmodus, nicht bloes Zusatzwidget |
 
 ---
@@ -211,4 +226,6 @@ sichtbar bleiben. Kein Layer soll diese Zustaende stillschweigend vermischen.
 | Auth / policy / secrets / GCT hardening | `AUTH_SECURITY.md` |
 | Compute split Go/Python/Rust | `execution/compute_delta.md` |
 | Infra / messaging / provider rollout | `execution/infra_provider_delta.md` |
+| Source persistence / snapshots | `execution/source_persistence_snapshot_delta.md` |
+| Vector ingestion / retrieval boundary | `execution/vector_ingestion_delta.md` |
 

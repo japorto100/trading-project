@@ -88,11 +88,13 @@ flowchart LR
     Q --> W[Python Workers]
     W --> X[Rust Accelerators via PyO3]
     X --> W
+    O --> RC[(Redis / Hot Cache)]
+    O --> SI[(Snapshot Metadata / Index DB)]
+    W --> OS[(Object Storage S3 API)]
     W --> RS[(Result Store)]
     W --> VC[(Vector / KG / Memory Stores)]
-    W --> OS[(Object Storage S3 API)]
-    O --> M[(Object Metadata / Index DB)]
-    M --> OS
+    W --> SI
+    SI --> OS
     O --> AO[(Audit / Ops Logs)]
 ```
 
@@ -107,6 +109,11 @@ flowchart LR
   - `traceId` / `requestId` (wenn aus User-Aktion entstanden)
 - Artefakte (PDF, Audio, Video, Parquet) werden object-first gespeichert;
   relationale Stores halten nur Metadaten, Retention und Zugriffspolicies.
+- Source-Pipeline trennt verpflichtend:
+  - raw blob / raw snapshot im Object Store
+  - Snapshot-Metadaten im relationalen Index
+  - Hot cache in Redis/Valkey
+  - normalisierte Outputs fuer KG/vector/retrieval erst nach Parser-Stufe
 - Fehlschlaege gehen in DLQ/Failure-Queue; keine stillen Drops.
 
 ---
@@ -149,7 +156,27 @@ flowchart TB
 | High-Performance Kernels | Rust via PyO3 | Deterministische Inputs/Outputs, Benchmarks |
 | Scheduling/Batch | Scheduler + Go Orchestrator | Retry/DLQ/Idempotenz verpflichtend |
 | Object Storage Layer | SeaweedFS/Garage via S3 API, initial Go filesystem baseline for local wiring | immutable-by-default Artefakte, lifecycle/retention, checksums, signed gateway-owned access |
+| Source Snapshot Index | Go-owned relational metadata layer | `source_id`, hash, parser version, cadence, retention und status getrennt vom Blob halten |
+| Vector Ingestion | Memory / retrieval plane | nur normalisierte, provenance-markierte Inputs; kein direct-from-raw embedding |
 | Secrets | Go-side Secret Management | Keine Frontend- oder Client-Leaks |
+
+### 6.1 Source Data Pipeline (verbindlich)
+
+Fuer externe Quellen gilt die Betriebsreihenfolge:
+
+`selection -> onboarding -> fetch/cache/snapshot -> normalize -> retrieval/vector`
+
+Praktische Konsequenz:
+
+- `api-hot` Quellen duerfen cache-first sein.
+- `file-snapshot` Quellen persistieren raw blobs zuerst im Object Store.
+- `api-snapshot` Quellen duerfen Responses oder daraus abgeleitete Snapshots
+  replay-faehig halten.
+- Context Assembly und Vector Retrieval lesen nicht direkt aus unnormalisierten
+  Rohdownloads.
+- Mittelfristig gehoeren Go-owned Snapshot-/Provider-/Workflow-Metadaten in
+  eine backend-owned relationale DB; frontend-/BFF-nahe Prisma-Pfade sind dafuer
+  kein Zielzustand in staging/prod.
 
 ---
 
@@ -386,6 +413,8 @@ Dieses Dokument ist die Zielarchitektur-Referenz. Detaillierte route-by-route Zu
 - `docs/specs/EXECUTION_PLAN.md`
 - `storage_layer.md`
 - `docs/specs/execution/storage_layer_delta.md`
+- `docs/specs/execution/source_persistence_snapshot_delta.md`
+- `docs/specs/execution/vector_ingestion_delta.md`
 - `docs/other_project/SUPERAPP.md` (strategische Referenz, nicht aktive Root-Authority)
 
 ---

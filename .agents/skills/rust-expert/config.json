@@ -1,0 +1,54 @@
+{
+  "rust_edition": "2021",
+  "msrv": "1.75",
+  "linters": [
+    "cargo clippy --all-targets --all-features -- -D warnings",
+    "cargo fmt --check",
+    "cargo audit",
+    "cargo deny check"
+  ],
+  "analysis_settings": {
+    "deny_unwrap_in_lib": true,
+    "deny_panic_in_lib": true,
+    "warn_indexing_slicing": true,
+    "enforce_inner_pure_fn_pattern": true,
+    "require_approx_for_float_tests": true,
+    "max_unsafe_blocks_per_file": 1
+  },
+  "preferred_crates": {
+    "error_handling_lib":   "thiserror@2",
+    "error_handling_bin":   "anyhow@2",
+    "async_runtime":        "tokio@1 (features=[full])",
+    "cpu_parallel":         "rayon@1",
+    "grpc":                 "tonic@0.12 + tonic-build@0.12",
+    "wasm":                 "wasm-bindgen@0.2 + wasm-pack",
+    "python_bridge":        "pyo3@0.23 (abi3-py311)",
+    "embedded_kv":          "redb@2",
+    "serialization":        "serde@1 + serde_json@1",
+    "tracing":              "tracing@0.1 + tracing-subscriber@0.3",
+    "otel":                 "opentelemetry@0.27 + opentelemetry-otlp + tracing-opentelemetry",
+    "http_client":          "reqwest@0.12 (rustls-tls, no OpenSSL)",
+    "float_test_assert":    "approx@0.5",
+    "temp_files_test":      "tempfile@3",
+    "proto_codegen":        "prost@0.13",
+    "grpc_health":          "tonic-health@0.12",
+    "cancellation":         "tokio-util (CancellationToken)",
+    "wasm_serde":           "serde-wasm-bindgen@0.6"
+  },
+  "crate_types": {
+    "pyo3_extension":   "cdylib",
+    "wasm_module":      "cdylib",
+    "grpc_service_bin": "bin",
+    "shared_library":   "rlib"
+  },
+  "build_commands": {
+    "pyo3_dev":     "maturin develop --release",
+    "pyo3_release": "maturin build --release",
+    "wasm":         "wasm-pack build --target web --release",
+    "grpc_service": "cargo build --release",
+    "test":         "cargo test --all-features",
+    "lint":         "cargo clippy --all-targets --all-features -- -D warnings",
+    "fmt":          "cargo fmt",
+    "audit":        "cargo audit"
+  }
+}

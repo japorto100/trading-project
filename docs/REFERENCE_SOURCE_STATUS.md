@@ -9,6 +9,7 @@
 ## Kanonische Datei
 
 - [`docs/references/status.md`](./references/status.md)
+- Quellen-Tiering / Auswahl: [`docs/specs/execution/source_selection_delta.md`](./specs/execution/source_selection_delta.md)
 - Quellen-/Key-Onboarding: [`docs/specs/execution/source_onboarding_and_keys.md`](./specs/execution/source_onboarding_and_keys.md)
 
 ---

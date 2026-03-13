@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { buildGeoEventSelectionDetail } from "@/features/geopolitical/selection-detail";
 import type { GeoContradiction, GeoEvent } from "@/lib/geopolitical/types";
 
 interface EventInspectorProps {
 	event: GeoEvent | null;
 	busy: boolean;
+	onOpenFlatView?: (event: GeoEvent) => void;
 	onAddSource: (payload: {
 		provider: string;
 		url: string;
@@ -22,7 +24,13 @@ interface EventInspectorProps {
 	}) => void;
 }
 
-export function EventInspector({ event, busy, onAddSource, onAddAsset }: EventInspectorProps) {
+export function EventInspector({
+	event,
+	busy,
+	onOpenFlatView,
+	onAddSource,
+	onAddAsset,
+}: EventInspectorProps) {
 	const [sourceProvider, setSourceProvider] = useState("");
 	const [sourceUrl, setSourceUrl] = useState("");
 	const [sourceTitle, setSourceTitle] = useState("");
@@ -42,6 +50,7 @@ export function EventInspector({ event, busy, onAddSource, onAddAsset }: EventIn
 			),
 		[event],
 	);
+	const eventDetail = useMemo(() => (event ? buildGeoEventSelectionDetail(event) : null), [event]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -109,7 +118,38 @@ export function EventInspector({ event, busy, onAddSource, onAddAsset }: EventIn
 	return (
 		<section className="rounded-md border border-border bg-card p-3">
 			<h2 className="text-sm font-semibold">Event Inspector</h2>
-			<p className="mt-1 text-xs text-muted-foreground">{event.title}</p>
+			<p className="mt-1 text-xs text-muted-foreground">{eventDetail?.title}</p>
+			{eventDetail?.subtitle ? (
+				<p className="mt-1 text-[11px] text-muted-foreground">{eventDetail.subtitle}</p>
+			) : null}
+			<div className="mt-2 flex flex-wrap gap-1">
+				{eventDetail?.primaryMeta.map((item) => (
+					<span
+						key={item}
+						className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+					>
+						{item}
+					</span>
+				))}
+			</div>
+			<div className="mt-2">
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={busy}
+					onClick={() => {
+						if (!event) return;
+						onOpenFlatView?.(event);
+					}}
+				>
+					Open in flat view
+				</Button>
+			</div>
+			{eventDetail && eventDetail.secondaryMeta.length > 0 ? (
+				<p className="mt-2 text-[11px] text-muted-foreground">
+					{eventDetail.secondaryMeta.join(" • ")}
+				</p>
+			) : null}
 
 			<div className="mt-3 rounded-md border border-border bg-background p-2">
 				<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

@@ -13,6 +13,9 @@
 > - Guided Collaboration in Heterogeneous LLM-Based MAS ([arXiv:2602.13639](https://arxiv.org/abs/2602.13639)) -- Negative Synergy Effect, adaptive Fuehrung + RAG-Erfahrungsspeicher
 > - Anthropic: Building Effective Agents (2024/2026) -- Router, Orchestrator-Workers, Evaluator-Optimizer, Prompt Chaining
 > - AdaptOrch (2026, [arXiv:2602.16873](https://arxiv.org/pdf/2602.16873)) -- Topologie-bewusste Orchestration: 12-23% Verbesserung gegenueber statischen Baselines
+> **Security-Arbeitsdokument:** [`AGENT_SECURITY.md`](./AGENT_SECURITY.md) (Capability Envelope, Retrieval Broker, Tool Proxy, Agentic Storage)
+> **Harness-Arbeitsdokument:** [`AGENT_HARNESS.md`](./AGENT_HARNESS.md) (Constrain/Inform/Verify/Correct, OpenSandbox, Runtime-Guardrails)
+> **Retrieval-/Reasoning-Strategie:** [`RAG_GRAPHRAG_STRATEGY_2026.md`](./RAG_GRAPHRAG_STRATEGY_2026.md) (Dual Pipeline, Query-Modi, GraphRAG/UQ)
 > **Primaer betroffen:** Python-Backend (LLM-Pipeline, Sentiment, Speech, Agent Registry), Go-Backend (Fetching, SSE-Router), Frontend (Dashboard, Agent Builder UI)
 
 > **Normative Zusatzregeln (09. Maerz 2026):**
@@ -45,6 +48,7 @@
 
 12. [Orchestration Layer -- Router, Planner, Orchestrator](#12-orchestration-layer--router-planner-orchestrator)
     - [12.5a Plan-Execute-Replan + human-editable plan projection](#125a-plan-execute-replan--human-editable-plan-projection)
+    - [12.5b Formale Planung als Constraint-Layer (PDDL/ADL, spaeter)](#125b-formale-planung-als-constraint-layer-pddladl-spaeter)
     - [12.6 Runtime Defaults -- LangGraph zuerst, Temporal spaeter gezielt](#126-runtime-defaults--langgraph-zuerst-temporal-spaeter-gezielt)
 13. [Erweiterte Agent-Rollen -- Research, Synthesizer+, Evaluator, Monitor](#13-erweiterte-agent-rollen--research-synthesizer-evaluator-monitor)
 14. [Heterogene LLM-Architektur -- Modell-Auswahl pro Rolle](#14-heterogene-llm-architektur--modell-auswahl-pro-rolle)
@@ -1345,6 +1349,26 @@ Schritten gleichzeitig, sondern immer gegen einen expliziten aktuellen Planstand
 Das passt direkt zu LangGraph/HITL-Workflows: Planner- und Replanner-Nodes duerfen
 grosses Reasoning nutzen, waehrend der Orchestrator moeglichst deterministisch
 bleibt.
+
+### 12.5b Formale Planung als Constraint-Layer (PDDL/ADL, spaeter)
+
+Die Plan-Execute-Replan-Architektur bleibt der Default. PDDL/ADL ist ein
+spaeteres **Constraint-Layer**, kein Ersatz fuer den Orchestrator.
+
+- **Wann sinnvoll:** wenn Workflows harte temporale/numerische Constraints
+  enthalten (Dauer, Deadlines, Ressourcen, erlaubte Parallelitaet).
+- **Wofuer konkret:** Data-/Research-Orchestrierung, Batch-/Backfill-Scheduling,
+  Multi-Service-Koordination mit klaren Guards.
+- **Nicht das Ziel:** Low-Latency-Trade-Execution oder triviale CRUD-Workflows.
+
+**Integrationsmuster:**
+
+1. Planner erzeugt weiterhin Runtime-Plan (DAG + Policies).
+2. Optionaler formaler Check validiert den Plan gegen Domain-Constraints.
+3. Nur valide Plaene werden ausgefuehrt; bei Verstoessen folgt Replanning.
+
+Damit bleibt die Laufzeitarchitektur stabil, waehrend formale Verifikation gezielt
+als zusaetzliche Sicherheitsstufe zugeschaltet wird.
 
 ### 12.6 Runtime Defaults -- LangGraph zuerst, Temporal spaeter gezielt
 

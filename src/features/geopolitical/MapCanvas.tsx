@@ -16,6 +16,7 @@ import {
 	getMarkerSeverityColor,
 	getSoftSignalVisualStyle,
 } from "@/features/geopolitical/d3/scales";
+import type { GeoFlatViewBounds } from "@/features/geopolitical/flat-view-handoff";
 import { useMacroOverlayData } from "@/features/geopolitical/hooks/useMacroOverlayData";
 import { getMarkerSymbolPath, MARKER_SYMBOL_LEGEND } from "@/features/geopolitical/markerSymbols";
 import { useGeoMapCanvasBasemapStage } from "@/features/geopolitical/rendering/useGeoMapCanvasBasemapStage";
@@ -30,10 +31,12 @@ import {
 	useGeoMapProjectionModel,
 } from "@/features/geopolitical/rendering/useGeoMapProjectionModel";
 import type { GeoEarthChoroplethMode, GeoMapBody } from "@/features/geopolitical/store";
+import { buildGeoViewportFocusTarget } from "@/features/geopolitical/viewport-focus";
 import type { GeoCandidate, GeoDrawing, GeoEvent } from "@/lib/geopolitical/types";
 
 interface MapCanvasProps {
 	mapBody?: GeoMapBody;
+	viewportResetNonce?: number;
 	events: GeoEvent[];
 	candidates: GeoCandidate[];
 	drawings: GeoDrawing[];
@@ -49,6 +52,7 @@ interface MapCanvasProps {
 	onSelectDrawing: (drawingId: string) => void;
 	onMapClick: (coords: { lat: number; lng: number }) => void;
 	onCountryClick?: (countryId: string) => void;
+	onOpenFlatViewForCluster?: (bounds: GeoFlatViewBounds) => void;
 	drawingMode?: string | null;
 	pendingLineStart?: { lat: number; lng: number } | null;
 	pendingPolygonPoints?: Array<{ lat: number; lng: number }>;
@@ -57,6 +61,7 @@ interface MapCanvasProps {
 
 export const MapCanvas = memo(function MapCanvas({
 	mapBody = "earth",
+	viewportResetNonce = 0,
 	events,
 	candidates,
 	drawings,
@@ -72,6 +77,7 @@ export const MapCanvas = memo(function MapCanvas({
 	onSelectDrawing,
 	onMapClick,
 	onCountryClick,
+	onOpenFlatViewForCluster,
 	drawingMode = null,
 	pendingLineStart = null,
 	pendingPolygonPoints = [],
@@ -85,6 +91,7 @@ export const MapCanvas = memo(function MapCanvas({
 	const projectionRef = useRef<ReturnType<typeof useGeoMapProjectionModel>["projection"] | null>(
 		null,
 	);
+	const lastSelectionFocusIdRef = useRef<string | null>(null);
 	const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);
 	const [scale, setScale] = useState(INITIAL_SCALE);
 	const [, setK] = useState(1);
@@ -229,7 +236,7 @@ export const MapCanvas = memo(function MapCanvas({
 		setIsAutoRotating(false);
 		setScale((prev) => Math.max(prev * 0.66, INITIAL_SCALE * 0.5));
 	};
-	const handleReset = () => {
+	const handleReset = useCallback(() => {
 		viewportAnimationTimerRef.current?.stop();
 		viewportAnimationTimerRef.current = null;
 		setRotation([0, 0, 0]);
@@ -240,37 +247,41 @@ export const MapCanvas = memo(function MapCanvas({
 			const zoomBehavior = zoom<SVGSVGElement, unknown>();
 			select(svgRef.current).call(zoomBehavior.transform, zoomIdentity);
 		}
-	};
+	}, []);
 
-	const animateViewportTo = (
-		targetRotation: [number, number, number],
-		targetScale: number,
-		durationMs = 360,
-	) => {
-		viewportAnimationTimerRef.current?.stop();
+	useEffect(() => {
+		if (viewportResetNonce === 0) return;
+		handleReset();
+	}, [handleReset, viewportResetNonce]);
 
-		setIsAutoRotating(false);
-		const startRotation = [...rotation] as [number, number, number];
-		const startScale = scale;
+	const animateViewportTo = useCallback(
+		(targetRotation: [number, number, number], targetScale: number, durationMs = 360) => {
+			viewportAnimationTimerRef.current?.stop();
 
-		viewportAnimationTimerRef.current = timer((elapsed) => {
-			const progress = Math.min(1, elapsed / durationMs);
-			const eased = easeCubicOut(progress);
+			setIsAutoRotating(false);
+			const startRotation = [...rotation] as [number, number, number];
+			const startScale = scale;
 
-			setRotation([
-				startRotation[0] + (targetRotation[0] - startRotation[0]) * eased,
-				startRotation[1] + (targetRotation[1] - startRotation[1]) * eased,
-				startRotation[2] + (targetRotation[2] - startRotation[2]) * eased,
-			]);
-			setScale(startScale + (targetScale - startScale) * eased);
-			setK((startScale + (targetScale - startScale) * eased) / INITIAL_SCALE);
+			viewportAnimationTimerRef.current = timer((elapsed) => {
+				const progress = Math.min(1, elapsed / durationMs);
+				const eased = easeCubicOut(progress);
 
-			if (progress >= 1) {
-				viewportAnimationTimerRef.current?.stop();
-				viewportAnimationTimerRef.current = null;
-			}
-		});
-	};
+				setRotation([
+					startRotation[0] + (targetRotation[0] - startRotation[0]) * eased,
+					startRotation[1] + (targetRotation[1] - startRotation[1]) * eased,
+					startRotation[2] + (targetRotation[2] - startRotation[2]) * eased,
+				]);
+				setScale(startScale + (targetScale - startScale) * eased);
+				setK((startScale + (targetScale - startScale) * eased) / INITIAL_SCALE);
+
+				if (progress >= 1) {
+					viewportAnimationTimerRef.current?.stop();
+					viewportAnimationTimerRef.current = null;
+				}
+			});
+		},
+		[rotation, scale],
+	);
 
 	const handleClusterFocus = (cluster: { lat: number; lng: number }) => {
 		const { lng, lat } = cluster;
@@ -280,6 +291,48 @@ export const MapCanvas = memo(function MapCanvas({
 		const nextScale = Math.min(scale * 1.35, INITIAL_SCALE * 10);
 		animateViewportTo(nextRotation, nextScale);
 	};
+
+	const handleClusterOpenInFlat = useCallback(
+		(bounds: GeoFlatViewBounds | null) => {
+			if (!bounds || !onOpenFlatViewForCluster) return;
+			onOpenFlatViewForCluster(bounds);
+		},
+		[onOpenFlatViewForCluster],
+	);
+
+	useEffect(() => {
+		if (mapBody !== "earth") {
+			lastSelectionFocusIdRef.current = null;
+			return;
+		}
+		if (!selectedEventId) {
+			lastSelectionFocusIdRef.current = null;
+			return;
+		}
+		if (lastSelectionFocusIdRef.current === selectedEventId) {
+			return;
+		}
+
+		const selectedMarker = mapModel.markers.find(
+			(marker) => marker.id === selectedEventId && marker.visible,
+		);
+		if (!selectedMarker) {
+			return;
+		}
+
+		const focusTarget = buildGeoViewportFocusTarget({
+			lat: selectedMarker.lat,
+			lng: selectedMarker.lng,
+			currentScale: scale,
+			initialScale: INITIAL_SCALE,
+		});
+		if (!focusTarget) {
+			return;
+		}
+
+		lastSelectionFocusIdRef.current = selectedEventId;
+		animateViewportTo(focusTarget.rotation, focusTarget.scale, 320);
+	}, [animateViewportTo, mapBody, mapModel.markers, scale, selectedEventId]);
 
 	const handleBackgroundClick = useCallback(
 		(event: MouseEvent<SVGSVGElement>) => {
@@ -1000,6 +1053,10 @@ export const MapCanvas = memo(function MapCanvas({
 								tabIndex={0}
 								aria-label={`Cluster with ${cluster.count} events`}
 								className="cursor-pointer"
+								onDoubleClick={(event) => {
+									event.stopPropagation();
+									handleClusterOpenInFlat(cluster.bounds);
+								}}
 								onClick={(event) => {
 									event.stopPropagation();
 									handleClusterFocus(cluster);
@@ -1008,6 +1065,10 @@ export const MapCanvas = memo(function MapCanvas({
 									if (event.key !== "Enter" && event.key !== " ") return;
 									event.preventDefault();
 									event.stopPropagation();
+									if (event.shiftKey) {
+										handleClusterOpenInFlat(cluster.bounds);
+										return;
+									}
 									handleClusterFocus(cluster);
 								}}
 							>
@@ -1023,7 +1084,7 @@ export const MapCanvas = memo(function MapCanvas({
 								>
 									{cluster.count > 99 ? "99+" : String(cluster.count)}
 								</text>
-								<title>{`Cluster: ${cluster.count} events`}</title>
+								<title>{`Cluster: ${cluster.count} events. Click to focus, double-click or Shift+Enter to inspect in flat view.`}</title>
 							</g>
 						))}
 					{mapModel.markers.map((marker) => {

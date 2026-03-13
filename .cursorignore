@@ -1,0 +1,86 @@
+# Dependencies and package managers
+node_modules/
+**/node_modules/
+.bun/
+
+# Build artifacts
+.next/
+out/
+dist/
+build/
+**/target/
+
+# Python virtual environments and caches
+.venv/
+**/.venv/
+venv/
+**/venv/
+env/
+**/env/
+**/__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+**/.cache/
+*.pyc
+
+# Go artifacts
+*.test
+*.test.exe
+*.out
+*.prof
+coverage.out
+.coverprofile
+go.work.sum
+
+# Logs and local temp outputs
+*.log
+tmp/
+docs/tmp/
+screenshots/
+test-results/
+trace_geomap.json
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.claude/
+
+# Environment files and secrets
+.env
+.env.*
+
+# Local data and databases
+data/
+*.db
+*.sqlite
+*.sqlite3
+python-backend/data/kuzu/
+python-backend/data/kuzu.db
+python-backend/data/kuzu.db.wal
+python-backend/data/chroma.sqlite3
+python-backend/data/chroma/
+python-backend/data/episodic.db
+python-backend/data/kg_fallback.db
+python-backend/data/memory-episodic.json
+openobserve_data/
+tools/seaweedfs/data/
+tools/garage/data/
+tools/garage/meta/
+
+# Downloaded binaries / local tools
+tools/openobserve/
+tools/nats/nats-server.exe
+tools/seaweedfs/weed.exe
+tools/seaweedfs/windows_amd64.zip
+tools/garage/*.exe
+tools/garage/src-v2.2.0/
+tools/garage/garage-v2.2.0.tar.gz
+
+# Generated backend binaries
+go-backend/gateway
+go-backend/gateway.exe
+go-backend/vendor-forks/gocryptotrader/gocryptotrader
+go-backend/vendor-forks/gocryptotrader/gocryptotrader.exe

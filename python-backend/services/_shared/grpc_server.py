@@ -37,8 +37,15 @@ def start_grpc_server(
             port = int(os.getenv("GRPC_PORT", "9092"))
     server = grpc.server(ThreadPoolExecutor(max_workers=4), maximum_concurrent_rpcs=100)
     add_ipc_to_server(server, asgi_app)
-    server.add_insecure_port(f"{host}:{port}")
-    server.start()
+    bound = server.add_insecure_port(f"{host}:{port}")
+    if bound == 0:
+        logger.warning("gRPC IPC server could not bind to %s:%d — port in use or permission denied (skipping gRPC)", host, port)
+        return threading.Thread(target=lambda: None, daemon=True, name="grpc-ipc-noop")
+    try:
+        server.start()
+    except RuntimeError as exc:
+        logger.warning("gRPC IPC server failed to start on %s:%d — %s (skipping gRPC)", host, port, exc)
+        return threading.Thread(target=lambda: None, daemon=True, name="grpc-ipc-noop")
     logger.info("gRPC IPC server listening on %s:%d", host, port)
 
     def run() -> None:

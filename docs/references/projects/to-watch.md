@@ -13,10 +13,10 @@
 | `PineTS` | AGPL-Lizenz-Gate |
 | `ChartGPU` | Nur relevant, falls WASM-/Rust-Chartpfad nicht reicht |
 | `Tauri v2` | Erst nach echtem Desktop-Bedarf |
+| `ccxt` | Nur bei messbarem Long-Tail-CEX-/Fallback-Bedarf hinter Go; aktuell kein aktiver Fit im Go-first-Stack |
 | `go-alpha-vantage` | Geringer Hebel relativ zu bestehenden Quellen |
 | `CCXT Go` | Nur bei messbarem Go-Multi-Exchange-Bedarf |
 | `VectorTA` | Nur wenn `Kand` funktional nicht reicht |
-| `EquiCharts` | Nur wenn Custom-Engine-Bedarf ueber LWC hinausgeht |
 | `ffetch` | Re-Open nur bei messbarem Hardening-Mehrwert |
 
 ---

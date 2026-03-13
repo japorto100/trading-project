@@ -59,7 +59,7 @@ export function RegimeSizingPanel({ symbols }: { symbols: string[] }) {
 		isLoading: loading,
 		error: queryError,
 	} = useQuery<RegimeSizingResponse>({
-		queryKey: ["regime-sizing", symbols],
+		queryKey: ["portfolio", "regime-sizing", symbols],
 		queryFn: async () => {
 			const res = await fetch("/api/fusion/portfolio/analytics/regime-sizing", {
 				method: "POST",

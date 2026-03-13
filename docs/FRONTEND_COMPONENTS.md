@@ -1,9 +1,5 @@
 # Frontend Components, Workbench Surfaces & UI References
 
-> **Stand:** 07. Maerz 2026
-> **Zweck:** Sammeldokument fuer konkrete UI-Surfaces, Component-Familien, Dashboard-/Workbench-Patterns und externe Frontend-Referenzen.
-> **Status:** Ziel-Dokument im Aufbau. Dient als kuenftige Heimat fuer frontendnahe Teile aus `docs/specs/ERRORS.md` Sek. 23 sowie fuer weitere UI-Referenzen aus Agent-, Memory- und Dashboard-Themen.
-> **Nicht dieses Dokuments:** Keine normative Frontend-Gesamtarchitektur, keine Agent- oder Memory-Verfassung, keine Design-System-Bibel.
 
 ---
 
@@ -23,67 +19,13 @@ Der empfohlene Schnitt ist:
 
 ---
 
-## 1. Warum dieses Dokument existiert
 
-Bestimmte Inhalte aus `ERRORS.md` sind klar frontendnah, aber keine Error-/Observability-Spec:
+## 3. Referenzen (nicht Chat-Core)
 
-- Agent-Workbench-Referenzen
-- Dashboard- und Control-Room-Muster
-- graphische Knowledge-/Memory-Surfaces
-- Dokumenten-/Research-Workspaces
-- Chat-/Tool-Output-Komponenten
+Die tiefen Chat-UI-Referenzen sind in `docs/frontend_chat_ui.md` konsolidiert
+und werden hier bewusst nicht doppelt gefuehrt.
 
-Wenn diese Referenzen in `ERRORS.md`, `AGENT_ARCHITECTURE.md` oder `FRONTEND_ARCHITECTURE.md` verteilt bleiben, gehen konkrete UI-Ideen leicht verloren oder vermischen sich mit eigentlichen Architekturregeln.
-
----
-
-## 2. Grundsatz
-
-**Aladdin-Gap (Drawing Persistence):** Drawing Objects in DB persistieren. Keine externe OSS-Lib; Prisma-Schema erweitern. Priorität: Niedrig.
-
-Alle hier genannten Produkte, Frameworks und UIs sind **Optionen / Referenzen / Pattern-Quellen**.
-Sie sind **keine** automatische Produktentscheidung fuer `tradeview-fusion`.
-
-Tool- und Library-Namen sollen bewusst erhalten bleiben, damit spaetere Evaluierungen moeglich bleiben, auch wenn die finale Implementierung projektspezifisch erfolgt.
-
----
-
-## 3. Kandidaten aus `ERRORS.md` Sektion 23
-
-### 3.1 `Agent Zero`
-
-Rolle als Referenz:
-
-- Tool-orientierte Agent-Workbench
-- Terminal-/Execution-Flaechen
-- Skill-/Tool-Orchestrierung
-- experimentelle Agent-Surface
-
-Fuer `tradeview-fusion` interessant als:
-
-- Pattern fuer agentische Power-User-Surfaces
-- Inspiration fuer Debug-/Execution-Panels
-- Referenz fuer "chaotische" Out-of-Bounds-Agent-Aufgaben ausserhalb des Trading-Kerns
-
-Nicht uebernehmen als:
-
-- komplette Blackbox-UI
-- direkte Host-Ausfuehrung ohne Sandbox
-
-### 3.2 `Perplexica`
-
-Rolle als Referenz:
-
-- Search-/Research-UI
-- Suchergebnis-Layout
-- Self-hosted Recherche-Workbench
-
-Fuer `tradeview-fusion` interessant als:
-
-- Referenz fuer News-/Research-Surfaces
-- Pattern fuer Web-Recherche mit Quellenliste, Antwortblock und Folgeaktionen
-
-### 3.3 `Mission Control`
+### 3.1 `Mission Control`
 
 Rolle als Referenz:
 
@@ -95,7 +37,7 @@ Fuer `tradeview-fusion` interessant als:
 - Referenz fuer Agent-Operations-Dashboards
 - Control-Room-Ansicht fuer Agent-Laufzeiten, States, Tokens, Errors, Jobs
 
-### 3.4 `GitNexus Web`
+### 3.2 `GitNexus Web`
 
 Rolle als Referenz:
 
@@ -107,7 +49,7 @@ Fuer `tradeview-fusion` interessant als:
 - UI-Referenz fuer Frontend User-KG
 - Graph-Exploration fuer Domain-KG, Claim/Evidence, Verlinkungen
 
-### 3.5 `Paperless-ngx`
+### 3.3 `Paperless-ngx`
 
 Rolle als Referenz:
 
@@ -120,20 +62,7 @@ Fuer `tradeview-fusion` interessant als:
 - DMS-/Research-Workspace-Referenz
 - Pattern fuer Quellenablage, Dokumentensichtung und RAG-nahe Oberflaechen
 
-### 3.6 `Tambo`
-
-Rolle als Referenz:
-
-- interaktive Agent-Output-Komponenten
-- dynamische Tool-Output-Renderings
-- Chat-nahe Workbench-Komponenten
-
-Fuer `tradeview-fusion` interessant als:
-
-- Referenz fuer Agent Playground
-- Pattern fuer strukturierte Output-Karten, Status-Widgets und Tool-Result-Surfaces
-
-### 3.7 `Vercel AI SDK`
+### 3.4 `Vercel AI SDK`
 
 Rolle als Referenz:
 
@@ -145,31 +74,31 @@ Fuer `tradeview-fusion` interessant als:
 - moegliche Option fuer agentische Chat-/Tool-Surfaces
 - Referenz fuer Streaming + State-Handling auf React-Seite
 
-### 3.8 Design-to-Code und read-only Agent-UI-Tooling
+### 3.4a Lokaler Clone-Status (Referenzprojekte)
+
+Die folgenden Referenzprojekte sind lokal unter `d:\tradingview-clones\_tmp_ref_review\` gespiegelt:
+
+- `mission-control`
+- `gitnexus-web`
+- `paperless-ngx`
+
+Wichtige Arbeitsnotizen dazu:
+
+- Nur Pattern-Extraktion, kein blindes Uebernehmen kompletter UIs.
+- Security/Runtime-Boundaries bleiben fuer Agent-Surfaces verpflichtend (kein unkontrollierter Host-Execution-Pfad).
+- `Paperless-ngx` bleibt primaer DMS-/OCR-Patternquelle fuer Research-/Source-Surfaces.
+
+### 3.5 Design-to-Code und read-only Agent-UI-Tooling
 
 Aus der frueheren Design-Tooling-Notiz bleiben fuer dieses Dokument vor allem die
 Frontend-nahen Produktionsregeln relevant:
 
-| Tool / Pattern | Rolle fuer `tradeview-fusion` | Wo sinnvoll | Wo nicht |
-|---|---|---|---|
-| **Pencil.dev** | Component-/Screen-Design mit strukturierter Agent-Uebergabe | Auth-, Settings-, Admin-, statische Workspace-Raender | nicht fuer Trading-Chart, GeoMap-Rendering oder datengetriebene Viz-Kerne |
-| **Figma MCP** | stabile Design-to-code-Bridge ohne UI-Neubau im Prompt | Layout-, Spacing- und System-Komponenten | nicht als Ersatz fuer Frontend-Architektur oder API-Grenzen |
-| **Tambo** | read-only Agent-UI / dynamische Output-Komponenten | Agent Playground, Analyse-Karten, Monitor-/Dashboard-Surfaces | nicht fuer Order-Placement, Wallet-/Account-Mutationen oder andere schreibende Finanzaktionen |
+
+| **Agent-UI Tooling (allgemein)** | read-only Agent-UI / dynamische Output-Komponenten | Agent Playground, Analyse-Karten, Monitor-/Dashboard-Surfaces | nicht fuer Order-Placement, Wallet-/Account-Mutationen oder andere schreibende Finanzaktionen |
 
 Arbeitsregeln:
 
 - Design-Tools kommen **nach** sauberer Frontend-/Gateway-Architektur, nicht davor.
-- Programmatische Viz-Surfaces bleiben programmatisch: `lightweight-charts`,
-  GeoMap/D3, Analytics-Charts.
-
-### 3.9 Chart-Plugins (LWC)
-
-| Ressource | Rolle | Link |
-|-----------|-------|------|
-| **LWC Plugin Examples** | Volume Profile, Rectangle, Trend Line, Vertical Line, Session Highlighting — offizielle TradingView-Dokumentation | [Plugin Examples](https://tradingview.github.io/lightweight-charts/plugin-examples/) |
-- AI-generierte UI darf im Trading-Kontext nur read-only oder assistiv sein;
-  finanzielle Mutation bleibt in deterministischen, explizit getesteten
-  Komponenten.
 
 ---
 
@@ -188,15 +117,6 @@ Diese Referenzen muessen spaeter mit bestehenden Domaenen-Dokumenten gekoppelt w
 
 ---
 
-## 5. Was hier bewusst nicht hinein gehoert
-
-- globale Frontend-Routing- oder State-Architektur
-- Backend-/IPC-/Transport-Entscheidungen
-- Error-/Observability-Normen
-- Security-/Policy-Verfassung
-- Future-Radar wie `WebTransport`, `eBPF`, `Nix`, `Confidential Computing`
-
-Diese Themen haben andere Heimatdokumente.
 
 ---
 
@@ -212,13 +132,4 @@ Dieses Dokument kann spaeter konkret gegliedert werden in:
 - Document & Source Review
 - Alert / Timeline / Event Intelligence Widgets
 
----
-
-## 7. Quellen
-
-- `docs/specs/ERRORS.md` Sek. 23
-- `docs/specs/FRONTEND_ARCHITECTURE.md`
-- `docs/AGENT_ARCHITECTURE.md`
-- `docs/MEMORY_ARCHITECTURE.md`
-- `docs/CONTEXT_ENGINEERING.md`
-- `docs/archive/FRONTEND_DESIGN_TOOLING.md`
+-

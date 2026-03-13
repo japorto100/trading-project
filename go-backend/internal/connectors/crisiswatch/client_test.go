@@ -4,10 +4,13 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"tradeviewfusion/go-backend/internal/storage"
 )
 
 func TestClientList_ParsesRSSItems(t *testing.T) {
@@ -189,5 +192,95 @@ func TestClientList_LoadsPersistedCache(t *testing.T) {
 	}
 	if items[0].ID != "persisted-1" {
 		t.Fatalf("unexpected persisted id %q", items[0].ID)
+	}
+}
+
+func TestClientList_RecordsSnapshotMetadataAndRawPayload(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/rss+xml")
+		w.Header().Set("ETag", `"crisiswatch-etag"`)
+		w.Header().Set("Last-Modified", "Thu, 12 Mar 2026 11:00:00 GMT")
+		_, _ = w.Write([]byte(`<?xml version="1.0" encoding="UTF-8"?>
+			<rss version="2.0">
+				<channel>
+					<item>
+						<guid>snapshot-1</guid>
+						<title>Middle East monthly update</title>
+						<link>https://example.org/snapshot-1</link>
+						<description>Regional conflict digest.</description>
+						<pubDate>Thu, 12 Mar 2026 11:15:00 +0000</pubDate>
+					</item>
+				</channel>
+			</rss>`))
+	}))
+	defer server.Close()
+
+	tempDir := t.TempDir()
+	t.Setenv("ARTIFACT_STORAGE_PROVIDER", "filesystem")
+	t.Setenv("ARTIFACT_STORAGE_BASE_DIR", filepath.Join(tempDir, "state"))
+
+	client := NewClient(Config{
+		RSSURL:            server.URL,
+		CacheTTL:          time.Hour,
+		SnapshotStorePath: filepath.Join(tempDir, "state", "crisiswatch.json"),
+	})
+
+	items, err := client.List(context.Background(), 10, "", "")
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+
+	rawFiles, err := filepath.Glob(filepath.Join(tempDir, "state", "source-snapshots", "raw", "crisiswatch", "*.xml"))
+	if err != nil {
+		t.Fatalf("glob raw files: %v", err)
+	}
+	if len(rawFiles) != 1 {
+		t.Fatalf("expected 1 raw snapshot file, got %d", len(rawFiles))
+	}
+	normalizedFiles, err := filepath.Glob(filepath.Join(tempDir, "state", "source-snapshots", "normalized", "crisiswatch", "*.json"))
+	if err != nil {
+		t.Fatalf("glob normalized files: %v", err)
+	}
+	if len(normalizedFiles) != 1 {
+		t.Fatalf("expected 1 normalized snapshot file, got %d", len(normalizedFiles))
+	}
+	if rawPayload, err := os.ReadFile(rawFiles[0]); err != nil || len(rawPayload) == 0 {
+		t.Fatalf("read raw payload: %v", err)
+	}
+	if normalizedPayload, err := os.ReadFile(normalizedFiles[0]); err != nil || len(normalizedPayload) == 0 {
+		t.Fatalf("read normalized payload: %v", err)
+	}
+
+	snapshotID := filepath.Base(rawFiles[0])
+	snapshotID = snapshotID[:len(snapshotID)-len(filepath.Ext(snapshotID))]
+	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(tempDir, "state", "source-snapshots", "source_snapshots.db"))
+	if err != nil {
+		t.Fatalf("open metadata store: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = metaStore.Close()
+	})
+
+	snapshot, err := metaStore.GetSourceSnapshot(snapshotID)
+	if err != nil {
+		t.Fatalf("get snapshot: %v", err)
+	}
+	if snapshot.SourceID != "crisiswatch" {
+		t.Fatalf("source id = %q", snapshot.SourceID)
+	}
+	if snapshot.SourceClass != "api-snapshot" {
+		t.Fatalf("source class = %q", snapshot.SourceClass)
+	}
+	if snapshot.DatasetName != "crisiswatch-rss" {
+		t.Fatalf("dataset name = %q", snapshot.DatasetName)
+	}
+	if snapshot.ParserVersion != "crisiswatch-normalized-v1" {
+		t.Fatalf("parser version = %q", snapshot.ParserVersion)
+	}
+	if snapshot.SnapshotStatus != storage.SourceSnapshotNormalized {
+		t.Fatalf("snapshot status = %q", snapshot.SnapshotStatus)
 	}
 }

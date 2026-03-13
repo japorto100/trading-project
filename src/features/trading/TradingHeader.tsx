@@ -3,12 +3,14 @@
 import {
 	BarChart3,
 	Camera,
+	Check,
 	Clock,
 	Fullscreen,
 	Globe,
 	Layout,
 	LogOut,
 	Moon,
+	Palette,
 	RefreshCw,
 	Star,
 	StarOff,
@@ -18,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import type { ChartType } from "@/chart/types";
 import { AlertPanel } from "@/components/AlertPanel";
@@ -36,14 +39,13 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { useTradingWorkspaceStore } from "@/features/trading/store/tradingWorkspaceStore";
 import type { LayoutMode } from "@/features/trading/types";
 import { isAuthEnabled, isAuthStackBypassEnabled } from "@/lib/auth/runtime-flags";
 import type { FusionSymbol } from "@/lib/fusion-symbols";
 import type { TimeframeValue } from "@/lib/providers/types";
 
 interface TradingHeaderProps {
-	currentSymbol: FusionSymbol;
-	favorites: string[];
 	searchQuery: string;
 	searchPending: boolean;
 	showSearch: boolean;
@@ -54,21 +56,17 @@ interface TradingHeaderProps {
 	compareSymbol: string | null;
 	indicators: IndicatorSettings;
 	loading: boolean;
-	isDarkMode: boolean;
 	supportedLayouts?: LayoutMode[];
 	onQueryChange: (query: string) => void;
 	onOpenSearchChange: (open: boolean) => void;
 	onSelectSymbol: (symbol: FusionSymbol) => void;
-	onToggleFavorite: (symbol: string) => void;
 	onTimeframeChange: (timeframe: TimeframeValue) => void;
 	onChartTypeChange: (chartType: ChartType) => void;
 	onCompare: (symbol: string | null) => void;
-	onLayoutChange: (layout: LayoutMode) => void;
 	onIndicatorsChange: (indicators: IndicatorSettings) => void;
 	onRefresh: () => void;
 	onExport: () => void;
 	onFullscreen: () => void;
-	onThemeToggle: () => void;
 	replayMode: boolean;
 	replayPlaying: boolean;
 	replayIndex: number;
@@ -80,8 +78,6 @@ interface TradingHeaderProps {
 }
 
 export function TradingHeader({
-	currentSymbol,
-	favorites,
 	searchQuery,
 	searchPending,
 	showSearch,
@@ -92,21 +88,17 @@ export function TradingHeader({
 	compareSymbol,
 	indicators,
 	loading,
-	isDarkMode,
 	supportedLayouts = ["single"],
 	onQueryChange,
 	onOpenSearchChange,
 	onSelectSymbol,
-	onToggleFavorite,
 	onTimeframeChange,
 	onChartTypeChange,
 	onCompare,
-	onLayoutChange,
 	onIndicatorsChange,
 	onRefresh,
 	onExport,
 	onFullscreen,
-	onThemeToggle,
 	replayMode,
 	replayPlaying,
 	replayIndex,
@@ -116,6 +108,8 @@ export function TradingHeader({
 	onResetReplay,
 	onSeekReplay,
 }: TradingHeaderProps) {
+	const { resolvedTheme, setTheme } = useTheme();
+	const { currentSymbol, favorites, toggleFavorite, setLayout } = useTradingWorkspaceStore();
 	const { data: session } = useSession();
 	const [clockTime, setClockTime] = useState("");
 	const [isSigningOut, setIsSigningOut] = useState(false);
@@ -165,7 +159,7 @@ export function TradingHeader({
 						onQueryChange={onQueryChange}
 						onOpenChange={onOpenSearchChange}
 						onSelect={onSelectSymbol}
-						onToggleFavorite={onToggleFavorite}
+						onToggleFavorite={toggleFavorite}
 					/>
 
 					<div className="flex items-center gap-2">
@@ -186,7 +180,7 @@ export function TradingHeader({
 							variant="ghost"
 							size="icon"
 							className="h-6 w-6"
-							onClick={() => onToggleFavorite(currentSymbol.symbol)}
+							onClick={() => toggleFavorite(currentSymbol.symbol)}
 						>
 							{favorites.includes(currentSymbol.symbol) ? (
 								<Star className="h-4 w-4 text-amber-500 fill-amber-500" />
@@ -285,25 +279,25 @@ export function TradingHeader({
 						<DropdownMenuContent>
 							<DropdownMenuItem
 								disabled={!supportedLayouts.includes("single")}
-								onClick={() => onLayoutChange("single")}
+								onClick={() => setLayout("single")}
 							>
 								Single Chart
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								disabled={!supportedLayouts.includes("2h")}
-								onClick={() => onLayoutChange("2h")}
+								onClick={() => setLayout("2h")}
 							>
 								2 Charts (Horizontal) {!supportedLayouts.includes("2h") ? "• Planned" : ""}
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								disabled={!supportedLayouts.includes("2v")}
-								onClick={() => onLayoutChange("2v")}
+								onClick={() => setLayout("2v")}
 							>
 								2 Charts (Vertical) {!supportedLayouts.includes("2v") ? "• Planned" : ""}
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								disabled={!supportedLayouts.includes("4")}
-								onClick={() => onLayoutChange("4")}
+								onClick={() => setLayout("4")}
 							>
 								4 Charts {!supportedLayouts.includes("4") ? "• Planned" : ""}
 							</DropdownMenuItem>
@@ -407,9 +401,41 @@ export function TradingHeader({
 						)
 					) : null}
 
-					<Button variant="ghost" size="icon" className="h-8 w-8" onClick={onThemeToggle}>
-						{isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-					</Button>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="ghost" size="icon" className="h-8 w-8">
+								{resolvedTheme === "light" ? (
+									<Sun className="h-4 w-4" />
+								) : resolvedTheme === "dark" ? (
+									<Moon className="h-4 w-4" />
+								) : (
+									<Palette className="h-4 w-4" />
+								)}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={() => setTheme("light")}>
+								<Sun className="mr-2 h-4 w-4" />
+								Light
+								{resolvedTheme === "light" && <Check className="ml-auto h-3 w-3" />}
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setTheme("dark")}>
+								<Moon className="mr-2 h-4 w-4" />
+								Dark
+								{resolvedTheme === "dark" && <Check className="ml-auto h-3 w-3" />}
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setTheme("blue-dark")}>
+								<Palette className="mr-2 h-4 w-4 text-blue-400" />
+								Blue Dark
+								{resolvedTheme === "blue-dark" && <Check className="ml-auto h-3 w-3" />}
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setTheme("green-dark")}>
+								<Palette className="mr-2 h-4 w-4 text-emerald-400" />
+								Green Dark
+								{resolvedTheme === "green-dark" && <Check className="ml-auto h-3 w-3" />}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 			</div>
 		</div>

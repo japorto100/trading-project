@@ -36,7 +36,7 @@ export function MacroPanel({ symbol }: MacroPanelProps) {
 		error: queryError,
 		refetch,
 	} = useQuery({
-		queryKey: ["macro-quote", effectiveSymbol],
+		queryKey: ["market", "macro-quote", effectiveSymbol],
 		queryFn: async () => {
 			const res = await fetch(
 				`/api/geopolitical/macro-quote?symbol=${encodeURIComponent(effectiveSymbol)}`,

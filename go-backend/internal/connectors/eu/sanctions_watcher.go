@@ -1,5 +1,7 @@
 // Package eu provides EU Financial Sanctions Files (FSF) watcher.
-// Phase 14d.2. Uses OpenSanctions EU FSF dataset.
+// Phase 14d.2. Current runtime default remains OpenSanctions EU FSF JSON.
+// P2 target is migration to the official European Commission FSF XML/CSV files once a stable
+// machine-readable fetch contract is fixed for runtime use.
 // Ref: REFERENCE_SOURCE_STATUS.md, https://data.opensanctions.org/datasets/latest/eu_fsf/
 package eu
 
@@ -14,7 +16,9 @@ import (
 	"tradeviewfusion/go-backend/internal/connectors/base"
 )
 
-// DefaultEUURL points to OpenSanctions EU FSF dataset; actual entities may require bulk download.
+// DefaultEUURL points to the normalized OpenSanctions EU FSF dataset.
+// The official FSF system provides XML/CSV/PDF files and RSS, but the durable crawler/robot URLs
+// appear to be account/token-oriented in the current documentation, so runtime migration is deferred.
 const DefaultEUURL = "https://data.opensanctions.org/datasets/latest/eu_fsf/entities.json"
 
 func NewSanctionsWatcher(storePath string, httpClient *http.Client) *base.DiffWatcher {

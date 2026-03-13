@@ -1,8 +1,8 @@
-# Geopolitical Visualization Options -- D3 Module Roadmap & Geo-Extensions
+﻿# Geopolitical Visualization Options -- D3 Module Roadmap & Geo-Extensions
 
 > **Stand:** 26. Februar 2026
 > **Zweck:** Vollstaendiger Katalog aller D3-Module, d3-geo-Erweiterungen, und Drittanbieter-Visualization-Libraries die fuer das Projekt relevant sind. Jedes Modul ist gegen konkrete geplante Features aus den Docs gemappt. Single Source of Truth fuer Frontend-Visualization-Entscheidungen.
-> **Abgrenzung:** [`GEOMAP_OVERVIEW.md`](./GEOMAP_OVERVIEW.md) Sek. 35.4 definiert die Rendering-Architektur (SVG → Canvas → deck.gl). Dieses Dokument definiert die **Module** die in jeder Stufe gebraucht werden.
+> **Abgrenzung:** [`GEOMAP_OVERVIEW.md`](./GEOMAP_OVERVIEW.md) Sek. 35.4 definiert die Rendering-Architektur (SVG â†’ Canvas â†’ deck.gl). Dieses Dokument definiert die **Module** die in jeder Stufe gebraucht werden.
 > **Abgrenzung:** [`AGENT_TOOLS.md`](./AGENT_TOOLS.md) Sek. 10 definiert den Game Theory Simulation Mode auf der GeoMap. Dieses Dokument definiert welche d3-Module diese Visualisierungen brauchen.
 > **Abgrenzung:** [`FRONTEND_DESIGN_TOOLING.md`](./FRONTEND_DESIGN_TOOLING.md) behandelt Design-to-Code-Tools (Figma, Pencil). Dieses Dokument behandelt programmatische Visualization-Libraries.
 > **Quellen:**
@@ -26,7 +26,7 @@
 7. [Drittanbieter Visualization Libraries](#7-drittanbieter-visualization-libraries)
 8. [Drittanbieter Map Libraries](#8-drittanbieter-map-libraries)
 9. [Awesome-D3: Evaluierte Extensions](#9-awesome-d3-evaluierte-extensions)
-10. [Feature → Module Matrix](#10-feature--module-matrix)
+10. [Feature â†’ Module Matrix](#10-feature--module-matrix)
 11. [Stufenplan: Was wann installieren](#11-stufenplan-was-wann-installieren)
 12. [Bundle-Size-Budget](#12-bundle-size-budget)
 13. [Explizit NICHT eingeplant (mit Begruendung)](#13-explizit-nicht-eingeplant-mit-begruendung)
@@ -51,7 +51,7 @@
 
 | Package | Version | Genutzt fuer |
 |---|---|---|
-| `topojson-client` | ^3.1.0 | `feature()` -- konvertiert TopoJSON → GeoJSON FeatureCollection |
+| `topojson-client` | ^3.1.0 | `feature()` -- konvertiert TopoJSON â†’ GeoJSON FeatureCollection |
 | `world-atlas` | ^2.0.2 | `countries-110m.json` -- Laendergrenzen (110m Aufloesung, ~177 Features) |
 | `geojson` (Types) | -- | TypeScript-Typen: `FeatureCollection`, `Geometry`, `GeoJsonProperties` |
 
@@ -84,11 +84,11 @@
 
 | Sub-Modul | Funktion | Unser Use Case |
 |---|---|---|
-| [linear](https://d3js.org/d3-scale/linear) | `scaleLinear()` | Severity → Color, Impact → Line-Width, DRS Score → Y-Position |
+| [linear](https://d3js.org/d3-scale/linear) | `scaleLinear()` | Severity â†’ Color, Impact â†’ Line-Width, DRS Score â†’ Y-Position |
 | [time](https://d3js.org/d3-scale/time) | `scaleTime()` | Timeline-Achse, Event-Datum-Skalierung |
-| [ordinal](https://d3js.org/d3-scale/ordinal) | `scaleOrdinal()` | Regime-State → Color, CBDC Status → Color, Category → Symbol |
-| [sequential](https://d3js.org/d3-scale/sequential) | `scaleSequential()` | Heatmap-Faerbung (z.B. Severity 0-5 → Farbgradient) |
-| [diverging](https://d3js.org/d3-scale/diverging) | `scaleDiverging()` | Attractiveness-Index (rot←neutral→gruen), Correlation Matrix (-1 bis +1) |
+| [ordinal](https://d3js.org/d3-scale/ordinal) | `scaleOrdinal()` | Regime-State â†’ Color, CBDC Status â†’ Color, Category â†’ Symbol |
+| [sequential](https://d3js.org/d3-scale/sequential) | `scaleSequential()` | Heatmap-Faerbung (z.B. Severity 0-5 â†’ Farbgradient) |
+| [diverging](https://d3js.org/d3-scale/diverging) | `scaleDiverging()` | Attractiveness-Index (rotâ†neutralâ†’gruen), Correlation Matrix (-1 bis +1) |
 | [quantize](https://d3js.org/d3-scale/quantize) | `scaleQuantize()` | Diskrete Farbstufen fuer Choropleths (z.B. 5-stufige Severity) |
 | [threshold](https://d3js.org/d3-scale/threshold) | `scaleThreshold()` | Traffic-Light-Systeme (Basel Regime: rot/gelb/gruen) |
 | [band](https://d3js.org/d3-scale/band) | `scaleBand()` | Monte Carlo Histogram X-Achse (Bins) |
@@ -108,9 +108,9 @@
 | Monte Carlo Histogram | AGENT_TOOLS Sek. 10.3, GAME_THEORY Sek. 7 | `scaleBand` + `scaleLinear` |
 | DRS Cumulative Timeline | AGENT_ARCHITECTURE Sek. 10.1 | `scaleLinear` + `scaleTime` |
 | Correlation Matrix (Portfolio) | INDICATOR_ARCHITECTURE Sek. 5.P.1 | `scaleDiverging` |
-| Scenario Tree Probability → Color | AGENT_TOOLS Sek. 10.1-10.3 | `scaleSequential` |
-| Transmission Path Impact → Width | AGENT_TOOLS Sek. 10.2 | `scaleLinear` |
-| Trade Corridor Volume → Width | GEOPOLITICAL_MAP_MASTERPLAN Sek. 35.13c | `scaleLinear` |
+| Scenario Tree Probability â†’ Color | AGENT_TOOLS Sek. 10.1-10.3 | `scaleSequential` |
+| Transmission Path Impact â†’ Width | AGENT_TOOLS Sek. 10.2 | `scaleLinear` |
+| Trade Corridor Volume â†’ Width | GEOPOLITICAL_MAP_MASTERPLAN Sek. 35.13c | `scaleLinear` |
 | Sentinel Heatmap (Transcript) | AGENT_ARCHITECTURE Sek. 10.1 | `scaleDiverging` |
 
 ### 2.2 `d3-scale-chromatic` -- Professionelle Farbschemata
@@ -120,7 +120,7 @@
 | Sub-Modul | Schemata | Unser Use Case |
 |---|---|---|
 | [sequential](https://d3js.org/d3-scale-chromatic/sequential) | `interpolateYlOrRd`, `interpolateInferno`, `interpolateViridis` | Severity Heatmap, Event Density, Financial Openness |
-| [diverging](https://d3js.org/d3-scale-chromatic/diverging) | `interpolateRdYlGn`, `interpolateRdBu`, `interpolatePiYG` | Attractiveness (rot→gruen), Correlation (-1→+1), Sentiment |
+| [diverging](https://d3js.org/d3-scale-chromatic/diverging) | `interpolateRdYlGn`, `interpolateRdBu`, `interpolatePiYG` | Attractiveness (rotâ†’gruen), Correlation (-1â†’+1), Sentiment |
 | [categorical](https://d3js.org/d3-scale-chromatic/categorical) | `schemeTableau10`, `schemeSet2` | Regime-States (6 Zustaende), Trade Commodity Types, Event Categories |
 | [cyclical](https://d3js.org/d3-scale-chromatic/cyclical) | `interpolateRainbow`, `interpolateSinebow` | Zeitliche Zyklen (optional, z.B. Monats-Heatmap) |
 
@@ -128,11 +128,11 @@
 
 | Feature | Empfohlenes Schema | Begruendung |
 |---|---|---|
-| Severity (0-5) | `interpolateYlOrRd` | Gelb (niedrig) → Orange → Rot (hoch). Intuitiv. |
-| Attractiveness Index | `interpolateRdYlGn` | Rot (schlecht) → Gelb (neutral) → Gruen (gut). Divergierend. |
-| Correlation Matrix | `interpolateRdBu` | Rot (negativ) → Weiss (0) → Blau (positiv). Standard fuer Korrelationen. |
+| Severity (0-5) | `interpolateYlOrRd` | Gelb (niedrig) â†’ Orange â†’ Rot (hoch). Intuitiv. |
+| Attractiveness Index | `interpolateRdYlGn` | Rot (schlecht) â†’ Gelb (neutral) â†’ Gruen (gut). Divergierend. |
+| Correlation Matrix | `interpolateRdBu` | Rot (negativ) â†’ Weiss (0) â†’ Blau (positiv). Standard fuer Korrelationen. |
 | Regime-States | `schemeTableau10` (custom) | 6 spezifische Farben: Dormant=grau, Tension=gelb, Escalation=orange, Conflict=rot, De-escalation=hellgruen, Frozen=blaugrau |
-| Sentiment Heatmap | `interpolateRdYlGn` | Rot (negativ) → Gruen (positiv). |
+| Sentiment Heatmap | `interpolateRdYlGn` | Rot (negativ) â†’ Gruen (positiv). |
 | Financial Openness | `interpolateBlues` | Dunkel=geschlossen, Hell=offen (sequentiell). |
 | Trade Corridors | Custom 4-Color | Energy=rot, Tech=blau, Agrar=gruen, Finance=gold (kategorisch). |
 | Monte Carlo Probability | `interpolateViridis` | Perceptually uniform, colorblind-safe. |
@@ -151,12 +151,12 @@
 **Spezial: `d3.geoInterpolate()` (in `d3-geo` enthalten)**
 
 Bereits installiert aber NICHT genutzt. Generiert Punkte entlang eines Great-Circle-Pfads zwischen zwei Koordinaten auf der Sphaere. **Essentiell fuer:**
-- Animierte Transmission Paths (Iran → Hormuz → Oil Price)
-- Trade Corridors (Laender-Zentroid → Laender-Zentroid)
+- Animierte Transmission Paths (Iran â†’ Hormuz â†’ Oil Price)
+- Trade Corridors (Laender-Zentroid â†’ Laender-Zentroid)
 - Sanction-Flow-Visualisierung
 
 ```
-d3.geoInterpolate([lng1, lat1], [lng2, lat2])(t)  // t = 0..1 → Position auf dem Great Circle
+d3.geoInterpolate([lng1, lat1], [lng2, lat2])(t)  // t = 0..1 â†’ Position auf dem Great Circle
 ```
 
 ### 2.4 `d3-hierarchy` -- Baumstrukturen und Hierarchien
@@ -248,7 +248,7 @@ Edge-Typen: sanctions, exposed_to, supplies, controls, transits_through
 
 > [https://d3js.org/d3-color](https://d3js.org/d3-color)
 
-Farbkonvertierung (RGB ↔ HSL ↔ HCL ↔ Lab). Noetig fuer:
+Farbkonvertierung (RGB â†” HSL â†” HCL â†” Lab). Noetig fuer:
 - Custom Farbmischung bei Heatmap-Overlays (z.B. Severity + Regime ueberlagert)
 - Perceptually uniform Farbskalen in HCL-Space
 - Accessibility: Colorblind-sichere Paletten berechnen
@@ -297,7 +297,7 @@ Voronoi-Diagramme und Delaunay-Triangulation auf der **flachen** 2D-Ebene. Fuer 
 | [selecting](https://d3js.org/d3-transition/selecting) | `.transition()` auf Selections | Smooth Country-Fill-Aenderungen bei Layer-Wechsel |
 | [modifying](https://d3js.org/d3-transition/modifying) | `.attr()`, `.style()` auf Transitions | Animierte Farbwechsel, Position, Opacity |
 | [timing](https://d3js.org/d3-transition/timing) | `.duration()`, `.delay()` | Gestaffelte Animationen (Markers nacheinander einblenden) |
-| [control-flow](https://d3js.org/d3-transition/control-flow) | `.on("end")`, Chaining | Sequentielle Animationen (Path zeichnen → Marker einblenden → Label zeigen) |
+| [control-flow](https://d3js.org/d3-transition/control-flow) | `.on("end")`, Chaining | Sequentielle Animationen (Path zeichnen â†’ Marker einblenden â†’ Label zeigen) |
 
 **Geplante Features:**
 
@@ -354,6 +354,71 @@ Voronoi-Diagramme und Delaunay-Triangulation auf der **flachen** 2D-Ebene. Fuer 
 
 > Doc-Ref: AGENT_TOOLS Sek. 10.2 "Timeline-Slider", GEOPOLITICAL_MAP_MASTERPLAN Sek. 29 "Timeline Playback"
 > Externe Referenz: [`PHAROS_AI_REVIEW.md`](./PHAROS_AI_REVIEW.md) bestaetigt Replay-/Zeitfenster-Interaktion als realen Analysten-Use-Case fuer den spaeteren Conflict-Layer.
+
+**SOTA-Hinweis fuer v2:** Timeline-/Replay-UX sollte nicht nur aus festen Presets bestehen. Normativer Zielzustand:
+
+- `view extent` = sichtbarer Zeitbereich der Timeline
+- `time filter window` = aktives Datenfilterfenster
+- optional `selected time` = Cursor/Zeitpunkt fuer Playback oder Story-Fokus
+- `24H/7D/1M/ALL` nur als Schnellzugriff, nicht als einziges Zeitmodell
+
+Das orientiert sich an den in `PHAROS_AI_REVIEW.md` dokumentierten Mustern sowie den oeffentlichen Produktmustern aus `kepler.gl` Playback und Palantir Foundry Map Timeline.
+
+### Renderer-Matrix (Normativ)
+
+| Modus | Primaere Technik | Rolle | Bemerkung |
+|---|---|---|---|
+| Globe / Strategic | `d3-geo` + Canvas/SVG-Hybrid | v1/v2 Core | bleibt der normative GeoMap-Globe |
+| Flat / Regional / Conflict | `deck.gl` + `MapLibre` (gate-gesteuert) | spaeterer Second Mode | zusaetzlicher Renderer, kein Globe-Rewrite |
+| Multi-Body / Space Scene | spaeter nur bei echtem Bedarf (`CesiumJS`/`Three.js`-Klasse) | kein v2-Standard | nicht ueber `d3-geo` erzwingen |
+
+### View-Handoff-Matrix
+
+| Trigger | Von | Nach | Erwarteter Payload |
+|---|---|---|---|
+| Region-Klick / Cluster-Drilldown | Globe | Flat/Regional | Bounds, aktive Filter, aktives Zeitfenster |
+| Story-/Timeline-Fokus | Globe | Flat/Regional | Bounds/Fokusobjekt, Story-Context, Zeitfenster |
+| Draw-Area / Lasso / Analysten-Auswahl | Globe | Flat/Regional | explizite Area/Bounds, aktive Layer, Zeitfenster |
+| Experten-Toggle | Globe oder Flat | Gegenansicht | aktueller View-State, aktive Filter, aktives Focus-Objekt |
+
+Normative Regel:
+
+- Kontextuelle Handoffs sind primaer.
+- Ein einfacher Toggle ist erlaubt, aber nicht das alleinige Produktmodell.
+- Renderer duerfen wechseln; Domain-/Layer-/Story-/Filter-Contracts bleiben shared.
+
+### Earth-/Moon-Regel
+
+- `Earth` ist der primaere geopolitische Arbeitskoerper.
+- `Moon` bleibt fuer v2 ein spezialisierter Body-Mode.
+- Ein simultaner `Earth + Moon`-Co-View ist **kein** Pflichtziel fuer v2 und gehoert, falls spaeter gewuenscht, in einen gesonderten Multi-Body-/Scene-Track.
+
+### Layer-Taxonomie fuer Globe vs. Flat
+
+| Layer-Familie | Globe | Flat/Regional |
+|---|---|---|
+| Geo Core | JA | JA |
+| Conflict | reduziert / kuratiert | JA, primaerer dichter Arbeitsmodus |
+| Macro/State | JA | optional / regionalisiert |
+| Context / Soft Signals | panel-first + reduzierte Map-Hervorhebung | JA, wenn regional verdichtet |
+| Threat Zones / Assets / Targets / Arcs | nur reduziert falls lesbar | JA, primaer |
+| Detailreiche Basemap-Features | reduziert | JA |
+
+Arbeitsregel:
+
+- Globe bleibt strategisch und kuratiert.
+- Flat/Regional uebernimmt spaeter die operative Dichte.
+- Kartenueberladung im Globe ist kein Zielzustand.
+
+Aktueller Runtime-Contract:
+
+- `src/features/geopolitical/layer-taxonomy.ts` fuehrt diese Familien als typisierten Katalog inklusive Placement und View-Support.
+- `src/features/geopolitical/flat-view-handoff.ts` verwendet darauf aufbauende Layer-Hints fuer Event-/Story-/Bounds-Handoffs.
+- `src/features/geopolitical/flat-view-state.ts` bildet daraus den ersten expliziten Flat-/Regional-Scaffold mit `deckgl-maplibre` als zukuenftigem Second-Renderer.
+- `src/features/geopolitical/FlatViewScaffold.tsx` ist der erste sichtbare Flat-Einstieg und bleibt bewusst nur ein leichter Scaffold, nicht der eigentliche End-Renderer.
+- `src/features/geopolitical/shell/hooks/useGeoFlatViewEntry.ts` kapselt den Einstieg in den Flat-Modus, damit `GeopoliticalMapShell.tsx` Orchestrierung bleibt und kein neuer God-Container entsteht.
+- `@deck.gl/core`, `@deck.gl/layers`, `@deck.gl/react`, `maplibre-gl` und `pmtiles` sind installiert; sie sind fuer den gate-gesteuerten Flat/Regional-Mode vorbereitet, ersetzen den `d3-geo`-Globe-Core aber nicht.
+- Event-Inspector- und Timeline-/Story-Detail koennen den Flat-Handoff bereits ausloesen; der Header-Button bleibt nur Fallback fuer Experten-/Bootstrap-Flows.
 
 ### 4.2 `d3-dispatch` -- Custom Events
 
@@ -580,13 +645,13 @@ Einordnung als **Second-Mode-Technologie**, nicht als Globe-Replacement.
 | Aspekt | Details |
 |---|---|
 | **Wann** | v1.1 (mit Canvas Hybrid Migration) |
-| **Use Case** | Zoom-abhaengiges Marker-Clustering (50 Events in Europa → 1 Cluster-Circle bei niedrigem Zoom) |
+| **Use Case** | Zoom-abhaengiges Marker-Clustering (50 Events in Europa â†’ 1 Cluster-Circle bei niedrigem Zoom) |
 | **Integration** | Cluster-Berechnung bei jedem Zoom-Aenderung, Cluster-Marker rendern statt Einzel-Marker |
 
 **Status (26.02.2026):** Bereits installiert und im Phase-4-Hybridpfad integriert.  
 **Plan-Regel:** **Nicht** erneut in v2 installieren; v2 fokussiert auf zusaetzliche Module/Overlays (z. B. `deck.gl`) und Gate-Entscheidungen.
 
-- **Optional (v3+):** Bei 5.000+ Events: supercluster-Berechnung in Web Worker auslagern. Worker empfängt Punkte + Bounds + Zoom, postet Cluster-Ergebnis zurück. Main-Thread rendert nur. Siehe [`GEOMAP_VERIFY_GATES.md`](./GEOMAP_VERIFY_GATES.md) Sek. 4 Szenario C.
+- **Optional (v3+):** Bei 5.000+ Events: supercluster-Berechnung in Web Worker auslagern. Worker empfÃ¤ngt Punkte + Bounds + Zoom, postet Cluster-Ergebnis zurÃ¼ck. Main-Thread rendert nur. Siehe [`GEOMAP_VERIFY_GATES.md`](./GEOMAP_VERIFY_GATES.md) Sek. 4 Szenario C.
 
 ### 7.4 Nicht-d3 Chart Libraries (Abgrenzung)
 
@@ -643,7 +708,7 @@ Einordnung als **Second-Mode-Technologie**, nicht als Globe-Replacement.
 | **`d3-topogram`** | Area Cartograms (Sek. 6.5) | OPTIONAL (v3) | GDP/Military Distortion |
 | **`d3-geo-scale-bar`** | Massstabsleiste (Sek. 6.6) | OPTIONAL (v1.5) | Professionalitaet |
 | **`d3-exploder`** | Geographic Features bewegen/resizen | NEIN | Nicht fuer Globe geeignet |
-| **`d3.geo2rect`** | GeoJSON → Rechtecke morphen | NEIN | Nische, nicht fuer unseren Use Case |
+| **`d3.geo2rect`** | GeoJSON â†’ Rechtecke morphen | NEIN | Nische, nicht fuer unseren Use Case |
 | **`mapmap.js`** | Data-driven thematische Karten | NEIN | Eigene Architektur |
 | **`simple-map-d3`** | Einfache Choropleths | NEIN | Wir bauen das selber |
 
@@ -659,38 +724,38 @@ Einordnung als **Second-Mode-Technologie**, nicht als Globe-Replacement.
 | **`swoopyarrows`** | Annotation-Pfeile | EVALUIEREN | Spielbaum-Annotationen, Story-Telling |
 | **`d3-interpolate-path`** | Pfade mit unterschiedlicher Punkt-Anzahl interpolieren | JA (v2) | Smooth Morph zwischen Laendergrenzen bei Cartogram-Transition |
 | **`d3-cloud`** | Word Clouds | EVALUIEREN | Keyword-Visualisierung aus News-Analyse |
-| **`crossfilter`** | Multivariater Datenexplorer | EVALUIEREN (v2) | Schnelles Filtern grosser Datensaetze (Events × Categories × Regions × Time) |
+| **`crossfilter`** | Multivariater Datenexplorer | EVALUIEREN (v2) | Schnelles Filtern grosser Datensaetze (Events Ã— Categories Ã— Regions Ã— Time) |
 
 ---
 
-## 10. Feature → Module Matrix
+## 10. Feature â†’ Module Matrix
 
-> Jede Zeile = ein geplantes Feature. Jede Spalte = ein d3-Modul. ● = zwingend noetig, ○ = optional/hilfreich.
+> Jede Zeile = ein geplantes Feature. Jede Spalte = ein d3-Modul. â— = zwingend noetig, â—‹ = optional/hilfreich.
 
 | Feature | Doc-Ref | scale | chromatic | interpolate | transition | timer | ease | hierarchy | shape | force | brush | axis | array | geo-voronoi | inertia | geo-polygon |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Severity Heatmap (refactor) | MapCanvas.tsx | ● | ● | ● | ○ | | | | | | | | | | | |
-| Regime-State Layer | MASTERPLAN 35.3a | ● | ● | ● | ● | ● | ● | | | | | | | | | |
-| Country Attractiveness | MASTERPLAN 35.13d | ● | ● | ● | ○ | | | | | | | | | | | |
-| CBDC Status Choropleth | MASTERPLAN 35.13b | ● | ○ | | | | | | | | | | | | | |
-| Financial Openness | MASTERPLAN 35.13b | ● | ● | ● | | | | | | | | | | | | |
-| Currency Spread | REFERENCE Z.786 | ● | ● | ● | | | | | | | | | | | | |
-| Basel Regime Traffic-Light | REFERENCE Z.857 | ● | | | | | | | | | | | | | | |
-| Transmission Paths (animated) | AGENT_TOOLS 10.2 | ● | | ● | ● | ● | ● | | | | | | | | | ○ |
-| Scenario Tree / Spielbaum | AGENT_TOOLS 10.1 | ● | ● | | ● | | ● | ● | ● | | | | | | | |
-| Monte Carlo Histogram | AGENT_TOOLS 10.3 | ● | ● | | | | | | ● | | | ● | ● | | | |
-| Timeline Slider (Zeitreise) | AGENT_TOOLS 10.2 | ● | | | ● | | | | | | ● | ● | | | | |
-| DRS Cumulative Line | AGENT_ARCH 10.1 | ● | | | ○ | | | | ● | | | ● | | | | |
-| Replicator Dynamics | GAME_THEORY 5.4 | ● | | | ● | | | | ● | | | ● | ● | | | |
-| Sentiment Heatmap | AGENT_ARCH 10.1 | ● | ● | ● | | | | | | | | | | | | |
-| Correlation Matrix | INDICATOR 5.P.1 | ● | ● | ● | | | | | | | | ● | | | | |
-| Entity Graph | MASTERPLAN 35.8 | ● | | | ● | ● | | | ● | ● | | | | | | |
-| Trade Corridors | MASTERPLAN 35.13c | ● | | ● | ● | ● | | | ● | | | | | | | ● |
-| Liquidation Density | REFERENCE Z.1286 | ● | ● | ● | | | | | | | | | | | | |
-| Globe Inertia | MapCanvas.tsx | | | | | | | | | | | | | | ● | |
-| Nearest-Event Lookup | MapCanvas.tsx | | | | | | | | | | | | | ● | | |
-| Canvas Hybrid Migration | MASTERPLAN 35.4 | | | ● | ● | ● | | | | | | | | | | |
-| Auto-Rotation Fix | MapCanvas.tsx Z.196 | | | | | ● | | | | | | | | | | |
+| Severity Heatmap (refactor) | MapCanvas.tsx | â— | â— | â— | â—‹ | | | | | | | | | | | |
+| Regime-State Layer | MASTERPLAN 35.3a | â— | â— | â— | â— | â— | â— | | | | | | | | | |
+| Country Attractiveness | MASTERPLAN 35.13d | â— | â— | â— | â—‹ | | | | | | | | | | | |
+| CBDC Status Choropleth | MASTERPLAN 35.13b | â— | â—‹ | | | | | | | | | | | | | |
+| Financial Openness | MASTERPLAN 35.13b | â— | â— | â— | | | | | | | | | | | | |
+| Currency Spread | REFERENCE Z.786 | â— | â— | â— | | | | | | | | | | | | |
+| Basel Regime Traffic-Light | REFERENCE Z.857 | â— | | | | | | | | | | | | | | |
+| Transmission Paths (animated) | AGENT_TOOLS 10.2 | â— | | â— | â— | â— | â— | | | | | | | | | â—‹ |
+| Scenario Tree / Spielbaum | AGENT_TOOLS 10.1 | â— | â— | | â— | | â— | â— | â— | | | | | | | |
+| Monte Carlo Histogram | AGENT_TOOLS 10.3 | â— | â— | | | | | | â— | | | â— | â— | | | |
+| Timeline Slider (Zeitreise) | AGENT_TOOLS 10.2 | â— | | | â— | | | | | | â— | â— | | | | |
+| DRS Cumulative Line | AGENT_ARCH 10.1 | â— | | | â—‹ | | | | â— | | | â— | | | | |
+| Replicator Dynamics | GAME_THEORY 5.4 | â— | | | â— | | | | â— | | | â— | â— | | | |
+| Sentiment Heatmap | AGENT_ARCH 10.1 | â— | â— | â— | | | | | | | | | | | | |
+| Correlation Matrix | INDICATOR 5.P.1 | â— | â— | â— | | | | | | | | â— | | | | |
+| Entity Graph | MASTERPLAN 35.8 | â— | | | â— | â— | | | â— | â— | | | | | | |
+| Trade Corridors | MASTERPLAN 35.13c | â— | | â— | â— | â— | | | â— | | | | | | | â— |
+| Liquidation Density | REFERENCE Z.1286 | â— | â— | â— | | | | | | | | | | | | |
+| Globe Inertia | MapCanvas.tsx | | | | | | | | | | | | | | â— | |
+| Nearest-Event Lookup | MapCanvas.tsx | | | | | | | | | | | | | â— | | |
+| Canvas Hybrid Migration | MASTERPLAN 35.4 | | | â— | â— | â— | | | | | | | | | | |
+| Auto-Rotation Fix | MapCanvas.tsx Z.196 | | | | | â— | | | | | | | | | | |
 
 ---
 
@@ -871,3 +936,4 @@ npm install d3-interpolate-path                            # Path Morphing (opti
 | [D3 Graph Gallery](https://d3-graph-gallery.com/) | Chart-Typen mit Beispielcode |
 | [Observable D3 Gallery](https://observablehq.com/@d3/gallery) | Interaktive Beispiele |
 | [Awesome D3](https://project-awesome.org/wbkd/awesome-d3) | Kuratierte Extensions |
+

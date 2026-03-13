@@ -182,7 +182,7 @@ export const DEFAULT_EDIT_FORM: EditFormState = {
 	analystNote: "",
 };
 
-export type DrawingMode = "marker" | "line" | "polygon" | "text";
+export type DrawingMode = "cursor" | "marker" | "line" | "polygon" | "text";
 
 export interface DrawingHistoryCommand {
 	label: string;

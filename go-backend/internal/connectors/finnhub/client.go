@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/thrasher-corp/gocryptotrader/currency"
+	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"tradeviewfusion/go-backend/internal/requestctx"
-	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 )
 
 const DefaultBaseURL = "https://finnhub.io/api/v1"
@@ -27,6 +27,7 @@ type Config struct {
 	WSBaseURL      string
 	APIKey         string
 	RequestTimeout time.Duration
+	CacheTTL       time.Duration
 }
 
 type Client struct {
@@ -34,6 +35,18 @@ type Client struct {
 	wsBaseURL      string
 	apiKey         string
 	requestTimeout time.Duration
+	quoteCache     *base.JSONHotCache
+}
+
+type cachedTicker struct {
+	Currency    string  `json:"currency"`
+	LastUpdated int64   `json:"lastUpdated"`
+	Last        float64 `json:"last"`
+	Bid         float64 `json:"bid"`
+	Ask         float64 `json:"ask"`
+	High        float64 `json:"high"`
+	Low         float64 `json:"low"`
+	Volume      float64 `json:"volume"`
 }
 
 func NewClient(cfg Config) *Client {
@@ -61,6 +74,7 @@ func NewClient(cfg Config) *Client {
 		wsBaseURL:      wsBaseURL,
 		apiKey:         strings.TrimSpace(cfg.APIKey),
 		requestTimeout: timeout,
+		quoteCache:     base.NewJSONHotCache("finnhub-quote", cfg.CacheTTL),
 	}
 }
 
@@ -93,12 +107,45 @@ func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType as
 	query := url.Values{}
 	query.Set("symbol", symbol)
 	query.Set("token", apiKey)
+	cacheKey := base.StableCacheKey(symbol)
+	if c.quoteCache != nil {
+		var cached cachedTicker
+		if c.quoteCache.Get(ctx, cacheKey, &cached) && cached.Last > 0 {
+			return gct.Ticker{
+				Pair:        currency.NewPair(currency.NewCode(cached.Currency), currency.NewCode("USD")),
+				Currency:    cached.Currency,
+				LastUpdated: cached.LastUpdated,
+				Last:        cached.Last,
+				Bid:         cached.Bid,
+				Ask:         cached.Ask,
+				High:        cached.High,
+				Low:         cached.Low,
+				Volume:      cached.Volume,
+			}, nil
+		}
+	}
 	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, "/quote", query, nil)
 	if err != nil {
 		return gct.Ticker{}, err
 	}
 
-	return c.doTickerRequest(req)
+	ticker, err := c.doTickerRequest(req)
+	if err != nil {
+		return gct.Ticker{}, err
+	}
+	if c.quoteCache != nil {
+		c.quoteCache.Set(ctx, cacheKey, cachedTicker{
+			Currency:    ticker.Currency,
+			LastUpdated: ticker.LastUpdated,
+			Last:        ticker.Last,
+			Bid:         ticker.Bid,
+			Ask:         ticker.Ask,
+			High:        ticker.High,
+			Low:         ticker.Low,
+			Volume:      ticker.Volume,
+		})
+	}
+	return ticker, nil
 }
 
 func (c *Client) doTickerRequest(req *http.Request) (gct.Ticker, error) {

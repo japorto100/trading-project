@@ -107,7 +107,7 @@ Key Prisma models in `prisma/schema.prisma` (all use String instead of enums for
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (53132 symbols, 151711 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (57729 symbols, 182610 relationships, 300 execution flows).
 
 ## Always Start Here
 

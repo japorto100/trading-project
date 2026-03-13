@@ -41,7 +41,7 @@ type UNRecord struct {
 	FourthName string `xml:"FOURTH_NAME"`
 	// Entity may use FIRST_NAME or NAME
 	UNType string `xml:"UN_LIST_TYPE"`
-	Name  string `xml:"NAME"`
+	Name   string `xml:"NAME"`
 }
 
 func NewSanctionsWatcher(storePath string, httpClient *http.Client) *base.DiffWatcher {
@@ -49,6 +49,16 @@ func NewSanctionsWatcher(storePath string, httpClient *http.Client) *base.DiffWa
 		httpClient = &http.Client{Timeout: 90 * time.Second}
 	}
 	url := strings.TrimSpace(getEnv("UN_SANCTIONS_URL", DefaultSanctionsURL))
+	recorder := base.NewLocalSnapshotRecorder(base.LocalSnapshotRecorderConfig{
+		SourceID:      "un-sanctions",
+		Subdir:        "un",
+		SourceClass:   "file-snapshot",
+		FetchMode:     "conditional-poll",
+		StorePath:     storePath,
+		DatasetName:   "un-sanctions",
+		CadenceHint:   "daily",
+		ParserVersion: "un-sanctions-xml-v1",
+	})
 	return base.NewDiffWatcher(base.DiffWatcherConfig{
 		Name:       "UN_SANCTIONS",
 		URL:        url,
@@ -57,6 +67,7 @@ func NewSanctionsWatcher(storePath string, httpClient *http.Client) *base.DiffWa
 		IDField:    "reference_number",
 		StorePath:  storePath,
 		ParseFunc:  parseUNSanctionsXML,
+		OnFetched:  recorder,
 		HTTPClient: httpClient,
 	})
 }

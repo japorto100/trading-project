@@ -12,10 +12,12 @@ import (
 	"time"
 )
 
-type Provider interface {
+type ObjectStore interface {
 	Put(ctx context.Context, objectKey string, body io.Reader) (UploadResult, error)
 	Get(ctx context.Context, objectKey string) (io.ReadCloser, error)
 }
+
+type Provider = ObjectStore
 
 type FilesystemProvider struct {
 	baseDir string

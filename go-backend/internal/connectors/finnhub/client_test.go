@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
-	"tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/requestctx"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
 func TestGetTicker_ReturnsQuoteForEquity(t *testing.T) {
@@ -229,5 +229,34 @@ func TestOpenTradeStream_UsesRequestScopedCredential(t *testing.T) {
 	}
 	if tickerChannel == nil || errorChannel == nil {
 		t.Fatal("expected channels to be returned")
+	}
+}
+
+func TestGetTicker_UsesHotCache(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		_, _ = w.Write([]byte(`{"c":205.12,"h":207.5,"l":203.9,"t":1771200000}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{
+		BaseURL:  server.URL,
+		APIKey:   "token",
+		CacheTTL: time.Hour,
+	})
+
+	for range 2 {
+		ticker, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("AAPL"), currency.NewCode("USD")), asset.Empty)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if ticker.Last != 205.12 {
+			t.Fatalf("expected last 205.12, got %f", ticker.Last)
+		}
+	}
+
+	if callCount != 1 {
+		t.Fatalf("expected exactly one upstream call, got %d", callCount)
 	}
 }

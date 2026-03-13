@@ -76,3 +76,27 @@ func TestGetSeries_InvalidSymbolReturnsBadRequest(t *testing.T) {
 		t.Fatalf("expected 400, got %d", reqErr.StatusCode)
 	}
 }
+
+func TestGetSeries_UsesHotCache(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		_, _ = w.Write([]byte(`{"refRates":[{"effectiveDate":"2026-03-04","type":"SOFR","percentRate":3.65}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL, RequestTimeout: 2 * time.Second, CacheTTL: time.Hour})
+	assetItem, _ := asset.New("macro")
+	for range 2 {
+		points, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("NYFED_SOFR"), currency.NewCode("USD")), assetItem, 1)
+		if err != nil {
+			t.Fatalf("GetSeries: %v", err)
+		}
+		if len(points) != 1 {
+			t.Fatalf("expected 1 point, got %d", len(points))
+		}
+	}
+	if callCount != 1 {
+		t.Fatalf("expected exactly one upstream call, got %d", callCount)
+	}
+}

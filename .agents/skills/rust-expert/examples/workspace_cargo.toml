@@ -1,0 +1,150 @@
+# SOTA 2026: Cargo Workspace Template
+# Covers: workspace resolver, shared dependencies, release profile, per-crate overrides
+#
+# Usage: place at repo root as Cargo.toml, adjust member names
+
+# ─────────────────────────────────────────────
+# WORKSPACE DEFINITION
+# ─────────────────────────────────────────────
+
+[workspace]
+resolver = "2"   # required for edition 2021+; enables per-dep feature unification
+members = [
+    "rust-core",              # PyO3 cdylib — indicators, cache
+    "rust-signal-processor",  # Tonic gRPC binary (Phase 19)
+    # "rust-wasm",            # wasm-bindgen cdylib (Phase 22+)
+]
+
+# ─────────────────────────────────────────────
+# SHARED DEPENDENCIES — define once, reference with { workspace = true }
+# Benefit: no version drift, 40-60% build time savings from deduplication
+# ─────────────────────────────────────────────
+
+[workspace.dependencies]
+# Async runtime
+tokio       = { version = "1", features = ["full"] }
+tokio-util  = { version = "0.7", features = ["rt"] }
+futures     = "0.3"
+
+# gRPC
+tonic       = "0.12"
+prost       = "0.13"
+
+# Python bridge
+pyo3        = { version = "0.23", features = ["extension-module", "abi3-py311"] }
+
+# Embedded KV
+redb        = "2"
+
+# Error handling
+thiserror   = "2"
+anyhow      = "2"
+
+# Serialization
+serde       = { version = "1", features = ["derive"] }
+serde_json  = "1"
+
+# Observability
+tracing                  = "0.1"
+tracing-subscriber       = { version = "0.3", features = ["env-filter", "json"] }
+tracing-opentelemetry    = "0.28"
+opentelemetry            = "0.27"
+opentelemetry_sdk        = "0.27"
+opentelemetry-otlp       = { version = "0.27", features = ["grpc-tonic"] }
+
+# Parallelism
+rayon = "1"
+
+# HTTP client (rustls — no OpenSSL dependency)
+reqwest = { version = "0.12", features = ["rustls-tls", "json"], default-features = false }
+
+# WASM (only activate in wasm member)
+# wasm-bindgen      = "0.2"
+# serde-wasm-bindgen= "0.6"
+
+# Testing
+approx   = "0.5"
+tempfile = "3"
+
+# ─────────────────────────────────────────────
+# RELEASE PROFILE — production binary optimization
+# ─────────────────────────────────────────────
+
+[profile.release]
+lto           = true        # whole-program link-time optimization
+codegen-units = 1           # single codegen unit = maximum optimization
+opt-level     = 3           # max speed
+strip         = "symbols"   # smaller binaries, strip debug symbols
+panic         = "abort"     # smaller binary, no unwinding overhead
+
+# ─────────────────────────────────────────────
+# DEV PROFILE — faster incremental builds
+# ─────────────────────────────────────────────
+
+[profile.dev]
+opt-level     = 1           # minimal optimization for faster compile
+debug         = true
+
+# ─────────────────────────────────────────────
+# WASM PROFILE — size-optimized for WASM bundles
+# ─────────────────────────────────────────────
+
+[profile.wasm-release]
+inherits      = "release"
+opt-level     = "s"         # optimize for size, not speed
+lto           = true
+strip         = "symbols"
+
+
+# ─────────────────────────────────────────────
+# MEMBER CRATE: rust-core/Cargo.toml example
+# ─────────────────────────────────────────────
+
+# [package]
+# name    = "rust-core"
+# version = "0.1.0"
+# edition = "2021"
+#
+# [lib]
+# crate-type = ["cdylib"]
+#
+# [dependencies]
+# pyo3     = { workspace = true }
+# redb     = { workspace = true }
+# thiserror= { workspace = true }
+# rayon    = { workspace = true }
+# tracing  = { workspace = true }
+#
+# [dev-dependencies]
+# approx   = { workspace = true }
+# tempfile = { workspace = true }
+
+
+# ─────────────────────────────────────────────
+# MEMBER CRATE: rust-signal-processor/Cargo.toml example
+# ─────────────────────────────────────────────
+
+# [package]
+# name    = "rust-signal-processor"
+# version = "0.1.0"
+# edition = "2021"
+#
+# [[bin]]
+# name = "signal-processor"
+# path = "src/main.rs"
+#
+# [dependencies]
+# tokio     = { workspace = true }
+# tokio-util= { workspace = true }
+# tonic     = { workspace = true }
+# prost     = { workspace = true }
+# anyhow    = { workspace = true }
+# thiserror = { workspace = true }
+# tracing   = { workspace = true }
+# tracing-subscriber       = { workspace = true }
+# opentelemetry-otlp       = { workspace = true }
+# tracing-opentelemetry    = { workspace = true }
+# rayon     = { workspace = true }
+#
+# [build-dependencies]
+# tonic-build = "0.12"

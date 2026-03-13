@@ -134,6 +134,23 @@ from ml_ai.indicator_engine.pipeline import (  # noqa: E402
     run_parameter_sensitivity,
     run_walk_forward,
     calculate_triple_barrier,
+    ADXRequest,
+    ADXResponse,
+    HMARequest,
+    IndicatorResponse,
+    KeltnerRequest,
+    KeltnerResponse,
+    MACDRequest,
+    MACDResponse,
+    StochasticRequest,
+    StochasticResponse,
+    VWAPRequest,
+    calculate_adx,
+    calculate_hma,
+    calculate_keltner,
+    calculate_macd,
+    calculate_stochastic,
+    calculate_vwap,
 )
 from ml_ai.indicator_engine.rust_bridge import rust_core_status  # noqa: E402
 from ml_ai.indicator_engine.portfolio_analytics import (  # noqa: E402
@@ -333,6 +350,36 @@ def indic_rsi_atr(payload: RSIVariantRequest):
 @app.post("/api/v1/indicators/rsi/bollinger", response_model=BollingerOnRSIResponse)
 def indic_rsi_bollinger(payload: BollingerVariantRequest) -> BollingerOnRSIResponse:
     return calculate_bollinger_on_rsi(payload)
+
+
+@app.post("/api/v1/indicators/macd", response_model=MACDResponse)
+def indic_macd(payload: MACDRequest) -> MACDResponse:
+    return calculate_macd(payload)
+
+
+@app.post("/api/v1/indicators/stochastic", response_model=StochasticResponse)
+def indic_stochastic(payload: StochasticRequest) -> StochasticResponse:
+    return calculate_stochastic(payload)
+
+
+@app.post("/api/v1/indicators/adx", response_model=ADXResponse)
+def indic_adx(payload: ADXRequest) -> ADXResponse:
+    return calculate_adx(payload)
+
+
+@app.post("/api/v1/indicators/hma", response_model=IndicatorResponse)
+def indic_hma(payload: HMARequest) -> IndicatorResponse:
+    return calculate_hma(payload)
+
+
+@app.post("/api/v1/indicators/vwap", response_model=IndicatorResponse)
+def indic_vwap(payload: VWAPRequest) -> IndicatorResponse:
+    return calculate_vwap(payload)
+
+
+@app.post("/api/v1/indicators/keltner", response_model=KeltnerResponse)
+def indic_keltner(payload: KeltnerRequest) -> KeltnerResponse:
+    return calculate_keltner(payload)
 
 
 # Phase 7d: Fibonacci confluence

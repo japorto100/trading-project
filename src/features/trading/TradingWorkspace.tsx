@@ -34,7 +34,6 @@ interface TradingWorkspaceProps {
 	loading: boolean;
 	candleData: OHLCVData[];
 	indicators: IndicatorSettings;
-	isDarkMode: boolean;
 	chartType: ChartType;
 	layout: LayoutMode;
 	historyRangePreset: HistoryRangePreset;
@@ -58,7 +57,6 @@ export function TradingWorkspace({
 	loading,
 	candleData,
 	indicators,
-	isDarkMode,
 	chartType,
 	layout,
 	historyRangePreset,
@@ -91,13 +89,10 @@ export function TradingWorkspace({
 
 			<SignalInsightsBar
 				lineState={signalSnapshot.lineState}
-				sma50={signalSnapshot.sma50}
 				lastCrossLabel={signalSnapshot.lastCrossLabel}
 				rvol={signalSnapshot.rvol}
 				cmf={signalSnapshot.cmf}
-				obv={signalSnapshot.obv}
 				heartbeatScore={signalSnapshot.heartbeatScore}
-				heartbeatCycleBars={signalSnapshot.heartbeatCycleBars}
 				atr={signalSnapshot.atr}
 				compositeSignal={compositeSignalInsights}
 			/>
@@ -138,7 +133,6 @@ export function TradingWorkspace({
 						<TradingChart
 							candleData={candleData}
 							indicators={indicators}
-							isDarkMode={isDarkMode}
 							chartType={chartType}
 							activeDrawingTool={activeDrawingTool}
 							drawingsLocked={drawingsLocked}

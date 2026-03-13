@@ -38,7 +38,7 @@ export function MonteCarloVarPanel({
 		isLoading: loading,
 		error: queryError,
 	} = useQuery<MonteCarloVarResponse>({
-		queryKey: ["monte-carlo-var", symbols, weights],
+		queryKey: ["portfolio", "monte-carlo-var", symbols, weights],
 		queryFn: async () => {
 			const res = await fetch("/api/fusion/portfolio/analytics/monte-carlo-var", {
 				method: "POST",

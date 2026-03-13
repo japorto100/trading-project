@@ -1,6 +1,6 @@
 # FRONTEND ARCHITECTURE
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 12. Maerz 2026 (Rev. 2 — Trading-Refactor TRF1–TRF42 reflektiert)
 > **Zweck:** Frontend-Authority fuer Next.js/BFF-Boundaries, State-Schichten,
 > UI-Ownership und die aktuelle Rolle des Browsers innerhalb der Gesamtarchitektur.
 > **Nicht dieses Dokuments:** Vollstaendige Roadmap, historische Bugchronik oder
@@ -30,11 +30,12 @@ Kurzform:
 | Framework | Next.js `16.1.1` App Router |
 | React | `19` |
 | Styling | Tailwind 4 + shadcn/ui + Framer Motion |
+| Theming | `next-themes` — 4 Themes: `light`, `dark`, `blue-dark`, `green-dark`; Theme-Picker in TradingHeader (DropdownMenu) + CommandPalette |
 | Charts | `lightweight-charts` 5.1.0, `recharts`, `d3-geo` |
 | Server State | TanStack Query 5 |
-| Local / domain state | React state + Zustand |
+| Local / domain state | React state + Zustand (`tradingWorkspaceStore`, `geopoliticalMapStore`) |
 | Auth | Auth.js / next-auth v5 beta Baseline |
-| Validation | Zod vorhanden; breiterer Contract-Einsatz bleibt Folgearbeit |
+| Validation | Zod vorhanden; breiterer Contract-Einsatz bleibt Folgearbeit (FE2) |
 
 ### Caching / Fetching Default
 
@@ -99,9 +100,10 @@ Secret-Owner fuer produktive Market- oder Broker-Integrationen.
 | Schicht | Typische Inhalte | Owner |
 |:--------|:-----------------|:------|
 | UI-local state | Drawer offen/zu, Tabs, Eingabefelder, Chart-Interaktionen | React local state |
-| Domain workspace state | aktive Symbolwahl, Watchlist-Kontext, GeoMap-Workspace, laengerlebige UI-Domaenen | Zustand |
-| Server state | Quotes, provider status, portfolio analytics, memory status, route data | TanStack Query |
-| Persistence / preferences | profile keys, settings, lokale UX-Praeferenzen | `lib/storage` + Browser |
+| Domain workspace state | `tradingWorkspaceStore`: `currentSymbol`, `favorites`, `layout`; `geopoliticalMapStore`: drawing mode, viewport, events | Zustand |
+| Server state | Quotes (OHLCV), Orderbook-Snapshots, portfolio analytics, composite signals, memory status | TanStack Query |
+| Live stream state | Candle-Updates, Orderbook-Updates via SSE → `queryClient.setQueryData` | `useMarketStream`, `useOrderbookStream` |
+| Persistence / preferences | profile keys, settings, lokale UX-Praeferenzen, Favorites, Layout | `lib/storage` + Browser |
 
 ### Regel
 
@@ -150,13 +152,26 @@ Aktive Rolle heute:
 
 ## 7. Frontend-Surfaces
 
+### Routen (aktuell aktiv)
+
+| Route | Surface | Anmerkung |
+|:------|:--------|:----------|
+| `/` | Redirect → `/trading` | `src/app/page.tsx` — Next.js `redirect()` |
+| `/trading` | Trading Workspace | `src/app/trading/page.tsx` — dedizierte Route seit TRF1 |
+| `/geopolitical-map` | GeoMap Workspace | `src/app/geopolitical-map/page.tsx` |
+| `/auth/*` | Auth/Security surfaces | Sign-in, Passkeys, Security |
+| `/api/v1/*` | Go Gateway Proxy | Thin BFF — kein Domain-Logik im Handler |
+| `/api/fusion/*` | Next.js BFF | Preferences, Patterns, Composite Signal |
+| `/api/geopolitical/*` | Next.js BFF | Events, Drawings, Regions |
+| `/api/memory/*` | Next.js BFF | KG-Nodes, Sync, Seed |
+
 ### Primaere Produktflaechen
 
-- Trading workspace
-- GeoMap / geopolitical workspace
-- Auth / security surfaces
-- portfolio / analytics panels
-- provider / settings / diagnostics surfaces
+- Trading workspace (`/trading`)
+- GeoMap / geopolitical workspace (`/geopolitical-map`)
+- Auth / security surfaces (`/auth/*`)
+- portfolio / analytics panels (eingebettet in Trading Workspace RightDetailsSidebar)
+- provider / settings / diagnostics surfaces (eingebettet via SettingsPanel)
 
 ### Produkt-Richtung
 
@@ -176,7 +191,9 @@ Frontend-Backend.
 | Thema | Regel |
 |:------|:------|
 | Market streaming | Go-SSE ist der Standardpfad |
-| Client updates | SSE-Events aktualisieren Query-Cache / UI-State kontrolliert |
+| Client updates | SSE-Events → `queryClient.setQueryData` — kein separater State-Layer |
+| Konkrete Hooks | `useMarketStream` (Candles/OHLCV), `useOrderbookStream` (Bids/Asks) |
+| SSE-Pattern | `EventSource` + named event (`"candle"`, `"orderbook"`) + Query-Key pro Symbol |
 | Legacy fallback | nur explizit gegated, nicht implizit |
 | Alerts | Richtung server-side in Go, nicht rein clientseitig |
 
@@ -189,9 +206,12 @@ Frontend-Backend.
 - weitere BFF-Routen und Legacy-Helfer konsequent auf Go-first-/thin-proxy-Regeln
   pruefen
 - `lib/providers` weiter von alten Produktivpfaden befreien
-- mehr Response-Validierung an der Frontend-Grenze
-- GeoMap- und Trading-Workspace weiter in kleinere, klarere Ownership-Blöcke
-  schneiden
+- mehr Response-Validierung an der Frontend-Grenze (FE2: Zod-Contracts)
+- GeoMap-Workspace weiter in kleinere, klarere Ownership-Blöcke schneiden
+  (Trading-Workspace ist erledigt — TRF1–TRF42, 10.03.2026)
+- TanStack Query Defaults vereinheitlichen: `staleTime`/`gcTime`/retry-Audit (FE7)
+- Query-Key-Konzept fuer alle Surfaces konsolidieren (FE9)
+- Dead File `src/features/trading/useIndicatorActions.ts` entfernen (`git rm`)
 
 ### Noch nicht sinnvoll
 

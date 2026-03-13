@@ -1,7 +1,10 @@
 package base
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,16 +12,20 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type DiffWatcherConfig struct {
-	Name      string
-	URL       string
-	Schedule  string
-	Format    string
-	IDField   string
-	StorePath string
-	ParseFunc func(io.Reader) ([]map[string]any, error)
+	Name       string
+	URL        string
+	URLs       []string
+	Schedule   string
+	Format     string
+	IDField    string
+	StorePath  string
+	ParseFunc  func(io.Reader) ([]map[string]any, error)
+	OnFetched  func(context.Context, FetchSnapshot) error
+	NowFunc    func() time.Time
 	HTTPClient *http.Client
 }
 
@@ -26,6 +33,18 @@ type DiffResult struct {
 	Added   []map[string]any `json:"added,omitempty"`
 	Removed []map[string]any `json:"removed,omitempty"`
 	Changed []map[string]any `json:"changed,omitempty"`
+}
+
+type FetchSnapshot struct {
+	WatcherName   string
+	SourceURL     string
+	ContentType   string
+	ContentLength int64
+	ETag          string
+	LastModified  string
+	SHA256Hex     string
+	FetchedAt     time.Time
+	Payload       []byte
 }
 
 type DiffWatcher struct {
@@ -36,11 +55,48 @@ func NewDiffWatcher(cfg DiffWatcherConfig) *DiffWatcher {
 	return &DiffWatcher{cfg: cfg}
 }
 
+func (w *DiffWatcher) URL() string {
+	if w == nil {
+		return ""
+	}
+	if len(w.cfg.URLs) > 0 {
+		return strings.TrimSpace(w.cfg.URLs[0])
+	}
+	return w.cfg.URL
+}
+
+func (w *DiffWatcher) URLs() []string {
+	if w == nil {
+		return nil
+	}
+	if len(w.cfg.URLs) > 0 {
+		result := make([]string, 0, len(w.cfg.URLs))
+		for _, raw := range w.cfg.URLs {
+			if trimmed := strings.TrimSpace(raw); trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+		return result
+	}
+	if trimmed := strings.TrimSpace(w.cfg.URL); trimmed != "" {
+		return []string{trimmed}
+	}
+	return nil
+}
+
+func (w *DiffWatcher) HTTPClient() *http.Client {
+	if w == nil {
+		return nil
+	}
+	return w.cfg.HTTPClient
+}
+
 func (w *DiffWatcher) CheckForUpdates(ctx context.Context) (*DiffResult, error) {
 	if w == nil {
 		return nil, fmt.Errorf("diff watcher unavailable")
 	}
-	if strings.TrimSpace(w.cfg.URL) == "" {
+	urls := w.URLs()
+	if len(urls) == 0 {
 		return nil, fmt.Errorf("diff watcher url required")
 	}
 	if w.cfg.ParseFunc == nil {
@@ -50,22 +106,65 @@ func (w *DiffWatcher) CheckForUpdates(ctx context.Context) (*DiffResult, error) 
 	if client == nil {
 		client = http.DefaultClient
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, w.cfg.URL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("diff watcher request: %w", err)
+	nowFunc := w.cfg.NowFunc
+	if nowFunc == nil {
+		nowFunc = func() time.Time { return time.Now().UTC() }
 	}
-	req.Header.Set("Accept", "application/json, application/xml, */*")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("diff watcher fetch: %w", err)
+	var (
+		fresh   []map[string]any
+		lastErr error
+	)
+	for _, sourceURL := range urls {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, sourceURL, nil)
+		if err != nil {
+			lastErr = fmt.Errorf("diff watcher request %s: %w", sourceURL, err)
+			continue
+		}
+		req.Header.Set("Accept", "application/json, application/xml, text/csv, */*")
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("diff watcher fetch %s: %w", sourceURL, err)
+			continue
+		}
+		if resp.StatusCode >= http.StatusBadRequest {
+			_ = resp.Body.Close()
+			lastErr = fmt.Errorf("diff watcher %s: %d", sourceURL, resp.StatusCode)
+			continue
+		}
+		payload, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			lastErr = fmt.Errorf("diff watcher read %s: %w", sourceURL, err)
+			continue
+		}
+		if w.cfg.OnFetched != nil {
+			sum := sha256.Sum256(payload)
+			recordErr := w.cfg.OnFetched(ctx, FetchSnapshot{
+				WatcherName:   w.cfg.Name,
+				SourceURL:     sourceURL,
+				ContentType:   strings.TrimSpace(resp.Header.Get("Content-Type")),
+				ContentLength: int64(len(payload)),
+				ETag:          strings.TrimSpace(resp.Header.Get("ETag")),
+				LastModified:  strings.TrimSpace(resp.Header.Get("Last-Modified")),
+				SHA256Hex:     hex.EncodeToString(sum[:]),
+				FetchedAt:     nowFunc(),
+				Payload:       append([]byte(nil), payload...),
+			})
+			if recordErr != nil {
+				lastErr = fmt.Errorf("diff watcher record %s: %w", sourceURL, recordErr)
+				continue
+			}
+		}
+		fresh, err = w.cfg.ParseFunc(bytes.NewReader(payload))
+		if err != nil {
+			lastErr = fmt.Errorf("diff watcher parse %s: %w", sourceURL, err)
+			continue
+		}
+		lastErr = nil
+		break
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("diff watcher %s: %d", w.cfg.URL, resp.StatusCode)
-	}
-	fresh, err := w.cfg.ParseFunc(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("diff watcher parse: %w", err)
+	if lastErr != nil {
+		return nil, lastErr
 	}
 	freshMap := sliceToMap(fresh, w.cfg.IDField)
 	var prevMap map[string]map[string]any

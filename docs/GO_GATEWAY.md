@@ -46,6 +46,7 @@ Go Gateway benötigt für RSC **keine Sonder-API**, sondern konsistente Auth-/He
 ### Prinzipien
 
 - **GCT als Pattern-Referenz**, nicht als Domain-Zwang für Macro/Geo/Legal
+- **`finnhub-go` nur selektiv als Referenz**, nicht als automatischer Ersatz des eigenen Connectors; Re-Open nur bei klarer Coverage-Luecke oder Wartungsvorteil
 - **Router-Metadaten (`group`, `kind`, `capabilities`)** in `go-backend/config/provider-router.yaml`
 - **Capability-Matrix** pro Provider statt monolithischer Interfaces
 - **Fehlerklassen** für Retry/Circuit/Fallback-Entscheidungen

@@ -28,9 +28,9 @@ func sdnURL() string {
 type SDNList struct {
 	XMLName xml.Name `xml:"sdnList"`
 	Entries []struct {
-		UID     string `xml:"uid"`
+		UID      string `xml:"uid"`
 		LastName string `xml:"lastName"`
-		SDNType string `xml:"sdnType"`
+		SDNType  string `xml:"sdnType"`
 	} `xml:"sdnEntry"`
 }
 
@@ -38,6 +38,16 @@ func NewSDNWatcher(storePath string, httpClient *http.Client) *base.DiffWatcher 
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 60 * time.Second}
 	}
+	recorder := base.NewLocalSnapshotRecorder(base.LocalSnapshotRecorderConfig{
+		SourceID:      "ofac",
+		Subdir:        "ofac",
+		SourceClass:   "file-snapshot",
+		FetchMode:     "conditional-poll",
+		StorePath:     storePath,
+		DatasetName:   "ofac-sdn",
+		CadenceHint:   "daily",
+		ParserVersion: "ofac-sdn-xml-v1",
+	})
 	return base.NewDiffWatcher(base.DiffWatcherConfig{
 		Name:       "OFAC_SDN",
 		URL:        sdnURL(),
@@ -46,6 +56,7 @@ func NewSDNWatcher(storePath string, httpClient *http.Client) *base.DiffWatcher 
 		IDField:    "uid",
 		StorePath:  storePath,
 		ParseFunc:  parseSDNXML,
+		OnFetched:  recorder,
 		HTTPClient: httpClient,
 	})
 }

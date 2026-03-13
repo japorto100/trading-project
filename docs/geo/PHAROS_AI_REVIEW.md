@@ -1,6 +1,6 @@
 # Pharos AI Reference Review
 
-> **Stand:** 10. Maerz 2026
+> **Stand:** 13. Maerz 2026
 > **Zweck:** Referenzreview des Open-Source-Projekts `pharos-ai` fuer GeoMap-/Conflict-Layer-Entscheidungen.
 > **Quelle:** https://github.com/Juliusolsson05/pharos-ai
 > **Scope:** UI-/Layer-/View-Architektur, nicht direkter Codeimport.
@@ -28,7 +28,7 @@ Wichtig:
 
 ### 2.1 Review-Basis
 
-- Lokal geklonter Stand: `2026-03-09`
+- Lokal geklonter Stand: `2026-03-13` (HEAD `6a19dea`)
 - Review-Pfad: `D:/tradingview-clones/_tmp_ref_review/pharos-ai`
 
 ### 2.2 Lizenz
@@ -60,8 +60,8 @@ Laut `README.md` umfasst der aktuell offene Scope die **Application Layer**:
 
 Ebenfalls wichtig:
 
-- der **interne Agent Layer** ist noch nicht enthalten
-- das README nennt als Ziel fuer die Oeffnung des Agent Layers **around March 12th, 2026**
+- das README bleibt bei einer **staged open-source**-Aussage (Application Layer als klarer Scope)
+- parallel sind inzwischen oeffentliche Agent-Artefakte sichtbar (`agent/`-Ordner + Doctrine-/Workflow-Commits)
 
 ### Monitoring-Relevanz fuer uns
 
@@ -77,6 +77,12 @@ Wir behandeln deshalb:
   - source verification
   - X/Twitter-Ersatzpfade
   - agentic collection / scraping orchestration
+
+Arbeitsregel fuer unsere Roadmap:
+
+- auf den Agent-Layer wird **nicht** gewartet, um den Flat-/Conflict-Vorbau zu beginnen
+- gewartet wird nur mit der endgueltigen Produktform des spaeteren Conflict-/Source-Layers
+- `2026-03-12` bleibt damit ein Review-/Monitoring-Datum, kein Blocker fuer den Renderer- und View-Handoff-Vorbau
 
 ---
 
@@ -161,6 +167,39 @@ Konkret sichtbar im Review-Stand:
 - Zoom-Presets fuer Zeitraeume (`24H`, `3D`, `7D`, `2W`, `1M`, `ALL`)
 - Drag-/Brush-aehnliche Interaktion fuer den sichtbaren Zeitraum
 - enge Kopplung zwischen Timeline und Layer-Sichtbarkeit
+- getrennte Zustandsrollen fuer:
+  - sichtbares Zeitfenster (`viewExtent`)
+  - aktives Filterfenster (`timeRange`)
+  - Story-getriebenes Auto-Fit auf Ereignisfenster
+
+Wichtig am konkreten Pharos-Muster:
+
+- Presets sind vorhanden, aber **nicht** das Hauptmodell
+- das Hauptmodell ist eine analystische Timeline mit separatem Sichtfenster und separatem aktiven Filterfenster
+- Story-Aktivierung setzt Kamera **und** Timeline-Fenster zusammen
+
+Das ist naeher an SOTA als ein reiner Preset-Ansatz.
+
+### 5.4a Externe Einordnung gegen offizielle Produkte
+
+Die Beobachtung aus `pharos-ai` deckt sich mit den oeffentlichen Mustern aus `kepler.gl` und Palantir Foundry Map:
+
+- `kepler.gl` betont Playback ueber einen zeitbasierten Filter, Histogramm-Bars und Rolling Playback Window
+- Palantir Map trennt explizit:
+  - `selected time`
+  - `time range`
+  - `time filter window`
+  - Playback innerhalb eines aktiven Fensters
+  - `zoom to fit` / explizites Zeitfenster-Input
+
+Fachliche Ableitung fuer TradeView Fusion:
+
+- Presets wie `24H/7D/1M/ALL` sind sinnvoll, aber nur als Schnellzugriff
+- ein analystentauglicher GeoMap-v2-Vertrag braucht zusaetzlich:
+  - ein sichtbares Zeitfenster (`view extent`)
+  - ein aktives Filterfenster (`time filter window`)
+  - optional einen expliziten `selected time`/Cursor
+  - story-/selection-getriebenes Auto-Fit fuer Zeit und Kamera
 
 Das ist fuer uns relevant, weil ein spaeterer Conflict-Layer kein statisches Kartenbild bleiben darf.
 Er braucht einen reproduzierbaren Arbeitsmodus fuer:
@@ -299,6 +338,28 @@ Klar fehlend im Sinne eines `pharos-ai`-aehnlichen Conflict-Modus:
 - view-agnostischer Selection-/Detail-Contract fuer Conflict-Objekte
 - dedizierter Flat/Regional Analyst View
 
+### 6.5 Drawing- und Marker-UX: was Pharos hilft und was nicht
+
+Fuer unsere aktuelle Marker-/Drawing-Arbeit ist `pharos-ai` nur **teilweise** hilfreich.
+
+Hilfreich:
+
+- Analysten-Chrome rund um Layer, Filter, Timeline und Detailansicht
+- klare Trennung zwischen Daten-Layern und UI-Chrome
+- Muster fuer spaetere dichte Interaktion im Flat/Regional-Mode
+
+Nicht hilfreich als fertige Loesung:
+
+- Globe-basiertes Drawing auf `d3-geo`
+- Geometry-Editing mit Vertex-/Handle-Manipulation auf unserem aktuellen Renderer
+- generische Marker-Placement-UX fuer unseren bestehenden Earth/Moon-/Globe-Stack
+
+Arbeitsfolge daraus:
+
+- Globe-Editing zuerst ueber eigenen Selection-/Drawing-Contract professionalisieren
+- fortgeschrittene Conflict-/Geometry-Edit-Muster spaeter gezielt fuer den Flat/Regional-Mode pruefen
+- `pharos-ai` bleibt dafuer Referenz fuer Analysten-UX, nicht fuer einen direkten Draw-Stack-Ersatz
+
 ---
 
 ## 7. Bewertung fuer unsere GeoMap
@@ -396,6 +457,48 @@ Das kann fuer uns spaeter relevant werden in Bezug auf:
 - agentic browsing/scraping
 - conflict summarization and prep
 
+### Update 2026-03-12
+
+Der Check am `2026-03-12` zeigt: im oeffentlichen Repo ist jetzt ein neuer `agent/`-Ordner
+sichtbar, plus frische Commits vom selben Datum. Darunter faellt insbesondere ein
+Doctrine-/Agent-Guidance-Update:
+
+- `feat: rewrite Pharos agent doctrine for completeness-first fulfillment`
+
+Oeffentlich sichtbar sind derzeit vor allem:
+
+- `agent/AGENTS.md`
+- `agent/BOOTSTRAP_MESSAGE.md`
+- `agent/HEARTBEAT.md`
+- `agent/IDENTITY.md`
+- `agent/OPENCLAW_SETUP.md`
+- `agent/README.md`
+- `agent/SOUL.md`
+- `agent/TOOLS.md`
+- `agent/USER.md`
+
+Bewertung:
+
+- das ist **mehr als nur eine Ankuendigung**
+- es ist aber **noch kein vollstaendig offengelegter ingest-/datafetch-/agent-runtime layer**
+- der aktuelle Mehrwert liegt vor allem in:
+  - Agent-Doctrine
+  - Workspace-/Bootstrap-Pattern
+  - Tool-/Heartbeat-/Identity-Mirroring
+  - Completeness-first Arbeitslogik
+
+Folgerung fuer unseren Flat-/Conflict-Vorbau:
+
+- wir warten **nicht** auf einen hypothetischen vollstaendigen Agent-Release, um den globalen Flat/Regional-Mode zu beginnen
+- wir verwenden `pharos-ai` weiterhin als Pattern-Referenz fuer Analysten-UX, Timeline/Replay, Layer-Chrome und spaetere Conflict-Interaktion
+- wir ziehen daraus **keine** Middle-East-Produktgrenze fuer TradeView Fusion ab; unser Flat-Modus bleibt global
+
+Noch nicht sichtbar als voll offene Referenz:
+
+- eigenstaendige Agent-Runtime mit klaren Worker-/collector-Prozessen
+- vollstaendiger Datafetch-/source-ingestion layer
+- ein kompletter X/Twitter-ersetzender agentic scraping stack als offene Implementierung
+
 ### Arbeitsregel
 
 Das Monitoring ist **explizit** in GeoMap-/Execution-Dokumenten zu fuehren.
@@ -405,6 +508,25 @@ Wenn dort neue Open-Source-Slices erscheinen, werden sie geprueft gegen:
 - unsere Quellen-/Policy-Regeln
 - unsere Provider- und Verify-Anforderungen
 - unsere Lizenz- und Security-Vorgaben
+
+Arbeitsfolgerung:
+
+- Flat/Conflict-Foundation wird **nicht** verschoben
+- der heute sichtbare Agent-Teil ist als Produkt-/Workflow-Referenz nuetzlich
+- fuer Ingestion-/source-automation bleibt `pharos-ai` weiterhin ein laufender Beobachtungspunkt
+
+### Update 2026-03-13
+
+Ein Folgecheck am `2026-03-13` bestaetigt den Ausbau der oeffentlichen Agent-Artefakte:
+
+- Merge `b65d678`: `feat/agent-implementation` (inkl. `agent/*`-Mirrors, Doctrine-Scaffolding)
+- Commit `a5aa8b2`: `centralize agent doctrine in admin instructions`
+- Commit `a1d613b`: `timezone and event linkage metadata for agent workflows`
+
+Gleichzeitig bleibt die zentrale Einordnung unveraendert:
+
+- oeffentlich sichtbar ist ein **teilweiser Agentic Layer** mit starkem Fokus auf Doctrine, Workspace-Mirroring und Admin-Workflow
+- ein vollstaendig offengelegter ingest-/datafetch-/worker-runtime stack ist weiterhin nicht klar als komplette Open-Source-Referenz verfuegbar
 
 ---
 
@@ -425,7 +547,29 @@ Wenn dort neue Open-Source-Slices erscheinen, werden sie geprueft gegen:
 
 ---
 
-## 11. Querverweise
+## 11. Oeffentliche Produkt- und Doc-Referenzen
+
+Die wichtigsten externen Referenzen, die das in diesem Review beobachtete Muster bestaetigen:
+
+- `kepler.gl` Playback: zeitbasierter Filter + Playback Window + Histogramm am Kartenrand
+- `deck.gl`: kontrollierter `viewState` und externe View-State-Steuerung fuer mehrstufige Karten- und Overlay-Workflows
+- Palantir Foundry Map Timeline:
+  - `selected time`
+  - `time range`
+  - `time filter window`
+  - Playback innerhalb des aktiven Fensters
+  - `zoom to fit`
+  - Ereignis-/Timeline-Geometrien als eigener Karten-/Timeline-Vertrag
+
+Fuer TradeView Fusion ist damit klar:
+
+- Presets allein sind nicht genug
+- Brush allein ist nicht genug
+- analyst-grade Timeline braucht einen expliziten Temporal Contract
+
+---
+
+## 12. Querverweise
 
 - [`GEOMAP_FOUNDATION.md`](./GEOMAP_FOUNDATION.md)
 - [`GEOMAP_MODULE_CATALOG.md`](./GEOMAP_MODULE_CATALOG.md)

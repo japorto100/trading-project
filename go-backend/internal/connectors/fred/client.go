@@ -25,11 +25,13 @@ type Config struct {
 	BaseURL        string
 	APIKey         string
 	RequestTimeout time.Duration
+	CacheTTL       time.Duration
 }
 
 type Client struct {
-	baseClient *base.Client
-	apiKey     string
+	baseClient    *base.Client
+	apiKey        string
+	responseCache *base.JSONHotCache
 }
 
 func (c *Client) apiKeyForContext(ctx context.Context) string {
@@ -58,7 +60,8 @@ func NewClient(cfg Config) *Client {
 			Timeout:    timeout,
 			RetryCount: 1,
 		}),
-		apiKey: strings.TrimSpace(cfg.APIKey),
+		apiKey:        strings.TrimSpace(cfg.APIKey),
+		responseCache: base.NewJSONHotCache("fred-series", cfg.CacheTTL),
 	}
 }
 
@@ -125,6 +128,13 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	}
 	if limit > 500 {
 		limit = 500
+	}
+	cacheKey := base.StableCacheKey(seriesID, strconv.Itoa(limit))
+	if c.responseCache != nil {
+		var cached []gct.SeriesPoint
+		if c.responseCache.Get(ctx, cacheKey, &cached) && len(cached) > 0 {
+			return cached, nil
+		}
 	}
 
 	query := url.Values{}
@@ -199,6 +209,9 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 			StatusCode: http.StatusBadRequest,
 			Cause:      fmt.Errorf("invalid observation value"),
 		}
+	}
+	if c.responseCache != nil {
+		c.responseCache.Set(ctx, cacheKey, series)
 	}
 
 	return series, nil

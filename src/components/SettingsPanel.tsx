@@ -119,7 +119,7 @@ export function SettingsPanel() {
 		isFetching: loading,
 		refetch,
 	} = useQuery<ProviderStatus[]>({
-		queryKey: ["market-providers"],
+		queryKey: ["market", "providers"],
 		queryFn: async () => {
 			const response = await fetch("/api/market/providers", { cache: "no-store" });
 			const data = (await response.json()) as { success: boolean; providers: ProviderStatus[] };

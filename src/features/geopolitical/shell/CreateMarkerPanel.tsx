@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { parseLatitudeInput, parseLongitudeInput } from "@/features/geopolitical/drawing-workflow";
 import type { GeoConfidence, GeoSeverity } from "@/lib/geopolitical/types";
 
 interface CreateMarkerPanelProps {
@@ -42,6 +43,9 @@ export function CreateMarkerPanel({
 }: CreateMarkerPanelProps) {
 	const [manualLat, setManualLat] = useState("");
 	const [manualLng, setManualLng] = useState("");
+	const latitudeInput = parseLatitudeInput(manualLat);
+	const longitudeInput = parseLongitudeInput(manualLng);
+	const manualCoordinateError = latitudeInput.error ?? longitudeInput.error;
 
 	useEffect(() => {
 		if (!pendingPoint) return;
@@ -50,11 +54,8 @@ export function CreateMarkerPanel({
 	}, [pendingPoint]);
 
 	const handleSetManualPoint = () => {
-		const lat = Number(manualLat);
-		const lng = Number(manualLng);
-		if (!Number.isFinite(lat) || lat < -90 || lat > 90) return;
-		if (!Number.isFinite(lng) || lng < -180 || lng > 180) return;
-		onSetPoint({ lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) });
+		if (latitudeInput.value === null || longitudeInput.value === null) return;
+		onSetPoint({ lat: latitudeInput.value, lng: longitudeInput.value });
 	};
 
 	return (
@@ -65,6 +66,11 @@ export function CreateMarkerPanel({
 			</p>
 
 			<div className="mt-3 space-y-2">
+				<div className="rounded-md border border-border bg-background/70 px-2 py-2 text-[11px] text-muted-foreground">
+					{pendingPoint
+						? "Point locked. Review the fields and create the marker, or replace the point manually."
+						: "Step 1: click the globe or enter coordinates. Step 2: fill title and severity. Step 3: create the marker."}
+				</div>
 				<label
 					className="block text-xs font-medium text-muted-foreground"
 					htmlFor="marker-coordinates-display"
@@ -100,6 +106,9 @@ export function CreateMarkerPanel({
 				<Button size="sm" variant="outline" onClick={handleSetManualPoint} disabled={busy}>
 					Set coordinates manually
 				</Button>
+				{manualCoordinateError ? (
+					<p className="text-[11px] text-red-400">{manualCoordinateError}</p>
+				) : null}
 
 				<label className="block text-xs font-medium text-muted-foreground" htmlFor="marker-title">
 					Title

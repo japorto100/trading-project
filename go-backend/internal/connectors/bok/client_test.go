@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
@@ -115,5 +116,28 @@ func TestGetSeries_UsesRequestScopedAPIKey(t *testing.T) {
 	}
 	if !strings.Contains(gotPath, "/request-key/json/") {
 		t.Fatalf("expected request-scoped API key in path, got %q", gotPath)
+	}
+}
+
+func TestGetSeries_UsesHotCache(t *testing.T) {
+	callCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		_, _ = w.Write([]byte(`{"StatisticSearch":{"list_total_count":1,"row":[{"TIME":"202401","DATA_VALUE":"3.5"}]}}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL, APIKey: "sample", CacheTTL: time.Hour})
+	for range 2 {
+		points, err := client.GetSeries(context.Background(), currency.NewPair(currency.NewCode("BOK_ECOS_722Y001_M_0101000"), currency.NewCode("USD")), asset.Empty, 1)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+		if len(points) != 1 {
+			t.Fatalf("expected 1 point, got %d", len(points))
+		}
+	}
+	if callCount != 1 {
+		t.Fatalf("expected exactly one upstream call, got %d", callCount)
 	}
 }

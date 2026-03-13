@@ -1,0 +1,671 @@
+# Frontend Chat UI Blueprint
+#
+# TradeView Fusion - Full Agent Chat UI Blueprint
+# (Perplexica + AgentZero + Tambo informed)
+#
+# Stand: 13 Mar 2026 (Mission Control + Onyx + Deepdive-Hardening eingearbeitet)
+
+## 1) Purpose
+
+Dieses Dokument definiert die konkrete Frontend-UI-Architektur fuer den Agent Chat in `tradeview-fusion` auf Basis von:
+
+- lokal geklonten Referenzprojekten in `_tmp_ref_review`
+- existierendem Project-Scaffold in `src/features/agent-chat`
+- bestehendem Next.js SSE/BFF Muster und Go-Streaming-Backend
+- Python memory-service als Agent-Laufzeit
+
+Ziel: kein Minimal-Chat, sondern ein vollwertiger Chat-Workspace mit Streaming, Tool-Events, Thread-Persistenz, Reconnect und strukturierten UI-Bloecken.
+
+---
+
+## 2) Source Inputs (lokal)
+
+### 2.1 Unser Projekt
+
+- Chat-Scaffold: `src/features/agent-chat/AgentChatPanel.tsx`, `src/features/agent-chat/types.ts`
+- Chat-Slice: `docs/specs/execution/agent_chat_ui_delta.md`
+- SSE/BFF Muster: `src/app/api/market/stream/route.ts`
+- Episodic Persistenz: `src/lib/server/memory-episodic-store.ts`
+- Frontend Referenzen: `docs/FRONTEND_COMPONENTS.md`
+- Error/Observability Normen: `docs/specs/ERRORS.md`
+- Architektur-/Security-Leitplanken (Root-MDs):
+  - `docs/FRONTEND_ENHANCEMENT.md`
+  - `docs/AGENT_SECURITY.md`
+  - `docs/AGENT_HARNESS.md`
+  - `docs/AGENT_ARCHITECTURE.md`
+- `docs/AGENT_TOOLS.md`
+  - `docs/GO_GATEWAY.md`
+  - `docs/MEMORY_ARCHITECTURE.md`
+  - `docs/CONTEXT_ENGINEERING.md`
+
+### 2.2 Referenz-Repos (in `_tmp_ref_review`)
+
+- `agentzero-complete`
+- `perplexica`
+- `tambo`
+- `onyx`
+
+### 2.3 Wichtige Root-MD Constraints (zusammengezogen)
+
+- `GO_GATEWAY.md`: Browser-Default bleibt `REST + SSE` (stream-first, REST-fallback), Gateway ist Single Entry Point.
+- `AGENT_SECURITY.md`: keine direkten mutierenden Agent-UI-Pfade; Tool-/Storage-Writes nur policy-gated ueber Backend.
+- `FRONTEND_ENHANCEMENT.md`: event-starke UIs brauchen explizite Execution-Policies (Debounce/Throttle/Batch-Queue/Abort-Retry).
+- `AGENT_HARNESS.md`: Agenten bleiben untrusted orchestrators; Runtime-Governance und Audit sind Pflicht.
+- `AGENT_ARCHITECTURE.md`: Agent Playground / Monitor sind read-only/bounded; `no_trading_actions` bleibt harte Regel.
+- `AGENT_TOOLS.md`: Agentische UI-Surfaces bleiben assistiv/read-only oder bounded-write; keine stillen Side Effects.
+- `MEMORY_ARCHITECTURE.md` + `CONTEXT_ENGINEERING.md`: Context Assembly nur aus normalisierten Artefakten, klare Degradation-Flags bei fehlenden Schichten.
+
+---
+
+## 3) Was wir aus welchem Blueprint uebernehmen
+
+### 3.1 Perplexica (Primary UI Flow Blueprint)
+
+Uebernehmen:
+
+1. strukturierter Stream statt nur plain text
+2. block-orientierte Antwortdarstellung (`block` + `updateBlock`)
+3. reconnect/continue-Pfade fuer unterbrochene Antworten
+4. message/block state machine in Hook
+
+Nicht uebernehmen:
+
+- provider-/search-spezifische Vane/Perplexica business logic
+- deren gesamtes settings/provider management
+
+Warum: passt direkt auf euren geplanten `AgentChatPanel` mit Tool-Events und SSE.
+
+### 3.2 AgentZero (Secondary Runtime UX/Resilience Blueprint)
+
+Uebernehmen:
+
+1. queueing/busy-zustand pattern fuer input
+2. connectivity + fallback sync Ideen
+3. tool-/message-orientierte UI stores als inspiration fuer modulare panels
+
+Nicht uebernehmen:
+
+- komplette AgentZero WebUI Architektur 1:1
+- legacy/global script patterns
+
+Warum: gute Robustheitspatterns, aber stark projektspezifische UI-Historie.
+
+### 3.3 Tambo (Optional Rich Generative UI Layer)
+
+Uebernehmen (optional, Phase 2):
+
+1. component registry + schema-driven rendering fuer tool outputs
+2. interaktive/persistente komponenten fuer agent result cards
+3. hooks fuer thread/stream/component-state nur falls eigener Ansatz zu teuer wird
+
+Nicht uebernehmen:
+
+- kompletter Backend-Betrieb von Tambo als Pflicht
+- full migration eures Transportlayers auf Tambo
+
+Warum: stark fuer "agent speaks UI". Sollte auf euren bestehenden Transport/Policy-Rails aufsetzen, nicht umgekehrt.
+
+### 3.4 Weitere Referenzen aus FRONTEND_COMPONENTS.md (adjazent)
+
+Die folgenden Referenzen bleiben wichtig, aber **nicht** primaer fuer den Chat-Core:
+
+- `Mission Control`: Operations-/Control-Room-Patterns fuer Agent-Monitoring.
+- `GitNexus Web`: Graph-Exploration-Patterns fuer KG-/Memory-Surfaces.
+- `Paperless-ngx`: Document-/Source-Review-Patterns fuer Research-Sidepanels.
+
+Diese drei beeinflussen eher Right-Panels und Analyst-Surfaces als den zentralen
+Message-Stream.
+
+### 3.5 Mission Control (Add-on, nicht Chat-Core)
+
+Wichtig: `mission-control` ist **kein Ersatz** fuer Perplexica/AgentZero als Chat-Core-Blueprint.
+Der Mehrwert liegt in Ops-/Runtime-nahen Erweiterungen.
+
+Uebernehmen (additiv):
+
+1. session-zentrierte Conversation-Modelle (`session:*`) fuer lokale + gateway Runtimes
+2. hybrider Realtime-Betrieb (`SSE first`, polling als fallback/pause when connected)
+3. robustes optimistic message lifecycle (temp ids, replace/update/remove, failed+retry)
+4. inline Runtime-Signale im Chat (z. B. compaction/fallback toasts)
+5. collapsible tool-call rows mit status/args/output/duration fuer Operator-Workflows
+
+Nicht uebernehmen:
+
+- Mission-Control-spezifische Dashboard-/Ops-Oberflaechen als Chat-Pflicht
+- Session-/Provider-Sonderfaelle, die nicht zum TradeView Chat-Produkt passen
+
+### 3.6 Onyx (Add-on, Chat-Robustheit + Session-Disziplin)
+
+Wichtig: `onyx` wird als Chat-Engineering-Referenz genutzt, nicht als Plattform-
+Blueprint fuer Connector-/Enterprise-Features.
+
+Uebernehmen (additiv):
+
+1. packet-typisiertes Streaming-Modell mit klarer Ereignisklassifikation
+2. placement-orientierte Event-Reihenfolge (`turn_index`, optional `tab_index`) fuer stabile Tool-/Parallel-Darstellung
+3. message-tree + branch/switch pattern fuer regenerate/fork flows
+4. session-isolierter Store-Ansatz (pro Session ChatState/Error/Abort-Controller)
+5. stabiler Scroll-Container mit auto-follow nur bei "at bottom"
+6. toolbar action contract (copy/feedback/regenerate/sources) zustandsabhaengig
+
+Nicht uebernehmen:
+
+- Onyx-spezifische Plattformbereiche (Connectors, Deep-Research, umfangreiche Admin-Flows)
+- komplette Packet-Taxonomie 1:1 (fuer TradeView nur noetige Teilmenge)
+
+---
+
+## 4) Zielarchitektur (Next <-> Go <-> Python)
+
+User
+-> Next `AgentChatPanel` (Client)
+-> Next BFF `/api/agent/chat` (SSE proxy/adapter)
+-> Go Gateway `/agent/chat` (orchestrator + provider routing + auth context)
+-> Python memory-service (agent loop, memory, tools)
+-> LLM Provider (Anthropic/Ollama/vLLM)
+
+Rueckweg:
+LLM/tool events -> Python -> Go -> Next BFF (SSE) -> React Chat State
+
+### Verantwortlichkeiten
+
+- Next UI/BFF
+  - UI rendering, local UX state, reconnect triggers
+  - normalized SSE event contract fuer Frontend
+- Go
+  - correlation id, auth headers, provider routing, gateway policy
+  - canonical stream orchestration
+- Python
+  - agent behavior, tool execution, memory integration
+  - structured tool events + final assistant outputs
+
+---
+
+## 5) Event Contract (UI-nah, stabil)
+
+Baseline aus Slice behalten:
+
+- `chunk`
+- `done`
+- `tool`
+- `error`
+
+Erweiterung (empfohlen fuer Full UI):
+
+- `block` (new render block)
+- `updateBlock` (partial update)
+- `stream_status` (live/degraded/recovered)
+- `heartbeat` (optional)
+
+### Block Types (empfohlen)
+
+- `text`
+- `tool_call`
+- `tool_result`
+- `citation_list`
+- `warning`
+- `suggestion`
+- `widget` (phase 2, tambo-inspired)
+
+---
+
+## 6) Full Chat UI Surface (nicht minimal)
+
+### 6.1 Hauptkomponenten
+
+- `AgentChatPanel` (container + layout)
+- `AgentChatThread` (message groups)
+- `AgentChatComposer` (input, attach, send, queue)
+- `AgentChatToolbar` (model/profile/context controls)
+- `AgentChatEventRail` (stream status, latency, provider badge)
+- `AgentChatToolEvents` (collapsible tool timeline)
+- `AgentChatRightPanel` (thread list / context / debug tabs)
+- `AgentChatReconnectBanner` (transport state + retry)
+
+### 6.2 Message/Block Rendering
+
+Pro assistant message:
+
+- header (agent/model/time)
+- progressive block render
+- citations/actions footer
+- tool blocks collapsible by default (expand on demand)
+
+### 6.3 Thread Management
+
+- thread list in sidebar
+- restore on reload via `AgentEpisode`
+- manual retry / fork thread / regenerate last answer
+
+### 6.4 Error UX
+
+- hard errors -> message bubble + retry action
+- degraded stream -> top banner + automatic backoff
+- kein full-page crash fuer stream errors
+
+---
+
+## 7) Data/State Strategy
+
+### 7.1 React Query + local reducer hybrid
+
+- React Query fuer server state caches (thread list, persisted messages)
+- local reducer/store fuer in-flight stream assembly
+- optimistic append fuer outgoing user messages
+
+### 7.2 Streaming assembly rules
+
+- append `chunk` to active text block
+- `block` adds new typed block
+- `updateBlock` patches block by id
+- `done` seals message + persists summary state
+
+### 7.3 Reconnect rules
+
+- if stream interrupted and backend has `backendId`/message id:
+  - call reconnect endpoint
+  - resume unfinished message
+- else mark message error + allow manual retry
+
+---
+
+## 8) Package Strategy (project-specific)
+
+### 8.1 Bereits vorhanden (gut)
+
+- `next`, `react`, `@tanstack/react-query`, `zod`, `sonner`, `next-themes`, `zustand`
+- starke SSE/BFF basis schon im Projekt
+
+### 8.2 Must-have now (empfohlen)
+
+1. Kein neues SDK zwingend fuer Phase 1
+   - zuerst eigener stabiler Chat-Transport auf bestehendem SSE-Muster
+2. Optional fuer block patches:
+   - `rfc6902` (wenn `updateBlock` patching genutzt wird)
+
+### 8.3 Evaluate track (Phase 2)
+
+- Option A: `@tanstack/react-ai`
+- Option B: `ai` (+ ggf. `@ai-sdk/*`)
+- Option C: `@tambo-ai/react` nur fuer rich generative UI layer
+
+Entscheidungskriterium:
+
+- streaming correctness
+- tool-event UX
+- integration effort in existing Next<->Go<->Python
+- security/policy control (must stay in backend boundaries)
+
+---
+
+## 9) Security & Boundary Constraints
+
+- keine unkontrollierten write-intents direkt aus Agent-UI
+- tool actions nur ueber sichere backend boundaries
+- clear allowlist fuer mutating operations
+- audit-friendly event trail in message/thread metadata
+- host execution niemals aus UI ableiten
+- **Praezisierung "kein direkter UI-Tool-Pfad":**
+  - erlaubt: reine Frontend-Interaktionen ohne kritische Side-Effects (UI state, filter, layout, local preview)
+  - nicht erlaubt: browserseitige Direktaufrufe auf kritische Tool-Operationen unter Umgehung von Gateway/Policy/RBAC/Audit
+  - verpflichtender Pfad fuer Tool-Aktionen mit Wirkung:
+    `UI -> Next BFF/API -> Go Gateway (policy/capability/RBAC/audit) -> tool/runtime`
+- Entscheidungsregel fuer dieses Projekt:
+  - `read-only` und `bounded-write` sind erlaubt, wenn sie ueber den obigen Pfad laufen
+  - kritische Mutationen (z. B. Orders, Wallet-/Account-Mutationen, Host-Execution) bleiben aus Agent-UI ausgeschlossen
+
+---
+
+## 10) Delivery Plan
+
+### Phase A (Core)
+
+- implement `AC1..AC3`, `AC5`, `AC6`
+- SSE chat endpoint + full thread UI + tool events
+- persist & reload with `AgentEpisode`
+- verify `AC.V1..AC.V4`
+
+### Phase B (Provider routing)
+
+- implement `AC7..AC9`
+- provider switch (Anthropic/Ollama/vLLM)
+- latency/cost labels in UI event rail
+
+### Phase C (SDK compare)
+
+- compare TanStack AI vs Vercel AI SDK vs no-SDK baseline
+- document `AC4`, `AC.V5`
+- optional: pilot tambo-style generative component block
+
+### Phase D (Hardening aus 3 Chat-Blueprints)
+
+- umsetzen: `AC28..AC33` (Parser-Robustheit, End-Idempotenz, Thread-Migration, Merge-Policy, Queue/Composer Contracts)
+- verifizieren: `AC.V14..AC.V19`
+- referenzieren: Perplexica (`useChat`/reconnect), AgentZero (queue/attachments), Tambo (thread/event invariants)
+
+---
+
+## 11) Was bleibt in FRONTEND_COMPONENTS.md
+
+- visuelle/produktnahe Referenzdetails
+- tool-specific UI inspirations (AgentZero/Perplexica/Tambo etc.)
+- keine harten runtime execution contracts
+
+Dieses Dokument (`docs/frontend_chat_ui.md`) bleibt die technische Implementierungsbruecke fuer Chat UI.
+
+---
+
+## 12) Evidence Snippets (Grounding)
+
+### Existing scaffold and target contract
+
+- `docs/specs/execution/agent_chat_ui_delta.md` -> scaffold in `src/features/agent-chat/` und API event contract (`chunk`, `done`, `tool`, `error`)
+
+### Existing stub component
+
+- `src/features/agent-chat/AgentChatPanel.tsx` -> aktuell stub, Zielpfad bereits kommentiert
+
+### Existing Next SSE proxy style (reuse pattern)
+
+- `src/app/api/market/stream/route.ts` -> robustes SSE proxying mit stream parsing, reconnect/degraded handling
+
+### Perplexica streaming API pattern
+
+- `_tmp_ref_review/perplexica/src/app/api/chat/route.ts` -> stream writer mit block/update/error/messageEnd frames
+- `_tmp_ref_review/perplexica/src/lib/hooks/useChat.tsx` -> client stream assembly inkl. reconnect flow
+
+### Tambo positioning (component-driven generative UI)
+
+- `_tmp_ref_review/tambo/README.md` und `_tmp_ref_review/tambo/react-sdk/README.md` -> component registry + streaming props + `useTambo`/`useTamboThreadInput`
+
+### Onyx chat robustness patterns
+
+- `_tmp_ref_review/onyx/web/src/app/app/services/streamingModels.ts` -> typisierte Packet-Modelle + placement
+- `_tmp_ref_review/onyx/web/src/app/app/services/messageTree.ts` -> branching/tree lifecycle + latest chain
+- `_tmp_ref_review/onyx/web/src/app/app/stores/useChatSessionStore.ts` -> session-isolierter store + abort/error state
+- `_tmp_ref_review/onyx/web/src/sections/input/AppInputBar.tsx` -> composer state machine (send/stop/upload/tools)
+- `_tmp_ref_review/onyx/web/src/sections/chat/ChatScrollContainer.tsx` -> scroll/autofollow stabilitaet
+- `_tmp_ref_review/onyx/web/src/app/app/message/messageComponents/MessageToolbar.tsx` -> action contract pro message status
+
+---
+
+## 13) Deep Component Map (mit konkreten Pfaden)
+
+### 13.1 Perplexica (high-value fuer Full Chat UI)
+
+- Thread-Orchestrierung / App-Entrypoint:
+  - `_tmp_ref_review/perplexica/src/components/ChatWindow.tsx`
+  - `_tmp_ref_review/perplexica/src/components/Chat.tsx`
+  - `_tmp_ref_review/perplexica/src/components/ChatWindow.tsx`
+- Streaming + State-Maschine + Reconnect:
+  - `_tmp_ref_review/perplexica/src/lib/hooks/useChat.tsx`
+- Message Rendering / Blocks:
+  - `_tmp_ref_review/perplexica/src/components/MessageBox.tsx`
+  - `_tmp_ref_review/perplexica/src/components/MessageRenderer/CodeBlock/index.tsx`
+  - `_tmp_ref_review/perplexica/src/components/MessageRenderer/Citation.tsx`
+  - `_tmp_ref_review/perplexica/src/components/AssistantSteps.tsx`
+- Composer / Input-Actions:
+  - `_tmp_ref_review/perplexica/src/components/MessageInput.tsx`
+  - `_tmp_ref_review/perplexica/src/components/MessageInputActions/Attach.tsx`
+  - `_tmp_ref_review/perplexica/src/components/MessageInputActions/AttachSmall.tsx`
+  - `_tmp_ref_review/perplexica/src/components/MessageInputActions/ChatModelSelector.tsx`
+- Sources/Widgets/Suggestions:
+  - `_tmp_ref_review/perplexica/src/components/MessageSources.tsx`
+  - `_tmp_ref_review/perplexica/src/components/Widgets/Renderer.tsx`
+  - `_tmp_ref_review/perplexica/src/components/Widgets/Stock.tsx`
+  - `_tmp_ref_review/perplexica/src/components/Widgets/Weather.tsx`
+
+### 13.2 AgentZero (robuste Runtime/Process-UX Patterns)
+
+- Input/Composer Shell:
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/input/chat-bar.html`
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/input/chat-bar-input.html`
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/input/input-store.js`
+- Queueing vor Send (starkes Pattern):
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/message-queue/message-queue.html`
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/message-queue/message-queue-store.js`
+- Attachments / DragDrop / Clipboard:
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/attachments/inputPreview.html`
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/attachments/dragDropOverlay.html`
+  - `_tmp_ref_review/agentzero-complete/webui/components/chat/attachments/attachmentsStore.js`
+- Process-Group + Tool-Step Visualisierung:
+  - `_tmp_ref_review/agentzero-complete/webui/js/messages.js`
+  - `_tmp_ref_review/agentzero-complete/webui/components/messages/process-group/process-group.css`
+  - `_tmp_ref_review/agentzero-complete/webui/components/messages/process-group/process-group-dom.js`
+
+### 13.3 Tambo (generative UI + thread primitives)
+
+- Provider/Hooks API:
+  - `_tmp_ref_review/tambo/react-sdk/src/v1/index.ts`
+  - `_tmp_ref_review/tambo/react-sdk/src/v1/providers/tambo-v1-provider.tsx`
+  - `_tmp_ref_review/tambo/react-sdk/src/v1/hooks/use-tambo-v1.ts`
+  - `_tmp_ref_review/tambo/react-sdk/src/v1/providers/tambo-v1-thread-input-provider.tsx`
+- Vollstaendige Thread UI Komposition:
+  - `_tmp_ref_review/tambo/packages/ui-registry/src/components/message-thread-panel/message-thread-panel.tsx`
+  - `_tmp_ref_review/tambo/packages/ui-registry/src/components/message-thread-full/message-thread-full.tsx`
+  - `_tmp_ref_review/tambo/packages/ui-registry/src/components/message-thread-collapsible/message-thread-collapsible.tsx`
+- Input / Suggestions / Thread-History:
+  - `_tmp_ref_review/tambo/packages/ui-registry/src/components/message-input/message-input.tsx`
+  - `_tmp_ref_review/tambo/packages/ui-registry/src/components/message-suggestions/message-suggestions.tsx`
+  - `_tmp_ref_review/tambo/packages/ui-registry/src/components/thread-history/thread-history.tsx`
+  - `_tmp_ref_review/tambo/packages/ui-registry/src/components/thread-content/thread-content.tsx`
+- Generative Component Registration Beispiel:
+  - `_tmp_ref_review/tambo/showcase/src/components/generative/FormChatInterface.tsx`
+  - `_tmp_ref_review/tambo/showcase/src/components/generative/GraphChatInterface.tsx`
+  - `_tmp_ref_review/tambo/showcase/src/components/generative/MapChatInterface.tsx`
+
+### 13.4 Mission Control (Add-on Patterns fuer Ops/Runtime Chat)
+
+- Chat-Orchestrierung + Session-View:
+  - `_tmp_ref_review/mission-control/src/components/chat/chat-workspace.tsx`
+  - `_tmp_ref_review/mission-control/src/components/chat/conversation-list.tsx`
+  - `_tmp_ref_review/mission-control/src/components/chat/chat-panel.tsx`
+- Message/Composer-Robustheit:
+  - `_tmp_ref_review/mission-control/src/components/chat/message-list.tsx`
+  - `_tmp_ref_review/mission-control/src/components/chat/message-bubble.tsx`
+  - `_tmp_ref_review/mission-control/src/components/chat/chat-input.tsx`
+- Realtime/Fallback:
+  - `_tmp_ref_review/mission-control/src/lib/use-server-events.ts`
+  - `_tmp_ref_review/mission-control/src/app/api/events/route.ts`
+- Chat-API + Forward-/Policy-Pfad:
+  - `_tmp_ref_review/mission-control/src/app/api/chat/messages/route.ts`
+  - `_tmp_ref_review/mission-control/src/app/api/chat/conversations/route.ts`
+
+### 13.5 Onyx (Add-on Patterns fuer Chat-Core Robustheit)
+
+- Packet-/Event-Modell:
+  - `_tmp_ref_review/onyx/web/src/app/app/services/streamingModels.ts`
+- Message-Tree / Branching:
+  - `_tmp_ref_review/onyx/web/src/app/app/services/messageTree.ts`
+  - `_tmp_ref_review/onyx/web/src/app/app/message/MessageSwitcher.tsx`
+- Session-isolierter Chat-Store:
+  - `_tmp_ref_review/onyx/web/src/app/app/stores/useChatSessionStore.ts`
+- Composer/Input-Bar:
+  - `_tmp_ref_review/onyx/web/src/sections/input/AppInputBar.tsx`
+- Scroll-/Autofollow-Container:
+  - `_tmp_ref_review/onyx/web/src/sections/chat/ChatScrollContainer.tsx`
+- Message-Toolbar Contract:
+  - `_tmp_ref_review/onyx/web/src/app/app/message/messageComponents/MessageToolbar.tsx`
+
+---
+
+## 14) Coverage-Review (ist alles drin?)
+
+### Bereits gut abgedeckt in diesem Blueprint
+
+- Next -> Go -> Python Zielpfad und Verantwortlichkeiten
+- Event-Contract-Basis (`chunk`/`done`/`tool`/`error`) + Erweiterung (`block`/`updateBlock`)
+- Full-UI-Komponentenbild (Thread, Composer, Tool-Events, Reconnect)
+- Evaluate-Track fuer TanStack AI / Vercel AI SDK / optional Tambo
+- Security-Boundary Aussagen fuer Agent-UI
+
+### Konkretisierung (im Slice als ACs verankert)
+
+- Queueing-Flow im UI-Contract (`AC32`, inkl. pending-upload guard + send-all safety)
+- Attachment-Lifecycle (`AC2` + `AC32`, staged/send/cancel/remove)
+- Process-/Aggregation fuer Tool-Events (`AC14`)
+- Message-Action-Contract (`AC15` + `AC27`)
+- Thread-History-Contract (`AC12`, inkl. list/search/new/fork gestuft)
+- session-zentriertes Conversation-Contract (`AC10`)
+- hybrides Realtime-Contract: `SSE-first` + controlled polling fallback (`AC9`, `AC31`)
+- Stream-Parser-Robustheit + Terminal-Idempotenz (`AC28`, `AC29`)
+- Placeholder->Real-Thread-Migration + Merge-Invarianten (`AC30`, `AC31`)
+- Composer optimistic clear + restore-on-failure (`AC33`)
+
+---
+
+## 15) Gap -> Referenzabdeckung + SDK-Einordnung
+
+Die 5 offenen Punkte sind in den Referenzprojekten **klar vorhanden** (teils verteilt), daher koennen sie als konkrete Implementierungsquelle dienen.
+
+### 15.1 Queueing-Flow
+
+Referenzen:
+
+- `_tmp_ref_review/agentzero-complete/webui/components/chat/message-queue/message-queue-store.js`
+- `_tmp_ref_review/agentzero-complete/webui/components/chat/message-queue/message-queue.html`
+- `_tmp_ref_review/agentzero-complete/webui/index.js`
+
+Abgedeckte Patterns:
+
+- enqueue statt direktem send
+- pending uploads + send-all + send-item + remove-item
+- queue-preview mit eigener UX
+
+SDK-Fit:
+
+- `ai` / `@ai-sdk/*` (Vercel): gut fuer message stream lifecycle, **Queueing selbst bleibt custom UI-State**
+- `@tanstack/react-ai`: gut fuer thread/message state integration, **Queueing ebenfalls custom**
+
+### 15.2 Attachment-Lifecycle
+
+Referenzen:
+
+- `_tmp_ref_review/agentzero-complete/webui/components/chat/attachments/attachmentsStore.js`
+- `_tmp_ref_review/agentzero-complete/webui/components/chat/attachments/inputPreview.html`
+- `_tmp_ref_review/agentzero-complete/webui/components/chat/attachments/dragDropOverlay.html`
+- `_tmp_ref_review/perplexica/src/components/MessageInputActions/Attach.tsx`
+- `_tmp_ref_review/perplexica/src/components/MessageInputActions/AttachSmall.tsx`
+- `_tmp_ref_review/tambo/packages/ui-registry/src/components/message-input/message-input.tsx`
+
+Abgedeckte Patterns:
+
+- staged attachments (pre-send preview)
+- drag/drop + clipboard image paste
+- remove/retry + duplicate-checking
+- file/image getrennte rendering/logik
+
+SDK-Fit:
+
+- Vercel AI SDK: Hilft bei message pipes; Attachment-Upload/UI bleibt in React-Komponenten
+- TanStack AI: dito; guter Fit fuer State-Anbindung, Upload-Lifecycle weiterhin custom
+
+### 15.3 Process-Group Aggregationsregeln
+
+Referenzen:
+
+- `_tmp_ref_review/agentzero-complete/webui/js/messages.js`
+- `_tmp_ref_review/agentzero-complete/webui/components/messages/process-group/process-group.css`
+- `_tmp_ref_review/agentzero-complete/webui/components/messages/process-group/process-group-dom.js`
+
+Abgedeckte Patterns:
+
+- gruppierte tool/agent steps pro Antwort
+- status-badge progression (inkl. completion state)
+- duration + step-counter + warning/info counters
+- collapse modes (expanded/current/collapsed)
+
+SDK-Fit:
+
+- Vercel/TanStack liefern hier nicht direkt die Domänen-UX; diese Aggregation ist ein eigenes Rendering-Modell
+- SDKs koennen nur den Event-/Message-Transport vereinfachen
+
+### 15.4 Message-Action Contract
+
+Referenzen:
+
+- `_tmp_ref_review/perplexica/src/components/MessageActions/Copy.tsx`
+- `_tmp_ref_review/perplexica/src/components/MessageActions/Rewrite.tsx`
+- `_tmp_ref_review/perplexica/src/lib/hooks/useChat.tsx`
+- `_tmp_ref_review/agentzero-complete/webui/js/messages.js`
+- `_tmp_ref_review/agentzero-complete/webui/components/messages/action-buttons/simple-action-buttons.js`
+
+Abgedeckte Patterns:
+
+- copy/rewrite/speak/retry actions
+- action availability pro message status
+- action buttons in message footer / process-step context
+
+SDK-Fit:
+
+- Vercel AI SDK ist hier stark (regenerate/retry/stop flows im Chat-Lifecycle)
+- TanStack AI kann message actions gut an thread/message state koppeln
+
+### 15.5 Thread-History UX Contract
+
+Referenzen:
+
+- `_tmp_ref_review/tambo/packages/ui-registry/src/components/thread-history/thread-history.tsx`
+- `_tmp_ref_review/tambo/packages/ui-registry/src/components/thread-content/thread-content.tsx`
+- `_tmp_ref_review/tambo/packages/ui-registry/src/components/message-thread-panel/message-thread-panel.tsx`
+- `_tmp_ref_review/perplexica/src/lib/hooks/useChat.tsx`
+
+Abgedeckte Patterns:
+
+- thread list + search + new-thread UX
+- restore/reconnect bei reload
+- gekoppelte thread-content + thread-history panels
+
+SDK-Fit:
+
+- Vercel AI SDK: sehr hilfreich bei messaging/thread updates; history/search UX trotzdem custom
+- TanStack AI: hilfreich fuer stateful thread orchestration; history/search ebenfalls custom UI layer
+
+### 15.6 Praktische Empfehlung fuer TradeView Fusion
+
+- Phase 1: eigener Contract + eigener UI State (weil Next <-> Go <-> Python + Tool-Events + Security Boundaries zentral sind)
+- Phase 2: Vercel AI SDK und TanStack AI parallel evaluieren nur als Messaging-Layer-Verstaerker
+- hartes Kriterium: kein SDK darf die Gateway-/Policy-/Audit-Grenzen umgehen
+- Mission-Control nur additiv einsetzen: Session-Threading, Realtime-Fallback und Operator-Tool-Event UX
+- Onyx additiv einsetzen fuer Chat-Robustheit: Packet-Placement, Branching-Tree, Session-isolierter Store, stabiles Scroll-Verhalten
+
+### 15.7 Deepdive-Ergaenzungen aus den 3 Kern-Referenzen
+
+Perplexica:
+
+- idempotente End-Event Behandlung und robustes chunk buffering
+- reconnect via backend/session id ohne UI-reset
+
+AgentZero:
+
+- queue operations mit pending-state/abort/cancel und send-all safety
+- attachment lifecycle inkl. dedupe, drag/drop, clipboard-paste
+
+Tambo:
+
+- placeholder->real thread migration invariants
+- merge policies fuer reload/polling (dedupe/sort/skip-if-streaming)
+- keyed throttling und optimistic input restore bei submit-failures
+
+Diese Punkte sind als Execution-Owner im Slice unter `AC28..AC33` und
+`AC.V14..AC.V19` verankert.
+
+---
+
+## 16) Root-MD Alignment Check (parallel build verhindern)
+
+Damit Chat-UI nicht parallel an Projektregeln vorbei gebaut wird, gelten folgende
+verbindliche Alignments:
+
+- Gateway/Transport:
+  - Chat bleibt auf `Next BFF -> Go Gateway -> Python`; Tool-Wirkpfade laufen nie browser-direkt.
+  - `SSE-first` mit explizitem REST-Recovery/Fallback.
+- Security/Policy:
+  - Keine impliziten mutierenden Agent-Aktionen aus UI-Events.
+  - `read-only` oder `bounded-write` strikt sichtbar und policy-validiert.
+- Context/Memory:
+  - Nur normalisierte Persistenz-/Retrieval-Artefakte fuer Agent-Context.
+  - Degradation muss als UI-Status und Event-Flag sichtbar sein (`NO_KG_CONTEXT`, `NO_VECTOR_CONTEXT` etc.).
+- Runtime/Observability:
+  - Streaming-/Queue-/Retry-Verhalten als explizite Execution-Policy.
+  - Audit-faehige Kette: user intent -> gateway decision -> tool/event -> UI output.

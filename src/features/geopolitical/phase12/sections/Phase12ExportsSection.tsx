@@ -17,7 +17,7 @@ export function Phase12ExportsSection(props: Phase12ExportsSectionProps) {
 				<h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 					12d Exports
 				</h3>
-				<span className="text-[10px] text-muted-foreground">Server JSON/CSV - PNG/PDF later</span>
+				<span className="text-[10px] text-muted-foreground">Server JSON/CSV + client PNG/PDF</span>
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				<label htmlFor="phase12-export-format" className="sr-only">
@@ -32,6 +32,8 @@ export function Phase12ExportsSection(props: Phase12ExportsSectionProps) {
 				>
 					<option value="json">JSON snapshot</option>
 					<option value="csv">CSV summary</option>
+					<option value="png">PNG snapshot</option>
+					<option value="pdf">PDF snapshot</option>
 				</select>
 				<button
 					type="button"
@@ -41,21 +43,14 @@ export function Phase12ExportsSection(props: Phase12ExportsSectionProps) {
 				>
 					{props.exportBusy ? "Exporting..." : `Export ${props.selectedExportFormat.toUpperCase()}`}
 				</button>
-				<button
-					type="button"
-					className="rounded border border-dashed border-border px-2 py-1 text-xs text-muted-foreground"
-					disabled
-					title="Phase 12d backend/browser integration (PNG/PDF snapshot) remains open"
-				>
-					PNG/PDF snapshot (later)
-				</button>
 				{props.exportMessage ? (
 					<span className="text-[11px] text-muted-foreground">{props.exportMessage}</span>
 				) : null}
 			</div>
 			<p className="mt-2 text-[11px] text-muted-foreground">
-				JSON/CSV snapshots run through a transitional server export endpoint. Signed export jobs,
-				PNG/PDF composition, and storage-backed exports remain backend work.
+				JSON/CSV snapshots run through a transitional server export endpoint. PNG/PDF snapshots are
+				captured from the active viewport in the browser; signed export jobs and storage-backed
+				exports remain backend work.
 			</p>
 		</section>
 	);

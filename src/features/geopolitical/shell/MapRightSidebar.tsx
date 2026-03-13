@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CandidateQueue } from "@/features/geopolitical/CandidateQueue";
@@ -6,6 +6,7 @@ import { GeoContradictionsPanel } from "@/features/geopolitical/GeoContradiction
 import { GeoPulseInsightsPanel } from "@/features/geopolitical/GeoPulseInsightsPanel";
 import { GeopoliticalContextPanel } from "@/features/geopolitical/GeopoliticalContextPanel";
 import { GeopoliticalGameTheoryPanel } from "@/features/geopolitical/GeopoliticalGameTheoryPanel";
+import type { GeoStoryFocusPreset } from "@/features/geopolitical/geo-story-focus";
 import { Phase12AdvancedPanel } from "@/features/geopolitical/Phase12AdvancedPanel";
 import { SourceHealthPanel } from "@/features/geopolitical/SourceHealthPanel";
 import { MapTimelinePanel } from "@/features/geopolitical/shell/MapTimelinePanel";
@@ -16,7 +17,11 @@ import type {
 	GeoGameTheorySummary,
 	GeoGraphResponse,
 } from "@/features/geopolitical/shell/types";
-import type { ContextSource, SourceHealthResponse } from "@/features/geopolitical/store";
+import type {
+	ContextSource,
+	GeoReplayRangeMs,
+	SourceHealthResponse,
+} from "@/features/geopolitical/store";
 import type { GeoCandidate, GeoEvent, GeoTimelineEntry } from "@/lib/geopolitical/types";
 import type { MarketNewsArticle } from "@/lib/news/types";
 
@@ -25,14 +30,17 @@ interface MapRightSidebarProps {
 	error: string | null;
 	busy: boolean;
 	showCandidateQueue: boolean;
+	showTimelinePanel: boolean;
 	candidates: GeoCandidate[];
 	onCandidateAction: (
 		candidateId: string,
 		action: "accept" | "reject" | "snooze" | "reclassify",
 	) => void;
 	onQuickImportCandidate: (rawText: string) => void;
+	activeRegionId: string;
 	activeRegionLabel: string;
 	news: MarketNewsArticle[];
+	onOpenFlatViewForRegion?: (regionId: string) => void;
 	graph: GeoGraphResponse | null;
 	gameTheoryEnabled: boolean;
 	gameTheoryLoading: boolean;
@@ -44,7 +52,23 @@ interface MapRightSidebarProps {
 	contextLoading: boolean;
 	sourceHealth: SourceHealthResponse["entries"];
 	timeline: GeoTimelineEntry[];
+	selectedTimelineId: string | null;
+	storyFocusPresets: GeoStoryFocusPreset[];
+	activeStoryFocusPresetId: string | null;
 	events: GeoEvent[];
+	timelineViewRangeMs: GeoReplayRangeMs | null;
+	timelineSelectedTimeMs: number | null;
+	activeReplayRangeMs: GeoReplayRangeMs | null;
+	onTimelineViewRangeChange: (next: GeoReplayRangeMs | null) => void;
+	onTimelineSelectedTimeChange: (next: number | null) => void;
+	onActiveReplayRangeChange: (next: GeoReplayRangeMs | null) => void;
+	onSelectEventFromTimeline?: (eventId: string) => void;
+	onOpenFlatViewFromTimeline?: (eventId: string) => void;
+	onTimelineReset?: () => void;
+	onSelectedTimelineIdChange: (next: string | null) => void;
+	onStoryFocusPresetsChange: (next: GeoStoryFocusPreset[]) => void;
+	onActiveStoryFocusPresetIdChange: (next: string | null) => void;
+	onActiveRegionIdChange: (next: string) => void;
 }
 
 export function MapRightSidebar({
@@ -52,11 +76,14 @@ export function MapRightSidebar({
 	error,
 	busy,
 	showCandidateQueue,
+	showTimelinePanel,
 	candidates,
 	onCandidateAction,
 	onQuickImportCandidate,
+	activeRegionId,
 	activeRegionLabel,
 	news,
+	onOpenFlatViewForRegion,
 	graph,
 	gameTheoryEnabled,
 	gameTheoryLoading,
@@ -68,9 +95,31 @@ export function MapRightSidebar({
 	contextLoading,
 	sourceHealth,
 	timeline,
+	selectedTimelineId,
+	storyFocusPresets,
+	activeStoryFocusPresetId,
 	events,
+	timelineViewRangeMs,
+	timelineSelectedTimeMs,
+	activeReplayRangeMs,
+	onTimelineViewRangeChange,
+	onTimelineSelectedTimeChange,
+	onActiveReplayRangeChange,
+	onSelectEventFromTimeline,
+	onOpenFlatViewFromTimeline,
+	onTimelineReset,
+	onSelectedTimelineIdChange,
+	onStoryFocusPresetsChange,
+	onActiveStoryFocusPresetIdChange,
+	onActiveRegionIdChange,
 }: MapRightSidebarProps) {
 	const [workspaceTab, setWorkspaceTab] = useState<"inspector" | "timeline">("inspector");
+
+	useEffect(() => {
+		if (!showTimelinePanel && workspaceTab === "timeline") {
+			setWorkspaceTab("inspector");
+		}
+	}, [showTimelinePanel, workspaceTab]);
 
 	return (
 		<aside className="w-full flex flex-col h-full overflow-hidden bg-transparent">
@@ -93,9 +142,11 @@ export function MapRightSidebar({
 						<TabsTrigger value="inspector" className="text-xs">
 							Inspector
 						</TabsTrigger>
-						<TabsTrigger value="timeline" className="text-xs">
-							Timeline
-						</TabsTrigger>
+						{showTimelinePanel ? (
+							<TabsTrigger value="timeline" className="text-xs">
+								Timeline
+							</TabsTrigger>
+						) : null}
 					</TabsList>
 				</div>
 
@@ -137,7 +188,12 @@ export function MapRightSidebar({
 										sourceHealth={sourceHealth}
 									/>
 
-									<RegionNewsPanel activeRegionLabel={activeRegionLabel} news={news} />
+									<RegionNewsPanel
+										activeRegionId={activeRegionId}
+										activeRegionLabel={activeRegionLabel}
+										news={news}
+										onOpenFlatViewForRegion={onOpenFlatViewForRegion}
+									/>
 
 									<GeoPulseInsightsPanel graph={graph} />
 
@@ -162,19 +218,44 @@ export function MapRightSidebar({
 					</ScrollArea>
 				</TabsContent>
 
-				<TabsContent value="timeline" className="mt-0 min-h-0 flex-1 data-[state=inactive]:hidden">
-					<ScrollArea className="h-full">
-						<div className="p-3">
-							{timeline.length === 0 ? (
-								<section className="rounded-md border border-border bg-card p-3 text-xs text-muted-foreground">
-									No timeline entries available.
-								</section>
-							) : (
-								<MapTimelinePanel timeline={timeline.slice(0, 80)} />
-							)}
-						</div>
-					</ScrollArea>
-				</TabsContent>
+				{showTimelinePanel ? (
+					<TabsContent
+						value="timeline"
+						className="mt-0 min-h-0 flex-1 data-[state=inactive]:hidden"
+					>
+						<ScrollArea className="h-full">
+							<div className="p-3">
+								{timeline.length === 0 ? (
+									<section className="rounded-md border border-border bg-card p-3 text-xs text-muted-foreground">
+										No timeline entries available.
+									</section>
+								) : (
+									<MapTimelinePanel
+										timeline={timeline.slice(0, 80)}
+										events={events}
+										selectedTimelineId={selectedTimelineId}
+										storyFocusPresets={storyFocusPresets}
+										activeStoryFocusPresetId={activeStoryFocusPresetId}
+										activeRegionId={activeRegionId}
+										viewRangeMs={timelineViewRangeMs}
+										selectedTimeMs={timelineSelectedTimeMs}
+										activeReplayRangeMs={activeReplayRangeMs}
+										onViewRangeChange={onTimelineViewRangeChange}
+										onSelectedTimeChange={onTimelineSelectedTimeChange}
+										onActiveReplayRangeChange={onActiveReplayRangeChange}
+										onSelectEventFromTimeline={onSelectEventFromTimeline}
+										onOpenFlatViewFromTimeline={onOpenFlatViewFromTimeline}
+										onTimelineReset={onTimelineReset}
+										onSelectedTimelineIdChange={onSelectedTimelineIdChange}
+										onStoryFocusPresetsChange={onStoryFocusPresetsChange}
+										onActiveStoryFocusPresetIdChange={onActiveStoryFocusPresetIdChange}
+										onActiveRegionIdChange={onActiveRegionIdChange}
+									/>
+								)}
+							</div>
+						</ScrollArea>
+					</TabsContent>
+				) : null}
 			</Tabs>
 		</aside>
 	);

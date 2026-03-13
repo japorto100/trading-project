@@ -1,7 +1,9 @@
-# Storage Layer Delta (SeaweedFS / Garage)
+# Storage Layer Delta (SeaweedFS / Garage / Snapshot Boundary)
 
-> **Stand:** 09. Maerz 2026
-> **Zweck:** Aktiver Ausfuehrungsplan fuer Auswahl, lokalen Test und Architektur-Integration der Object-Storage-Schicht.
+> **Stand:** 12. Maerz 2026
+> **Zweck:** Aktiver Ausfuehrungsplan fuer Auswahl, lokalen Test und
+> Architektur-Integration der Object-Storage-Schicht inkl. verbindlicher
+> Boundary fuer Artefakte und Rohsnapshots.
 
 ---
 
@@ -12,25 +14,31 @@
 - objektiver Kandidatenvergleich SeaweedFS vs. Garage
 - signed-upload/download Integrationspfad ueber Go-Boundary
 - Artefakt- und Fehlerpfad-Validierung fuer produktnahe Dateitypen
+- Objektpfad fuer Raw Snapshots aus source-/batch-basierten Downloads
 
 ### Scope Out
 
 - finaler produktiver HA-Rollout
 - cloud-spezifische Vendor-Optimierung
 - fachfremde Provider-Rollouts
+- source-spezifische Cadence-/Vector-Policy im Detail
 
 ### Mandatory Upstream Sources (vor Abarbeitung lesen)
 
 - `docs/storage_layer.md`
 - `docs/specs/ARCHITECTURE.md`
 - `docs/specs/EXECUTION_PLAN.md`
+- `docs/specs/execution/source_persistence_snapshot_delta.md`
 - `docs/specs/execution/infra_provider_delta.md`
 - `docs/GO_GATEWAY.md`
 
 ### Arbeitsprinzip
 
-- Entscheidungen werden ueber reproduzierbare lokale Nachweise getroffen, nicht ueber Theorie.
+- Entscheidungen werden ueber reproduzierbare lokale Nachweise getroffen, nicht
+  ueber Theorie.
 - Jede Storage-Entscheidung braucht Folgeeintrag in Runtime-/Plan-Dokumente.
+- Object Storage ist fuer Rohartefakte und Rohsnapshots zustaendig, nicht fuer
+  Hot Cache oder Embedding-Logik.
 
 ---
 
@@ -39,6 +47,8 @@
 - Wir evaluieren SeaweedFS und Garage host-nativ (ohne Docker) als S3-kompatiblen Object Layer.
 - Fokus zuerst auf verifizierbare Produktpfade (Upload, Retrieval, signed URLs, audit), nicht auf Perfektion der Cluster-Topologie.
 - Die aktuelle Gateway-Baseline ist bereits geliefert: Go-owned signed artifact flows + relationaler Metadaten-Store + filesystem-backed lokaler Blob-Provider als Vorstufe zur S3-kompatiblen Provider-Evaluation.
+- Dieselbe Boundary wird auch fuer `file-snapshot` und spaeter `api-snapshot`
+  Quellen genutzt: raw blob im object store, Metadaten im relationalen Index.
 
 ---
 
@@ -78,14 +88,124 @@
 - [x] **SL11** "Default local stack" festlegen (voraussichtlich SeaweedFS)
 - [x] **SL12** Follow-up fuer produktionsnahe HA-/Replication-Anforderungen in `infra_provider_delta.md` verankern
 
+### E. Snapshot-/Source-Boundary
+
+- [ ] **SL13** Raw-Snapshot-Objektmodell fuer `file-snapshot` Quellen an
+  dieselbe Go-owned Storage-Boundary haengen
+- [ ] **SL14** Mindest-Metadaten fuer Rohsnapshots (`sha256`, `etag`,
+  `last_modified`, `parser_version`, `snapshot_status`) verbindlich machen
+- [ ] **SL15** Trennung `object storage` vs. `hot cache` vs. `vector ingestion`
+  in Runtime- und Owner-Dokumenten geschlossen halten
+- [ ] **SL16** Signed Access nur fuer Artefakte, nicht fuer interne Raw-Snapshot-
+  Betriebsobjekte
+- [ ] **SL16a** erster echter SeaweedFS-Write/Read fuer `OFAC`, `UN`, `SECO`,
+  `CFTC` gegen den laufenden Stack verifiziert; lokaler Raw-Bootstrap bleibt bis
+  dahin nur Vorstufe
+- [ ] **SL16b** Snapshot-Error-/Recovery-Pfad gegen laufenden Object-Storage
+  pruefen (`timeout`, fehlender Bucket, unterbrochener Write, doppelter
+  Snapshot-Key)
+
+### F. Backend-owned Metadata DB Direction
+
+- [ ] **SL17** festhalten, welche heute frontend-/Prisma-nahen oder lokalen
+  SQLite-Pfade mittelfristig in einen backend-owned relational metadata/index
+  layer wandern muessen
+- [ ] **SL18** Ziel-DB fuer staging/prod evaluieren und als Storage-/Source-
+  Metadata-Zielpfad dokumentieren
+- [ ] **SL19** schrittweise Trennung zwischen frontend-/BFF-naher App-DB und
+  Go-owned Betriebs-/Metadata-DB planen
+- [~] **SL20** lesende Query-Boundary fuer `source_snapshot_metadata`
+  bereitstellen, damit normalized snapshots spaeter ohne direkten
+  Dateipfad-Scan konsumiert werden koennen
+
+### G. Naechster Todo-Batch
+
+- [ ] `SL13-SL16a` als echter Seaweed/Object-Storage-Livepfad fuer
+  `OFAC`, `UN`, `SECO`, `CFTC` schliessen
+- [ ] `SL16b` mit expliziten Snapshot-Error-/Recovery-Faellen gegen laufenden
+  Object-Storage schliessen
+- [ ] `SL20` vom reinen Storage-Store auf den ersten echten Downstream-Consumer
+  fuer normalized snapshots erweitern
+- [ ] `SL17-SL19` gegen einen konkreten staging/prod Zielpfad
+  backend-owned relational metadata/index layer praezisieren
+- [ ] falls noetig separaten Read-Service / Query-Layer fuer
+  `source_snapshot_metadata` ueber dem reinen SQLite-Bootstrap definieren
+
 ### Aktueller Baseline-Status
 
 - Gateway-Routen aktiv: `POST /api/v1/storage/artifacts/upload-url`, `PUT /api/v1/storage/artifacts/upload/{id}`, `GET /api/v1/storage/artifacts/{id}`, `GET /api/v1/storage/artifacts/{id}/download`
 - Signed URL Tokens: HMAC-basiert, kurzlebig, action-scoped (`upload` / `download`)
 - Metadaten: SQLite (`artifact_metadata`) mit object key, filename, content type, retention class, status, size, sha256, timestamps
+- Source-Snapshot-Metadaten-Basis ist jetzt ebenfalls im Go-Storage-Layer angelegt:
+  `source_snapshot_metadata` mit `source_id`, `source_class`, `fetch_mode`,
+  `source_url`, `object_key`, `sha256`, `etag`, `last_modified`,
+  `parser_version`, `snapshot_status`, `retention_class`, `cadence_hint`
 - Lokaler Blob-Provider: SeaweedFS host-nativ ist jetzt der aktuelle Dev-Default; filesystem-backed bleibt als fallback-faehige Boundary-Vorstufe erhalten
 - Verifizierte Nachweise im Code: Go-Tests fuer Signer, Metadaten-Store, S3-Provider, HTTP Artifact Flow und Gateway-Wiring
 - Tooling-Pfade angelegt: `tools/seaweedfs/weed.exe`, `tools/seaweedfs/s3.json`, `scripts/start-seaweedfs.sh`, `docker-compose.seaweedfs.yml`, `tools/seaweedfs/Dockerfile`
+
+### Snapshot Metadata Foundation Evidence (2026-03-12)
+
+- `go-backend/internal/storage/types.go` erweitert um `SourceSnapshot` und
+  `SourceSnapshotStatus`
+- `go-backend/internal/storage/metadata_store.go` migriert jetzt zusaetzlich
+  `source_snapshot_metadata` und bietet:
+  - `CreateSourceSnapshot`
+  - `GetSourceSnapshot`
+  - `MarkSourceSnapshotStatus`
+  - `ListSourceSnapshots`
+  - `GetLatestSourceSnapshot`
+- `go-backend/internal/storage/metadata_store_test.go` deckt Create/Get/Status-
+  Update fuer Snapshot-Metadaten ab
+- fokussierter Testlauf gruen:
+  - `go test ./internal/storage`
+
+### First Source Snapshot Integration Evidence (2026-03-12)
+
+- `go-backend/internal/connectors/base/diff_watcher.go` besitzt jetzt einen
+  optionalen `OnFetched`-Hook, der Payload, Hash und Fetch-Metadaten an einen
+  Snapshot-Recorder durchreichen kann
+- `go-backend/internal/connectors/base/bulk_fetcher.go` besitzt jetzt einen
+  analogen `OnFetched`-Hook fuer bulk-/download-basierte Rohdateien
+- `go-backend/internal/connectors/base/source_snapshot_recorder.go` kapselt den
+  Recorder fuer Raw-Object plus `source_snapshot_metadata` ueber denselben
+  Storage-Env-Contract wie Artefakte; lokales Filesystem bleibt nur Fallback
+- `go-backend/internal/connectors/base/diff_watcher_test.go` verifiziert den
+  Hook fuer Payload-, Header- und Zeit-Metadaten
+- `go-backend/internal/connectors/base/source_snapshot_recorder_test.go`
+  verifiziert den Recorder gegen einen S3-kompatiblen Testserver mit
+  `ARTIFACT_STORAGE_PROVIDER=seaweedfs`
+- `go-backend/internal/connectors/ofac/sdn_watcher.go`,
+  `go-backend/internal/connectors/un/sanctions_watcher.go` und
+  `go-backend/internal/connectors/seco/sanctions_watcher.go` schreiben fuer
+  offizielle XML-Diff-Feeds jetzt lokale Raw-Snapshots plus
+  `source_snapshot_metadata`-Eintraege
+- `go-backend/internal/connectors/cftc/cot_fetcher.go` schreibt fuer den
+  offiziellen ZIP-Download jetzt ebenfalls einen lokalen Raw-Snapshot plus
+  `source_snapshot_metadata`-Eintrag
+- `go-backend/internal/connectors/news/gdelt_client.go` nutzt dieselbe
+  Recorder-/Storage-Boundary jetzt auch fuer den ersten `api-snapshot`-Pfad
+  auf JSON-Basis (`GDELT News`)
+- `go-backend/internal/connectors/news/gdelt_client_test.go` verifiziert den
+  `GDELT News`-Pfad auf Raw-Payload plus SQLite-Metadaten
+- `go-backend/internal/connectors/acled/client.go` und
+  `go-backend/internal/connectors/crisiswatch/client.go` nutzen dieselbe
+  Recorder-/Storage-Boundary jetzt ebenfalls fuer `api-snapshot`-Quellen
+- `go-backend/internal/connectors/base/source_snapshot_recorder.go` besitzt
+  jetzt zusaetzlich einen lokalen Normalizer-Pfad fuer deterministische
+  `source-snapshots/normalized/...` Objekte
+- `go-backend/internal/connectors/acled/client_test.go` und
+  `go-backend/internal/connectors/crisiswatch/client_test.go` verifizieren
+  beide Pfade auf Raw-Payload plus SQLite-Metadaten
+- `ACLED` setzt dabei als erster `api-snapshot`-Connector den
+  Metadaten-Status von `fetched` auf `normalized`
+- die zugehoerigen Paket-Tests verifizieren Raw-Datei plus SQLite-Metadata-
+  Eintrag fuer echte Fetch-/Watcher-Laeufe
+- fokussierter Testlauf gruen:
+  - `go test ./internal/connectors/base ./internal/connectors/ofac ./internal/connectors/un ./internal/connectors/seco ./internal/connectors/cftc ./internal/storage`
+  - `go test ./internal/connectors/news ./internal/connectors/base ./internal/storage ./internal/app`
+  - `go test ./internal/connectors/news ./internal/connectors/crisiswatch ./internal/connectors/acled ./internal/connectors/base ./internal/storage ./internal/app`
+  - `cd go-backend && go test ./internal/connectors/acled ./internal/connectors/base ./internal/storage ./internal/app`
 
 ### SeaweedFS Evidence (2026-03-09)
 
@@ -168,6 +288,12 @@
 
 - `SL3`: SeaweedFS-Teil ist verifiziert; der Garage-Teil bleibt deferred, bis ein spaeterer Container- oder Windows-Fork-Pfad real verfuegbar ist
 - `SL2`: Garage host-nativ ist auf diesem Windows-Host aktuell durch Upstream-Unix-Code blockiert; Vergleichspfad braucht entweder kompakten Windows-Patch oder Container-Gegenprobe
+- `SL13-SL16`: Source-Persistence-Slice ist jetzt definiert, aber die
+  Storage-Boundary fuer Raw Snapshots muss noch explizit an die produktive
+  Storage-Implementierung gehaengt werden
+- `SL17-SL19`: SQLite im Go-Backend bleibt lokaler Bootstrap-Pfad; mittelfristig
+  ist ein backend-owned relational metadata/index layer fuer staging/prod zu
+  entscheiden und zu planen
 
 ---
 
@@ -187,6 +313,7 @@
 |:------|:---------|
 | Normative Architektur inkl. Storage-Knoten | [`../ARCHITECTURE.md`](../ARCHITECTURE.md) |
 | Root-Entscheidung und Heuristik | [`../../../storage_layer.md`](../../../storage_layer.md) |
+| Source-Snapshot-Persistenz | [`source_persistence_snapshot_delta.md`](./source_persistence_snapshot_delta.md) |
 | Infra-/Provider-Rollout | [`infra_provider_delta.md`](./infra_provider_delta.md) |
 | Master-Roadmap | [`../EXECUTION_PLAN.md`](../EXECUTION_PLAN.md) |
 
@@ -201,6 +328,8 @@ Fuer jede geschlossene SL-Aufgabe (`SL1-SL12`) mindestens:
 - Fehlerpfad-Nachweis (timeout/broken upload/duplicate)
 - signed URL und audit-pfad dokumentiert
 - begruendeter Kandidatenvergleich (UX, Integration, Ops, Skalierung)
+- bei Source-Snapshot-Nutzung: Raw-Snapshot-Metadaten und Lifecycle-Regel
+  dokumentiert
 
 ---
 
@@ -208,13 +337,23 @@ Fuer jede geschlossene SL-Aufgabe (`SL1-SL12`) mindestens:
 
 - `docs/storage_layer.md`
 - `docs/specs/ARCHITECTURE.md`
+- `docs/specs/SYSTEM_STATE.md`
 - `docs/specs/EXECUTION_PLAN.md`
+- `docs/MEMORY_ARCHITECTURE.md`
+- `docs/CONTEXT_ENGINEERING.md`
+- `docs/specs/execution/source_persistence_snapshot_delta.md`
 - `docs/specs/execution/infra_provider_delta.md` (HA/Replication-Follow-up)
+- `docs/specs/FRONTEND_ARCHITECTURE.md` (falls DB-/Ownership-Grenzen zwischen
+  BFF und Go geaendert werden)
 
 ---
 
 ## 8. Exit Criteria
 
 - `SL1-SL12` entschieden oder deferred mit Owner/Datum
+- `SL13-SL16` entschieden oder an `source_persistence_snapshot_delta.md`
+  uebergeben
+- `SL17-SL19` mindestens als dokumentierte Zielrichtung fuer staging/prod
+  festgehalten
 - ein klarer Default-Local-Stack festgelegt
 - objektiver Evidence-Satz fuer beide Kandidaten liegt vor

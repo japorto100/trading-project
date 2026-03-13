@@ -1,14 +1,20 @@
 [package]
 name = "tradeviewfusion_rust_core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [lib]
 name = "tradeviewfusion_rust_core"
 crate-type = ["cdylib"]
 
+[features]
+# default: abi3 wheel (py311+, one wheel for 3.11/3.12/3.13-GIL)
+# disable for free-threaded builds: maturin build --no-default-features
+default = ["abi3"]
+abi3 = ["pyo3/abi3-py311"]
+
 [dependencies]
-pyo3 = { version = "0.28.2", features = ["extension-module", "abi3-py311"] }
+pyo3 = { version = "0.28.2", features = ["extension-module"] }
 redb = "2.6.3"
 
 [dev-dependencies]

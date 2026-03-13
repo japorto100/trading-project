@@ -12,10 +12,52 @@ import { annotation, annotationLabel } from "d3-svg-annotation";
 import { legendColor } from "d3-svg-legend";
 import { timeHour } from "d3-time";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { GeoTimelineEntry } from "@/lib/geopolitical/types";
+import {
+	buildGeoStoryFocusPreset,
+	type GeoStoryFocusPreset,
+	removeGeoStoryFocusPreset,
+	upsertGeoStoryFocusPreset,
+} from "@/features/geopolitical/geo-story-focus";
+import {
+	buildEffectiveReplayRangeMs,
+	filterGeoTimelineByViewRange,
+} from "@/features/geopolitical/replay-window";
+import { buildGeoTimelineSelectionDetail } from "@/features/geopolitical/selection-detail";
+import type { GeoReplayRangeMs } from "@/features/geopolitical/store";
+import { buildGeoTimelineTimeFocus } from "@/features/geopolitical/timeline-focus";
+import {
+	buildGeoTimelinePresetRange,
+	buildGeoTimelineResetState,
+	clampGeoTimelineRangeToDomain,
+	clampGeoTimelineSelectedTimeToDomain,
+	GEO_TIMELINE_PRESET_OPTIONS,
+} from "@/features/geopolitical/timeline-presets";
+import {
+	copyGeoReplayRangeMs,
+	getGeoTimelineWindowRelationship,
+} from "@/features/geopolitical/timeline-window-contract";
+import type { GeoEvent, GeoTimelineEntry } from "@/lib/geopolitical/types";
 
 interface TimelineStripProps {
 	timeline: GeoTimelineEntry[];
+	events: GeoEvent[];
+	selectedTimelineId: string | null;
+	storyFocusPresets: GeoStoryFocusPreset[];
+	activeStoryFocusPresetId: string | null;
+	activeRegionId: string;
+	viewRangeMs: GeoReplayRangeMs | null;
+	selectedTimeMs: number | null;
+	activeReplayRangeMs: GeoReplayRangeMs | null;
+	onViewRangeChange: (next: GeoReplayRangeMs | null) => void;
+	onSelectedTimeChange: (next: number | null) => void;
+	onActiveReplayRangeChange: (next: GeoReplayRangeMs | null) => void;
+	onSelectEventFromTimeline?: (eventId: string) => void;
+	onOpenFlatViewFromTimeline?: (eventId: string) => void;
+	onTimelineReset?: () => void;
+	onSelectedTimelineIdChange: (next: string | null) => void;
+	onStoryFocusPresetsChange: (next: GeoStoryFocusPreset[]) => void;
+	onActiveStoryFocusPresetIdChange: (next: string | null) => void;
+	onActiveRegionIdChange: (next: string) => void;
 }
 
 function formatTime(iso: string): string {
@@ -160,8 +202,38 @@ function buildActionDistributionCells(timeline: GeoTimelineEntry[]): TimelineAct
 	}));
 }
 
-export function TimelineStrip({ timeline }: TimelineStripProps) {
-	const [selectedTimelineId, setSelectedTimelineId] = useState<string | null>(null);
+export function TimelineStrip({
+	timeline,
+	events,
+	selectedTimelineId,
+	storyFocusPresets,
+	activeStoryFocusPresetId,
+	activeRegionId,
+	viewRangeMs,
+	selectedTimeMs,
+	activeReplayRangeMs,
+	onViewRangeChange,
+	onSelectedTimeChange,
+	onActiveReplayRangeChange,
+	onSelectEventFromTimeline,
+	onOpenFlatViewFromTimeline,
+	onTimelineReset,
+	onSelectedTimelineIdChange,
+	onStoryFocusPresetsChange,
+	onActiveStoryFocusPresetIdChange,
+	onActiveRegionIdChange,
+}: TimelineStripProps) {
+	const getPresetRegionId = (linkedEventId: string | null | undefined): string | null => {
+		if (!linkedEventId) {
+			return activeRegionId || null;
+		}
+		const linkedEvent = events.find((event) => event.id === linkedEventId);
+		if (!linkedEvent) {
+			return activeRegionId || null;
+		}
+		return linkedEvent.regionIds[0] ?? activeRegionId ?? null;
+	};
+
 	const [brushRangeMs, setBrushRangeMs] = useState<[number, number] | null>(null);
 	const [playbackEnabled, setPlaybackEnabled] = useState(false);
 	const [playbackRunning, setPlaybackRunning] = useState(false);
@@ -256,6 +328,18 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 		if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
 		return [first, last];
 	}, [chartModel]);
+	const applyTimelineReset = () => {
+		const resetState = buildGeoTimelineResetState(timelineDomainMs);
+		setPlaybackEnabled(resetState.playbackEnabled);
+		setPlaybackRunning(resetState.playbackRunning);
+		setBrushRangeMs(resetState.brushRangeMs);
+		setPlaybackCursorMs(resetState.playbackCursorMs);
+		onSelectedTimelineIdChange(null);
+		onActiveStoryFocusPresetIdChange(null);
+		onViewRangeChange(null);
+		onSelectedTimeChange(null);
+		onTimelineReset?.();
+	};
 	useEffect(() => {
 		if (!timelineDomainMs) {
 			setPlaybackCursorMs(null);
@@ -267,6 +351,27 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 			return clamp(previous, timelineDomainMs[0], timelineDomainMs[1]);
 		});
 	}, [timelineDomainMs]);
+	useEffect(() => {
+		if (!timelineDomainMs || !viewRangeMs) return;
+		const clampedViewRangeMs = clampGeoTimelineRangeToDomain(viewRangeMs, timelineDomainMs);
+		let isSameRange = clampedViewRangeMs === viewRangeMs;
+		if (clampedViewRangeMs) {
+			isSameRange =
+				clampedViewRangeMs[0] === viewRangeMs[0] && clampedViewRangeMs[1] === viewRangeMs[1];
+		}
+		if (!isSameRange) {
+			onViewRangeChange(clampedViewRangeMs);
+		}
+	}, [onViewRangeChange, timelineDomainMs, viewRangeMs]);
+	useEffect(() => {
+		const clampedSelectedTimeMs = clampGeoTimelineSelectedTimeToDomain(
+			selectedTimeMs,
+			timelineDomainMs,
+		);
+		if (clampedSelectedTimeMs !== selectedTimeMs) {
+			onSelectedTimeChange(clampedSelectedTimeMs);
+		}
+	}, [onSelectedTimeChange, selectedTimeMs, timelineDomainMs]);
 	useEffect(() => {
 		if (!playbackEnabled || !playbackRunning || !timelineDomainMs) return;
 		const intervalMs = 400;
@@ -284,6 +389,10 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 		}, intervalMs);
 		return () => window.clearInterval(timer);
 	}, [playbackEnabled, playbackRunning, playbackSpeedMultiplier, timelineDomainMs]);
+	useEffect(() => {
+		if (!playbackEnabled) return;
+		onSelectedTimeChange(playbackCursorMs);
+	}, [onSelectedTimeChange, playbackCursorMs, playbackEnabled]);
 	const actionDistributionCells = useMemo(() => buildActionDistributionCells(timeline), [timeline]);
 	const playbackTimeline = useMemo(() => {
 		if (!playbackEnabled || playbackCursorMs === null) return timeline;
@@ -293,14 +402,18 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 			return Number.isFinite(atMs) && atMs <= playbackCursorMs && atMs >= windowStartMs;
 		});
 	}, [playbackCursorMs, playbackEnabled, playbackWindowHours, timeline]);
+	const timelineInViewRange = useMemo(
+		() => filterGeoTimelineByViewRange(playbackTimeline, viewRangeMs),
+		[playbackTimeline, viewRangeMs],
+	);
 	const visibleTimeline = useMemo(() => {
-		if (!brushRangeMs) return playbackTimeline;
+		if (!brushRangeMs) return timelineInViewRange;
 		const [startMs, endMs] = brushRangeMs;
-		return playbackTimeline.filter((entry) => {
+		return timelineInViewRange.filter((entry) => {
 			const atMs = new Date(entry.at).getTime();
 			return Number.isFinite(atMs) && atMs >= startMs && atMs <= endMs;
 		});
-	}, [brushRangeMs, playbackTimeline]);
+	}, [brushRangeMs, timelineInViewRange]);
 	const actionGroupColorScale = useMemo(
 		() =>
 			scaleOrdinal<TimelineActionGroup, string>()
@@ -335,19 +448,62 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 			timeline.find((entry) => entry.id === selectedTimelineId);
 		return preferred ?? visibleTimeline[0] ?? playbackTimeline[0] ?? timeline[0] ?? null;
 	}, [playbackTimeline, selectedTimelineId, timeline, visibleTimeline]);
-	const selectedRangeLabel = useMemo(() => {
-		if (!brushRangeMs) return "All entries";
-		const [startMs, endMs] = brushRangeMs;
+	const selectedEntryDetail = useMemo(
+		() => (selectedEntry ? buildGeoTimelineSelectionDetail(selectedEntry) : null),
+		[selectedEntry],
+	);
+	const selectedViewRangeLabel = useMemo(() => {
+		if (!viewRangeMs) return "All visible";
+		const [startMs, endMs] = viewRangeMs;
 		return `${new Date(startMs).toLocaleString()} → ${new Date(endMs).toLocaleString()}`;
-	}, [brushRangeMs]);
+	}, [viewRangeMs]);
+	const activeFilterRangeLabel = useMemo(() => {
+		if (!activeReplayRangeMs) return "No active filter";
+		const [startMs, endMs] = activeReplayRangeMs;
+		return `${new Date(startMs).toLocaleString()} → ${new Date(endMs).toLocaleString()}`;
+	}, [activeReplayRangeMs]);
+	const windowRelationship = useMemo(
+		() => getGeoTimelineWindowRelationship(viewRangeMs, activeReplayRangeMs),
+		[activeReplayRangeMs, viewRangeMs],
+	);
+	const windowRelationshipLabel = useMemo(() => {
+		switch (windowRelationship.mode) {
+			case "view_only":
+				return "View window only";
+			case "filter_only":
+				return "Filter window only";
+			case "linked":
+				return "View and filter linked";
+			case "independent":
+				return "View and filter independent";
+			default:
+				return "No active timeline window";
+		}
+	}, [windowRelationship.mode]);
 	const playbackCursorLabel = useMemo(() => {
 		if (playbackCursorMs === null) return "Live";
 		return new Date(playbackCursorMs).toLocaleString();
 	}, [playbackCursorMs]);
+	const selectedTimeLabel = useMemo(() => {
+		if (selectedTimeMs === null) return "None";
+		return new Date(selectedTimeMs).toLocaleString();
+	}, [selectedTimeMs]);
 	const selectedEntryDecayScore = useMemo(() => {
-		if (!decayPreviewEnabled || playbackCursorMs === null || !selectedEntry) return null;
-		return getDecayPreviewScore(selectedEntry.at, playbackCursorMs, decayHalfLifeHours);
-	}, [decayHalfLifeHours, decayPreviewEnabled, playbackCursorMs, selectedEntry]);
+		if (!decayPreviewEnabled || selectedTimeMs === null || !selectedEntry) return null;
+		return getDecayPreviewScore(selectedEntry.at, selectedTimeMs, decayHalfLifeHours);
+	}, [decayHalfLifeHours, decayPreviewEnabled, selectedEntry, selectedTimeMs]);
+	const playbackRangeMs = useMemo<GeoReplayRangeMs | null>(() => {
+		if (!playbackEnabled || playbackCursorMs === null) return null;
+		return [playbackCursorMs - playbackWindowHours * 3_600_000, playbackCursorMs];
+	}, [playbackCursorMs, playbackEnabled, playbackWindowHours]);
+	const effectiveReplayRangeMs = useMemo(
+		() =>
+			buildEffectiveReplayRangeMs({
+				playbackRangeMs,
+				brushRangeMs,
+			}),
+		[brushRangeMs, playbackRangeMs],
+	);
 
 	useEffect(() => {
 		if (!chartModel || !xAxisRef.current) return;
@@ -432,6 +588,10 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 		selection.selectAll(".selection").attr("fill-opacity", 0.12);
 	}, [chartModel]);
 
+	useEffect(() => {
+		onActiveReplayRangeChange(effectiveReplayRangeMs);
+	}, [effectiveReplayRangeMs, onActiveReplayRangeChange]);
+
 	return (
 		<section data-testid="timeline-strip" className="border-t border-border bg-card/40 px-3 py-2">
 			<div className="mb-2 flex items-center justify-between">
@@ -445,6 +605,23 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 			</div>
 			<div className="mb-2 rounded-md border border-border bg-background px-2 py-2">
 				<div className="flex flex-wrap items-center gap-2 text-[11px]">
+					<div className="flex items-center gap-1 text-muted-foreground">
+						<span>Presets</span>
+						{GEO_TIMELINE_PRESET_OPTIONS.map((preset) => (
+							<button
+								key={preset.id}
+								type="button"
+								className="rounded border border-border px-2 py-1 hover:bg-muted/50 disabled:opacity-50"
+								onClick={() => {
+									const nextRangeMs = buildGeoTimelinePresetRange(timelineDomainMs, preset.id);
+									onViewRangeChange(preset.id === "all" ? null : nextRangeMs);
+								}}
+								disabled={!timelineDomainMs}
+							>
+								{preset.label}
+							</button>
+						))}
+					</div>
 					<button
 						type="button"
 						className={`rounded border px-2 py-1 ${playbackEnabled ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"}`}
@@ -470,13 +647,56 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 						type="button"
 						className="rounded border border-border px-2 py-1 hover:bg-muted/50 disabled:opacity-50"
 						onClick={() => {
-							if (!timelineDomainMs) return;
-							setPlaybackCursorMs(timelineDomainMs[0]);
-							setPlaybackRunning(false);
+							applyTimelineReset();
 						}}
-						disabled={!playbackEnabled || !timelineDomainMs}
+						disabled={!timelineDomainMs}
 					>
 						Reset
+					</button>
+					<button
+						type="button"
+						className="rounded border border-border px-2 py-1 hover:bg-muted/50 disabled:opacity-50"
+						onClick={() => {
+							setBrushRangeMs(copyGeoReplayRangeMs(viewRangeMs));
+						}}
+						disabled={!viewRangeMs || playbackEnabled}
+						title={
+							playbackEnabled
+								? "Disable playback before syncing the active filter window"
+								: "Use the visible timeline window as the active filter window"
+						}
+					>
+						Filter = View
+					</button>
+					<button
+						type="button"
+						className="rounded border border-border px-2 py-1 hover:bg-muted/50 disabled:opacity-50"
+						onClick={() => {
+							onViewRangeChange(copyGeoReplayRangeMs(activeReplayRangeMs));
+						}}
+						disabled={!activeReplayRangeMs || playbackEnabled}
+						title={
+							playbackEnabled
+								? "Disable playback before syncing the visible timeline window"
+								: "Use the active filter window as the visible timeline window"
+						}
+					>
+						View = Filter
+					</button>
+					<button
+						type="button"
+						className="rounded border border-border px-2 py-1 hover:bg-muted/50 disabled:opacity-50"
+						onClick={() => {
+							setBrushRangeMs(null);
+						}}
+						disabled={!activeReplayRangeMs || playbackEnabled}
+						title={
+							playbackEnabled
+								? "Disable playback before clearing the active filter window"
+								: "Clear the active filter window without resetting the visible timeline window"
+						}
+					>
+						Clear filter
 					</button>
 					<button
 						type="button"
@@ -588,6 +808,15 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 						/>
 					</div>
 				) : null}
+				<div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+					<span>Selected time: {selectedTimeLabel}</span>
+					{playbackEnabled ? (
+						<span>Playback drives selected time while running</span>
+					) : (
+						<span>Selection and story focus stay independent from playback</span>
+					)}
+				</div>
+				<div className="mt-1 text-[11px] text-muted-foreground">{windowRelationshipLabel}</div>
 			</div>
 			<div className="grid gap-2 md:grid-cols-[1fr_320px]">
 				<div className="space-y-2">
@@ -600,7 +829,13 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 								</span>
 							</div>
 							<div className="mb-2 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-								<span className="truncate">{selectedRangeLabel}</span>
+								<span className="truncate">View: {selectedViewRangeLabel}</span>
+								<span className="truncate">Filter: {activeFilterRangeLabel}</span>
+								{activeReplayRangeMs ? (
+									<span className="rounded border border-border px-2 py-0.5 text-[10px]">
+										Active replay window
+									</span>
+								) : null}
 								{brushRangeMs ? (
 									<button
 										type="button"
@@ -697,6 +932,17 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 										/>
 									</>
 								) : null}
+								{selectedTimeMs !== null ? (
+									<line
+										x1={chartModel.xScale(new Date(selectedTimeMs))}
+										x2={chartModel.xScale(new Date(selectedTimeMs))}
+										y1={chartModel.plotTop}
+										y2={chartModel.plotBottom}
+										stroke="currentColor"
+										strokeOpacity={0.28}
+										strokeWidth="1"
+									/>
+								) : null}
 								<g
 									ref={xAxisRef}
 									transform={`translate(0, ${chartModel.chartHeight - chartModel.paddingBottom})`}
@@ -776,7 +1022,12 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 									className={`min-w-[260px] rounded-md border bg-background px-3 py-2 text-xs ${
 										selectedEntry?.id === entry.id ? "border-primary" : "border-border"
 									}`}
-									onClick={() => setSelectedTimelineId(entry.id)}
+									onClick={() => {
+										onSelectedTimelineIdChange(entry.id);
+										onActiveStoryFocusPresetIdChange(null);
+										onSelectedTimeChange(Date.parse(entry.at));
+										onSelectEventFromTimeline?.(entry.eventId);
+									}}
 									aria-pressed={selectedEntry?.id === entry.id}
 									aria-label={`Timeline entry ${entry.action} at ${formatTime(entry.at)}`}
 								>
@@ -795,17 +1046,157 @@ export function TimelineStrip({ timeline }: TimelineStripProps) {
 				</div>
 
 				<aside className="rounded-md border border-border bg-background px-3 py-2 text-xs">
-					{selectedEntry ? (
+					{selectedEntry && selectedEntryDetail ? (
 						<>
-							<p className="font-medium">{selectedEntry.action}</p>
-							<p className="mt-1 text-muted-foreground">{selectedEntry.diffSummary}</p>
-							<p className="mt-2 text-[11px] text-muted-foreground">
-								eventId: {selectedEntry.eventId}
-							</p>
-							<p className="text-[11px] text-muted-foreground">actor: {selectedEntry.actor}</p>
-							<p className="text-[11px] text-muted-foreground">
-								at: {formatTime(selectedEntry.at)}
-							</p>
+							<p className="font-medium">{selectedEntryDetail.title}</p>
+							{selectedEntryDetail.subtitle ? (
+								<p className="mt-1 text-[11px] text-muted-foreground">
+									{selectedEntryDetail.subtitle}
+								</p>
+							) : null}
+							{selectedEntryDetail.summary ? (
+								<p className="mt-2 text-muted-foreground">{selectedEntryDetail.summary}</p>
+							) : null}
+							<div className="mt-2 flex flex-wrap gap-1">
+								{selectedEntryDetail.primaryMeta.map((item) => (
+									<span
+										key={item}
+										className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+									>
+										{item}
+									</span>
+								))}
+							</div>
+							{selectedEntryDetail.secondaryMeta.length > 0 ? (
+								<p className="mt-2 text-[11px] text-muted-foreground">
+									{selectedEntryDetail.secondaryMeta.join(" • ")}
+								</p>
+							) : null}
+							{selectedEntryDetail.linkedEventId ? (
+								<div className="mt-2 flex flex-wrap gap-2">
+									<button
+										type="button"
+										className="rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted/50"
+										onClick={() =>
+											onSelectEventFromTimeline?.(selectedEntryDetail.linkedEventId as string)
+										}
+									>
+										Focus linked event
+									</button>
+									<button
+										type="button"
+										className="rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted/50"
+										onClick={() => {
+											const selectedTimeMs = Date.parse(selectedEntry.at);
+											if (!Number.isFinite(selectedTimeMs)) return;
+											const nextStoryFocus = buildGeoTimelineTimeFocus({
+												selectedTimeMs,
+												domainMs: timelineDomainMs,
+												viewRangeMs,
+											});
+											if (!nextStoryFocus) return;
+											onSelectedTimeChange(nextStoryFocus.selectedTimeMs);
+											onViewRangeChange(nextStoryFocus.viewRangeMs);
+											onActiveReplayRangeChange(copyGeoReplayRangeMs(nextStoryFocus.viewRangeMs));
+											onSelectedTimelineIdChange(selectedEntry.id);
+											onActiveStoryFocusPresetIdChange(null);
+											onSelectEventFromTimeline?.(selectedEntryDetail.linkedEventId as string);
+										}}
+									>
+										Apply story window
+									</button>
+									<button
+										type="button"
+										className="rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted/50"
+										onClick={() =>
+											onOpenFlatViewFromTimeline?.(selectedEntryDetail.linkedEventId as string)
+										}
+									>
+										Open in flat view
+									</button>
+									<button
+										type="button"
+										className="rounded border border-border px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted/50"
+										onClick={() => {
+											const selectedTimeMs = Date.parse(selectedEntry.at);
+											if (!Number.isFinite(selectedTimeMs)) return;
+											const nextStoryFocus = buildGeoTimelineTimeFocus({
+												selectedTimeMs,
+												domainMs: timelineDomainMs,
+												viewRangeMs,
+											});
+											if (!nextStoryFocus) return;
+											const nextPreset = buildGeoStoryFocusPreset({
+												id: selectedEntry.id,
+												label: selectedEntryDetail.title,
+												linkedEventId: selectedEntryDetail.linkedEventId ?? null,
+												selectedTimeMs: nextStoryFocus.selectedTimeMs,
+												viewRangeMs: nextStoryFocus.viewRangeMs,
+												filterRangeMs: nextStoryFocus.viewRangeMs,
+												regionId: getPresetRegionId(selectedEntryDetail.linkedEventId),
+											});
+											onStoryFocusPresetsChange(
+												upsertGeoStoryFocusPreset(storyFocusPresets, nextPreset),
+											);
+											onActiveStoryFocusPresetIdChange(nextPreset.id);
+										}}
+									>
+										Save story preset
+									</button>
+								</div>
+							) : null}
+							{storyFocusPresets.length > 0 ? (
+								<div className="mt-3 space-y-2">
+									<p className="text-[11px] font-medium text-muted-foreground">Story presets</p>
+									<div className="flex flex-wrap gap-2">
+										{storyFocusPresets.map((preset) => (
+											<div
+												key={preset.id}
+												className={`flex items-center gap-1 rounded border px-1 py-1 ${
+													activeStoryFocusPresetId === preset.id
+														? "border-primary bg-primary/10"
+														: "border-border bg-background"
+												}`}
+											>
+												<button
+													type="button"
+													className="rounded px-1 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/50"
+													onClick={() => {
+														onSelectedTimeChange(preset.selectedTimeMs);
+														onSelectedTimelineIdChange(preset.id);
+														onViewRangeChange(preset.viewRangeMs);
+														onActiveReplayRangeChange(copyGeoReplayRangeMs(preset.filterRangeMs));
+														onActiveStoryFocusPresetIdChange(preset.id);
+														if (!activeRegionId && preset.regionId) {
+															onActiveRegionIdChange(preset.regionId);
+														}
+														if (preset.linkedEventId) {
+															onSelectEventFromTimeline?.(preset.linkedEventId);
+														}
+													}}
+												>
+													{preset.label}
+												</button>
+												<button
+													type="button"
+													className="rounded px-1 py-0.5 text-[10px] text-muted-foreground hover:bg-muted/50"
+													onClick={() => {
+														onStoryFocusPresetsChange(
+															removeGeoStoryFocusPreset(storyFocusPresets, preset.id),
+														);
+														if (activeStoryFocusPresetId === preset.id) {
+															onActiveStoryFocusPresetIdChange(null);
+														}
+													}}
+													aria-label={`Remove story preset ${preset.label}`}
+												>
+													×
+												</button>
+											</div>
+										))}
+									</div>
+								</div>
+							) : null}
 							{decayPreviewEnabled && selectedEntryDecayScore !== null ? (
 								<p className="text-[11px] text-muted-foreground">
 									decay preview: {(selectedEntryDecayScore * 100).toFixed(1)}%

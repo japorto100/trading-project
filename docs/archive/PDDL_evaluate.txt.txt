@@ -1,0 +1,146 @@
+Ja — **aber nur für einen bestimmten Teil deines Stacks**.
+
+## Mein Urteil
+
+Diese Studie ist für dich **nicht** deshalb interessant, weil sie „PDDL allgemein cooler macht“, sondern weil sie zeigt, dass man **temporale numerische Planungsprobleme** aus **PDDL 2.1 Level 3** sauber in **diskretes PDDL+** übersetzen kann — formal korrekt, polynomial in der Problemgröße, mit höchstens konstantem Blow-up der Planlänge, und in den Experimenten teils sogar mit **besserer Coverage** als einige native Temporal-Planer. Die Arbeit nimmt dabei nur **non-self-overlapping** von Aktionen an. ([arXiv][1])
+
+Das heißt praktisch: Wenn du in deinem Fullstack Abläufe hast mit **Dauer**, **Deadlines**, **Ressourcenverbrauch**, **Parallelität**, **Freigabebedingungen** und **verzögerten Effekten**, dann gibt dir die Studie ein starkes Argument, PDDL/PDDL2.1 als Modellierungsschicht zu nutzen, auch wenn dein eigentlicher Solver-Pfad intern über **PDDL+** läuft. Die Autoren haben den Compiler in **unified_planning** implementiert; die aktuelle Unified-Planning-Doku beschreibt die Library als abstrahierende Python-Schicht zum Modellieren, Kompilieren und Lösen von Planungsproblemen, und das Repo hatte Ende 2025 Release **v1.3.0**. ([arXiv][1])
+
+## Was die Arbeit inhaltlich wirklich leistet
+
+Einfach gesagt:
+
+* **PDDL 2.1** beschreibt Aktionen mit Dauer, Start-/Endbedingungen und numerischen Zuständen.
+* **PDDL+** modelliert dieselbe Welt anders: über **instantane Aktionen**, **Events** und **Prozesse**.
+* Die Studie zeigt, wie man durative Aktionen systematisch in diese PDDL+-Bausteine zerlegt, inklusive heikler Semantik wie **overall conditions**, **no-moving-target rule** und **mutex/non-interference** via Lock-Prädikate. ([arXiv][1])
+
+Das ist wichtig, weil genau dort viele „Agenten planen mal schnell“ Ansätze schlampig werden: Sie können Reihenfolgen erzeugen, aber sie modellieren **Zeit**, **gleichzeitige Nutzung derselben Ressource**, **verzögerte Folgen** und **gültige Parallelität** nicht sauber. Diese Arbeit ist also eher **Infrastruktur für robuste Workflow-Planung** als „ein neuer smarter Agent“. ([arXiv][1])
+
+## Konkrete Usecases für **deine** Trading-/Research-Plattform
+
+Für deine App sehe ich **vier echte Einsatzfelder**.
+
+### 1. Daten- und Research-Orchestrierung
+
+Das ist aus meiner Sicht der beste Fit.
+
+Beispiel:
+
+* Pre-market Makrodaten holen
+* News-Feeds priorisieren
+* Earnings-Kalender prüfen
+* Embeddings/Feature-Extraktion starten
+* nur dann Modell-Refresh machen, wenn genug Daten frisch und konsistent sind
+* harte Deadline: alles vor Börsenöffnung oder vor einem Strategie-Cutoff fertig
+
+Das ist ein typisches **temporales numerisches Planungsproblem**:
+
+* Aktionen dauern unterschiedlich lang
+* APIs haben Limits
+* CPU/GPU/Rate-Limits sind numerische Ressourcen
+* einige Schritte dürfen parallel laufen, andere nicht
+* manche Effekte treten verzögert ein
+* manche Tasks verfallen nach einem Zeitpunkt
+
+Genau solche Problemmuster nennen die Autoren als Stärke der Übersetzung; in den Benchmarks mit zeitlich-numerischer Verflechtung war **ENHSP-WA** nach der Kompilierung insgesamt am stärksten und löste **67 von 80** Instanzen, vor **ARIES mit 59**, während rein temporale Domänen teils nativen Temporal-Planern besser lagen. ([arXiv][1])
+
+### 2. Job-Scheduling mit Ressourcen und Fallbacks
+
+Wenn dein Backend mehrere Provider, Caches, Parser und Analysepfade hat, kannst du Planung dafür nutzen:
+
+* „Wenn Provider A langsam ist, nimm B“
+* „wenn Kostenbudget fast aufgebraucht, reduziere Tiefe der Analyse“
+* „nicht zwei schwere Backfills gleichzeitig auf derselben Maschine“
+* „wenn ein Job bis 08:25 nicht fertig ist, auf Notfallpfad wechseln“
+
+Hier ist der Wert nicht akademisch, sondern operativ: Du bekommst **erklärbare Ablaufpläne** statt verstreuter if/else-Ketten plus Queue-Magie. Die Paper-Mechanik mit Locks und laufenden Aktionen passt genau zu solchen Konfliktregeln. ([arXiv][1])
+
+### 3. Multi-Agent- oder Multi-Service-Koordination
+
+Du hast öfter von Agent-Hierarchien, Subagenten und Orchestrierung gesprochen. Für genau diese Ebene ist PDDL interessanter als für die eigentliche Marktentscheidung.
+
+Ein Planner kann festlegen:
+
+* welcher Service was wann übernimmt,
+* welche Vorbedingungen erfüllt sein müssen,
+* wann Parallelität erlaubt ist,
+* wann replanned werden muss.
+
+Die Studie ist hier relevant, weil sie zeigt, dass **durative Multi-Step-Prozesse** nicht nur theoretisch modellierbar sind, sondern praktisch auf existierende PDDL+-Solver abbildbar sind. ([arXiv][1])
+
+### 4. Backoffice- und Compliance-Workflows
+
+Überraschend guter Fit:
+
+* KYC-/Review-Ketten
+* Risiko-Freigaben
+* Cooldown-Perioden
+* verzögerte Aktivierung eines Accounts/Features
+* „Aktion X darf erst Y Minuten nach Z passieren“
+* Incident-Response-Runbooks
+
+Die Arbeit erwähnt explizit, dass die Implementierung auch **delayed effects** und **timed initial literals** unterstützt, grob über passend ausgelöste Events. Das ist für solche Governance-Workflows oft wertvoller als für den eigentlichen Trading-Kern. ([arXiv][1])
+
+## Wo ich es **nicht** einsetzen würde
+
+Hier wäre ich hart:
+
+### Nicht für Live-Trade-Execution auf Millisekundenebene
+
+Symbolische Planung ist nicht dein Execution-Engine-Ersatz. Markt-Mikrostruktur, Slippage, Hidden Liquidity, Queue Position, Latenz und stochastische Reaktionen sind dafür zu dynamisch. Die Arbeit behandelt **PDDL 2.1 Level 3** und nennt **continuous change** ausdrücklich als Zukunftsarbeit, nicht als abgedeckten Kern. ([arXiv][1])
+
+### Nicht für UI- oder Standard-Fullstack-Flows
+
+Für „User klickt Button → API → DB → Response“ ist PDDL Overkill. Da brauchst du Zustandsmaschinen, Workflows oder gute Queue-Orchestrierung, keinen Planner.
+
+### Nicht für unscharfe, rein heuristische Entscheidungen
+
+Wenn deine „Regeln“ eigentlich nur weiche Intuition sind wie „schau mal ob das eher wichtig aussieht“, dann brauchst du Ranking/Policies/LLM-Router, nicht PDDL.
+
+## Die eigentliche Lehre für deinen Stack
+
+Ich würde die Studie so lesen:
+
+> **PDDL nicht als App-Sprache überall einbauen, sondern als formale Planungsschicht für den Teil deines Systems, der zeitlich, ressourcenbezogen und mehrstufig ist.**
+
+Ein vernünftiger Schnitt wäre:
+
+1. **App/Backend** in Go/Python verwaltet reale Services, Queues, Datenquellen.
+2. **Planner-Schicht** modelliert nur die harten Constraints:
+
+   * Dauer
+   * Deadlines
+   * Ressourcen
+   * Abhängigkeiten
+   * erlaubte Parallelität
+3. **Executor** setzt den Plan in echte Jobs um.
+4. **Replanner** startet neu bei Fehlschlag, Timeout oder Zustandsänderung.
+
+Das ist die produktive Nutzung. Nicht „alles in PDDL“, sondern **nur das Entscheidungsgerüst für komplexe Abläufe**.
+
+## Mein konkretes Fazit für dich
+
+Für deine Plattform ist die Studie **am nützlichsten** in diesen Bereichen:
+
+* **Data ingestion / research pipeline planning**
+* **Batch- und backfill scheduling**
+* **Agent-/Service-Orchestrierung mit harten Constraints**
+* **Compliance-/Ops-Workflows mit Deadlines und verzögerten Effekten**
+
+Sie ist **weniger nützlich** für:
+
+* Frontend
+* normales REST-Fullstack
+* Low-latency Order Execution
+* hochstochastische Marktentscheidungen in Echtzeit
+
+Wenn du PDDL einbauen willst, dann würde ich **mit einem kleinen temporalen Scheduling-Problem** anfangen, nicht mit dem Trading-Core. Das saubere Pilotprojekt wäre etwa:
+
+**„Plane den morgendlichen Research-Run vor Marktöffnung unter API-Limits, CPU-Budget, Datenfrische und Fallback-Providern.“**
+
+Dafür ist diese Studie sehr relevant. Für „Soll ich jetzt TSLA kaufen?“ eher nicht.
+
+Wenn du willst, skizziere ich dir als Nächstes eine **konkrete Mini-Architektur für deinen Stack**:
+**Go/Python + unified_planning + Executor + Replanning Loop**, inklusive einem realistischen ersten PDDL-Domain-Entwurf für deine Trading-App.
+
+[1]: https://arxiv.org/html/2603.12188v1 "Compiling Temporal Numeric Planning into Discrete PDDL+: Extended Version11footnote 1This paper is an extended version of the homonymous appearing in the ICAPS 2026 proceedings. This version provides the proofs and addidional explanations of the compilation."

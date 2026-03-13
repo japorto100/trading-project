@@ -1,5 +1,6 @@
 "use client";
 
+import { buildGeoContextSelectionDetail } from "@/features/geopolitical/selection-detail";
 import type { GeoContextItem } from "@/features/geopolitical/shell/types";
 
 type ContextSource = "all" | "cfr" | "crisiswatch";
@@ -15,13 +16,6 @@ function sourceLabel(source: string): string {
 	if (source === "cfr") return "CFR";
 	if (source === "crisiswatch") return "CrisisWatch";
 	return source;
-}
-
-function shortDate(value?: string): string {
-	if (!value) return "n/a";
-	const parsed = new Date(value);
-	if (Number.isNaN(parsed.getTime())) return value;
-	return parsed.toISOString().slice(0, 10);
 }
 
 export function GeopoliticalContextPanel({
@@ -58,34 +52,41 @@ export function GeopoliticalContextPanel({
 				) : items.length === 0 ? (
 					<p className="text-xs text-muted-foreground">No context items for current filters.</p>
 				) : (
-					items.slice(0, 10).map((item) => (
-						<article key={item.id} className="rounded border border-border/70 bg-background p-2">
-							<div className="mb-1 flex flex-wrap items-center gap-1">
-								<span className="rounded border border-border px-1.5 py-0.5 text-[10px] uppercase">
-									{sourceLabel(item.source)}
-								</span>
-								<span className="text-[10px] text-muted-foreground">
-									{shortDate(item.publishedAt)}
-								</span>
-								{item.region ? (
-									<span className="text-[10px] text-muted-foreground">{item.region}</span>
+					items.slice(0, 10).map((item) => {
+						const detail = buildGeoContextSelectionDetail(item);
+						return (
+							<article key={item.id} className="rounded border border-border/70 bg-background p-2">
+								<div className="mb-1 flex flex-wrap items-center gap-1">
+									<span className="rounded border border-border px-1.5 py-0.5 text-[10px] uppercase">
+										{sourceLabel(item.source)}
+									</span>
+									{detail.primaryMeta.slice(1).map((meta) => (
+										<span key={`${item.id}-${meta}`} className="text-[10px] text-muted-foreground">
+											{meta}
+										</span>
+									))}
+									{detail.secondaryMeta.map((meta) => (
+										<span key={`${item.id}-${meta}`} className="text-[10px] text-muted-foreground">
+											{meta}
+										</span>
+									))}
+								</div>
+								<a
+									href={item.url}
+									target="_blank"
+									rel="noreferrer"
+									className="text-xs font-medium leading-snug hover:underline"
+								>
+									{detail.title}
+								</a>
+								{detail.summary ? (
+									<p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+										{detail.summary}
+									</p>
 								) : null}
-							</div>
-							<a
-								href={item.url}
-								target="_blank"
-								rel="noreferrer"
-								className="text-xs font-medium leading-snug hover:underline"
-							>
-								{item.title}
-							</a>
-							{item.summary ? (
-								<p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
-									{item.summary}
-								</p>
-							) : null}
-						</article>
-					))
+							</article>
+						);
+					})
 				)}
 			</div>
 		</section>

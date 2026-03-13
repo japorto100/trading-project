@@ -29,18 +29,12 @@ Dieses Dokument ist **kein** Sammelcontainer mehr für Frontend-Referenzen, Futu
 
 ### 0.2 Dieses Dokument regelt **nicht** primär
 
-- Frontend-Workbench- und Dashboard-Referenzen  
-  Siehe `docs/FRONTEND_COMPONENTS.md`
-- Contract-Driven Development, Codegen und API-Toolchains  
-  Siehe `docs/specs/API_CONTRACTS.md`, `docs/specs/ARCHITECTURE.md`
-- Feature Flags, progressive delivery, capability rollout  
-  Siehe `docs/specs/CAPABILITY_REGISTRY.md`, `docs/specs/ROLLOUT_GATES.md`
-- Data-Layer-, ORM-, DuckDB-/Polars-/Arrow-Strategien  
-  Siehe `docs/specs/ARCHITECTURE.md`, `docs/INDICATOR_ARCHITECTURE.md`, `docs/RUST_LANGUAGE_IMPLEMENTATION.md`
-- Agent-Runtime, AI-Routing, OpenSandbox, Guardrails, DSPy, A2A  
-  Siehe `docs/AGENT_ARCHITECTURE.md`, `docs/AGENT_TOOLS.md`, spaeter `AGENT_RUNTIME_AND_EXECUTION_ARCHITECTURE.md`
-- Future- und Deep-Tech-Radar  
-  Siehe `docs/Advanced-architecture-for-the-future.md`
+- Frontend-Workbench- und Dashboard-Referenzen
+- Contract-Driven Development, Codegen und API-Toolchains
+- Feature Flags, progressive delivery, capability rollout
+- Data-Layer-, ORM-, DuckDB-/Polars-/Arrow-Strategien
+- Agent-Runtime, AI-Routing, OpenSandbox, Guardrails, DSPy, A2A
+- Future- und Deep-Tech-Radar
 
 ---
 
@@ -302,174 +296,19 @@ Die eigentlichen Security- und Privacy-Regeln bleiben in `docs/specs/AUTH_SECURI
 
 ---
 
-## 8. Related Docs / Out of Scope
+## 8. Out of Scope
 
-Die folgenden Themen bleiben wichtig, werden aber **nicht** in diesem Dokument normativ ausformuliert.  
-`ERRORS.md` definiert nur die Error-, Observability- und Resilience-Normen.  
-Die fachliche Vertiefung liegt in den jeweils zuständigen Dokumenten.
+Dieses Dokument bleibt bei Fehler-, Observability- und Resilience-Normen.
+Nicht Teil dieses Specs sind:
 
-### 8.1 Frontend-Komponenten und Agent-Workbenches
-
-Ziel-Dokument:
-- `docs/FRONTEND_COMPONENTS.md`
-
-Beispiele für dort verankerte Referenzen:
-- `Agent Zero`
-- `Perplexica`
-- `Mission Control`
-- `GitNexus Web`
-- `Paperless-ngx`
-- `Tambo`
-- `Vercel AI SDK`
-
-### 8.2 Contract-Driven Development und Codegen
-
-Ziel-Dokumente:
-- `docs/specs/API_CONTRACTS.md`
-- `docs/specs/ARCHITECTURE.md`
-- `docs/specs/EXECUTION_PLAN.md`
-
-Beispiele für dort verankerte Optionen:
-- `OpenAPI 3.1`
-- `Protobuf`
-- `gRPC`
-- `Orval`
-- `Kiota`
-- `oapi-codegen`
-- `datamodel-code-generator`
-
-### 8.3 Shift-left Quality, Testing und Supply Chain
-
-Ziel-Dokumente:
-- `docs/specs/EXECUTION_PLAN.md`
-- `docs/specs/SYSTEM_STATE.md`
-- `docs/specs/AUTH_SECURITY.md`
-- `docs/specs/FRONTEND_ARCHITECTURE.md`
-
-Beispiele für dort verankerte Optionen:
-- `Lefthook`
-- `Husky`
-- `Renovate`
-- `Dependabot`
-- `Trivy`
-- `Semgrep`
-- `Vitest`
-- `React Testing Library`
-- `Pytest`
-
-### 8.4 Feature Flags und progressive delivery
-
-Ziel-Dokumente:
-- `docs/specs/CAPABILITY_REGISTRY.md`
-- `docs/specs/ROLLOUT_GATES.md`
-- `docs/specs/AUTH_SECURITY.md`
-- `docs/specs/EXECUTION_PLAN.md`
-
-Beispiele für dort verankerte Optionen:
-- `Unleash`
-- `Flagsmith`
-
-### 8.5 Data-Layer-, ORM- und Compute-Architektur
-
-Ziel-Dokumente:
-- `docs/specs/ARCHITECTURE.md`
-- `docs/specs/EXECUTION_PLAN.md`
-- `docs/INDICATOR_ARCHITECTURE.md`
-- `docs/RUST_LANGUAGE_IMPLEMENTATION.md`
-- `docs/UNIFIED_INGESTION_LAYER.md`
-
-Beispiele für dort verankerte Optionen:
-- `Drizzle`
-- `Prisma`
-- `Turso`
-- `LiteFS`
-- `DuckDB`
-- `Polars`
-- `Apache Arrow`
-- `Dremio`
-- `MotherDuck`
-- `SpiceDB`
-- `Topaz`
-
-Wichtiger Kontext:
-- `DuckDB`, `Polars` und `Apache Arrow` sind fuer `tradeview-fusion` primaer analytische, batch- und research-nahe Datenpfade.
-- Sie sind **nicht** die normative Begründung fuer die härteste Live-Execution- oder HFT-Schicht.
-- `Apache Arrow` ist hier vor allem als Zero-Copy-/Low-Serialization-Brücke zwischen Go, Python, Rust und analytischen Pipelines relevant.
-
-### 8.6 Agent-Runtime, AI-Routing und Governance-Erweiterungen
-
-Ziel-Dokumente:
-- `docs/AGENT_ARCHITECTURE.md`
-- `docs/AGENT_TOOLS.md`
-- `docs/specs/AUTH_SECURITY.md`
-- `docs/specs/EXECUTION_PLAN.md`
-- spaeter `AGENT_RUNTIME_AND_EXECUTION_ARCHITECTURE.md`
-
-Beispiele für dort verankerte Optionen:
-- `LiteLLM`
-- `RouteLLM`
-- `DSPy`
-- `PydanticAI`
-- `Guardrails AI`
-- `OpenSandbox`
-- `Scallop`
-- `Z3`
-- `A2A`
-
-### 8.7 Future- und Deep-Tech-Radar
-
-Ziel-Dokument:
-- `docs/Advanced-architecture-for-the-future.md`
-
-Beispiele für dort verankerte Optionen:
-- `WebTransport`
-- `quic-go`
-- `Tetragon`
-- `Grafana Beyla`
-- `OpenTelemetry eBPF Instrumentation`
-- `Temporal`
-- `Restate`
-- `Redpanda`
-- `Aeron`
-- `Point72/csp`
-- `Pkl`
-- `KCL`
-- `OpenTofu`
-- `Crossplane`
-- `Nix`
-- `Nix Flakes`
-- `Confidential Containers`
-- `Intel TDX`
-- `AMD SEV-SNP`
-- `Servo`
-
-### 8.8 Geo-/Rendering-spezifische Performance-Optionen
-
-Ziel-Dokumente:
-- `docs/geo/GEOMAP_OVERVIEW.md`
-- `docs/geo/GEOMAP_VERIFY_GATES.md` (Performance-Baseline Sek. 4)
-- `docs/geo/GEOMAP_FOUNDATION.md` (Rendering Foundation Sek. 4)
-- `docs/specs/EXECUTION_PLAN.md`
-
-Beispiele für dort verankerte Optionen:
-- `deck.gl`
-- `WebGPU`
-- `FlatGeobuf`
-- `PMTiles`
-- `Three.js`
-- `D3.js`
-
-### 8.9 Gateway-/IPC-/Transport-Optionen
-
-Ziel-Dokumente:
-- `docs/GO_GATEWAY.md`
-- `docs/specs/ARCHITECTURE.md`
-- `docs/specs/EXECUTION_PLAN.md`
-- `docs/specs/API_CONTRACTS.md`
-
-Beispiele für dort verankerte Optionen:
-- `Connect RPC`
-- `gRPC`
+- Frontend-Workbench-Referenzen
+- Contract-Driven Development und Codegen
+- Shift-left Quality, Testing und Supply-Chain-Standards
+- Feature Flags und Progressive Delivery
+- Data-Layer-, ORM- und Compute-Architektur
+- Agent-Runtime, AI-Routing und Governance-Erweiterungen
+- Future-/Deep-Tech-Radar sowie Geo-/Rendering-Radar
+- Gateway-/IPC-/Transport-Auswahlentscheidungen
 
 ## 9. Priorisierung
 
@@ -493,13 +332,3 @@ Beispiele für dort verankerte Optionen:
 - ORM-/DuckDB-/Polars-Strategie
 - Agent-Routing / DSPy / A2A / OpenSandbox-Vertiefung
 - WebGPU / deck.gl / WebTransport / eBPF / Nix / Confidential Computing
-
-## 10. Primärquellen
-
-- `docs/archive/Master_master_architecture_2026_IMPORTANT.md`
-- `docs/archive/Master_master_diff_merge_matrix.md`
-- `docs/specs/AUTH_SECURITY.md`
-- `docs/specs/API_CONTRACTS.md`
-- `docs/specs/EXECUTION_PLAN.md`
-- `docs/specs/ROLLOUT_GATES.md`
-- `docs/specs/FRONTEND_ARCHITECTURE.md`

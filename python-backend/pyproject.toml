@@ -14,6 +14,9 @@ dependencies = [
     "ruff>=0.13.0",
     "scipy>=1.14.0",
     "uvicorn==0.35.0",
+    # python_runtime_eval_delta: Granian (Rust/Tokio ASGI server, drop-in for uvicorn)
+    # eval GRN.V1-V4 before Phase 20 rollout decision. Pin loosely for eval flexibility.
+    "granian>=2.0.0",
     "yfinance==0.2.65",
     "pandas-stubs>=3.0.0.260204",
     "scipy-stubs>=1.17.1.0",
@@ -53,6 +56,10 @@ dependencies = [
 ml = [
     "numpy==2.2.2",
     "scikit-learn==1.6.1",
+]
+# python_runtime_eval_delta: load testing tools for GRN.V1/PY3.V2 benchmarks
+eval = [
+    "locust>=2.24.0",
 ]
 
 [tool.pytest.ini_options]

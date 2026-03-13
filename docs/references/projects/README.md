@@ -27,3 +27,4 @@
 | `knowledge-and-ml.md` | KG, ML, Soft-Signal, Research-Projekte |
 | `evaluate.md` | aktive Evaluationskandidaten mit klaren Entscheidungs-Gates |
 | `to-watch.md` | Offene Kandidaten und Lizenz-/Produkt-Gates |
+| `will-not-use.md` | bewusst ausgeschlossene oder nicht belastbare Kandidaten |

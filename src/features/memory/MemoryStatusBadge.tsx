@@ -18,7 +18,7 @@ function statusColor(status: string): string {
 
 export function MemoryStatusBadge() {
 	const { data: health } = useQuery<MemoryHealthData>({
-		queryKey: ["memory-health"],
+		queryKey: ["memory", "health"],
 		queryFn: async () => {
 			const res = await fetch("/api/memory/health", { cache: "no-store" });
 			if (!res.ok) throw new Error("memory health unavailable");

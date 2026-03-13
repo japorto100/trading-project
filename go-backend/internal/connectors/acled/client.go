@@ -1,10 +1,14 @@
 package acled
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -25,13 +29,14 @@ const (
 )
 
 type Config struct {
-	BaseURL        string
-	APIToken       string
-	Email          string
-	AccessKey      string
-	RequestTimeout time.Duration
-	MockEnabled    bool
-	MockDataPath   string
+	BaseURL           string
+	APIToken          string
+	Email             string
+	AccessKey         string
+	RequestTimeout    time.Duration
+	MockEnabled       bool
+	MockDataPath      string
+	SnapshotStorePath string
 }
 
 type Query struct {
@@ -62,12 +67,14 @@ type Event struct {
 }
 
 type Client struct {
-	baseClient   *base.Client
-	apiToken     string
-	email        string
-	accessKey    string
-	mockEnabled  bool
-	mockDataPath string
+	baseClient         *base.Client
+	apiToken           string
+	email              string
+	accessKey          string
+	mockEnabled        bool
+	mockDataPath       string
+	snapshotRecorder   func(context.Context, base.FetchSnapshot) error
+	snapshotNormalizer func(context.Context, string, []byte, time.Time) error
 }
 
 func NewClient(cfg Config) *Client {
@@ -92,6 +99,22 @@ func NewClient(cfg Config) *Client {
 		accessKey:    strings.TrimSpace(cfg.AccessKey),
 		mockEnabled:  cfg.MockEnabled,
 		mockDataPath: strings.TrimSpace(cfg.MockDataPath),
+		snapshotRecorder: base.NewLocalSnapshotRecorder(base.LocalSnapshotRecorderConfig{
+			SourceID:      "acled",
+			Subdir:        "acled",
+			SourceClass:   "api-snapshot",
+			FetchMode:     "poll",
+			StorePath:     strings.TrimSpace(cfg.SnapshotStorePath),
+			DatasetName:   "acled-events",
+			CadenceHint:   "hourly",
+			ParserVersion: "acled-events-json-v1",
+		}),
+		snapshotNormalizer: base.NewLocalSnapshotNormalizer(base.LocalSnapshotRecorderConfig{
+			SourceID:      "acled",
+			Subdir:        "acled",
+			StorePath:     strings.TrimSpace(cfg.SnapshotStorePath),
+			ParserVersion: "acled-events-normalized-v1",
+		}),
 	}
 }
 
@@ -184,6 +207,30 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 		}
 	}
 
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read acled response: %w", err)
+	}
+	fetchedAt := time.Now().UTC()
+	snapshotID := ""
+	if c.snapshotRecorder != nil {
+		sum := sha256.Sum256(rawBody)
+		snapshotID = base.LocalSnapshotID("acled", fetchedAt, hex.EncodeToString(sum[:]))
+		if recordErr := c.snapshotRecorder(ctx, base.FetchSnapshot{
+			WatcherName:   "ACLED",
+			SourceURL:     req.URL.String(),
+			ContentType:   strings.TrimSpace(resp.Header.Get("Content-Type")),
+			ContentLength: int64(len(rawBody)),
+			ETag:          strings.TrimSpace(resp.Header.Get("ETag")),
+			LastModified:  strings.TrimSpace(resp.Header.Get("Last-Modified")),
+			SHA256Hex:     hex.EncodeToString(sum[:]),
+			FetchedAt:     fetchedAt,
+			Payload:       append([]byte(nil), rawBody...),
+		}); recordErr != nil {
+			return nil, fmt.Errorf("record acled snapshot: %w", recordErr)
+		}
+	}
+
 	var payload struct {
 		Data []struct {
 			ID           string `json:"event_id_cnty"`
@@ -202,7 +249,7 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 			Notes        string `json:"notes"`
 		} `json:"data"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(rawBody)).Decode(&payload); err != nil {
 		return nil, fmt.Errorf("decode acled response: %w", err)
 	}
 
@@ -224,6 +271,25 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 			Source:       strings.TrimSpace(item.Source),
 			Notes:        strings.TrimSpace(item.Notes),
 		})
+	}
+	if c.snapshotNormalizer != nil && snapshotID != "" {
+		normalizedPayload, err := json.Marshal(struct {
+			SourceID     string    `json:"sourceId"`
+			NormalizedAt time.Time `json:"normalizedAt"`
+			Query        Query     `json:"query"`
+			Events       []Event   `json:"events"`
+		}{
+			SourceID:     "acled",
+			NormalizedAt: fetchedAt,
+			Query:        query,
+			Events:       events,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("marshal acled normalized snapshot: %w", err)
+		}
+		if err := c.snapshotNormalizer(ctx, snapshotID, normalizedPayload, fetchedAt); err != nil {
+			return nil, fmt.Errorf("normalize acled snapshot: %w", err)
+		}
 	}
 	return events, nil
 }

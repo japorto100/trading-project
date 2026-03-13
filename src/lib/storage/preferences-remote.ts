@@ -6,7 +6,7 @@ export interface RemoteFusionPreferences {
 	layout: LayoutMode;
 	sidebarOpen: boolean;
 	showDrawingTool: boolean;
-	darkMode: boolean;
+	darkMode?: boolean;
 }
 
 let remotePersistenceAvailable: boolean | null = null;

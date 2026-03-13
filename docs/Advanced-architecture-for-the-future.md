@@ -16,6 +16,7 @@
 0. [Quelle und Relevanz-Filter](#0-quelle-und-relevanz-filter)
 1. [Anomaly Detection fuer Marktdaten](#1-anomaly-detection-fuer-marktdaten) (inkl. 1.4 Markt-Mikroexpressionen)
 2. [Multi-Agent Orchestration fuer Worker und Services](#2-multi-agent-orchestration-fuer-worker-und-services)
+2a. [Formale Planung als Constraint-Layer (PDDL/ADL)](#2a-formale-planung-als-constraint-layer-pddladl)
 3. [Intent-Based Systems und Conflict Resolution](#3-intent-based-systems-und-conflict-resolution)
 4. [Guardrails fuer Signal-Qualitaet](#4-guardrails-fuer-signal-qualitaet) (inkl. 4.8 Adversarial Robustness)
 5. [Edge AI Patterns fuer Rust WASM Deployment](#5-edge-ai-patterns-fuer-rust-wasm-deployment)
@@ -224,6 +225,36 @@ Unser bestehendes System hat bereits implizit diese Rollen. Das Buch liefert das
 - Kommt erst bei >3 Services die synchronisiert werden muessen
 
 **Buch-Referenz:** Kap.14, Sektion 3.2 (MAS Coordination via Message Bus)
+
+---
+
+## 2a. Formale Planung als Constraint-Layer (PDDL/ADL)
+
+> **Prioritaet:** Spaeter, gezielt (Phase 22b+), nur fuer Workflows mit harten
+> zeitlichen/numerischen Constraints.
+> **Rolle hier:** Strategische Einordnung. Operative Umsetzung liegt in
+> `AGENT_TOOLS.md` und `specs/EXECUTION_PLAN.md`.
+
+**Kernidee:** PDDL/ADL wird nicht als universelle App-Sprache genutzt, sondern als
+formale Pruefschicht fuer Plaene mit:
+
+- Dauer und Deadlines
+- Ressourcenbudgets und Limits
+- erlaubter Parallelitaet
+- klaren Replan-Regeln
+
+**Warum in diesem Dokument relevant:** Das passt direkt zum langfristigen
+Orchestration-Zielbild (M/A/O/E): Planung bleibt flexibel, aber kritische
+Constraint-Pruefungen werden formal und reproduzierbar.
+
+**Klare Nicht-Ziele:**
+
+- kein Ersatz fuer Low-Latency-Trade-Execution
+- kein Overhead fuer triviale CRUD-/UI-Workflows
+- keine Formalisierung weicher Heuristik-/Ranking-Entscheide
+
+**Empfohlener Einstieg:** enger Pilot "Morning Research Run" mit definierten
+Go/No-Go-Metriken (Validitaet, p95 Planzeit, Deadline-Adherence, Replan-Rate).
 
 ---
 
@@ -1009,6 +1040,8 @@ Verbindung des Entropy Health Monitors mit dem bestehenden Concept Drift Detecti
 | Sek.2 (Multi-Agent) | [`INDICATOR_ARCHITECTURE.md`](./INDICATOR_ARCHITECTURE.md) Sek.0.1, 0.3, 0.6 | Sync/Async, Job-Queue, Skalierung |
 | Sek.2 (Multi-Agent) | [`RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) Sek.5 | Rust Backtesting Engine mit Rayon Worker Pool |
 | Sek.2 (Multi-Agent) | [`ADR-001-streaming-architecture.md`](./ADR-001-streaming-architecture.md) | Streaming-Architektur, Ingestion/Processing/Delivery |
+| Sek.2a (Formale Planung) | [`AGENT_TOOLS.md`](./AGENT_TOOLS.md) Sek.15 | Operative Einordnung PDDL/ADL, Adoption-Bedingungen und Pilotpfad |
+| Sek.2a (Formale Planung) | [`specs/EXECUTION_PLAN.md`](./specs/EXECUTION_PLAN.md) Phase 22b | Gated Pilot + Owner-Verankerung im Phase Board |
 | Sek.3 (Intent-Based) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek.5, 6 | Candidate-Flow, Signal-vs-Noise-Policy |
 | Sek.4.1-4.2 (Guardrails, HITL) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek.5.4, 6, 11, 13.2 | Feedback-Driven Review, Confidence Ladder, Source Tiers, AnalystFeedback Type |
 | Sek.4.3-4.7 (Training Pipeline) | [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md) Sek.5.4.5, 35.6 | Feedback-Daten als Trainingsquelle, Evaluation Harness Metriken |

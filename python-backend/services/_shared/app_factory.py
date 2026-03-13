@@ -16,10 +16,13 @@ PYTHON_BACKEND_ROOT = Path(__file__).resolve().parents[2]
 env_dev = PYTHON_BACKEND_ROOT / ".env.development"
 env_prod = PYTHON_BACKEND_ROOT / ".env"
 
+# override=False: shell environment takes precedence over .env.development.
+# This allows GRPC_ENABLED=0 / OTEL_ENABLED=false to be set from the shell
+# without being clobbered by the dev file (important for benchmarks and tests).
 if env_dev.exists():
-    load_dotenv(dotenv_path=env_dev, override=True)
+    load_dotenv(dotenv_path=env_dev, override=False)
 elif env_prod.exists():
-    load_dotenv(dotenv_path=env_prod)
+    load_dotenv(dotenv_path=env_prod, override=False)
 
 
 REQUEST_ID_HEADER = "X-Request-ID"

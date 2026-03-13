@@ -42,6 +42,9 @@
 
 - Diese Quellen sind Layer-2/Layer-3 Inputs, nicht der primaere Multi-Asset
   Truth-Layer.
+- Vor aktivem Onboarding gilt auch hier die Intake-Reihenfolge aus
+  `../../specs/execution/source_selection_delta.md`:
+  erst fachliche Auswahl und Tiering, dann Onboarding/Rollout.
 - Produktiver Ausbaugrad und providerseitige Umsetzung bleiben in den
   Execution-MDs und den Go-/Web3-Owner-Dokumenten.
 
@@ -50,6 +53,7 @@
 ## Querverweise
 
 - `../status.md`
+- `../../specs/execution/source_selection_delta.md`
 - `../../web3/README.md`
 - `../../web3/oracle-integration.md`
 - `../../go-research-financial-data-aggregation-2025-2026.md`

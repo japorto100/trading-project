@@ -2,6 +2,7 @@
 
 import {
 	BarChart3,
+	BookOpen,
 	ClipboardList,
 	FlaskConical,
 	type LucideIcon,
@@ -17,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { MacroPanel } from "@/features/trading/MacroPanel";
 import { NewsPanel } from "@/features/trading/NewsPanel";
+import { OrderbookPanel } from "@/features/trading/OrderbookPanel";
 import { OrdersPanel } from "@/features/trading/OrdersPanel";
 import { PortfolioPanel } from "@/features/trading/PortfolioPanel";
 import { StrategyLabPanel } from "@/features/trading/StrategyLabPanel";
@@ -31,30 +33,7 @@ interface RightDetailsSidebarProps {
 	indicators: IndicatorSettings;
 	onSetActivePanel: (panel: SidebarPanel) => void;
 	onClose: () => void;
-	onSetCoreIndicatorEnabled: (key: "sma" | "ema" | "rsi", enabled: boolean) => void;
-	onSetCoreIndicatorPeriod: (key: "sma" | "ema" | "rsi", period: number) => void;
-	onSetMacdEnabled: (enabled: boolean) => void;
-	onSetBollingerEnabled: (enabled: boolean) => void;
-	onSetBollingerPeriod: (period: number) => void;
-	onSetBollingerStdDev: (stdDev: number) => void;
-	onSetVwapEnabled: (enabled: boolean) => void;
-	onSetVwmaEnabled: (enabled: boolean) => void;
-	onSetVwmaPeriod: (period: number) => void;
-	onSetAtrEnabled: (enabled: boolean) => void;
-	onSetAtrPeriod: (period: number) => void;
-	onSetAtrChannelEnabled: (enabled: boolean) => void;
-	onSetAtrChannelSmaPeriod: (period: number) => void;
-	onSetAtrChannelAtrPeriod: (period: number) => void;
-	onSetAtrChannelMultiplier: (multiplier: number) => void;
-	onSetHmaEnabled: (enabled: boolean) => void;
-	onSetHmaPeriod: (period: number) => void;
-	onSetAdxEnabled: (enabled: boolean) => void;
-	onSetAdxPeriod: (period: number) => void;
-	onSetIchimokuEnabled: (enabled: boolean) => void;
-	onSetParabolicSarEnabled: (enabled: boolean) => void;
-	onSetKeltnerEnabled: (enabled: boolean) => void;
-	onSetVolumeProfileEnabled: (enabled: boolean) => void;
-	onSetSupportResistanceEnabled: (enabled: boolean) => void;
+	onIndicatorsChange: (patch: Partial<IndicatorSettings>) => void;
 }
 
 interface IndicatorSectionCardProps {
@@ -94,21 +73,6 @@ interface PresetButtonRowProps<T extends number | string> {
 	onSelect: (value: T) => void;
 }
 
-interface SimpleToggleSectionConfig {
-	id: string;
-	title: string;
-	description: string;
-	checked: boolean;
-	onCheckedChange: (checked: boolean) => void;
-}
-
-interface PresetToggleSectionConfig extends SimpleToggleSectionConfig {
-	values: number[];
-	activeValue: number | undefined;
-	onSelect: (value: number) => void;
-	formatValue?: (value: number) => string;
-}
-
 function PresetButtonRow<T extends number | string>({
 	values,
 	activeValue,
@@ -141,138 +105,16 @@ export function RightDetailsSidebar({
 	indicators,
 	onSetActivePanel,
 	onClose,
-	onSetCoreIndicatorEnabled,
-	onSetCoreIndicatorPeriod,
-	onSetMacdEnabled,
-	onSetBollingerEnabled,
-	onSetBollingerPeriod,
-	onSetBollingerStdDev,
-	onSetVwapEnabled,
-	onSetVwmaEnabled,
-	onSetVwmaPeriod,
-	onSetAtrEnabled,
-	onSetAtrPeriod,
-	onSetAtrChannelEnabled,
-	onSetAtrChannelSmaPeriod,
-	onSetAtrChannelAtrPeriod,
-	onSetAtrChannelMultiplier,
-	onSetHmaEnabled,
-	onSetHmaPeriod,
-	onSetAdxEnabled,
-	onSetAdxPeriod,
-	onSetIchimokuEnabled,
-	onSetParabolicSarEnabled,
-	onSetKeltnerEnabled,
-	onSetVolumeProfileEnabled,
-	onSetSupportResistanceEnabled,
+	onIndicatorsChange,
 }: RightDetailsSidebarProps) {
-	// Filter out "watchlist" from the right panel options
 	const panels: Array<{ id: SidebarPanel; icon: LucideIcon; label: string }> = [
 		{ id: "indicators", icon: SlidersHorizontal, label: "Indic" },
+		{ id: "orderbook", icon: BookOpen, label: "Book" },
 		{ id: "news", icon: Newspaper, label: "News" },
 		{ id: "macro", icon: BarChart3, label: "Macro" },
 		{ id: "orders", icon: ClipboardList, label: "Orders" },
 		{ id: "portfolio", icon: Wallet, label: "Port" },
 		{ id: "strategy", icon: FlaskConical, label: "Strat" },
-	];
-	const preBollingerSimpleSections: SimpleToggleSectionConfig[] = [
-		{
-			id: "macd",
-			title: "MACD",
-			description: "Momentum oscillator",
-			checked: indicators.macd?.enabled ?? false,
-			onCheckedChange: onSetMacdEnabled,
-		},
-	];
-	const postBollingerPresetSections: PresetToggleSectionConfig[] = [
-		{
-			id: "vwma",
-			title: "VWMA",
-			description: "Volume weighted moving average",
-			checked: indicators.vwma?.enabled ?? false,
-			onCheckedChange: onSetVwmaEnabled,
-			values: [10, 20, 30, 50, 100, 200],
-			activeValue: indicators.vwma?.period,
-			onSelect: onSetVwmaPeriod,
-		},
-		{
-			id: "atr",
-			title: "ATR",
-			description: "Average true range",
-			checked: indicators.atr?.enabled ?? false,
-			onCheckedChange: onSetAtrEnabled,
-			values: [7, 14, 21, 28, 50],
-			activeValue: indicators.atr?.period,
-			onSelect: onSetAtrPeriod,
-		},
-	];
-	const postBollingerSimpleSections: SimpleToggleSectionConfig[] = [
-		{
-			id: "vwap",
-			title: "VWAP",
-			description: "Volume weighted average price",
-			checked: indicators.vwap?.enabled ?? false,
-			onCheckedChange: onSetVwapEnabled,
-		},
-	];
-	const postAtrChannelPresetSections: PresetToggleSectionConfig[] = [
-		{
-			id: "hma",
-			title: "HMA",
-			description: "Hull moving average",
-			checked: indicators.hma?.enabled ?? false,
-			onCheckedChange: onSetHmaEnabled,
-			values: [9, 16, 20, 34, 55],
-			activeValue: indicators.hma?.period,
-			onSelect: onSetHmaPeriod,
-		},
-		{
-			id: "adx",
-			title: "ADX",
-			description: "Trend strength oscillator",
-			checked: indicators.adx?.enabled ?? false,
-			onCheckedChange: onSetAdxEnabled,
-			values: [7, 14, 21, 28],
-			activeValue: indicators.adx?.period,
-			onSelect: onSetAdxPeriod,
-		},
-	];
-	const trailingSimpleSections: SimpleToggleSectionConfig[] = [
-		{
-			id: "ichimoku",
-			title: "Ichimoku",
-			description: "Cloud baseline overlay",
-			checked: indicators.ichimoku?.enabled ?? false,
-			onCheckedChange: onSetIchimokuEnabled,
-		},
-		{
-			id: "parabolicSar",
-			title: "Parabolic SAR",
-			description: "Trend reversal dots",
-			checked: indicators.parabolicSar?.enabled ?? false,
-			onCheckedChange: onSetParabolicSarEnabled,
-		},
-		{
-			id: "keltner",
-			title: "Keltner",
-			description: "EMA channel by ATR",
-			checked: indicators.keltner?.enabled ?? false,
-			onCheckedChange: onSetKeltnerEnabled,
-		},
-		{
-			id: "volumeProfile",
-			title: "Volume Profile",
-			description: "Top price-volume levels",
-			checked: indicators.volumeProfile?.enabled ?? false,
-			onCheckedChange: onSetVolumeProfileEnabled,
-		},
-		{
-			id: "supportResistance",
-			title: "Support/Resistance",
-			description: "Key horizontal levels",
-			checked: indicators.supportResistance?.enabled ?? false,
-			onCheckedChange: onSetSupportResistanceEnabled,
-		},
 	];
 
 	return (
@@ -319,64 +161,82 @@ export function RightDetailsSidebar({
 				{activePanel === "indicators" && (
 					<ScrollArea className="flex-1">
 						<div className="p-3 space-y-4">
+							{/* SMA */}
 							<IndicatorSectionCard
 								title="SMA"
 								description="Simple Moving Average"
 								checked={indicators.sma.enabled}
-								onCheckedChange={(checked) => onSetCoreIndicatorEnabled("sma", checked)}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({ sma: { ...indicators.sma, enabled } })
+								}
 							>
 								{indicators.sma.enabled ? (
 									<PresetButtonRow
 										values={[5, 10, 20, 50, 100, 200]}
 										activeValue={indicators.sma.period}
-										getKey={(period) => `sma-${period}`}
-										onSelect={(period) => onSetCoreIndicatorPeriod("sma", period)}
+										getKey={(p) => `sma-${p}`}
+										onSelect={(period) =>
+											onIndicatorsChange({ sma: { ...indicators.sma, period } })
+										}
 									/>
 								) : null}
 							</IndicatorSectionCard>
 
+							{/* EMA */}
 							<IndicatorSectionCard
 								title="EMA"
 								description="Exponential Moving Average"
 								checked={indicators.ema.enabled}
-								onCheckedChange={(checked) => onSetCoreIndicatorEnabled("ema", checked)}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({ ema: { ...indicators.ema, enabled } })
+								}
 							>
 								{indicators.ema.enabled ? (
 									<PresetButtonRow
 										values={[5, 10, 20, 50, 100, 200]}
 										activeValue={indicators.ema.period}
-										getKey={(period) => `ema-${period}`}
-										onSelect={(period) => onSetCoreIndicatorPeriod("ema", period)}
+										getKey={(p) => `ema-${p}`}
+										onSelect={(period) =>
+											onIndicatorsChange({ ema: { ...indicators.ema, period } })
+										}
 									/>
 								) : null}
 							</IndicatorSectionCard>
 
+							{/* RSI */}
 							<IndicatorSectionCard
 								title="RSI"
 								description="Relative Strength Index"
 								checked={indicators.rsi.enabled}
-								onCheckedChange={(checked) => onSetCoreIndicatorEnabled("rsi", checked)}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({ rsi: { ...indicators.rsi, enabled } })
+								}
 							>
 								{indicators.rsi.enabled ? (
 									<PresetButtonRow
 										values={[7, 14, 21, 28]}
 										activeValue={indicators.rsi.period}
-										getKey={(period) => `rsi-${period}`}
-										onSelect={(period) => onSetCoreIndicatorPeriod("rsi", period)}
+										getKey={(p) => `rsi-${p}`}
+										onSelect={(period) =>
+											onIndicatorsChange({ rsi: { ...indicators.rsi, period } })
+										}
 									/>
 								) : null}
 							</IndicatorSectionCard>
 
-							{preBollingerSimpleSections.map((section) => (
-								<IndicatorSectionCard
-									key={section.id}
-									title={section.title}
-									description={section.description}
-									checked={section.checked}
-									onCheckedChange={section.onCheckedChange}
-								/>
-							))}
+							{/* MACD */}
+							<IndicatorSectionCard
+								title="MACD"
+								description="Momentum oscillator"
+								checked={indicators.macd?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										macd: { ...(indicators.macd ?? { enabled: false }), enabled },
+									})
+								}
+							/>
 
+							{/* Bollinger Bands */}
 							<div className="space-y-2 rounded-md border border-border p-3">
 								<div className="flex items-center justify-between">
 									<div>
@@ -385,7 +245,18 @@ export function RightDetailsSidebar({
 									</div>
 									<Switch
 										checked={indicators.bollinger?.enabled ?? false}
-										onCheckedChange={onSetBollingerEnabled}
+										onCheckedChange={(enabled) =>
+											onIndicatorsChange({
+												bollinger: {
+													...(indicators.bollinger ?? {
+														enabled: false,
+														period: 20,
+														stdDev: 2,
+													}),
+													enabled,
+												},
+											})
+										}
 									/>
 								</div>
 								{indicators.bollinger?.enabled && (
@@ -397,7 +268,18 @@ export function RightDetailsSidebar({
 													variant={indicators.bollinger?.period === period ? "secondary" : "ghost"}
 													size="sm"
 													className="h-7 px-2 text-xs"
-													onClick={() => onSetBollingerPeriod(period)}
+													onClick={() =>
+														onIndicatorsChange({
+															bollinger: {
+																...(indicators.bollinger ?? {
+																	enabled: true,
+																	period: 20,
+																	stdDev: 2,
+																}),
+																period,
+															},
+														})
+													}
 												>
 													P{period}
 												</Button>
@@ -410,7 +292,18 @@ export function RightDetailsSidebar({
 													variant={indicators.bollinger?.stdDev === std ? "secondary" : "ghost"}
 													size="sm"
 													className="h-7 px-2 text-xs"
-													onClick={() => onSetBollingerStdDev(std)}
+													onClick={() =>
+														onIndicatorsChange({
+															bollinger: {
+																...(indicators.bollinger ?? {
+																	enabled: true,
+																	period: 20,
+																	stdDev: 2,
+																}),
+																stdDev: std,
+															},
+														})
+													}
 												>
 													x{std}
 												</Button>
@@ -420,36 +313,69 @@ export function RightDetailsSidebar({
 								)}
 							</div>
 
-							{postBollingerSimpleSections.map((section) => (
-								<IndicatorSectionCard
-									key={section.id}
-									title={section.title}
-									description={section.description}
-									checked={section.checked}
-									onCheckedChange={section.onCheckedChange}
-								/>
-							))}
+							{/* VWAP */}
+							<IndicatorSectionCard
+								title="VWAP"
+								description="Volume weighted average price"
+								checked={indicators.vwap?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										vwap: { ...(indicators.vwap ?? { enabled: false }), enabled },
+									})
+								}
+							/>
 
-							{postBollingerPresetSections.map((section) => (
-								<IndicatorSectionCard
-									key={section.id}
-									title={section.title}
-									description={section.description}
-									checked={section.checked}
-									onCheckedChange={section.onCheckedChange}
-								>
-									{section.checked ? (
-										<PresetButtonRow
-											values={section.values}
-											activeValue={section.activeValue}
-											getKey={(value) => `${section.id}-${value}`}
-											renderLabel={section.formatValue}
-											onSelect={section.onSelect}
-										/>
-									) : null}
-								</IndicatorSectionCard>
-							))}
+							{/* VWMA */}
+							<IndicatorSectionCard
+								title="VWMA"
+								description="Volume weighted moving average"
+								checked={indicators.vwma?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										vwma: { ...(indicators.vwma ?? { enabled: false, period: 20 }), enabled },
+									})
+								}
+							>
+								{indicators.vwma?.enabled ? (
+									<PresetButtonRow
+										values={[10, 20, 30, 50, 100, 200]}
+										activeValue={indicators.vwma?.period}
+										getKey={(p) => `vwma-${p}`}
+										onSelect={(period) =>
+											onIndicatorsChange({
+												vwma: { ...(indicators.vwma ?? { enabled: true, period: 20 }), period },
+											})
+										}
+									/>
+								) : null}
+							</IndicatorSectionCard>
 
+							{/* ATR */}
+							<IndicatorSectionCard
+								title="ATR"
+								description="Average true range"
+								checked={indicators.atr?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										atr: { ...(indicators.atr ?? { enabled: false, period: 14 }), enabled },
+									})
+								}
+							>
+								{indicators.atr?.enabled ? (
+									<PresetButtonRow
+										values={[7, 14, 21, 28, 50]}
+										activeValue={indicators.atr?.period}
+										getKey={(p) => `atr-${p}`}
+										onSelect={(period) =>
+											onIndicatorsChange({
+												atr: { ...(indicators.atr ?? { enabled: true, period: 14 }), period },
+											})
+										}
+									/>
+								) : null}
+							</IndicatorSectionCard>
+
+							{/* SMA +/- ATR Channel */}
 							<div className="space-y-2 rounded-md border border-border p-3">
 								<div className="flex items-center justify-between">
 									<div>
@@ -458,7 +384,19 @@ export function RightDetailsSidebar({
 									</div>
 									<Switch
 										checked={indicators.atrChannel?.enabled ?? false}
-										onCheckedChange={onSetAtrChannelEnabled}
+										onCheckedChange={(enabled) =>
+											onIndicatorsChange({
+												atrChannel: {
+													...(indicators.atrChannel ?? {
+														enabled: false,
+														smaPeriod: 50,
+														atrPeriod: 14,
+														multiplier: 1.5,
+													}),
+													enabled,
+												},
+											})
+										}
 									/>
 								</div>
 								{indicators.atrChannel?.enabled && (
@@ -472,7 +410,19 @@ export function RightDetailsSidebar({
 													}
 													size="sm"
 													className="h-7 px-2 text-xs"
-													onClick={() => onSetAtrChannelSmaPeriod(period)}
+													onClick={() =>
+														onIndicatorsChange({
+															atrChannel: {
+																...(indicators.atrChannel ?? {
+																	enabled: true,
+																	smaPeriod: 50,
+																	atrPeriod: 14,
+																	multiplier: 1.5,
+																}),
+																smaPeriod: period,
+															},
+														})
+													}
 												>
 													SMA{period}
 												</Button>
@@ -487,7 +437,19 @@ export function RightDetailsSidebar({
 													}
 													size="sm"
 													className="h-7 px-2 text-xs"
-													onClick={() => onSetAtrChannelAtrPeriod(period)}
+													onClick={() =>
+														onIndicatorsChange({
+															atrChannel: {
+																...(indicators.atrChannel ?? {
+																	enabled: true,
+																	smaPeriod: 50,
+																	atrPeriod: 14,
+																	multiplier: 1.5,
+																}),
+																atrPeriod: period,
+															},
+														})
+													}
 												>
 													ATR{period}
 												</Button>
@@ -502,7 +464,19 @@ export function RightDetailsSidebar({
 													}
 													size="sm"
 													className="h-7 px-2 text-xs"
-													onClick={() => onSetAtrChannelMultiplier(mult)}
+													onClick={() =>
+														onIndicatorsChange({
+															atrChannel: {
+																...(indicators.atrChannel ?? {
+																	enabled: true,
+																	smaPeriod: 50,
+																	atrPeriod: 14,
+																	multiplier: 1.5,
+																}),
+																multiplier: mult,
+															},
+														})
+													}
 												>
 													x{mult}
 												</Button>
@@ -512,38 +486,143 @@ export function RightDetailsSidebar({
 								)}
 							</div>
 
-							{postAtrChannelPresetSections.map((section) => (
-								<IndicatorSectionCard
-									key={section.id}
-									title={section.title}
-									description={section.description}
-									checked={section.checked}
-									onCheckedChange={section.onCheckedChange}
-								>
-									{section.checked ? (
-										<PresetButtonRow
-											values={section.values}
-											activeValue={section.activeValue}
-											getKey={(value) => `${section.id}-${value}`}
-											renderLabel={section.formatValue}
-											onSelect={section.onSelect}
-										/>
-									) : null}
-								</IndicatorSectionCard>
-							))}
+							{/* HMA */}
+							<IndicatorSectionCard
+								title="HMA"
+								description="Hull moving average"
+								checked={indicators.hma?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										hma: { ...(indicators.hma ?? { enabled: false, period: 20 }), enabled },
+									})
+								}
+							>
+								{indicators.hma?.enabled ? (
+									<PresetButtonRow
+										values={[9, 16, 20, 34, 55]}
+										activeValue={indicators.hma?.period}
+										getKey={(p) => `hma-${p}`}
+										onSelect={(period) =>
+											onIndicatorsChange({
+												hma: { ...(indicators.hma ?? { enabled: true, period: 20 }), period },
+											})
+										}
+									/>
+								) : null}
+							</IndicatorSectionCard>
 
-							{trailingSimpleSections.map((section) => (
-								<IndicatorSectionCard
-									key={section.id}
-									title={section.title}
-									description={section.description}
-									checked={section.checked}
-									onCheckedChange={section.onCheckedChange}
-								/>
-							))}
+							{/* ADX */}
+							<IndicatorSectionCard
+								title="ADX"
+								description="Trend strength oscillator"
+								checked={indicators.adx?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										adx: { ...(indicators.adx ?? { enabled: false, period: 14 }), enabled },
+									})
+								}
+							>
+								{indicators.adx?.enabled ? (
+									<PresetButtonRow
+										values={[7, 14, 21, 28]}
+										activeValue={indicators.adx?.period}
+										getKey={(p) => `adx-${p}`}
+										onSelect={(period) =>
+											onIndicatorsChange({
+												adx: { ...(indicators.adx ?? { enabled: true, period: 14 }), period },
+											})
+										}
+									/>
+								) : null}
+							</IndicatorSectionCard>
+
+							{/* Simple toggle indicators */}
+							<IndicatorSectionCard
+								title="Ichimoku"
+								description="Cloud baseline overlay"
+								checked={indicators.ichimoku?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										ichimoku: {
+											...(indicators.ichimoku ?? {
+												enabled: false,
+												tenkanPeriod: 9,
+												kijunPeriod: 26,
+												senkouBPeriod: 52,
+												displacement: 26,
+											}),
+											enabled,
+										},
+									})
+								}
+							/>
+							<IndicatorSectionCard
+								title="Parabolic SAR"
+								description="Trend reversal dots"
+								checked={indicators.parabolicSar?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										parabolicSar: {
+											...(indicators.parabolicSar ?? { enabled: false, step: 0.02, maxAF: 0.2 }),
+											enabled,
+										},
+									})
+								}
+							/>
+							<IndicatorSectionCard
+								title="Keltner"
+								description="EMA channel by ATR"
+								checked={indicators.keltner?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										keltner: {
+											...(indicators.keltner ?? {
+												enabled: false,
+												emaPeriod: 20,
+												atrPeriod: 10,
+												multiplier: 2,
+											}),
+											enabled,
+										},
+									})
+								}
+							/>
+							<IndicatorSectionCard
+								title="Volume Profile"
+								description="Top price-volume levels"
+								checked={indicators.volumeProfile?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										volumeProfile: {
+											...(indicators.volumeProfile ?? { enabled: false, levels: 20, topN: 6 }),
+											enabled,
+										},
+									})
+								}
+							/>
+							<IndicatorSectionCard
+								title="Support/Resistance"
+								description="Key horizontal levels"
+								checked={indicators.supportResistance?.enabled ?? false}
+								onCheckedChange={(enabled) =>
+									onIndicatorsChange({
+										supportResistance: {
+											...(indicators.supportResistance ?? {
+												enabled: false,
+												lookback: 20,
+												threshold: 0.02,
+												topN: 6,
+											}),
+											enabled,
+										},
+									})
+								}
+							/>
 						</div>
 					</ScrollArea>
 				)}
+
+				{activePanel === "orderbook" && <OrderbookPanel symbol={currentSymbol} />}
 
 				{activePanel === "news" && <NewsPanel symbol={currentSymbol} />}
 				{activePanel === "macro" && <MacroPanel symbol={currentSymbol} />}

@@ -22,20 +22,20 @@ Reine Fernradar-Themen bleiben in `to-watch.md`.
 
 | Referenz | Typ | Wofuer evaluieren? | Primaeres Gate | Owner-Doc |
 |----------|-----|--------------------|---------------|-----------|
-| `EquiCharts` | GitHub-Projekt | Custom-Chart-Erweiterung jenseits LWC | Reicht LWC + Plugins? | `../../FRONTEND_COMPONENTS.md` |
 | `@lab49/react-order-book` | Library / Repo | Orderbook-UI bei tieferem GCT-Depth-Ausbau | Brauchen wir echte Orderbook-Surface? | `../../FRONTEND_COMPONENTS.md` |
-| `Order Vantage` | GitHub-Projekt | Moderne React-Trading-UI-Performance-Patterns | Echter Mehrwert vs. eigener UI-Stack | `../../FRONTEND_COMPONENTS.md` |
-| `goexchange` | GitHub-Projekt | weitere Exchange-Adapter im Go-Layer | Bedarf fuer neue Exchange-Familien? | `../../GO_GATEWAY.md` |
-| `finnhub-go` | GitHub-Projekt | API-Coverage-/Client-Muster | Mehrwert vs. eigener Connector | `../../GO_GATEWAY.md` |
-| `pandas-ta` | Library | Algorithmen-Referenz / Korrektheit | nur Referenz oder noch praktisch? | `../../INDICATOR_ARCHITECTURE.md` |
-| `TA-Lib` | Library | Benchmark / Korrektheitsvergleich | lohnt weitere Pflege? | `../../INDICATOR_ARCHITECTURE.md` |
-| `Kand` | Library / Projekt | Rust-Core-Kandidat | Reicht Funktionstiefe / Bindings? | `../../RUST_LANGUAGE_IMPLEMENTATION.md` |
-| `GraphMERT` | Projekt / Research | KG-Slow-Lane-Refinement | echter ROI fuer Memory/KG? | `../../MEMORY_ARCHITECTURE.md` |
+| `paperless-ngx` | Plattform / Repo | DMS-/OCR-/Dokumenten-UI-Patterns fuer ingestion-nahe Flows | Passt der Betriebs-/Komplexitaetsfaktor zu unserem Scope? | `../../FRONTEND_COMPONENTS.md`, `../../UNIFIED_INGESTION_LAYER.md` |
+| `CodeGraphContext` | Tooling / Repo | Vergleich gegen bestehende KG-/Code-Context-Entwicklung (Frontend+Backend) | Bringt es messbaren Beschleunigungshebel gegen bestehenden Stack? | `../../MEMORY_ARCHITECTURE.md`, `../../AGENT_ARCHITECTURE.md` |
+| `agency-agents` | Agent Framework / Repo | Rollen-/Capability-Pattern als Vergleichsfolie fuer Agent-Orchestrierung | Pattern-Mehrwert ohne Shell-zentrierte Runtime-Uebernahme? | `../../AGENT_ARCHITECTURE.md`, `../../AGENT_SECURITY.md` |
 
 ---
 
 ## Nicht hier, sondern anderswo
 
 - **Sentiment-Modelle** wie FinBERT / FinGPT: Bewertung in `../../specs/geo/GEOMAP_DATA_CONTRACTS_AND_FEEDBACK.md`
-- **Rust-Systementscheidungen**: `../../RUST_LANGUAGE_IMPLEMENTATION.md`
+- **Go-Connector-Kandidaten** wie `finnhub-go`: Bewertung in `../../GO_GATEWAY.md`, `../../references/projects/go-clients-and-adapters.md` und passenden Go-/Infra-Slices
+- **Indicator-/Benchmark-Referenzen** wie `pandas-ta` und `TA-Lib`: Bewertung in `../../INDICATOR_ARCHITECTURE.md`
+- **Rust-Systementscheidungen** wie `Kand`: Bewertung in `../../RUST_LANGUAGE_IMPLEMENTATION.md` und `../../specs/execution/rust_kand_evaluation_delta.md`
+- **Memory-/KG-Refinement** wie `GraphMERT`: Bewertung in `../../MEMORY_ARCHITECTURE.md`
+- **Agentic-Storage-Pattern** wie `clawvault`: Bewertung in `../../MEMORY_ARCHITECTURE.md` und `../../CONTEXT_ENGINEERING.md`
 - **Lizenz-/Fernradar-Kandidaten ohne aktive Entscheidung**: `to-watch.md`
+- **Bewusst ausgeschlossene oder unklare Kandidaten**: `will-not-use.md`
