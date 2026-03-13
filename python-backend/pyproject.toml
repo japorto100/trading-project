@@ -55,7 +55,7 @@ dependencies = [
 [project.optional-dependencies]
 ml = [
     "numpy==2.2.2",
-    "scikit-learn==1.6.1",
+    "scikit-learn==1.8.0",
 ]
 # python_runtime_eval_delta: load testing tools for GRN.V1/PY3.V2 benchmarks
 eval = [
