@@ -46,23 +46,6 @@ bun run build
 - Do not re-add ESLint. Biome (`biome.json`) is the sole linter/formatter.
 - When updating spec documents: update `Stand` date, add `Aenderungshistorie` entry, update cross-references in related docs.
 
-## CLI Tooling Policy (Windows + Git Bash)
-- Prefer `rg`/`fd` over `grep`/`find` for exploration and search.
-- Use `jq`/`yq` for JSON/YAML processing in scripts and triage.
-- Use `gh` for GitHub operations when available.
-- Prefer `D:\DevCache` as install root and PATH target for user-managed CLIs. Current preferred PATH order: `D:\DevCache\cargo\.cargo\bin` then `D:\DevCache\bin`.
-- Installer ownership:
-  - System CLIs -> prefer portable/user-level placement under `D:\DevCache`; use `choco` only when no clean D-drive path exists or the tool is intentionally system-managed.
-  - Rust CLIs -> `cargo` / `cargo-binstall`
-  - Python CLIs -> `uv tool`
-  - Node CLIs -> `pnpm -g`
-- Current verified baseline:
-  - `cargo-binstall`, `starship`, `atuin`, `coreutils.exe` -> `D:\DevCache\cargo\.cargo\bin`
-  - `gh`, `direnv` -> `D:\DevCache\bin`
-  - `winget`, `curl` may remain on system paths.
-- Verify each tool after install (`command -v`, `<tool> --version`).
-- `uutils-coreutils` is optional and does not replace `grep`/`sed`/`awk`.
-
 ## Pitfalls
 - After `bun install`, always run `bun run db:generate` before dev or build. Without it, Prisma client is missing and build fails with `Cannot find module '.prisma/client/default'`.
 - `tailwind.config.ts` is a v3 relic. Do not restore it as active v3 config. Tailwind v4 reads from `globals.css`.
@@ -82,16 +65,19 @@ When debugging common issues:
 - Provider or infra questions: cross-check the current contract/spec before assuming legacy frontend-provider ownership.
 
 ## Key Files For Context
-- `docs/specs/EXECUTION_PLAN.md` — 22+1 phase roadmap with sub-phases, dependencies, and current progress marker.
-- `docs/specs/SYSTEM_STATE.md` — IST/SOLL per architecture layer (17 sections). Ground truth for what exists.
-- `docs/specs/DOCUMENTATION_ARCHITECTURE.md` — Doc layers, read order, ownership, split rules.
-- `docs/specs/API_CONTRACTS.md` — umbrella API contract; use `docs/specs/api/` for boundary-specific details.
-- `docs/specs/AUTH_SECURITY.md` — umbrella security spec; use `docs/specs/security/` for focused auth/policy/secrets/encryption docs.
-- `docs/specs/geo/GEOMAP_OVERVIEW.md` — comprehensive spec for the map feature (35+ sections).
-- `docs/specs/geo/GEOMAP_MODULE_CATALOG.md` — D3 module catalog, feature-to-module matrix, staged install plan.
-- `docs/PROXY_CONVENTIONS.md` — Phase 0/1: Correlation-ID, thin proxy, provider-bypass rules.
-- `docs/specs/geo/GEOMAP_VERIFY_GATES.md` — Phase 4: Draw-workflow, E2E acceptance, save error paths.
-- `docs/BASEMAP_POLICY.md`, `docs/GEOCODING_STRATEGY.md`, `docs/PMTILES_CONTRACT.md`, `docs/PERFORMANCE_BASELINE.md` — Phase 4 GeoMap policy docs.
+
+- `docs/specs/EXECUTION_PLAN.md` — phases, dependencies, current progress marker
+- `docs/specs/SYSTEM_STATE.md` — IST/SOLL per layer — ground truth for what exists
+- `docs/specs/DOCUMENTATION_ARCHITECTURE.md` — doc layers, read order, ownership, split rules
+- `docs/specs/ARCHITECTURE.md` — umbrella → `architecture/` subspecs (BASELINE, FRONTEND, GO, PYTHON, RUST, AGENT RUNTIME, etc.)
+- `docs/specs/API_CONTRACTS.md` — umbrella → `api/` subspecs (5 files incl. UIL routes)
+- `docs/specs/AUTH_SECURITY.md` — umbrella → `security/` subspecs (6 files)
+- `docs/specs/data/DATA_ARCHITECTURE.md` — data flow, zones, canonical model, sources
+- `docs/specs/GOVERNANCE.md` — umbrella → `governance/` blueprints (Phase B/C)
+- `docs/specs/ERRORS.md` — error taxonomy, resilience patterns
+- `docs/specs/OBSERVABILITY.md` — OTel, structured logging, correlation IDs
+- `docs/specs/geo/GEOMAP_OVERVIEW.md` — GeoMap comprehensive spec (35+ sections)
+- `docs/specs/geo/GEOMAP_MODULE_CATALOG.md` — D3 module catalog, feature-to-module matrix
 
 ## Memory Management
 - Run `/memory refresh` after editing `GEMINI.md` or `AGENTS.md` to reload context.

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 import "tradeviewfusion/go-backend/internal/connectors/base"
@@ -89,7 +89,7 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	return c.getSeries(ctx, apiCode, assetType, limit)
 }
 
-	func (c *Client) getSeries(ctx context.Context, apiCode string, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+func (c *Client) getSeries(ctx context.Context, apiCode string, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
 	if !gct.IsSemanticAssetType(assetType, "macro") {
 		return nil, &gct.RequestError{Path: defaultSeriesPath, StatusCode: http.StatusBadRequest, Cause: fmt.Errorf("unsupported tcmb assetType")}
 	}

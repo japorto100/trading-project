@@ -1,6 +1,6 @@
 # Python Runtime Evaluation Delta
 
-> **Stand:** 13. Maerz 2026 (Rev. 4)
+> **Stand:** 13. Maerz 2026 (Rev. 6)
 > **Zweck:** Evaluation fuer Python-Runtime-Upgrades: Python 3.13t (nogil),
 > Granian vs. uvicorn, PyO3 allow_threads Generalisierung.
 > **Aenderungshistorie:**
@@ -8,6 +8,8 @@
 > - Rev. 2 (12.03.2026): py.detach() DONE (alle 5 Wrapper); granian>=2.0.0 in pyproject.toml; locust eval-extra; Startup-Switch dokumentiert
 > - Rev. 3 (13.03.2026): grpc_server.py Bugfix (bound==0 check); bench_server.py multi-service; dev-stack.ps1 Granian --reload
 > - Rev. 4 (13.03.2026): Benchmark-Run Learnings dokumentiert; Concurrency-Modell-Analyse; Phase A/B Benchmark-Plan strukturiert; venv2-Setup-Plan (3.13t)
+> - Rev. 5 (13.03.2026): grpc_server.py GRPC_BACKEND-Flag (grpcio/grpclib); pyproject-313t.toml erstellt; pandas in pyproject.toml explizit; .venv (3.12) uv sync done; .venv-313t Install ausstehend; pandas→polars TODO; Ichimoku+yfinance TODO
+> - Rev. 6 (13.03.2026): .venv-313t Packages installiert (ohne hmmlearn+polars); Phase B Benchmark (PY3.V2) abgeschlossen; 3.12 vs 3.13t Direktvergleich dokumentiert; Entscheid GRN.V4+PY3.V4 eingetragen
 
 ---
 
@@ -113,6 +115,45 @@ Setup: beide Server frisch auf Bench-Ports, shared httpx connection pool
 - Der erste fehlerhafte Run (13175ms P50) war ein Benchmark-Bug: per-Request httpx.AsyncClient (neue TCP-Connection pro Request). Gefixt durch shared client mit Connection-Pool.
 - `finance-bridge` nutzt `yfinance` (eigene Session), kein httpx-fix noetig in Produktionscode
 
+### Benchmark-Ergebnis Phase B (13.03.2026): indicator-service, 1 Worker, 3.13t/nogil
+
+```
+Setup: gleiche Bench-Ports, shared httpx connection pool
+       uvicorn :12092  vs  Granian :12192  —  workers=1, Python 3.13.9t/nogil
+
+[health]  concurrency=50, 500 reqs
+  uvicorn  P50=  455ms  P95=2228ms  P99=3001ms  RPS= 61.5
+  granian  P50=  487ms  P95=1995ms  P99=2922ms  RPS= 63.4
+  → Granian: +1.9 RPS, P95 -233ms, P99 -79ms  ← Tokio-Vorteil bestaetigt
+
+[rust]    concurrency=2, 80 reqs  (py.detach, GIL freigegeben)
+  uvicorn  P50=  8.3ms  P95= 15.1ms  P99=15.9ms  RPS=106
+  granian  P50=  9.4ms  P95= 12.5ms  P99=25.7ms  RPS=102
+  → uvicorn marginal besser — 1 Worker, GIL weg aendert nichts bei single-worker
+
+[python]  concurrency=1, 40 reqs  (GIL-bound Kontrolle)
+  uvicorn  P50=  8.2ms  P95= 12.2ms  P99=24.2ms  RPS= 54
+  granian  P50=  9.8ms  P95= 41.8ms  P99=124.9ms  RPS= 43
+  → uvicorn besser — Granian zeigt erhoehte P99-Varianz bei reiner Python-Last (1 Worker)
+```
+
+### 3.12 vs 3.13t Direktvergleich (uvicorn, workers=1)
+
+```
+Gruppe   | Python 3.12 uvicorn          | Python 3.13t uvicorn         | Delta
+---------|------------------------------|------------------------------|-------
+health   | P50=379ms P95=2279ms RPS=66  | P50=456ms P95=2228ms RPS=62  | P50 +77ms schlechter, P95 aehnlich
+rust     | P50=8.4ms P95=13.2ms RPS=99  | P50=8.3ms P95=15.1ms RPS=106 | RPS +7% — py.detach profitiert leicht
+python   | P50=8.8ms P95=12.8ms RPS=49  | P50=8.2ms P95=12.2ms RPS=54  | RPS +10% — MACD schneller auf 3.13t
+```
+
+**Interpretation Phase B:**
+- Bei `workers=1` kein dramatischer GIL-Gewinn erwartet und auch nicht gemessen
+- `rust`/`python` RPS +7-10% auf 3.13t — konsistent mit weniger GIL-Overhead beim Scheduling
+- health P50 schlechter auf 3.13t/uvicorn: free-threading hat leicht erhoehten asyncio-Overhead (bekannt)
+- Echter 3.13t-Vorteil erst bei `workers > 1` sichtbar (Tokio-Threads + kein GIL = parallele Cores)
+  → Phase C (workers=4) waere naechster Schritt, aber ausserhalb des aktuellen Scopes
+
 ### Konsequenzen fuer Benchmark-Design
 
 | Benchmark-Ziel | Richtige Konfiguration |
@@ -212,10 +253,25 @@ uvicorn. Ziele: hoeherer Throughput, geringere Latenz, geringerer Memory-Overhea
 - `scripts/bench_server.py` startet beide Server frisch auf Bench-Ports (kein Devstack-Konflikt)
   - uvicorn Bench-Ports: service_default + 4000 (indicator :12092)
   - Granian Bench-Ports: uvicorn_bench_port + 100 (indicator :12192)
-- `--workers N` Flag (default 4) steuert Server-Worker-Count
+- `--workers N` Flag (default 1 fuer fairen Baseline-Vergleich) steuert Server-Worker-Count
 - `--venv PATH` Flag (Phase B) waehlt Python-venv (3.12 vs 3.13t)
 - `dev-stack.ps1` Granian-Pfad hat `--reload`
 - `grpc_server.py`: `bound == 0` Check (grpcio gibt 0 zurueck, kein RuntimeError)
+- `grpc_server.py`: GRPC_BACKEND env-Flag — `"grpcio"` (default, 3.12) oder `"grpclib"` (3.13t, pure-Python asyncio)
+  - `_start_grpcio`: ImportError-safe (graceful skip wenn grpcio nicht installiert)
+  - `_start_grpclib`: asyncio-basiert, referenziert `ipc_servicer_async.py` (noch nicht erstellt — nur noetig bei GRPC_ENABLED=1 + GRPC_BACKEND=grpclib in Prod)
+  - Benchmark: `GRPC_ENABLED=0` in bench_env → grpc_server.py wird nie importiert (app_factory.py Guard)
+- `pyproject-313t.toml`: 3.13t-Variante von pyproject.toml
+  - grpcio/grpcio-tools entfernt → grpclib>=0.4.4
+  - opentelemetry-exporter-otlp-proto-grpc → -proto-http
+  - pandas>=2.2.0 explizit (war nur transitiv via yfinance)
+  - scikit-learn in main deps (vorher nur in [ml] optional)
+  - rust-core zeigt auf cp313t-Wheel (non-abi3)
+- `pyproject.toml` (3.12): pandas>=2.2.0 jetzt explizit eingetragen
+- `.venv` (3.12): `uv sync` abgeschlossen (13.03.2026) — pandas jetzt inkludiert
+- `.venv-313t`: venv erstellt, rust_core cp313t-Wheel installiert, GIL=False verifiziert
+  - **AUSSTEHEND**: pandas, cachetools, polars, scipy, scikit-learn, hmmlearn, grpclib, protobuf noch nicht installiert
+  - **Naechster Schritt**: `uv pip install --python .venv-313t/Scripts/python.exe pandas>=2.2 cachetools polars scipy scikit-learn hmmlearn grpclib protobuf`
 
 ---
 
@@ -252,16 +308,26 @@ Verify-Gates: **GRN.V1, GRN.V2** (Ergebnisse in diese Datei eintragen)
 
 **Ziel:** GIL-frei vs GIL Direktvergleich — zeigt ob 3.13t Adoption sinnvoll ist.
 
-Gleiche Endpoints wie Phase A, aber mit `.venv-313t`:
+**Vorbedingung:** `.venv-313t` vollstaendig installieren:
+```bash
+cd python-backend
+uv pip install --python .venv-313t/Scripts/python.exe \
+  "pandas>=2.2.0" "cachetools>=5.3.0" "polars[rtcompat]>=1.38.1" \
+  "scipy>=1.14.0" "scikit-learn>=1.6.0" "hmmlearn>=0.3.0" \
+  "grpclib>=0.4.4" "protobuf>=5.28.0"
+```
+
+Dann Benchmark (workers=1 fuer fairen Direktvergleich 3.12 vs 3.13t):
 
 ```bash
-uv run python scripts/bench_server.py --service indicator --workers 4 --venv .venv-313t
+cd python-backend
+uv run python scripts/bench_server.py --group all --workers 1 --venv .venv-313t
 ```
 
 **Erwartetes Ergebnis Phase B:**
-- `health`: aehnlich wie Phase A (HTTP-Overhead ist Rust-seitig)
-- `rust`: deutlich besser (4 Threads laufen Rust parallel, kein GIL-Stau)
-- `python`: besser skalierend mit --workers (echte Thread-Parallelitaet)
+- `health`: aehnlich wie Phase A (HTTP-Overhead ist Rust-seitig, nicht GIL-abhaengig)
+- `rust`: Granian besser (Tokio-Threads + kein GIL = parallele Rust-Berechnung moeglich)
+- `python`: bei workers=1 aehnlich Phase A; echter Unterschied erst bei workers > 1
 
 Verify-Gates: **PY3.V2** (Ergebnis dokumentieren mit konkreten Zahlen)
 
@@ -277,14 +343,42 @@ Verify-Gates: **PY3.V2** (Ergebnis dokumentieren mit konkreten Zahlen)
 - [x] **GRN.V1** Phase A health: Granian P95/P99 besser bei hoher Concurrency (+300ms P95, +512ms P99, +6.7 RPS) — Tokio-Vorteil bestaetigt (13.03.2026)
 - [x] **GRN.V2** Phase A rust/python: Identisch — py.detach korrekt, GIL Kontrollgruppe stimmt (13.03.2026)
 - [ ] **GRN.V3** SSE-Streaming-Kompatibilitaet pruefen (go-backend→indicator-service SSE)
-- [ ] **GRN.V4** Entscheidung: Rollout auf alle Services oder Defer
+- [x] **GRN.V4** Entscheidung: **Granian DEFER** (13.03.2026)
+  - Begruendung: Bei workers=1 nur marginaler P95/P99-Vorteil bei health (+2 RPS, -230ms P95)
+  - rust/python: uvicorn identisch oder besser — kein Gewinn
+  - Echter Vorteil nur bei hoher Connection-Concurrency + I/O-bound Last → nicht der aktuelle Bottleneck
+  - Granian bleibt in pyproject.toml als opt-in; dev-stack.ps1 Granian-Pfad bleibt
+  - Re-evaluate: wenn indicator-service > 200 concurrent connections oder HTTP/2 benoetigt wird
 
 ### Python 3.13t
 
-- [ ] **PY3.V1** venv2 Setup + numpy/pydantic/FastAPI Kompatibilitaetscheck
-- [ ] **PY3.V2** Phase B: indicator-service 3.12 vs 3.13t Vergleich (konkrete Zahlen)
+- [x] **PY3.V1** venv2 Setup: Python 3.13.9t, GIL=False verifiziert, rust_core cp313t-Wheel gebaut+installiert (13.03.2026)
+  - grpcio: kein 3.13t-Wheel fuer Windows → grpclib als Ersatz gewaehlt
+  - `grpc_server.py` GRPC_BACKEND-Flag implementiert (grpcio/grpclib)
+  - `pyproject-313t.toml` erstellt + aktualisiert (Rev. 6): hmmlearn+polars excluded, pins aktualisiert
+  - `.venv-313t` Packages: pandas 3.0.1, scipy 1.17.1, scikit-learn 1.8.0, cachetools 7.0.5, grpclib 0.4.9, protobuf 7.34.0 — alle GIL=False verifiziert
+  - hmmlearn: EXCLUDED (kein cp313t-Wheel, Cython-Internals nicht GIL-free auditiert)
+  - polars: EXCLUDED (polars>=1.36 zieht polars-runtime-32 als Source-Build → haengt auf Windows cp313t)
+- [x] **PY3.V2** Phase B abgeschlossen (13.03.2026) — indicator-service 3.12 vs 3.13t, workers=1
+  - rust: +7% RPS auf 3.13t (py.detach profitiert von reduziertem GIL-Scheduling-Overhead)
+  - python: +10% RPS auf 3.13t (MACD schneller)
+  - health: P50 +77ms schlechter auf 3.13t/uvicorn (free-threading asyncio-Overhead)
+  - Fazit: messbar aber nicht dramatisch bei single-worker — siehe PY3.V4
 - [ ] **PY3.V3** ChromaDB + sentence-transformers auf 3.13t pruefen (memory-service)
-- [ ] **PY3.V4** Entscheidung: Upgrade oder Defer mit Begruendung + Datum
+- [x] **PY3.V4** Entscheidung: **3.13t DEFER** (13.03.2026)
+  - Begruendung: +7-10% RPS bei single-worker ist real aber gering
+  - Echter Gewinn erst bei workers>1 (Tokio-Threads + kein GIL = volle Core-Nutzung) — nicht getestet
+  - polars/hmmlearn blockieren vollstaendige Migration; chromadb/sentence-transformers ungetestet (PY3.V3 offen)
+  - 3.13t ist experimentell bis Python 3.14 — Stabilitaetsrisiko in Prod nicht gerechtfertigt
+  - Re-evaluate: wenn Python 3.14 stabil + polars/hmmlearn cp313t-Wheels erscheinen + PY3.V3 gruenes Licht
+
+### TODOs Status
+
+- [x] **TODO-1** `.venv-313t` Install abgeschlossen (13.03.2026): pandas 3.0.1, scipy 1.17.1, sklearn 1.8.0, cachetools 7.0.5, grpclib 0.4.9, protobuf 7.34.0; hmmlearn+polars excluded
+- [x] **TODO-2** Phase B Benchmark abgeschlossen (13.03.2026) → PY3.V2 eingetragen; Entscheid GRN.V4+PY3.V4 dokumentiert
+- [x] **TODO-3** `ipc_servicer_async.py` erstellt (13.03.2026): ForwardRequestServicerAsync, httpx.ASGITransport, grpclib __mapping__, make_grpclib_servicers(); smoke-test auf 3.13t OK
+- [ ] **TODO-4** → verschoben zu **Eval-Backlog** (siehe unten)
+- [ ] **TODO-5** → verschoben zu **Eval-Backlog** (siehe unten); Ichimoku: owner `indicator_delta.md`
 
 ---
 
@@ -315,18 +409,39 @@ Kombinierter Gain vor allem bei:
 |:--------|:-----|:-------|
 | allow_threads (py.detach) in rust_core | sofort / Pre-Phase-19 | **DONE** |
 | bench_server.py Infra | Pre-Phase-20 | **DONE** |
-| Phase A Benchmark (GRN.V1+V2) | Pre-Phase-20 | pending |
-| venv2 Setup (PY3.V1) | Pre-Phase-20 | pending |
-| Phase B Benchmark (PY3.V2) | Pre-Phase-20 | pending |
+| Phase A Benchmark (GRN.V1+V2) | Pre-Phase-20 | **DONE** (13.03.2026) |
+| venv2 Setup (PY3.V1) | Pre-Phase-20 | **DONE** (venv+wheel) / packages ausstehend |
+| .venv-313t Packages installieren | Pre-Phase-20 | **DONE** (13.03.2026) |
+| Phase B Benchmark (PY3.V2) | Pre-Phase-20 | **DONE** (13.03.2026) |
+| ipc_servicer_async.py (grpclib) | Pre-Phase-20 | **DONE** (13.03.2026) |
+| pandas→polars Migration eval | Pre-Phase-20 | → Eval-Backlog (TODO-4) |
+| Ichimoku + yfinance Review | Pre-Phase-20 | → Eval-Backlog (TODO-5); Ichimoku owner: indicator_delta.md |
 | Rollout-Entscheid (Granian + ggf. 3.13t) | Phase-20 | pending |
 
 ---
 
-## 9. Exit Criteria
+## 9. Eval-Backlog (defer — kein Blocker fuer Phase-20)
+
+| Item | Begruendung | Re-evaluate wann |
+|:-----|:------------|:----------------|
+| **pandas→polars Migration** (`portfolio_analytics.py`, ~15 pd.* Stellen) | polars-runtime-32 blockiert .venv-313t auf Windows; Migration sinnvoll aber kein Hot-Path-Blocker | Wenn polars cp313t-Binary-Wheel erscheint (polars 2.x?) |
+| **yfinance-Replacement** | yfinance bleibt via finance-bridge; Go hat keinen nativen Stock/Index OHLCV-Ersatz; kein Prod-Blocker | Wenn finance-bridge Go-nativen Fetch bekommt (Phase 20+) |
+| **3.13t workers>1 Benchmark (Phase C)** | Echter GIL-Vorteil erst bei multi-worker sichtbar; Infra-Aufwand fuer Benchmark > aktueller Nutzen | Wenn indicator-service unter realer Last > 200 concurrent Clients |
+| **ChromaDB + sentence-transformers auf 3.13t** (PY3.V3) | memory-service; ungetestet; kein Prod-Blocker solange .venv (3.12) aktiv | Vor 3.13t Rollout-Entscheid |
+
+---
+
+## 10. Exit Criteria
 
 - [x] py.detach in allen bestehenden `calculate_*` und Cache-Funktionen (12.03.2026)
 - [x] grpc_server.py Bugfix: bound==0 statt RuntimeError (13.03.2026)
 - [x] bench_server.py: beide Server frisch, isolierte Bench-Ports, --workers, --venv (13.03.2026)
-- [ ] Phase A abgeschlossen: GRN.V1+V2 Ergebnisse dokumentiert
+- [x] Phase A abgeschlossen: GRN.V1+V2 Ergebnisse dokumentiert (13.03.2026)
+- [x] grpc_server.py GRPC_BACKEND-Flag: grpcio (default) / grpclib (3.13t) (13.03.2026)
+- [x] pyproject-313t.toml erstellt (13.03.2026)
+- [x] pyproject.toml: pandas explizit + .venv (3.12) uv sync (13.03.2026)
+- [x] .venv-313t: venv + rust_core cp313t-Wheel (GIL=False verifiziert) (13.03.2026)
+- [ ] .venv-313t: restliche Packages installieren (TODO-1)
 - [ ] Phase B abgeschlossen: PY3.V2 Ergebnisse dokumentiert
+- [ ] ipc_servicer_async.py (grpclib async Servicer) erstellen
 - [ ] Entscheid dokumentiert: Granian Rollout ja/nein + 3.13t Upgrade ja/nein mit Datum

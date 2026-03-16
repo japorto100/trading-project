@@ -1,6 +1,6 @@
 # AUTH & SECURITY ARCHITECTURE
 
-> **Stand:** 09. Maerz 2026 (Rev. 6.2 - Umbrella-Spec auf granulare
+> **Stand:** 16. Maerz 2026 (Rev. 6.2 - Umbrella-Spec auf granulare
 > `security/`-Subspecs verteilt)
 > **Zweck:** Dach- und Navigations-Spec fuer die Sicherheitsarchitektur im
 > 3-Schichten-Modell `User -> Next.js/Go Gateway -> GCT -> Exchanges`.

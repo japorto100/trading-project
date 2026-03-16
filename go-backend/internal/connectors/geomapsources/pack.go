@@ -119,13 +119,13 @@ func mapSanctionsToCandidate(item map[string]any, source string) Candidate {
 		"category":     "sanctions_export_controls",
 		"sourceRefs": []map[string]any{
 			{
-				"provider":   strings.ToLower(source),
-				"id":         id,
-				"sourceTier": "A",
+				"provider":    strings.ToLower(source),
+				"id":          id,
+				"sourceTier":  "A",
 				"reliability": 0.9,
-				"fetchedAt":  generatedAt,
-				"title":      headline,
-				"url":        sourceURL(source),
+				"fetchedAt":   generatedAt,
+				"title":       headline,
+				"url":         sourceURL(source),
 			},
 		},
 	}

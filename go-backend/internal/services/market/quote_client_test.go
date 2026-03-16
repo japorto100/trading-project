@@ -5,11 +5,11 @@ import (
 	"errors"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/contracts"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
-	"tradeviewfusion/go-backend/internal/router/adaptive"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/contracts"
+	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
 
 type fakeCryptoTickerClient struct {

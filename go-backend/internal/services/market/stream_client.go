@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"tradeviewfusion/go-backend/internal/contracts"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/contracts"
 )
 
 type quoteRouter interface {

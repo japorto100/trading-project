@@ -33,10 +33,11 @@ Ziel: kein Minimal-Chat, sondern ein vollwertiger Chat-Workspace mit Streaming, 
   - `docs/AGENT_SECURITY.md`
   - `docs/AGENT_HARNESS.md`
   - `docs/AGENT_ARCHITECTURE.md`
-- `docs/AGENT_TOOLS.md`
+  - `docs/AGENT_TOOLS.md`
   - `docs/GO_GATEWAY.md`
   - `docs/MEMORY_ARCHITECTURE.md`
   - `docs/CONTEXT_ENGINEERING.md`
+  - `docs/AGENTS_BACKEND.md` (plattformweites Agent-Backend-Programm; relevant fuer Backend-Einordnung externer Referenzen)
 
 ### 2.2 Referenz-Repos (in `_tmp_ref_review`)
 
@@ -104,6 +105,10 @@ Nicht uebernehmen:
 - full migration eures Transportlayers auf Tambo
 
 Warum: stark fuer "agent speaks UI". Sollte auf euren bestehenden Transport/Policy-Rails aufsetzen, nicht umgekehrt.
+
+Backend-Relevanz-Hinweis:
+
+- Falls Tambo-Muster backendseitig genutzt werden (component/event contracts, thread protocol framing), erfolgt die Einordnung ueber `docs/AGENTS_BACKEND.md` und die dort zugeordneten Execution-Slices; kein impliziter Wechsel des Transport- oder Orchestrator-Owners.
 
 ### 3.4 Weitere Referenzen aus FRONTEND_COMPONENTS.md (adjazent)
 
@@ -262,10 +267,17 @@ Pro assistant message:
 
 ### 7.3 Reconnect rules
 
-- if stream interrupted and backend has `backendId`/message id:
-  - call reconnect endpoint
-  - resume unfinished message
-- else mark message error + allow manual retry
+- harte Modus-Wahl pro Deployment:
+  - **Stop-Mode:** `stop/abort` aktiv, `resume` deaktiviert
+  - **Resume-Mode:** `resume` aktiv, `stop/abort` deaktiviert
+- nur im **Resume-Mode**:
+  - if stream interrupted and backend has `backendId`/message id:
+    - call reconnect endpoint
+    - resume unfinished message
+  - else mark message error + allow manual retry
+- im **Stop-Mode**:
+  - `stop()` beendet den Lauf terminal
+  - kein Resume derselben Generation; nur Retry/Regenerate startet neuen Lauf
 
 ---
 
@@ -295,6 +307,9 @@ Entscheidungskriterium:
 - tool-event UX
 - integration effort in existing Next<->Go<->Python
 - security/policy control (must stay in backend boundaries)
+- interruption semantics (`intentional_stop` vs `disconnect_resume`)
+- typed message metadata (model, usage, finish reason, timestamps)
+- persistent vs transient stream data handling (history-safe)
 
 ---
 
@@ -342,6 +357,14 @@ Entscheidungskriterium:
 - umsetzen: `AC28..AC33` (Parser-Robustheit, End-Idempotenz, Thread-Migration, Merge-Policy, Queue/Composer Contracts)
 - verifizieren: `AC.V14..AC.V19`
 - referenzieren: Perplexica (`useChat`/reconnect), AgentZero (queue/attachments), Tambo (thread/event invariants)
+
+### Phase E (Runtime Contracts fuer SDK/Streams)
+
+- Interruption Contract fixieren (`stop` xor `resume`) und als Feature-Flag ausrollen
+- Resume-Endpoints spezifizieren (`POST create stream`, `GET /stream` reconnect mit `204` wenn kein aktiver Stream)
+- Active-Stream-Lifecycle absichern (vor neuem Run `activeStreamId` clearen; bei Finish/Abort clean finalisieren)
+- Tool-Approval Auto-Continuation deterministisch festlegen (auto-send oder explizit manuell)
+- Abort-safe Stream-Consumption und Idempotenz bei terminal events verifizieren
 
 ---
 
@@ -669,3 +692,147 @@ verbindliche Alignments:
 - Runtime/Observability:
   - Streaming-/Queue-/Retry-Verhalten als explizite Execution-Policy.
   - Audit-faehige Kette: user intent -> gateway decision -> tool/event -> UI output.
+
+---
+
+## 17) Must-have Ergaenzungen (Web-Review Maerz 2026)
+
+Diese Punkte sollten zusaetzlich in den Chat-Plan aufgenommen werden, weil sie
+bei AI-SDK-/Streaming-Setups regelmaessig produktionskritisch sind.
+
+### 17.1 Unterbrechungs-Policy als harter Contract
+
+- `stop/abort` und `resume` nicht als ein gemeinsames Feature behandeln.
+- Pro Deployment-Modus klare Wahl treffen:
+  - Modus A: `stop` erlaubt, `resume` aus
+  - Modus B: `resume` erlaubt, `stop` aus
+- Im UI sichtbar unterscheiden:
+  - `stopped_by_user`
+  - `interrupted_by_disconnect`
+  - `resumed`
+
+Warum: Der aktuelle AI-SDK-Stand dokumentiert eine Inkompatibilitaet zwischen
+Abort und Resumption; ohne klare Policy entstehen widerspruechliche UX-Zustaende.
+
+### 17.2 Message-Metadata verpflichtend einfuehren
+
+Pro assistant message mindestens:
+
+- `modelId`
+- `createdAt` / `finishedAt`
+- `finishReason`
+- `usage.totalTokens` (optional input/output getrennt)
+- `latencyMs` (TTFT + completion, wenn verfuegbar)
+
+Warum: Cost-Transparenz, Audit, Debugging und spaetere Routing-Optimierung.
+
+### 17.3 Transiente Stream-Daten von persistenten Daten trennen
+
+- Persistente Daten (`message.parts`): alles, was in Thread-Historie bleiben soll.
+- Transiente Daten (`onData`/ephemeral): Toasts, "tool running", kurzfristige
+  Progress-Hinweise.
+- "Transient" nie in History-Store schreiben.
+
+Warum: verhindert History-Verschmutzung und reduziert Merge-/Restore-Fehler.
+
+### 17.4 Tool-Execution-Approval als First-Class UI-State
+
+- Tool-Status um `approval-requested` erweitern.
+- Inline Approval Card mit Approve/Reject und begruendeter Deny-Option.
+- Auto-Continuation nach Approval explizit (oder deterministisch manuell) festlegen.
+
+Warum: passt zu euren Security-Boundaries und verhindert stille Side-Effects.
+
+### 17.5 Multi-Step Tool-Runs sichtbar machen
+
+- Step-Grenzen (`step-start`) im Thread rendern.
+- Tool-Invocation-State vollstaendig anzeigen:
+  - `input-streaming`
+  - `input-available`
+  - `output-available`
+  - `output-error`
+- Pro Step: Laufzeit/Fehlertext/Retry-Pfad.
+
+Warum: reduziert "black box"-Gefuehl bei Agent-Loops und beschleunigt Incident-
+Debugging.
+
+### 17.6 Serverseitige Abort-/Finish-Cleanup-Pflichten
+
+- Bei Abort: partial persist + abort event loggen.
+- Bei normalem Finish: final persist + usage speichern.
+- Explizite Idempotenzregel fuer doppelte terminal events.
+
+Warum: ohne Cleanup drohen hängende active-stream marker und inkonsistente
+Reload-Recovery.
+
+### 17.7 Dynamic-Tool Fallback fuer unbekannte Tool-Schemas
+
+- Wenn Tool zur Compile-Zeit unbekannt: generisches `dynamic-tool` Rendering.
+- Immer rohe Inputs/Outputs + Fehlertext im Debug-Panel sichtbar machen.
+
+Warum: wichtig fuer MCP-/runtime-geladene Tools und flexible Agent-Backends.
+
+### 17.8 Error-/Warning-Telemetrie fuer Runtime-Qualitaet
+
+- SDK-/Provider-Warnings erfassen (nicht nur Console) und in Observability
+  pipeline aufnehmen.
+- User-seitig weiter nur generische Fehlermeldung; Details nur intern.
+
+Warum: verbessert Betriebssicherheit ohne Informationsleck im Frontend.
+
+### 17.9 Empfohlene Priorisierung fuer naechste Iteration
+
+1. Unterbrechungs-Policy + Statusmodell (17.1)
+2. Metadata + Usage + Latency (17.2)
+3. Persistente vs transiente Datenpfade (17.3)
+4. Tool-Approval + Step-States (17.4, 17.5)
+5. Cleanup/Idempotenz + Dynamic-Tool Fallback (17.6, 17.7)
+6. Warning/Fehler-Telemetrie (17.8)
+
+### 17.10 Quellen (offizielle/technische Referenzen)
+
+- https://ai-sdk.dev/docs/troubleshooting/abort-breaks-resumable-streams
+- https://sdk.vercel.ai/docs/advanced/stopping-streams
+- https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-resume-streams
+- https://ai-sdk.dev/docs/ai-sdk-ui/message-metadata
+- https://ai-sdk.dev/docs/ai-sdk-ui/streaming-data
+- https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-tool-usage
+- https://ai-sdk.dev/docs/ai-sdk-ui/error-handling
+
+### 17.11 Resume-Backend-Contract (verbindlich)
+
+- Zwei Endpunkte:
+  - `POST /chat` startet neuen Run und schreibt `activeStreamId`
+  - `GET /chat/{id}/stream` resumiert aktiven Run
+- Wenn kein aktiver Stream vorhanden:
+  - `GET /chat/{id}/stream` liefert `204 No Content` (kein Fehlerzustand)
+- Race-Condition-Guard:
+  - vor neuem Run `activeStreamId = null` setzen
+  - nur letzter aktiver Run darf resumiert werden
+- AuthZ/AuthN fuer **beide** Endpunkte gleich streng wie Chat-POST.
+- Stream-TTL/Expiry dokumentieren (Redis) inkl. Verhalten bei Ablauf.
+
+### 17.12 Tool-Approval-Continuation (verbindlich)
+
+- Nach `approval-requested` muss der Lauf deterministisch fortgesetzt werden:
+  - entweder auto-continue when complete
+  - oder expliziter Continue-Submit im UI (kein stiller Deadlock)
+- Gleiches fuer client-side tool outputs: nach vollstaendigen Tool-Results
+  muss der naechste Agent-Schritt klar triggerbar sein.
+
+### 17.13 Abort-/Finish-Stream-Handling (verbindlich)
+
+- Bei abort muss der Stream sauber konsumiert/geschlossen werden, damit keine
+  haengenden Verbindungen oder Leaks bleiben.
+- `onAbort` und `onFinish` getrennt behandeln:
+  - abort: partial persist + abort log
+  - finish: final persist + usage/final status
+- Terminal events (`done`/`text-end`) idempotent behandeln (duplicate-safe).
+
+### 17.14 Zusaetzliche Verify-Gates (Must-have)
+
+- **VG.R1** Stop-Mode: `stop()` beendet Lauf; reconnect resumiert **nicht** dieselbe Generation.
+- **VG.R2** Resume-Mode: Disconnect ohne stop -> Resume mit gleicher Run-Identitaet.
+- **VG.R3** `GET /chat/{id}/stream` ohne aktiven Stream liefert `204`.
+- **VG.R4** Approval/Tool-Output fuehrt deterministisch zur naechsten Iteration (kein Hanger).
+- **VG.R5** Doppeltes terminal event erzeugt keine doppelte Persistenz/keine Doppel-UI.

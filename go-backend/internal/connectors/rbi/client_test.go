@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 func TestGetSeries_FetchesDBIEFXReservesAndParsesLatestFirst(t *testing.T) {

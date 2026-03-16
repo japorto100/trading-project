@@ -302,4 +302,3 @@ func decodeJSONBody(r *http.Request, out any) error {
 	}
 	return json.Unmarshal(body, out)
 }
-

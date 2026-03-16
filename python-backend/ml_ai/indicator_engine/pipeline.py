@@ -261,6 +261,38 @@ class KeltnerResponse(BaseModel):
     metadata: dict[str, Any]
 
 
+class IchimokuRequest(IndicatorServiceRequest):
+    tenkan_period: int = Field(default=9, ge=2, le=100)
+    kijun_period: int = Field(default=26, ge=2, le=200)
+    senkou_b_period: int = Field(default=52, ge=2, le=500)
+    displacement: int = Field(default=26, ge=1, le=200)
+    include_future: bool = Field(default=True)
+
+
+class IchimokuSignals(BaseModel):
+    above_cloud: list[bool]
+    below_cloud: list[bool]
+    in_cloud: list[bool]
+    bullish_cloud: list[bool]
+    tk_bull: list[bool]
+    tk_bear: list[bool]
+    chikou_bull: list[bool]
+    chikou_bear: list[bool]
+    kijun_cross_bull: list[bool]
+    kijun_cross_bear: list[bool]
+    strength: list[str]   # strong_bull / weak_bull / neutral / weak_bear / strong_bear
+
+
+class IchimokuResponse(BaseModel):
+    tenkan: list[IndicatorPoint]
+    kijun: list[IndicatorPoint]
+    span_a: list[IndicatorPoint]
+    span_b: list[IndicatorPoint]
+    chikou: list[IndicatorPoint]
+    signals: IchimokuSignals
+    metadata: dict[str, Any]
+
+
 @dataclass(frozen=True)
 class Pivot:
     index: int
@@ -2056,6 +2088,198 @@ def calculate_keltner(payload: KeltnerRequest) -> KeltnerResponse:
         middle=[IndicatorPoint(time=pts[i].time, value=mid[i]) for i in range(len(pts))],
         lower=[IndicatorPoint(time=pts[i].time, value=lower[i]) for i in range(len(pts))],
         metadata={"ema_period": payload.ema_period, "atr_period": payload.atr_period, "multiplier": payload.multiplier},
+    )
+
+
+def _ichi_midpoint(highs: list[float], lows: list[float], period: int) -> list[float]:
+    """Rolling (max+min)/2 — core Ichimoku primitive. Returns nan for warm-up bars."""
+    n = len(highs)
+    out: list[float] = []
+    for i in range(n):
+        if i < period - 1:
+            out.append(float("nan"))
+        else:
+            h = max(highs[i - period + 1 : i + 1])
+            lo = min(lows[i - period + 1 : i + 1])
+            out.append((h + lo) / 2.0)
+    return out
+
+
+def calculate_ichimoku(payload: IchimokuRequest) -> IchimokuResponse:
+    """Ichimoku Kinko Hyo — 5 lines + signal quality flags.
+
+    Standard periods 9/26/52 (equities). Crypto-adjusted: pass tenkan=10, kijun=30, senkou_b=60.
+    displacement must equal kijun_period for standard Ichimoku (default behaviour).
+
+    Future cloud: the last `displacement` values of span_a/B are repeated into synthetic
+    future IndicatorPoints (time extrapolated from the last known bar interval).
+    Set include_future=False to omit those extra points.
+    """
+    pts = payload.ohlcv
+    n = len(pts)
+    if n < 2:
+        empty: list[IndicatorPoint] = []
+        return IchimokuResponse(
+            tenkan=empty, kijun=empty, span_a=empty, span_b=empty, chikou=empty,
+            signals=IchimokuSignals(
+                above_cloud=[], below_cloud=[], in_cloud=[], bullish_cloud=[],
+                tk_bull=[], tk_bear=[], chikou_bull=[], chikou_bear=[],
+                kijun_cross_bull=[], kijun_cross_bear=[], strength=[],
+            ),
+            metadata={"indicator": "Ichimoku", "n": 0},
+        )
+
+    highs  = [p.high for p in pts]
+    lows   = [p.low  for p in pts]
+    closes = [p.close for p in pts]
+    times  = [p.time  for p in pts]
+    d = payload.displacement
+
+    tenkan_raw = _ichi_midpoint(highs, lows, payload.tenkan_period)
+    kijun_raw  = _ichi_midpoint(highs, lows, payload.kijun_period)
+    span_b_raw = _ichi_midpoint(highs, lows, payload.senkou_b_period)
+
+    # span_a_raw[i] = (tenkan[i] + kijun[i]) / 2  (before forward-displacement)
+    span_a_raw: list[float] = []
+    for i in range(n):
+        tk = tenkan_raw[i]
+        kj = kijun_raw[i]
+        if tk != tk or kj != kj:  # nan check
+            span_a_raw.append(float("nan"))
+        else:
+            span_a_raw.append((tk + kj) / 2.0)
+
+    # Cloud lines are displaced forward by `d` bars:
+    # span_a[i]  = span_a_raw[i - d]  (historical portion, nan for first d bars)
+    # chikou[i]  = close[i + d]        (plotted d bars in the past → shift array back)
+    span_a_hist: list[float] = [float("nan")] * d + span_a_raw[: n - d]
+    span_b_hist: list[float] = [float("nan")] * d + span_b_raw[: n - d]
+    chikou_vals: list[float] = closes[d:] + [float("nan")] * d
+
+    # Future cloud: append d synthetic points extrapolating time from last known interval
+    future_span_a: list[IndicatorPoint] = []
+    future_span_b: list[IndicatorPoint] = []
+    if payload.include_future and n >= 2:
+        dt = times[-1] - times[-2]  # seconds per bar (or tick gap)
+        for j in range(1, d + 1):
+            future_t = times[-1] + dt * j
+            sa = span_a_raw[n - d + j - 1] if (n - d + j - 1) >= 0 else float("nan")
+            sb = span_b_raw[n - d + j - 1] if (n - d + j - 1) >= 0 else float("nan")
+            future_span_a.append(IndicatorPoint(time=future_t, value=sa))
+            future_span_b.append(IndicatorPoint(time=future_t, value=sb))
+
+    def _pts(vals: list[float], ts: list[int]) -> list[IndicatorPoint]:
+        return [IndicatorPoint(time=ts[i], value=vals[i]) for i in range(len(ts))]
+
+    tenkan_pts = _pts(tenkan_raw, times)
+    kijun_pts  = _pts(kijun_raw,  times)
+    span_a_pts = _pts(span_a_hist, times) + future_span_a
+    span_b_pts = _pts(span_b_hist, times) + future_span_b
+    chikou_pts = _pts(chikou_vals, times)
+
+    # Signals (historical bars only — no future rows)
+    nan = float("nan")
+    above_cloud:  list[bool] = []
+    below_cloud:  list[bool] = []
+    in_cloud_:    list[bool] = []
+    bull_cloud:   list[bool] = []
+    tk_bull_:     list[bool] = []
+    tk_bear_:     list[bool] = []
+    chikou_bull_: list[bool] = []
+    chikou_bear_: list[bool] = []
+    kj_cross_bull: list[bool] = []
+    kj_cross_bear: list[bool] = []
+    strength:     list[str]  = []
+
+    for i in range(n):
+        c    = closes[i]
+        sa   = span_a_hist[i]
+        sb   = span_b_hist[i]
+        tk   = tenkan_raw[i]
+        kj   = kijun_raw[i]
+        chi  = chikou_vals[i]
+
+        cloud_valid = sa == sa and sb == sb  # not nan
+        cloud_top    = max(sa, sb) if cloud_valid else nan
+        cloud_bottom = min(sa, sb) if cloud_valid else nan
+
+        _above = cloud_valid and c > cloud_top
+        _below = cloud_valid and c < cloud_bottom
+        _in    = cloud_valid and not _above and not _below
+
+        _bull_cld = cloud_valid and sa > sb
+        _bear_cld = cloud_valid and sa < sb
+
+        # TK cross
+        prev_tk = tenkan_raw[i - 1] if i > 0 else nan
+        prev_kj = kijun_raw[i - 1]  if i > 0 else nan
+        lines_valid = tk == tk and kj == kj and prev_tk == prev_tk and prev_kj == prev_kj
+        _tk_bull = lines_valid and tk > kj and prev_tk <= prev_kj
+        _tk_bear = lines_valid and tk < kj and prev_tk >= prev_kj
+
+        # Chikou: is close > close from d bars ago
+        _chi_bull = i >= d and closes[i] > closes[i - d]
+        _chi_bear = i >= d and closes[i] < closes[i - d]
+
+        # Kijun cross
+        prev_c = closes[i - 1] if i > 0 else nan
+        kj_valid = kj == kj and prev_kj == prev_kj and prev_c == prev_c
+        _kj_cbull = kj_valid and c > kj and prev_c <= prev_kj
+        _kj_cbear = kj_valid and c < kj and prev_c >= prev_kj
+
+        # Signal strength score
+        bull_score = int(_above) + int(_bull_cld) + int(_tk_bull) + int(_chi_bull)
+        bear_score = int(_below) + int(_bear_cld) + int(_tk_bear) + int(_chi_bear)
+        if bull_score == 4:
+            q = "strong_bull"
+        elif bull_score == 3:
+            q = "weak_bull"
+        elif bear_score == 4:
+            q = "strong_bear"
+        elif bear_score == 3:
+            q = "weak_bear"
+        else:
+            q = "neutral"
+
+        above_cloud.append(_above)
+        below_cloud.append(_below)
+        in_cloud_.append(_in)
+        bull_cloud.append(_bull_cld)
+        tk_bull_.append(_tk_bull)
+        tk_bear_.append(_tk_bear)
+        chikou_bull_.append(_chi_bull)
+        chikou_bear_.append(_chi_bear)
+        kj_cross_bull.append(_kj_cbull)
+        kj_cross_bear.append(_kj_cbear)
+        strength.append(q)
+
+    return IchimokuResponse(
+        tenkan=tenkan_pts,
+        kijun=kijun_pts,
+        span_a=span_a_pts,
+        span_b=span_b_pts,
+        chikou=chikou_pts,
+        signals=IchimokuSignals(
+            above_cloud=above_cloud,
+            below_cloud=below_cloud,
+            in_cloud=in_cloud_,
+            bullish_cloud=bull_cloud,
+            tk_bull=tk_bull_,
+            tk_bear=tk_bear_,
+            chikou_bull=chikou_bull_,
+            chikou_bear=chikou_bear_,
+            kijun_cross_bull=kj_cross_bull,
+            kijun_cross_bear=kj_cross_bear,
+            strength=strength,
+        ),
+        metadata={
+            "indicator": "Ichimoku",
+            "tenkan_period": payload.tenkan_period,
+            "kijun_period": payload.kijun_period,
+            "senkou_b_period": payload.senkou_b_period,
+            "displacement": d,
+            "n": n,
+        },
     )
 
 

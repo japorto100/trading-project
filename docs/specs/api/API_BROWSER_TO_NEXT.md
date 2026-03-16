@@ -1,6 +1,6 @@
 # API Browser to Next.js
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Vertrag fuer die Browser-Seite der Kommunikation: was der Browser
 > aufrufen darf und was nicht.
 > **Index:** [`../API_CONTRACTS.md`](../API_CONTRACTS.md)

@@ -1,6 +1,6 @@
 # Incident Response Plan
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Was passiert WENN ein Sicherheitsvorfall eintritt.
 > **Source-of-Truth-Rolle:** Autoritativ fuer Severity-Stufen und Runbooks bei
 > Security-Vorfaellen.

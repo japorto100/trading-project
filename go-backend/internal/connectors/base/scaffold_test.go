@@ -125,8 +125,8 @@ func TestCredentialSetRedacted(t *testing.T) {
 func TestCredentialStoreHelpers(t *testing.T) {
 	store := CredentialStore{
 		" FINNHUB ": {Key: "demo-key"},
-		"binance":  {Key: "bin-key", Secret: "bin-secret"},
-		"empty":    {},
+		"binance":   {Key: "bin-key", Secret: "bin-secret"},
+		"empty":     {},
 	}
 
 	normalized := store.Normalized()

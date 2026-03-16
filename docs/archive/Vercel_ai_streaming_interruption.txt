@@ -1,0 +1,124 @@
+vercel ai sdk : https://github.com/vercel/ai/releases
+
+wir haben es ja eingebaut oder planen es zumindes execution slice agent ui md
+
+wir müssen version prüfen und überprüfen ob wir alle wichtigen funktionen miteinbezogen haben generell
+
+zusätzlich zu streaming interruption (chatgpt gespräch):
+
+Nein — **so wie bei ChatGPT 5.4 Thinking im Sinn von „laufenden Stream unterbrechen und denselben Vorgang sauber weiterführen / wieder aufnehmen“ ist es bei `vercel/ai` Stand März 2026 nicht sauber gelöst**. Die offizielle Doku trennt aktuell ziemlich klar zwischen **Abort/Stop** und **Resume**: `stop()` bzw. `abortSignal` werden unterstützt, **aber** Stream-Resumption ist **nicht kompatibel** mit Abort-Funktionalität. Vercel schreibt ausdrücklich, man solle **entweder** Resume **oder** Abort verwenden, aber nicht beides gleichzeitig. ([ai-sdk.dev][1])
+
+## Was es in `vercel/ai` heute wirklich gibt
+
+### 1) Stop / Abort
+
+Das SDK unterstützt Streaming-Abbruch per `abortSignal` auf Server-Seite und `stop()` in `useChat` / `useCompletion` auf Client-Seite. Dazu gibt es auch `onAbort`, damit man Cleanup oder Persistenz für Teilergebnisse machen kann. ([SDK Vercel][2])
+
+### 2) Resume / Resumable Streams
+
+Es gibt dokumentierte Unterstützung für **resuming ongoing streams** mit `useChat({ resume: true })` plus eigener Persistenz und einem `resumable-stream`-Setup. Das ist gedacht für Reloads, Disconnects und lang laufende Generationen. ([ai-sdk.dev][3])
+
+### 3) Der Haken
+
+Die offizielle Aussage ist: **Resume + Abort kollidieren**. Schon ein Tab-Close, Reload oder `stop()` löst ein Abort-Signal aus, das die Resumption-Mechanik stören kann. Genau deshalb ist das **nicht** dasselbe UX-Modell wie bei ChatGPTs Thinking-Unterbrechung. ([ai-sdk.dev][3])
+
+## Meine Einordnung
+
+Das ist ein wichtiger Unterschied:
+
+* **`vercel/ai` kann Streaming**
+* **`vercel/ai` kann Stoppen**
+* **`vercel/ai` kann Resuming bei Verbindungsproblemen**
+* aber **kein rundes, integriertes „interrupt-and-continue-the-same-generation“ als einheitliches Produktverhalten**
+
+ChatGPT-artige Unterbrechung wirkt eher wie ein **kontrolliertes Zustandsmodell**, nicht nur wie SSE plus Abort. Dafür brauchst du normalerweise:
+
+1. **entkoppelte Generierung und Auslieferung**,
+2. **persistierten Stream-/Message-Zustand**,
+3. **Cursor/Checkpointing**,
+4. saubere Unterscheidung zwischen **intentional stop**, **disconnect**, **pause**, **resume**.
+
+Genau an dieser Trennung hakt es bei Vercels aktuellem Standardpfad. Die offenen Issues zeigen, dass da noch Reibung drin ist. Beispielsweise wurde direkt gefragt, ob Stop und Resume kompatibel sind; in anderen Issues wird beschrieben, dass `stop()` mit resumable streams nicht sauber funktioniert oder dass Resume selbst in Randfällen bricht. ([GitHub][4])
+
+## Also: hat man „streaming interruption“ eingebracht?
+
+**Teilweise, aber nicht in dem Sinn, den du vermutlich meinst.**
+
+**Ja**, es gibt:
+
+* Streaming
+* Stop/Abort
+* Resume nach Disconnects
+
+**Nein**, es gibt nicht:
+
+* eine robuste, offiziell empfohlene Kombination aus **unterbrechen + später exakt denselben Stream weiterziehen**
+* ein klar produktisiertes „Thinking-Interrupt“-Verhalten wie bei ChatGPT
+
+Die sauberste knappe Antwort ist also:
+
+> **Abort ja. Resume ja. Beides zusammen als stabiles Interruptionsmodell: nein, offiziell aktuell nicht.** ([ai-sdk.dev][1])
+
+## Gibt es sonst wo Implementierungsversuche?
+
+Ja, mehrere Richtungen.
+
+### A) Redis-/PubSub-basierte Resumable-Streams
+
+Upstash beschreibt einen Ansatz, bei dem **Generierung von der Client-Verbindung entkoppelt** wird. Das ist architektonisch der richtige Weg, wenn du ChatGPT-artige Robustheit willst: die Modellgenerierung läuft weiter, auch wenn der Client weg ist; der Client reconnectet später und liest den Stream erneut an. Das ist näher an einem belastbaren Unterbrechungsmodell als einfach nur `stop()` auf SSE. ([Upstash: Serverless Data Platform][5])
+
+### B) Vercel-Ökosystem-nahe Ergänzungen
+
+Es gibt externe Doku wie **Streamstraight**, die sich explizit mit `useChat({ resume: true })` und Resume-Verhalten beschäftigt. Das ist eher ein Hinweis, dass Leute um die Schwächen herum bauen, statt dass das Problem im Kern schon komplett gelöst wäre. ([docs.streamstraight.com][6])
+
+### C) Andere Agent-/Workflow-Systeme
+
+**LangGraph Interrupts** sind ein anderer Typ von „Interrupt“: nicht Token-Streaming pausieren, sondern **Graph-/Workflow-Ausführung an definierten Punkten stoppen und später fortsetzen**. Für Agenten ist das stark, aber es ist **nicht** dasselbe wie mid-stream Textgeneration elegant unterbrechen. ([docs.langchain.com][7])
+
+### D) Kleinere OSS-Demos
+
+Es gibt kleinere Open-Source-Projekte wie **PocketFlow**, die „user interrupt capability“ in Streaming-Demos erwähnen. Das zeigt: Implementierungsversuche gibt es, aber meist als eigene App-Architektur, nicht als fertig standardisierte Infrastruktur mit denselben UX-Garantien wie bei ChatGPT. ([GitHub][8])
+
+## Was ich dir praktisch raten würde
+
+Wenn du für deine App **echtes „interrupt / reconnect / continue“** willst, würde ich **nicht** auf den nackten Standardpfad `useChat + stop + resume` vertrauen.
+
+Ich würde es so aufbauen:
+
+### Option 1 — Einfach und stabil
+
+**Entscheide dich für eins:**
+
+* **entweder** `stop()` / Abort
+* **oder** Resume nach Disconnect
+
+Das ist exakt die Linie, die Vercel selbst gerade empfiehlt. ([ai-sdk.dev][1])
+
+### Option 2 — Robust und produktionsnah
+
+Baue eine **eigene Stream-Orchestrierung**:
+
+* Modelllauf serverseitig entkoppeln
+* Token/Event-Log persistent speichern
+* Client nur als Subscriber
+* explizite Zustände: `running`, `paused`, `aborted`, `completed`, `resumable`
+* Resume über Cursor/Event-ID statt „hoffentlich lebt dieselbe HTTP-Verbindung noch“
+
+Das ist deutlich mehr Arbeit, aber der richtige Weg, wenn du Richtung **ChatGPT-/Cursor-/Copilot-artige UX** willst. Upstash-artige Architektur ist dafür ein brauchbarer Ausgangspunkt. ([Upstash: Serverless Data Platform][5])
+
+## Mein Fazit
+
+**`vercel/ai` hat derzeit keine sauber integrierte ChatGPT-5.4-Thinking-ähnliche Streaming-Interruption.**
+Es hat die Bausteine **Abort** und **Resume**, aber die sind offiziell **inkompatibel**, und die offenen Issues zeigen, dass das Thema noch nicht wirklich „durch“ ist. ([ai-sdk.dev][1])
+
+Wenn du willst, zerlege ich dir als Nächstes **eine konkrete Architektur für dein Stack**:
+**Next.js + Vercel AI SDK + Redis/Upstash + Go/Python Worker**, so dass du **Stop, Resume, Partial Persistenz und späteres Continue** sauber getrennt bekommst.
+
+[1]: https://ai-sdk.dev/docs/advanced/stopping-streams?utm_source=chatgpt.com "Advanced: Stopping Streams"
+[2]: https://sdk.vercel.ai/docs/ai-sdk-core/error-handling "AI SDK Core: Error Handling"
+[3]: https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-resume-streams?utm_source=chatgpt.com "Chatbot Resume Streams"
+[4]: https://github.com/vercel/ai/issues/8390 "Resuming and Stopping Stream Compatibility · Issue #8390 · vercel/ai · GitHub"
+[5]: https://upstash.com/blog/resumable-llm-streams?utm_source=chatgpt.com "How to Build LLM Streams That Survive Reconnects ..."
+[6]: https://docs.streamstraight.com/guides/ai-sdk?utm_source=chatgpt.com "AI SDK's useChat - Streamstraight Documentation"
+[7]: https://docs.langchain.com/oss/python/langgraph/interrupts?utm_source=chatgpt.com "Interrupts - Docs by LangChain"
+[8]: https://github.com/The-Pocket/PocketFlow?utm_source=chatgpt.com "Pocket Flow: 100-line LLM framework. Let Agents build ..."

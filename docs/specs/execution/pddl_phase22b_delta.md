@@ -1,6 +1,6 @@
 # Execution Delta -- Phase 22b Formal Planning (PDDL / ADL)
 
-> **Stand:** 13. Maerz 2026 (Rev. 2)
+> **Stand:** 16. Maerz 2026 (Rev. 3)
 > **Status:** PLANNED (gated pilot)
 > **Owner:** Agent Runtime / Orchestration
 > **Zweck:** Operativer Delta-Plan fuer formale Plan-Validierung in Agent-Workflows
@@ -39,6 +39,7 @@
 - `docs/AGENT_ARCHITECTURE.md` (Sek. 12.5a, 12.5b)
 - `docs/specs/EXECUTION_PLAN.md` (Phase 22b)
 - `docs/specs/API_CONTRACTS.md` (API-/Schema-Authority)
+- arXiv `2603.12188` (fachliche Basis fuer Compile-/Semantik-Claims)
 
 ---
 
@@ -76,6 +77,24 @@ Minimaler Ablauf:
 
 ---
 
+## 2.1 Research Baseline (verbindlich fuer Phase 22b)
+
+Diese Claims muessen in den Pilot-Evidence nachvollziehbar gespiegelt werden:
+
+- `PDDL 2.1 Level 3 -> diskretes PDDL+` ist sound/complete (unter dokumentierten Annahmen)
+- Kompilierung bleibt polynomial, Planlaenge mit konstantem Overhead
+- konservative Startannahme: non-self-overlapping actions
+- semantische Kernpunkte: overall conditions, no-moving-target, mutex/non-interference
+- delayed effects und timed initial literals sind via Event-Mechanik abbildbar
+- Solver-Realitaet ist komplementaer (nicht ein einzelner "immer besser"-Pfad)
+
+Arbeitsregel:
+
+- Wenn ein Claim fuer den Pilot nicht operationalisiert werden kann, wird er als
+  "nicht abgedeckt im Pilot" explizit markiert (statt stillschweigend implizit).
+
+---
+
 ## 3. Offene Deltas
 
 - [ ] **P22B1** Pilot-Domain/Problem modellieren (PDDL + ADL-Features nur wo noetig)
@@ -88,6 +107,13 @@ Minimaler Ablauf:
 - [ ] **P22B8** Sprach-/Spec-Grenzen dokumentieren:
   JSON Tool Schemas vs OpenAPI/JSON Schema vs PDDL/ADL
 - [ ] **P22B9** Go/No-Go-Entscheid mit Evidence dokumentieren (Adopt/Defer)
+- [ ] **P22B10** Semantik-Regression-Suite fuer `overall`, `no-moving-target`, `mutex` anlegen
+- [ ] **P22B11** Lock-/Interference-Modell als Runtime-Policy-Mapping dokumentieren
+- [ ] **P22B12** Event-Muster fuer delayed effects + timed initial literals als Pilot-Option spezifizieren
+- [ ] **P22B13** Solver-Vergleichsszenario definieren (FastDownward vs unified_planning-Pfad)
+- [ ] **P22B14** Evidence-Matrix je Claim (`abgedeckt`, `teilweise`, `nicht abgedeckt`) pflegen
+- [ ] **P22B15** Failure-Taxonomie fuer Invalid-Plan Blocking standardisieren (codes + reasons)
+- [ ] **P22B16** Konsolidierung `PDDL_check_for_taking_into_account.txt` -> Specs abschliessen
 
 ---
 
@@ -99,6 +125,10 @@ Minimaler Ablauf:
 - [ ] **P22B.V4** p95 Planerzeugung + Validierung <= 2s (Pilot-Szenarien)
 - [ ] **P22B.V5** Deadline-Adherence im Pilot ist mindestens baseline-neutral
 - [ ] **P22B.V6** Kein Contract-Drift in JSON Tool Schemas oder OpenAPI-Vertraegen
+- [ ] **P22B.V7** Semantik-Tests decken `overall`/`no-moving-target`/`mutex` reproduzierbar ab
+- [ ] **P22B.V8** Mindestens ein delayed-effect oder timed-initial-literal Szenario ist durchgespielt
+- [ ] **P22B.V9** Solver-Vergleich dokumentiert Staerken/Schwaechen je Domaintyp
+- [ ] **P22B.V10** Claim-Evidence-Matrix ist vollstaendig und auditierbar
 
 ---
 
@@ -109,6 +139,9 @@ Minimaler Ablauf:
 - Erfolgspfad und Error-/Replan-Pfad als Nachweis
 - Vergleich gegen Baseline (ohne formale Validierung)
 - dokumentierte Impact-Einschaetzung fuer Runtime-Komplexitaet
+- Claim-Mapping auf Research-Basis (`soundness`, `completeness`, `polynomial` als
+  Pilot-Interpretation, nicht als unbelegte Uebernahme)
+- mindestens ein Trace fuer Lock-/Interference-Fehlerfall mit klarer Block-Ursache
 
 ---
 
@@ -118,6 +151,7 @@ Minimaler Ablauf:
 - `docs/AGENT_TOOLS.md` (Sek. 15, Tool-/Sprachen-Einordnung)
 - `docs/AGENT_ARCHITECTURE.md` (Sek. 12.5a/12.5b, Orchestration-Pattern)
 - `docs/specs/API_CONTRACTS.md` (falls Contract-Boundaries nachgezogen werden muessen)
+- `docs/PDDL_check_for_taking_into_account.txt` (nach Konsolidierung als "superseded" markieren)
 
 ---
 
@@ -140,3 +174,12 @@ Defer, wenn Modellierungs-/Betriebsaufwand den Nutzen uebersteigt.
 - Welche Domain-Slices sind nach dem Pilot der naechste Kandidat?
 - Reicht ein Solver-Pfad oder brauchen wir zwei Engines fuer Vergleich/Robustheit?
 - Wie tief gehen wir in ADL-Features, bevor wir produktiv schalten?
+
+---
+
+## 9. Konsolidierung des Research-TXT
+
+- [x] Inhalt aus `docs/PDDL_check_for_taking_into_account.txt` ist in
+      `docs/AGENT_TOOLS.md` Sek. 15 und diesem Delta operativ gespiegelt
+- [x] TXT danach als Research-Notiz belassen oder explizit als "superseded" markieren
+- [x] Kein exklusiver "must know"-Inhalt verbleibt nur im TXT

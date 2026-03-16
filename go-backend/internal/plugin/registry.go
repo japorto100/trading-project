@@ -14,9 +14,9 @@ type Manifest struct {
 }
 
 type Registry struct {
-	mu       sync.RWMutex
-	allowlist map[string]Manifest
-	disabled map[string]bool
+	mu         sync.RWMutex
+	allowlist  map[string]Manifest
+	disabled   map[string]bool
 	killSwitch bool
 }
 

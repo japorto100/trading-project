@@ -11,8 +11,8 @@ import (
 
 	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
 
-	"gopkg.in/yaml.v3"
 	"github.com/go-playground/validator/v10"
+	"gopkg.in/yaml.v3"
 )
 
 var validate = validator.New()

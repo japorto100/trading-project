@@ -1,6 +1,6 @@
 # SPEC CONVENTIONS
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Template-, Lifecycle- und Naming-Regeln fuer neue Specs.
 > **Referenz:** [`DOCUMENTATION_ARCHITECTURE.md`](./DOCUMENTATION_ARCHITECTURE.md) fuer Ebenen und Read Order.
 
@@ -49,6 +49,7 @@ Fuer `docs/specs/execution/*.md`:
 | Core Specs | `UPPERCASE_WITH_UNDERSCORES.md` | `API_CONTRACTS.md`, `SYSTEM_STATE.md` |
 | Sub-Specs (API) | `API_*.md` in `api/` | `API_BROWSER_TO_NEXT.md` |
 | Sub-Specs (Security) | `*_*.md` in `security/` | `AUTH_MODEL.md`, `SECRETS_BOUNDARY.md` |
+| Sub-Specs (Architecture) | `UPPERCASE_WITH_UNDERSCORES.md` in `architecture/` | `ARCHITECTURE_BASELINE.md` |
 | Execution-Specs | `lowercase_snake_case.md` in `execution/` | `geomap_closeout.md`, `cross_cutting_verify.md` |
 
 ---
@@ -63,7 +64,7 @@ Fuer `docs/specs/execution/*.md`:
 
 **Ordner-Split** wenn:
 
-- Mehrere Verantwortlichkeiten (z.B. API nach Browser/Next/Go/Internal)
+- Mehrere Verantwortlichkeiten (z.B. API nach Browser/Next/Go/Internal oder Architecture nach Baseline/Orchestrierung)
 - Datei waechst ueber 3.500 Tokens
 - Klar getrennte Sub-Themen (z.B. Auth vs. Policy vs. Secrets)
 

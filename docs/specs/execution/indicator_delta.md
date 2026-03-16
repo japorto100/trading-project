@@ -1,6 +1,6 @@
 # Indicator Implementation Delta
 
-> **Stand:** 12. Maerz 2026 (Rev. 2)
+> **Stand:** 14. Maerz 2026 (Rev. 4)
 > **Zweck:** Wahrheit fuer Indikator-IST-Zustand (Python vs. Rust),
 > fehlende Indikatoren mit Empfehlung, Book-Referenzen und Python-First-Strategie.
 > **Aenderungshistorie:**
@@ -158,7 +158,8 @@ Vor Rust-Port eines Indikators:
 | Stochastic Rust-Port | Phase-20 | **DONE 12.03.2026** |
 | WMA + HMA Rust-Port | Phase-20 | **DONE 12.03.2026** |
 | KAMA Python-Impl | Phase-20 | bereits in pipeline.py L420 — DONE |
-| Ichimoku Python-Impl (bleibt Python) | Phase-20 | pending |
+| Ichimoku Python-Impl (bleibt Python) | Phase-20 | **DONE 14.03.2026** |
+| Go Wiring-Audit (alle Python Indicator Routes) | Phase-20 | **DONE 14.03.2026** — 6 fehlende Routes nachgezogen |
 
 ---
 
@@ -178,5 +179,6 @@ Vor Rust-Port eines Indikators:
 - [x] MACD, ADX, Stochastic, WMA, HMA in Rust + `calculate_indicators_batch` — 28/28 Tests grueen
 - [x] KAMA, VWAP, Keltner, Stochastic, MACD, ADX in Python — 44/44 Tests grueen
 - [x] py.detach() in allen `calculate_*` Funktionen in rust_core
-- [ ] Ichimoku Python-Impl (Phase-20, not hot-path)
+- [x] Ichimoku Python-Impl (14.03.2026) — 5 Linien + future cloud + Signalqualität (22/22 Tests)
+- [x] Go Wiring-Audit: alle Python-Indicator-Endpoints in wiring.go (14.03.2026)
 - [ ] `INDICATOR_ARCHITECTURE.md` Rust-Portierungsliste konsistent aktualisieren (follow-up)

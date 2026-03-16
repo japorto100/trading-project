@@ -72,6 +72,7 @@
 | `FMP` | Equity/fundamental/reference data |
 | `Marketstack` | REST-Fallback fuer einfache equity time series |
 | `Yahoo (unofficial)` | Breiter inoffizieller Fallback fuer indices, futures und misc symbols |
+| `YFinance bridge` | Praktischer Wrapper-/Bridge-Pfad fuer Yahoo chart/history endpoints |
 
 ### Commodity / Futures / Benchmark Feeds
 
@@ -106,6 +107,8 @@
     Raw-JSON, normalized snapshot plus `source_snapshot_metadata`;
     Live-Object-Storage-Verify bleibt deferred
 - `MarketWatch Top Stories` bleibt aktuell der explizite Default-Feed im RSS-Basket; weitere Feeds sollten nur mit klarer Provenance- und Dedup-Regel aufgenommen werden.
+- Fuer den Yahoo-Fallback gilt als Referenzpfad der in Crucix genutzte Chart-Endpoint:
+  `https://query1.finance.yahoo.com/v8/finance/chart/{symbol}` (weiterhin `unofficial`, nur mit Guardrails/Fallback-Rolle).
 
 ### Options / Volatility / Dark Pool
 

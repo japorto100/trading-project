@@ -1,6 +1,6 @@
 # Pharos AI Reference Review
 
-> **Stand:** 13. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Referenzreview des Open-Source-Projekts `pharos-ai` fuer GeoMap-/Conflict-Layer-Entscheidungen.
 > **Quelle:** https://github.com/Juliusolsson05/pharos-ai
 > **Scope:** UI-/Layer-/View-Architektur, nicht direkter Codeimport.
@@ -14,7 +14,7 @@ Es ist fuer TradeView Fusion relevant, weil es drei Dinge frueh zeigt:
 
 - ein klar analyst-zentriertes Flat-Map-UI
 - eine brauchbare Layer-Taxonomie fuer Konfliktkarten
-- einen oeffentlichen Hinweis, dass der **Agent Layer around 2026-03-12** separat veroeffentlicht werden soll
+- einen fruehen oeffentlichen Hinweis auf einen separat gepflegten Agent-Layer mit stufenweiser Oeffnung
 
 Wichtig:
 
@@ -28,8 +28,8 @@ Wichtig:
 
 ### 2.1 Review-Basis
 
-- Lokal geklonter Stand: `2026-03-13` (HEAD `6a19dea`)
-- Review-Pfad: `D:/tradingview-clones/_tmp_ref_review/pharos-ai`
+- Lokal geklonter Stand: `2026-03-16` (HEAD `e676fd2`)
+- Review-Pfad: `D:/tradingview-clones/_tmp_ref_review/geo/pharos-ai`
 
 ### 2.2 Lizenz
 
@@ -52,7 +52,7 @@ Arbeitsregel fuer TradeView Fusion:
 
 ## 3. Was Pharos aktuell offenlegt
 
-Laut `README.md` umfasst der aktuell offene Scope die **Application Layer**:
+Laut `README.md` umfasst der aktuell offene Scope die **vollstaendige App-Ebene**:
 
 - Dashboard
 - Conflict Map
@@ -60,17 +60,18 @@ Laut `README.md` umfasst der aktuell offene Scope die **Application Layer**:
 
 Ebenfalls wichtig:
 
-- das README bleibt bei einer **staged open-source**-Aussage (Application Layer als klarer Scope)
-- parallel sind inzwischen oeffentliche Agent-Artefakte sichtbar (`agent/`-Ordner + Doctrine-/Workflow-Commits)
+- das Repo enthaelt inzwischen Dashboard, API-Routen, Map-Frontend und Server-/DB-Bausteine
+- der Agent-Layer fuer Ingestion/Kuration bleibt laut README separat gepflegt und wird weiter stufenweise geoeffnet
+- parallel sind oeffentliche Agent-Artefakte sichtbar (`agent/`-Ordner + Doctrine-/Workflow-Commits)
 
 ### Monitoring-Relevanz fuer uns
 
-Dieses Datum ist fuer TradeView Fusion wichtig, weil dort sehr wahrscheinlich spaetere
+Dieses Monitoring ist fuer TradeView Fusion wichtig, weil dort sehr wahrscheinlich spaetere
 Quellenintegration, Verifikation, Agentic Collection und Data-Prep sichtbar werden.
 
 Wir behandeln deshalb:
 
-- **2026-03-12** als Monitoring-Datum
+- **2026-03-12 ff.** als Monitoring-Fenster
 - `pharos-ai` als **stueckweise publizierte Referenz**
 - den Agent-Layer als moeglich wichtigen spaeteren Vergleichspunkt fuer:
   - conflict ingestion
@@ -82,7 +83,7 @@ Arbeitsregel fuer unsere Roadmap:
 
 - auf den Agent-Layer wird **nicht** gewartet, um den Flat-/Conflict-Vorbau zu beginnen
 - gewartet wird nur mit der endgueltigen Produktform des spaeteren Conflict-/Source-Layers
-- `2026-03-12` bleibt damit ein Review-/Monitoring-Datum, kein Blocker fuer den Renderer- und View-Handoff-Vorbau
+- der Agent-Layer bleibt ein Review-/Monitoring-Thema, kein Blocker fuer den Renderer- und View-Handoff-Vorbau
 
 ---
 
@@ -441,12 +442,12 @@ Das spricht fuer:
 
 ---
 
-## 9. Monitoring-Notiz: 2026-03-12 Agent Layer
+## 9. Monitoring-Notiz: Agent Layer und Upstream-Deltas
 
 ### Warum wir das beobachten muessen
 
-Das oeffentliche README deutet an, dass der Agent Layer um den **12. Maerz 2026**
-veroeffentlicht werden soll.
+Das oeffentliche README trennt weiterhin klar zwischen der offenen App-Ebene und einem
+separat gepflegten Agent-Layer fuer Ingestion/Kuration.
 
 Das kann fuer uns spaeter relevant werden in Bezug auf:
 
@@ -527,6 +528,20 @@ Gleichzeitig bleibt die zentrale Einordnung unveraendert:
 
 - oeffentlich sichtbar ist ein **teilweiser Agentic Layer** mit starkem Fokus auf Doctrine, Workspace-Mirroring und Admin-Workflow
 - ein vollstaendig offengelegter ingest-/datafetch-/worker-runtime stack ist weiterhin nicht klar als komplette Open-Source-Referenz verfuegbar
+
+### Update 2026-03-15 bis 2026-03-16
+
+Seit dem letzten Review-Fenster gab es relevante Upstream-Updates, die fuer unsere Einordnung wichtig sind:
+
+- DB-/Snapshot-Onboarding wurde deutlich ausgebaut (Bootstrap, Snapshot-Pull/Restore/Verify, CI-/Publish-Workflow)
+- Chat-/RAG-Faehigkeiten wurden erweitert (Chat-API, Session-Persistenz, RAG-Indexierungs- und Query-Bausteine)
+- README/Open-Source-Scope wurde praezisiert (App laeuft mit oeffentlichen Snapshots; Agent-Layer bleibt separat gepflegt)
+
+Wichtig fuer den Agent-Layer:
+
+- es gab in diesem Zeitfenster **keine neuen `agent/*` Commits**
+- die letzte sichtbare Agent-Welle bleibt damit die Doctrine-/Mirror-Phase vom 11.-12.03.
+- die zentrale Einordnung bleibt gleich: wertvolle Workflow-/Doctrine-Referenz, aber weiterhin kein voll offener ingest-/runtime-Stack
 
 ---
 

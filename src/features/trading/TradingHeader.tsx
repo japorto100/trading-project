@@ -1,29 +1,10 @@
 "use client";
 
-import {
-	BarChart3,
-	Camera,
-	Check,
-	Clock,
-	Fullscreen,
-	Globe,
-	Layout,
-	LogOut,
-	Moon,
-	Palette,
-	RefreshCw,
-	Star,
-	StarOff,
-	Sun,
-	User,
-	Zap,
-} from "lucide-react";
-import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+// TradingHeader — chart toolbar only (surface-specific controls).
+// Global navigation (logo, surface switcher, account, theme) lives in GlobalTopBar.
+
+import { Camera, Fullscreen, Layout, RefreshCw, Star, StarOff, Zap } from "lucide-react";
 import type { ChartType } from "@/chart/types";
-import { AlertPanel } from "@/components/AlertPanel";
 import { ChartTypeSelector } from "@/components/ChartTypeSelector";
 import { CompareSymbol } from "@/components/CompareSymbol";
 import { SymbolSearch } from "@/components/fusion/SymbolSearch";
@@ -41,7 +22,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useTradingWorkspaceStore } from "@/features/trading/store/tradingWorkspaceStore";
 import type { LayoutMode } from "@/features/trading/types";
-import { isAuthEnabled, isAuthStackBypassEnabled } from "@/lib/auth/runtime-flags";
 import type { FusionSymbol } from "@/lib/fusion-symbols";
 import type { TimeframeValue } from "@/lib/providers/types";
 
@@ -108,47 +88,17 @@ export function TradingHeader({
 	onResetReplay,
 	onSeekReplay,
 }: TradingHeaderProps) {
-	const { resolvedTheme, setTheme } = useTheme();
 	const { currentSymbol, favorites, toggleFavorite, setLayout } = useTradingWorkspaceStore();
-	const { data: session } = useSession();
-	const [clockTime, setClockTime] = useState("");
-	const [isSigningOut, setIsSigningOut] = useState(false);
-	const authEnabled = isAuthEnabled();
-	const authBypassed = isAuthStackBypassEnabled();
-	const canShowAuthControls = authEnabled && !authBypassed;
-
-	useEffect(() => {
-		setClockTime(new Date().toLocaleTimeString());
-		const timer = window.setInterval(() => {
-			setClockTime(new Date().toLocaleTimeString());
-		}, 1000);
-		return () => window.clearInterval(timer);
-	}, []);
 
 	return (
-		<div className="min-h-14 border-b border-border bg-card/50 backdrop-blur-sm px-3 py-2 overflow-x-auto flex flex-col gap-2">
+		<div
+			role="toolbar"
+			aria-label="Chart toolbar"
+			className="border-b border-border bg-card/50 backdrop-blur-sm px-3 py-2 overflow-x-auto flex flex-col gap-2"
+		>
+			{/* Row 1: symbol + timeframe + replay */}
 			<div className="flex min-w-max items-center justify-between gap-4">
 				<div className="flex min-w-max items-center gap-4">
-					<Link
-						href="/"
-						className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg px-3 py-1.5 hover:opacity-90 transition-opacity"
-					>
-						<BarChart3 className="h-5 w-5 text-white" />
-						<span className="font-bold text-white text-lg">TradeView Fusion</span>
-					</Link>
-
-					<Link href="/geopolitical-map" data-testid="link-geomap">
-						<Button
-							variant="ghost"
-							size="sm"
-							className="gap-2 h-9 px-3 hover:bg-accent/50 text-muted-foreground hover:text-foreground"
-						>
-							<Globe className="h-4 w-4" />
-							<span>Map</span>
-						</Button>
-					</Link>
-
-					<Separator orientation="vertical" className="h-6" />
 					<SymbolSearch
 						query={searchQuery}
 						open={showSearch}
@@ -249,18 +199,10 @@ export function TradingHeader({
 							</div>
 						</div>
 					)}
-
-					<Separator orientation="vertical" className="h-6" />
-
-					<div className="flex items-center gap-2 px-1">
-						<Badge variant="outline" className="h-7 gap-1 font-mono text-[10px] bg-background/50">
-							<Clock className="h-3 w-3" />
-							{clockTime}
-						</Badge>
-					</div>
 				</div>
 			</div>
 
+			{/* Row 2: chart controls */}
 			<div className="flex items-center justify-between gap-4 h-9">
 				<div className="flex items-center gap-2">
 					<ChartTypeSelector chartType={chartType} onChartTypeChange={onChartTypeChange} />
@@ -324,118 +266,7 @@ export function TradingHeader({
 
 					<Separator orientation="vertical" className="h-5 mx-1" />
 
-					<AlertPanel />
 					<SettingsPanel />
-					{canShowAuthControls ? (
-						session?.user ? (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-8 w-8"
-										aria-label="Account menu"
-										data-testid="header-account-menu"
-									>
-										<User className="h-4 w-4" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end" className="w-56">
-									<div className="flex items-center justify-start gap-2 p-2">
-										<div className="flex flex-col space-y-0.5 leading-none">
-											{session.user.name && (
-												<p className="font-medium text-xs">{session.user.name}</p>
-											)}
-											{session.user.email && (
-												<p className="w-[200px] truncate text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
-													{session.user.email}
-												</p>
-											)}
-										</div>
-									</div>
-									<Separator className="my-1 opacity-50" />
-									<DropdownMenuItem asChild>
-										<Link href="/auth/security" className="cursor-pointer">
-											<User className="mr-2 h-4 w-4" />
-											<span>Auth & Security</span>
-										</Link>
-									</DropdownMenuItem>
-									<DropdownMenuItem asChild>
-										<Link href="/auth/passkeys" className="cursor-pointer">
-											<Zap className="mr-2 h-4 w-4 text-amber-500" />
-											<span>Manage Passkeys</span>
-										</Link>
-									</DropdownMenuItem>
-									<Separator className="my-1 opacity-50" />
-									<DropdownMenuItem
-										data-testid="header-signout"
-										disabled={isSigningOut}
-										className="text-destructive focus:text-destructive cursor-pointer"
-										onSelect={async (event) => {
-											event.preventDefault();
-											setIsSigningOut(true);
-											try {
-												await signOut({ callbackUrl: "/auth/sign-in" });
-											} finally {
-												setIsSigningOut(false);
-											}
-										}}
-									>
-										<LogOut className="mr-2 h-4 w-4" />
-										<span>{isSigningOut ? "Signing out..." : "Sign Out"}</span>
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						) : (
-							<Button
-								variant="outline"
-								size="sm"
-								className="h-8 text-[10px] uppercase font-black tracking-widest gap-2"
-								asChild
-							>
-								<Link href="/auth/sign-in">
-									<User className="h-3.5 w-3.5" />
-									Sign In
-								</Link>
-							</Button>
-						)
-					) : null}
-
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="icon" className="h-8 w-8">
-								{resolvedTheme === "light" ? (
-									<Sun className="h-4 w-4" />
-								) : resolvedTheme === "dark" ? (
-									<Moon className="h-4 w-4" />
-								) : (
-									<Palette className="h-4 w-4" />
-								)}
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuItem onClick={() => setTheme("light")}>
-								<Sun className="mr-2 h-4 w-4" />
-								Light
-								{resolvedTheme === "light" && <Check className="ml-auto h-3 w-3" />}
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => setTheme("dark")}>
-								<Moon className="mr-2 h-4 w-4" />
-								Dark
-								{resolvedTheme === "dark" && <Check className="ml-auto h-3 w-3" />}
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => setTheme("blue-dark")}>
-								<Palette className="mr-2 h-4 w-4 text-blue-400" />
-								Blue Dark
-								{resolvedTheme === "blue-dark" && <Check className="ml-auto h-3 w-3" />}
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => setTheme("green-dark")}>
-								<Palette className="mr-2 h-4 w-4 text-emerald-400" />
-								Green Dark
-								{resolvedTheme === "green-dark" && <Check className="ml-auto h-3 w-3" />}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
 				</div>
 			</div>
 		</div>

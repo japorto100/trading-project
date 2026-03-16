@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/contracts"
 )
 
 type fakeQuoteClient struct {

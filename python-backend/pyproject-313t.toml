@@ -1,0 +1,110 @@
+# pyproject-313t.toml — Python 3.13t (free-threaded / nogil) variant
+#
+# Differences from pyproject.toml:
+#   - requires-python = ">=3.13"
+#   - grpcio + grpcio-tools REMOVED (no Windows cp313t wheel, C-ext fails with Py_GIL_DISABLED)
+#   - grpclib (pure-Python asyncio gRPC) replaces grpcio for Go<->Python IPC server
+#   - opentelemetry-exporter-otlp-proto-grpc → -proto-http (grpcio-free)
+#   - pandas>=3.0.1 (cp313t wheels available since 3.0.x; 2.2.x has no cp313t wheel)
+#   - scipy>=1.17.1 (cp313t wheels since 1.17.x)
+#   - scikit-learn>=1.8.0 (cp313t wheels since 1.8.0; moved to main deps)
+#   - hmmlearn REMOVED (no cp313t wheel, Cython internals not audited for GIL-free; skip guard in tests)
+#   - tradeviewfusion-rust-core points to cp313t wheel (non-abi3, GIL-disabled build)
+#
+# Setup:
+#   uv venv .venv-313t --python cpython-3.13.9+freethreaded
+#   uv pip install --python .venv-313t/Scripts/python.exe -r <(python -c "
+#     import tomllib, sys
+#     d = tomllib.load(open('pyproject-313t.toml','rb'))
+#     print('\n'.join(d['project']['dependencies']))
+#   ")
+#   uv pip install --python .venv-313t/Scripts/python.exe \
+#     rust_core/target-local/wheels-313t/tradeviewfusion_rust_core-0.2.0-cp313-cp313t-win_amd64.whl
+#
+# Verify:
+#   .venv-313t/Scripts/python.exe -c "import sys; print('GIL:', sys._is_gil_enabled())"
+#   => GIL: False
+#
+# Notes on grpclib migration (if Go IPC needed in 3.13t prod):
+#   - grpclib uses asyncio server (not ThreadPoolExecutor like grpcio)
+#   - grpc_server.py needs async rewrite: grpclib.server.Server([ForwardRequestHandler()])
+#   - Proto stubs still generated with grpcio-tools (dev machine, 3.12 venv) — no change needed
+#   - Go-side gRPC client unchanged (proto-compatible)
+
+[project]
+name = "tradeview-fusion-python-backend-313t"
+version = "0.1.0"
+description = "Python backend services — Python 3.13t (free-threaded) variant"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.116.1",
+    "httpx==0.28.1",
+    "python-dotenv==1.0.1",
+    "pytest>=8.3",
+    "ruff>=0.13.0",
+
+    # Server
+    "uvicorn==0.35.0",
+    "granian>=2.0.0",
+
+    # Data
+    "pandas>=3.0.1",
+    # polars: EXCLUDED — polars>=1.36 pulls polars-runtime-32 (source-only, hangs on Windows cp313t)
+    # Keep in pyproject.toml (.venv 3.12). Re-evaluate when polars ships a cp313t binary wheel.
+    # "polars>=1.38.1",
+    "numpy>=2.0.0",
+    "scipy>=1.17.1",
+    "scikit-learn>=1.8.0",
+    "yfinance==0.2.65",
+
+    # ML / AI
+    # hmmlearn: EXCLUDED — no cp313t wheel, Cython internals not GIL-free audited
+    # Keep in pyproject.toml (.venv 3.12) for HMM regime endpoints
+    "hdbscan>=0.8.33",
+    "sentence-transformers>=3.0.0",
+
+    # Storage / Cache
+    "cachetools>=5.3.0",
+    "redis>=5.0.0",
+    "kuzu>=0.7.0",
+    "chromadb>=0.5.0",
+
+    # Go <-> Python IPC — pure-Python asyncio gRPC (replaces grpcio, 3.13t-compatible)
+    # grpcio-tools still needed on dev (3.12) for proto stub generation only — not runtime
+    "grpclib>=0.4.4",
+    "protobuf>=5.28.0",
+
+    # Phase 0e: OpenTelemetry (opt-in via OTEL_ENABLED=true)
+    # -proto-http replaces -proto-grpc (grpcio-free)
+    "opentelemetry-sdk>=1.29.0",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+    "opentelemetry-exporter-otlp-proto-http>=1.29.0",
+    "opentelemetry-instrumentation-httpx>=0.50b0",
+    "opentelemetry-instrumentation-anthropic>=0.51.0",
+
+    # Rust core — cp313t wheel (non-abi3, built with maturin --no-default-features)
+    # Build: maturin build --no-default-features --interpreter .venv-313t/Scripts/python.exe
+    "tradeviewfusion-rust-core",
+]
+
+[project.optional-dependencies]
+eval = [
+    "locust>=2.24.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+exclude = [
+    ".venv",
+    ".venv-313t",
+    ".venv/**",
+    "**/.venv/**",
+]
+
+[tool.uv.sources]
+# cp313t wheel: non-abi3 build for free-threaded Python
+# Regenerate with: maturin build --no-default-features --interpreter .venv-313t/Scripts/python.exe
+tradeviewfusion-rust-core = { path = "rust_core/target-local/wheels-313t/tradeviewfusion_rust_core-0.2.0-cp313-cp313t-win_amd64.whl" }

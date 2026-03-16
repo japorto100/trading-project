@@ -30,6 +30,7 @@
 - `docs/AGENT_HARNESS.md`
 - `docs/AGENT_ARCHITECTURE.md`
 - `docs/AGENT_TOOLS.md`
+- `docs/AGENT_CODE_MODE.md`
 - `docs/AGENT_SECURITY.md`
 - `docs/specs/execution/agent_security_runtime_delta.md`
 - `docs/specs/execution/agent_memory_context_delta.md`
@@ -54,6 +55,20 @@
 - [ ] **AHR13** Token-/Semantic-Caching evaluieren (Prefix-/Prompt-Cache vs. Semantic-Cache, Safety/Invalidation, FinOps-Metriken); evaluate-only, kein Default ohne Evidence
 - [ ] **AHR14** Cache-stabile Prompt-Struktur (statisch/dynamisch strikt getrennt) als Runtime-Standard durchsetzen
 - [ ] **AHR15** Runtime-Prozesssteuerung (z. B. supervisord) fuer API+Worker-Setups dokumentieren bzw. Beispiel-Config bereitstellen (`tools/supervisor/supervisord.example.conf`)
+- [ ] **AHR16** Optionalen MCP-"code mode" fuer High-Volume-Tool-Responses evaluieren (evaluate-only; kein Default ohne Evidence)
+
+### AHR16 Review-Checklist (Pflicht)
+
+- **Betrifft (Scope):**
+  - Frontend-nahen Agent-Pfade nur sekundär (Browser-/WebMCP-nahe Datenabrufe)
+  - primaer Backend-/Runtime-Pfade (Aggregator-, Provider-, Ingest-, Control-Responses mit grossen JSON-Payloads)
+  - service-seitig Go/Python/Rust-Execution-Boundaries und deren Policy-/Sandbox-Gates
+
+- [ ] **AHR16.C1 Wirksamkeit** -- messbare Kontext-/Token-Reduktion bei repraesentativen High-Volume-Faellen
+- [ ] **AHR16.C2 Qualitaet** -- keine relevante Regression gegen Baseline in Kern-Use-Cases
+- [ ] **AHR16.C3 Sicherheit** -- Sandbox-/Policy-/Capability-Gates bleiben ohne Regression
+- [ ] **AHR16.C4 Betrieb** -- Latenz und Fehlerverhalten bleiben innerhalb definierter Runtime-Budgets
+- [ ] **AHR16.C5 Nachweis** -- reproduzierbares Vergleichsprotokoll (`status quo` vs. `code mode`) liegt vor
 
 ---
 
@@ -70,6 +85,7 @@
 - [ ] **AHR.V9** Mode-/Tool-Routing-Gate: over-call/under-call/tool-misroute sind gegen Baseline reduziert und reproduzierbar dokumentiert
 - [ ] **AHR.V10** Cache-FinOps-Gate: Hit-Rate/Token-Saved/Cost-Saved gegen Baseline, ohne Qualitaets-/Policy-Regression
 - [ ] **AHR.V11** Cache-Safety-Gate: Tenant-Isolation, keine Cross-User-Leaks, Stale-Hit-Rate begrenzt
+- [ ] **AHR.V12** Code-Mode-Gate: Kontext-/Token-Reduktion bei grossen Tool-Responses ist reproduzierbar, ohne Qualitaets-, Policy- oder Sandbox-Regression
 
 ---
 
@@ -85,6 +101,8 @@
 - bei `AHR11-AHR12`: Vergleichsprotokoll `status quo` vs. Router-Pfad
   (`LiteLLM`/`RouteLLM`) inkl. Kosten-, Erfolgs- und Policy-Metriken
 - bei `AHR13-AHR14`: Cache-Strategie- und Benchmark-Protokoll (Hit-Rate, Token-Saved, Safety/Invalidation), reproduzierbar
+- bei `AHR16`: Vergleichsprotokoll `status quo` vs. `code mode`
+  (Kontextgroesse, Latenz, Antwortqualitaet, Policy-/Sandbox-Compliance)
 
 ---
 
@@ -95,3 +113,14 @@
 - `docs/specs/security/SECURITY_HARDENING_TRACKS.md`
 - `docs/specs/execution/agent_security_runtime_delta.md`
 - `docs/specs/execution/agent_memory_context_delta.md`
+
+---
+
+## 5. Evaluate-only Referenzen (GitHub)
+
+Diese Referenzen sind **evaluate-only** und keine implizite Architekturvorgabe:
+
+- [chenhunghan/code-mode-skill](https://github.com/chenhunghan/code-mode-skill) (`AHR16`, `AHR.V12`)
+- [OpenDCAI/AgentFlow](https://github.com/OpenDCAI/AgentFlow) (`AHR10`, `AHR.V7`)
+- [BerriAI/litellm](https://github.com/BerriAI/litellm) (`AHR11`, `AHR.V8`)
+- [lm-sys/RouteLLM](https://github.com/lm-sys/RouteLLM) (`AHR12`, `AHR.V8`, `AHR.V9`)

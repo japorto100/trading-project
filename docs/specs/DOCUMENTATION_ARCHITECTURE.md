@@ -1,6 +1,6 @@
 # DOCUMENTATION ARCHITECTURE
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Formale Regel fuer Ebenen, Read Order, Ownership, Split-Regeln,
 > Update-Pflichten und Einbezug von Root-/Book-Docs. Dieses Dokument ist die
 > normative Authority fuer die Dokumentationsstruktur.
@@ -9,11 +9,14 @@
 
 ---
 
-## 1. Vier Ebenen
+## 1. Ebenen
 
 | Ebene | Ort | Rolle |
 |:------|:----|:------|
-| **Core Specs** | `docs/specs/*.md` (ohne Unterordner) | Normative projektische Wahrheit, Source of Truth pro Thema |
+| **Core Specs** | `docs/specs/*.md` | Normative projektische Wahrheit, Umbrella- und Navigationsdocs pro Thema |
+| **Architecture Subspecs** | `docs/specs/architecture/*.md` | Granulare Architektur-Owner-Docs (Baseline, Gateway, Agent, Memory, Orchestrierung, Domain Contracts) |
+| **Data Subspecs** | `docs/specs/data/*.md` | Granulare Data-Owner-Docs (Datenfluss, Aggregation, Storage, UIL, Source-Status) |
+| **Governance Blueprints** | `docs/specs/governance/*.md` | Future-facing Zielbild-Specs (Rollout-Gates, Plugin-Pilot, Partner-Boundary, Payment-Adapter) |
 | **Execution Specs** | `docs/specs/execution/*.md` | Operative Mid-Level-Arbeitsdokumente: Checklisten, Verify Gates, laufende Abarbeitung |
 | **Domain Reference Docs** | `docs/*.md` (Root) | Tiefer Fachkontext; ergaenzen Specs, ersetzen sie nicht |
 | **Deep Reference** | `docs/books/`, `docs/archive/`, Research-MDs | Nur bei Bedarf; nicht als first-read Quelle |
@@ -24,8 +27,8 @@
 
 1. **AGENTS.md** (oder model-spezifisch: CLAUDE.md, GEMINI.md, CODEX.md) — Einstieg, Verweis auf Specs
 2. **EXECUTION_PLAN.md** — Highest-Level Working Plan, Phasenstatus, offene Gates
-3. **SYSTEM_STATE.md** — IST/SOLL pro Schicht
-4. **Spec fuer den Arbeitsbereich** — z.B. API_CONTRACTS, AUTH_SECURITY, FRONTEND_ARCHITECTURE
+3. **SYSTEM_STATE.md** — kompakter Runtime-IST/SOLL-Snapshot
+4. **Spec fuer den Arbeitsbereich** — z.B. API_CONTRACTS, AUTH_SECURITY, architecture/FRONTEND_ARCHITECTURE, data/DATA_ARCHITECTURE
 5. **Execution-Spec bei Bedarf** — z.B. `execution/geomap_closeout.md` fuer GeoMap-Arbeit oder `execution/source_onboarding_and_keys.md` fuer neue Quellen/Keys
 6. **Root-Domain-Docs bei Bedarf** — z.B. Deep-Reference zu Geo-Themen; normative Geo-Owner liegen in `docs/geo/*.md`
 7. **Books/Research nur bei explizitem Bedarf** — nicht als Standard-Lesepfad
@@ -41,8 +44,9 @@
 | IST/SOLL pro Schicht? | `SYSTEM_STATE.md` |
 | API-/Transport-Contracts? | `docs/specs/api/*.md` |
 | Auth / Policy / Secrets? | `docs/specs/security/*.md` |
-| Frontend-Regeln? | `FRONTEND_ARCHITECTURE.md` |
-| Architektur-Leitplanken? | `ARCHITECTURE.md` |
+| Frontend-Regeln? | `docs/specs/architecture/FRONTEND_ARCHITECTURE.md` |
+| Architektur-Leitplanken? | `ARCHITECTURE.md` + `docs/specs/architecture/*.md` |
+| Daten-/Aggregationsregeln? | `docs/specs/data/DATA_ARCHITECTURE.md` |
 | Tiefer Domain-Kontext? | Root-Docs (Deep-Reference) + `docs/geo/*.md` als normative Geo-Owner |
 
 ---
@@ -79,10 +83,11 @@
 ## 7. Split-Regeln
 
 - **Dateien >3.500 Tokens** oder mit mehreren klar getrennten Verantwortlichkeiten werden gesplittet.
-- **Boundary-Specs** (API, Security) werden nach Grenzen aufgeteilt:
-  - API: Browser→Next, Next→Go, Internal Services, Shared Invariants
+- **Boundary-Specs** (API, Security, Architecture, Errors) werden nach Grenzen aufgeteilt:
+  - API: Browser→Next, Next→Go, Internal Services, Shared Invariants, UIL Routes
   - Security: Auth Model, Policy Guardrails, Secrets Boundary, ggf. Incident Response
-- **Sub-Specs** leben in eigenen Ordnern: `docs/specs/api/`, `docs/specs/security/`, `docs/specs/execution/`.
+  - Errors: Error Taxonomy + Resilience (`ERRORS.md`) vs. Telemetrie/Logging (`OBSERVABILITY.md`)
+- **Sub-Specs** leben in eigenen Ordnern: `docs/specs/api/`, `docs/specs/security/`, `docs/specs/architecture/`, `docs/specs/data/`, `docs/specs/governance/`, `docs/specs/execution/`.
 
 ---
 

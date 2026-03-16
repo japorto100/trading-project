@@ -485,6 +485,54 @@ Market/News/Sanctions/Behavioral-Analysis-Quellen, Non-Western Sources, Integrat
 - `https://api.tfl.gov.uk/Place/Type/JamCam`
 
 ---
+### 31.16 Crucix Source Set (code-verified, March 2026)
+
+> **Klar markiert als Crucix-Herkunft:** Diese Liste basiert auf
+> code-verifizierten `runSource(...)`-Aufrufen in
+> `_tmp_ref_review/geo/Crucix/apis/briefing.mjs` (27 Quellen).  
+> Ziel: Traceability fuer Blueprint-Diskussionen, ohne direkte Codeuebernahme.
+
+**Crucix-27 mit klar ausgeschriebenen URLs (code-verifiziert):**
+
+| Quelle (Crucix) | Primäre URL(s) in Crucix |
+|---|---|
+| `GDELT` | `https://api.gdeltproject.org/api/v2` |
+| `OpenSky` | `https://opensky-network.org/api` |
+| `FIRMS` | `https://firms.modaps.eosdis.nasa.gov/api/area/csv` |
+| `Maritime` | `wss://stream.aisstream.io/v0/stream` |
+| `Safecast` | `https://api.safecast.org` |
+| `ACLED` | `https://acleddata.com/api/acled/read` |
+| `ReliefWeb` | `https://api.reliefweb.int/v1` |
+| `WHO` | `https://ghoapi.azureedge.net/api` ; `https://www.who.int/api/news/diseaseoutbreaknews` |
+| `OFAC` | `https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports` |
+| `OpenSanctions` | `https://api.opensanctions.org` |
+| `ADS-B` | `https://adsbexchange-com1.p.rapidapi.com/v2` ; `https://globe.adsbexchange.com/data/aircraft.json` ; `https://globe.adsbexchange.com/data/traces` |
+| `FRED` | `https://api.stlouisfed.org/fred` |
+| `Treasury` | `https://api.fiscaldata.treasury.gov/services/api/fiscal_service` |
+| `BLS` | `https://api.bls.gov/publicAPI/v1/timeseries/data/` ; `https://api.bls.gov/publicAPI/v2/timeseries/data/` |
+| `EIA` | `https://api.eia.gov/v2` |
+| `GSCPI` | `https://www.newyorkfed.org/medialibrary/research/interactives/data/gscpi/gscpi_interactive_data.csv` |
+| `USAspending` | `https://api.usaspending.gov/api/v2` |
+| `Comtrade` | `https://comtradeapi.un.org/public/v1` |
+| `NOAA` | `https://api.weather.gov` |
+| `EPA` | `https://enviro.epa.gov/enviro/efservice` |
+| `Patents` | `https://search.patentsview.org/api/v1` |
+| `Bluesky` | `https://public.api.bsky.app/xrpc` |
+| `Reddit` | `https://oauth.reddit.com/r/{subreddit}/hot` ; `https://www.reddit.com/r/{subreddit}/hot.json` |
+| `Telegram` | `https://api.telegram.org/bot{TOKEN}` ; `https://t.me/s/{channel}` |
+| `KiwiSDR` | `https://www.receiverbook.de/map?type=kiwisdr` |
+| `Space` | `https://celestrak.org` |
+| `YFinance` | `https://query1.finance.yahoo.com/v8/finance/chart` |
+
+**Ablage im aktuellen Sources-Owner (`docs/references/sources/*`):**
+
+- Geo/OSINT-Telemetry, Sanctions, Health/Env/Space: `geopolitical-and-osint.md`
+- US-Macro/Public-Finance-Erweiterungen: `macro-and-central-banks.md`
+- Market/Yahoo-Fallback: `market-data.md`
+- Social/Unconventional (Bluesky/Telegram/KiwiSDR): `unconventional-and-translation.md`
+- Trade-Corridor-Basis (`Comtrade`): `sovereign-and-corridors.md`
+
+---
 ---
 
 ## Querverweise

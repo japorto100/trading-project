@@ -7,8 +7,8 @@ import (
 )
 
 type jwtRevocationBlocklist struct {
-	mu             sync.RWMutex
-	jtiEntries     map[string]time.Time
+	mu              sync.RWMutex
+	jtiEntries      map[string]time.Time
 	userRevocations map[string]time.Time // userId -> revokedBefore timestamp
 }
 
@@ -62,9 +62,9 @@ func (b *jwtRevocationBlocklist) IsRevoked(jti string, userId string, issuedAt t
 	if jti != "" {
 		if exp, ok := b.jtiEntries[jti]; ok {
 			if !exp.After(now) {
-				// Cleanup expired entry would need a Write Lock, 
+				// Cleanup expired entry would need a Write Lock,
 				// we skip it in the hot path RLock for performance.
-				return false 
+				return false
 			}
 			return true
 		}

@@ -1,6 +1,6 @@
 # API CONTRACTS
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Umbrella- und Index-Spec fuer die aufgeteilten API-Vertraege.
 > Route-, Header-, SSE- und Service-Boundary-Details liegen in
 > `docs/specs/api/`.
@@ -30,6 +30,7 @@ Nicht der Zweck dieses Dokuments:
 | [`api/API_BROWSER_TO_NEXT.md`](./api/API_BROWSER_TO_NEXT.md) | Browser -> Next.js Entry Surface, BFF-only Regeln, interne Next-only State APIs |
 | [`api/API_NEXT_TO_GO.md`](./api/API_NEXT_TO_GO.md) | Next.js -> Go, Gateway-Baseline, Market, Streaming, Geo, Strategy, Portfolio, Memory, Agent/Auth |
 | [`api/API_INTERNAL_SERVICES.md`](./api/API_INTERNAL_SERVICES.md) | Go -> Python, Go -> Rust, Go -> GCT, interne Memory-/Agent-/Compute-/Execution-Boundaries |
+| [`api/API_UIL_ROUTES.md`](./api/API_UIL_ROUTES.md) | UIL Route-Matrix (Next -> Go -> Python): Candidate, Contradiction, Ingest, Timeline; Policy-Metadaten-Contract |
 
 ### Route-Family Rule (normativ)
 
@@ -59,10 +60,22 @@ Das bedeutet:
 | Welche Route / welches Header- oder SSE-Shape gilt? | `docs/specs/api/*.md` |
 | Wer besitzt den aktuellen Runtime-Stand? | `SYSTEM_STATE.md` |
 | Welche Arbeit ist offen? | `EXECUTION_PLAN.md` |
-| Welche Frontend-Regeln gelten? | `FRONTEND_ARCHITECTURE.md` |
+| Welche Frontend-Regeln gelten? | `docs/specs/architecture/FRONTEND_ARCHITECTURE.md` |
 | Welche Security-Regeln gelten? | `docs/specs/security/*.md` |
-| Welche UIL-Route-Zuordnung gilt? | `UIL_ROUTE_MATRIX.md` |
+| Welche UIL-Route-Zuordnung gilt? | `docs/specs/api/API_UIL_ROUTES.md` |
 | Wie ist der Compute-Split Go/Python/Rust? | `execution/compute_delta.md` |
+
+---
+
+## Bekannte offene Contract-Drifts (Stand 16.03.2026)
+
+| Drift | Beschreibung | Prio |
+|:------|:-------------|:-----|
+| Agent-Chat | Next erwartet `/api/v1/agent/chat`; Go-Route nicht vollstaendig registriert | P0 |
+| Portfolio-Order | Middleware referenziert `/api/v1/portfolio/order`; Mux-Route fehlt | P0 |
+| Capability Enforcement | Teile sind fail-open oder Feature-Flag-gated bei mutation-nahen Pfaden | P0 |
+
+Details: `docs/specs/data/AGGREGATION_IST_AND_GAPS.md`
 
 ---
 
@@ -70,9 +83,11 @@ Das bedeutet:
 
 - `SYSTEM_STATE.md`
 - `EXECUTION_PLAN.md`
-- `UIL_ROUTE_MATRIX.md`
+- `docs/specs/api/API_UIL_ROUTES.md`
 - `docs/specs/security/AUTH_MODEL.md`
 - `docs/specs/security/POLICY_GUARDRAILS.md`
+- `docs/specs/data/AGGREGATION_IST_AND_GAPS.md`
+- `docs/specs/architecture/GO_GATEWAY_BOUNDARY.md`
 
 ---
 

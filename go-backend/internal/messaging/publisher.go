@@ -24,7 +24,7 @@ type Publisher interface {
 // It is always safe to call — no network I/O, no allocations beyond the call itself.
 type NoopPublisher struct{}
 
-func (NoopPublisher) PublishTick(_ context.Context, _ string, _ []byte) error { return nil }
+func (NoopPublisher) PublishTick(_ context.Context, _ string, _ []byte) error      { return nil }
 func (NoopPublisher) PublishCandle(_ context.Context, _, _ string, _ []byte) error { return nil }
-func (NoopPublisher) Ping(_ context.Context) error                             { return nil }
-func (NoopPublisher) BackendName() string                                      { return "noop" }
+func (NoopPublisher) Ping(_ context.Context) error                                 { return nil }
+func (NoopPublisher) BackendName() string                                          { return "noop" }

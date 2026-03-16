@@ -53,7 +53,6 @@ Thumbs.db
 .env.*
 
 # Local data and databases
-data/
 *.db
 *.sqlite
 *.sqlite3

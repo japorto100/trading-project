@@ -61,11 +61,16 @@ Dafuer gelten:
 | Source Persistence / Snapshots | `execution/source_persistence_snapshot_delta.md` | aktiver Delta-Plan fuer Raw-Snapshots, Cadence, Retention und Cache-Abgrenzung |
 | Vector Ingestion | `execution/vector_ingestion_delta.md` | aktiver Delta-Plan fuer Chunking, Embedding, Provenance und Retrieval-Abgrenzung |
 | GeoMap Closeout / offene Punkte | `execution/geomap_closeout.md` | GeoMap-Checkliste + Verify-Gates |
+| Graph Execution Slice | `execution/graph_execution_delta.md` | dedizierter Delta-Plan fuer Graph-Contracts, Graph-UI/Runtime und Verify-Gates |
+| GeoMap Backend Slice | `execution/backend_geomap_delta.md` | dedizierter Delta-Plan fuer GeoMap-Backend/API/Store/Policy/Audit |
 | Cross-cutting Verify Restpunkte | `execution/cross_cutting_verify.md` | aktive Checkliste |
 | Root/Geo/References Vollabdeckung | `execution/root_geo_references_coverage.md` | File-fuer-File Coverage-Matrix |
 | Agent/Memory/Context Runtime | `execution/agent_memory_context_delta.md` | aktiver Runtime-/Quality-Delta-Plan |
 | Agent Security Runtime | `execution/agent_security_runtime_delta.md` | aktiver Delta-Plan fuer Retrieval/Tool/Capability/Agentic-Storage-Grenzen |
 | Agent Harness Runtime | `execution/agent_harness_runtime_delta.md` | aktiver Delta-Plan fuer Harness-Minimalismus, Guardrail-Runtime und OpenSandbox-Execution-Boundary |
+| Agent Backend Program | `execution/agent_backend_program_delta.md` | programmweiter Agent-Backend-Owner fuer Contracts, policy/audit/degradation und reference-adoption |
+| Agent Code Mode (optional) | `AGENT_CODE_MODE.md` | Root-Owner fuer evaluate-only code-mode-Pattern und Adoption-Gates |
+| Agent-GeoMap Bridge | `execution/agent_geomap_bridge_delta.md` | Companion-Slice fuer Agent<->GeoMap Contracts (Policy/Audit/Failure), ohne Agent-Core-Neuaufbau |
 | Claim Verification / Evidence | `execution/claim_verification_delta.md` | aktiver Claim-/Evidence-Delta-Plan |
 | UIL / Candidate Promotion | `execution/uil_candidate_promotion_delta.md` | aktiver Intake-/Promotion-Delta-Plan |
 | Domain Intelligence | `execution/domain_intelligence_delta.md` | aktiver Domain-Signal-Delta-Plan |
@@ -89,12 +94,16 @@ Dafuer gelten:
 | 2 Rust Core | **BASELINE COMPLETE** | Rust-Core vorhanden; Produktionsgrenze Go↔Rust wird weiter geschaerft | `execution/compute_delta.md` |
 | 3 Streaming | **BASELINE COMPLETE, browser verify open** | Go-SSE, Snapshot- und Alert-Bausteine aktiv; Rest sind Live-/Browser-Gates | `execution/cross_cutting_verify.md`, `execution/infra_provider_delta.md` |
 | 4 GeoMap v2 | **BASELINE COMPLETE, closeout open** | Code und Doc-Fundament stehen; Doc-Abarbeitung ueber `docs/geo/*` + E2E/Perf via `GEOMAP_VERIFY_GATES.md` | `execution/geomap_closeout.md`, `execution/cross_cutting_verify.md` |
+| 4a Graph Execution | **PLANNED** | Graph-spezifische Contracts, Runtime-Verhalten, UI-Interaktion und Verify-Gates werden dediziert gefuehrt, um Scope-Drift aus GeoMap-Closeout zu vermeiden | `execution/graph_execution_delta.md`, `execution/geomap_closeout.md` |
+| 4b GeoMap Backend | **PLANNED** | GeoMap-Backend-API/Store/Policy/Audit-Arbeit wird als eigener Slice gefuehrt, getrennt von Graph-UI- und Agent-Core-Themen | `execution/backend_geomap_delta.md`, `execution/geomap_closeout.md`, `execution/cross_cutting_verify.md` |
 | 5 Portfolio Bridge / Analytics | **BASELINE COMPLETE, browser verify open** | Portfolio-/Analytics-Slices geliefert; Browser-/cache-/query-Gates und GCT-Onboarding offen | `execution/cross_cutting_verify.md`, `execution/infra_provider_delta.md` |
 | 6 Memory | **CLOSED** | Phase-6 Baseline und Live-Verify abgeschlossen | `execution/agent_memory_context_delta.md` |
 | 7 Indicator Catalog Core | **BASELINE COMPLETE, residual browser verify open** | Kernindikatoren geliefert; Rest sind Frontend-/Browser-Gates | `execution/compute_delta.md`, `execution/cross_cutting_verify.md` |
 | 8 Pattern Detection | **BASELINE COMPLETE, final acceptance open** | Implementiert und manuell geprueft; finale pytest-/browserbasierte Abnahme offen | `execution/compute_delta.md`, `execution/cross_cutting_verify.md` |
 | 9 Unified Ingestion Layer | **CLOSED, promotion verify open** | Go-owned UIL-Frontdoor und reclassify/metadata-Slice stehen; Candidate-/Promotion-Follow-ups ueber `execution/uil_candidate_promotion_delta.md` | `execution/uil_candidate_promotion_delta.md` |
 | 10 Agent Runtime | **CODE COMPLETE, verify open** | Agent-/Context-/Tool-Baseline steht; Runtime- und E2E-Verifikation offen; Agent-Security-Boundaries laufen ueber dedizierten Runtime-Slice | `execution/agent_memory_context_delta.md`, `execution/agent_security_runtime_delta.md`, `execution/cross_cutting_verify.md` |
+| 10p Agent Backend Program | **PLANNED** | Plattformweiter Agent-Backend-Owner fuer lifecycle/policy/audit/degradation und reference-driven adoption von OGI/Onyx/Perplexica/AgentZero/Tambo | `execution/agent_backend_program_delta.md`, `execution/agent_memory_context_delta.md`, `execution/agent_security_runtime_delta.md`, `execution/agent_harness_runtime_delta.md` |
+| 10a Agent-GeoMap Bridge | **PLANNED** | GeoMap-relevante Agent-Schnittstellen (Action-Class, Approval, Audit, Failure envelope) werden als schlanker Bridge-Slice gefuehrt | `execution/agent_geomap_bridge_delta.md`, `execution/backend_geomap_delta.md`, `execution/agent_security_runtime_delta.md` |
 | 12a NLP Upgrade | **CLOSED** | Embedding-/HDBSCAN-Clusterpfad implementiert und verifiziert | `execution/agent_memory_context_delta.md`, `execution/claim_verification_delta.md` |
 | 13 Portfolio Advanced | **VERIFIED** | Kelly / Regime / VaR / VPIN-Pfade live verifiziert | `execution/cross_cutting_verify.md`, `execution/compute_delta.md` |
 | 14 Provider Expansion | **CODE COMPLETE, rollout verify open** | breite Providerbasis steht; gruppenweise Success-/Error-Path-Verifikation plus Pflege von `docs/references/sources/*`, `references/status.md` und Quellen-/Key-Onboarding offen; aktuelle Reihenfolge: `P1` Credential-Live-Gates, `P2` offizielle `SECO`/`EU`-Pfade, `P3` `FINRA ATS`, `P4` `ADB` nur bei echtem Coverage-Gap | `execution/infra_provider_delta.md`, `execution/source_onboarding_and_keys.md`, `execution/references_projects_evaluate_delta.md` |
@@ -120,6 +129,62 @@ Dafuer gelten:
 Wenn eine Phase keinen klaren `execution/*.md`-Owner hat, ist das ein Hinweis auf
 eine fehlende Execution-Spec. In diesem Fall wird zuerst ein passendes
 Execution-MD angelegt und dann die Phase referenziert.
+
+---
+
+## 3.1 Systematische Slice-Zuordnung (alle `execution/*.md`)
+
+Die Zuordnung erfolgt verbindlich in vier Schritten:
+
+1. **Slice-Inventar fixieren** (`docs/specs/execution/*.md`)
+2. **Jede Slice einem Phase-/Gate-/Cluster-Kontext zuordnen**
+3. **Owner-Sichtbarkeit in Phase Board oder Verify-Gates sicherstellen**
+4. **Bei neuen Slices sofort diese Matrix und Abschnitt 6 synchronisieren**
+
+| Execution-Slice | Primaere Einordnung | Operativer Sichtbarkeitsanker |
+|:----------------|:--------------------|:-------------------------------|
+| `execution/agent_backend_program_delta.md` | Agent Backend Program (10p) | Phase Board 10p, Execution-Spec-Strategie |
+| `execution/agent_chat_ui_delta.md` | Agent Chat UI (22a) | Phase Board 22a, Execution-Spec-Strategie |
+| `execution/agent_geomap_bridge_delta.md` | Agent-GeoMap Bridge (10a) | Phase Board 10a, Execution-Spec-Strategie |
+| `execution/agent_harness_runtime_delta.md` | Agent Harness Runtime (22c) | Phase Board 22c, Verify-Gates, Execution-Spec-Strategie |
+| `execution/agent_memory_context_delta.md` | Agent Runtime / Memory / Context (6/10/12a/20) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/agent_security_runtime_delta.md` | Agent Security Runtime (10/22c) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/backend_geomap_delta.md` | GeoMap Backend (4b) | Phase Board 4b, Execution-Spec-Strategie |
+| `execution/claim_verification_delta.md` | Claim Verification (12a/26) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/command_keyboard_delta.md` | Frontend Command/Keyboard (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
+| `execution/compute_delta.md` | Compute/Rust/Indicators (2/7/8/13/15/19/20/25) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/control_surface_delta.md` | Control Surface Runtime (frontend ops) | Execution-Spec-Strategie (Frontend/Control-Cluster) |
+| `execution/cross_cutting_verify.md` | Cross-cutting Verify | Verify-Gates, Phase Board, Execution-Spec-Strategie |
+| `execution/document_widgets_control_delta.md` | Files/Widget-Control Schnitt (frontend ops) | Execution-Spec-Strategie (Frontend/Control-Cluster) |
+| `execution/domain_intelligence_delta.md` | Domain Intelligence / Game Theory (15/17/25) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/ecosystem_optionality_delta.md` | Ecosystem Optionality (24) | Phase Board 24, Verify-Gates, Execution-Spec-Strategie |
+| `execution/frontend_context_delta.md` | Frontend Context Assembly (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
+| `execution/frontend_enhancement_delta.md` | Frontend Enhancement (21) | Phase Board 21, Execution-Spec-Strategie |
+| `execution/frontend_intelligence_calendar_delta.md` | Frontend Intelligence Calendar (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
+| `execution/frontend_refinement_perf_delta.md` | Frontend Refinement/Perf (21/22/23a) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/frontend_research_home_delta.md` | Frontend Research Home (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
+| `execution/future_quant_advanced_architecture_delta.md` | Future Quant/Advanced Architecture (25/26) | Phase Board 25/26, Verify-Gates, Execution-Spec-Strategie |
+| `execution/geomap_closeout.md` | GeoMap Closeout (4) | Phase Board 4, Verify-Gates, Execution-Spec-Strategie |
+| `execution/graph_execution_delta.md` | Graph Execution (4a) | Phase Board 4a, Execution-Spec-Strategie |
+| `execution/indicator_delta.md` | Indicator Runtime/Frontend Slice (7/8/15) | Execution-Spec-Strategie (Compute/Frontend-Cluster) |
+| `execution/infra_provider_delta.md` | Infra/Provider Expansion (0/3/5/14/18/19/24) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/pddl_phase22b_delta.md` | Formal Planning Pilot (22b) | Phase Board 22b, Execution-Spec-Strategie |
+| `execution/platform_dx_quality_delta.md` | Platform DX/Quality (23a) | Phase Board 23a, Verify-Gates, Execution-Spec-Strategie |
+| `execution/python_runtime_eval_delta.md` | Python Runtime Eval Slice (16/20/22c) | Execution-Spec-Strategie (Runtime-Eval-Cluster) |
+| `execution/references_projects_evaluate_delta.md` | References Evaluate/Gates (14/16/24) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
+| `execution/root_geo_references_coverage.md` | Root/Geo/References Vollabdeckung (23) | Phase Board 23, Verify-Gates, Execution-Spec-Strategie |
+| `execution/rust_kand_evaluation_delta.md` | Rust Kand Evaluation (2/19) | Fuehrende Detaildokumente, Verify-Gates, Execution-Spec-Strategie |
+| `execution/source_onboarding_and_keys.md` | Source/Key Onboarding (14) | Fuehrende Detaildokumente, Verify-Gates, Execution-Spec-Strategie |
+| `execution/source_persistence_snapshot_delta.md` | Source Persistence/Snapshots (14) | Fuehrende Detaildokumente, Verify-Gates, Execution-Spec-Strategie |
+| `execution/source_selection_delta.md` | Source Selection/Tiering (14) | Fuehrende Detaildokumente, Verify-Gates, Execution-Spec-Strategie |
+| `execution/storage_layer_delta.md` | Storage Layer (14/19) | Fuehrende Detaildokumente, Execution-Spec-Strategie |
+| `execution/trading_page_refactor_delta.md` | Trading Page Refactor (21) | Phase Board 21, Naechste Delivery-Slices |
+| `execution/uil_candidate_promotion_delta.md` | UIL Candidate Promotion (9/23) | Phase Board 9/23, Verify-Gates, Execution-Spec-Strategie |
+| `execution/vector_ingestion_delta.md` | Vector Ingestion/Provenance (14/10) | Fuehrende Detaildokumente, Verify-Gates, Execution-Spec-Strategie |
+
+Hinweis:
+
+- Frontend-/Control-/Runtime-nahe Slices koennen gleichzeitig mehreren Phasen dienen; massgeblich sind dann Verify-Gates + Primary Owner im jeweiligen Slice.
 
 ---
 
@@ -243,10 +308,16 @@ Die Execution-Specs leben unter `docs/specs/execution/`:
 - `source_selection_delta.md` — Quellenauswahl und Tiering vor technischem Onboarding
 - `source_onboarding_and_keys.md` — Quellen-/Key-/Env-Onboarding-Checkliste
 - `geomap_closeout.md` — GeoMap-spezifischer Arbeitsplan mit Checkliste, Verify-Gates, SOTA-Backlog
+- `graph_execution_delta.md` — Graph-spezifischer Ausfuehrungsslice (Contracts, Runtime, Verify)
+- `backend_geomap_delta.md` — GeoMap-Backend-spezifischer Ausfuehrungsslice (API/Store/Policy/Audit)
+- `control_surface_delta.md` — Control-Surface-Execution-Slice (Ops/Runtime-Layer, Two-Tier-Mode, RBAC/Approval/Audit)
+- `document_widgets_control_delta.md` — Dokument-Widget-/Control-Surface-Execution-Slice fuer Files-/Widget-Interaktionspfade
 - `root_geo_references_coverage.md` — Vollabdeckungsmatrix fuer Root/Geo/References
 - `agent_memory_context_delta.md` — Agent-/Memory-/Context-Runtime-Delta
 - `agent_security_runtime_delta.md` — Agent-Security-Runtime-Boundary-Delta
 - `agent_harness_runtime_delta.md` — Agent-Harness-/Sandbox-/Guardrail-Runtime-Delta
+- `agent_backend_program_delta.md` — programmweiter Agent-Backend-Owner fuer Contracts/Policy/Audit/Degradation + reference-adoption
+- `agent_geomap_bridge_delta.md` — schlanker Bridge-Slice fuer Agent<->GeoMap Contracts (Policy/Audit/Failure)
 - `claim_verification_delta.md` — Claim-/Evidence-/Contradiction-Delta
 - `uil_candidate_promotion_delta.md` — UIL-/Candidate-/Promotion-Delta
 - `domain_intelligence_delta.md` — Game-Theory/Entropy/Political-Economy-Delta
@@ -254,6 +325,12 @@ Die Execution-Specs leben unter `docs/specs/execution/`:
 - `rust_kand_evaluation_delta.md` — expliziter Bewertungs-Slice fuer `Kand` als Rust-Core-Basis
 - `frontend_refinement_perf_delta.md` — Frontend-Refinement-/Performance-Delta
 - `frontend_enhancement_delta.md` — Frontend-Enhancement-Delta (TS/Errors/Execution-Policies)
+- `frontend_context_delta.md` — Frontend-Context-/Surface-Schnitt-Delta fuer Context-Assembly und UI-Integration
+- `frontend_intelligence_calendar_delta.md` — Frontend-Execution-Slice fuer Intelligence-Calendar Surface
+- `frontend_research_home_delta.md` — Frontend-Execution-Slice fuer Research-Home Surface
+- `command_keyboard_delta.md` — Command-/Keyboard-Execution-Slice fuer globale Shortcuts und Command-Palette-Routing
+- `indicator_delta.md` — dedizierter Indicator-Execution-Slice fuer Frontend-/Runtime-Integration und Verify-Gates
+- `python_runtime_eval_delta.md` — Python-Runtime-Evaluation-Slice fuer Eval-/Betriebsgrenzen und Qualitaetsgates
 - `ecosystem_optionality_delta.md` — Plugin-/Partner-/Payment-/Rollout-Delta
 - `future_quant_advanced_architecture_delta.md` — Future-Quant-/Advanced-Architecture Trigger-Delta
 - `platform_dx_quality_delta.md` — Platform-DX-/Quality-/Supply-Chain-Delta
@@ -272,7 +349,7 @@ Weitere domain-spezifische Execution-Specs koennen bei Bedarf angelegt werden.
 | Cluster | Fuehrende Root-Dokumente |
 |:--------|:-------------------------|
 | Root-Architektur | `GO_GATEWAY.md`, `README.md` |
-| Agent / Knowledge | `AGENT_ARCHITECTURE.md`, `AGENT_TOOLS.md`, `AGENT_SECURITY.md`, `AGENT_HARNESS.md`, `MEMORY_ARCHITECTURE.md`, `CONTEXT_ENGINEERING.md`, `RAG_GRAPHRAG_STRATEGY_2026.md`, `archive/KG_MERGE_AND_OVERLAY_ARCHITECTURE.md`, `CLAIM_VERIFICATION_ARCHITECTURE.md` |
+| Agent / Knowledge | `AGENT_ARCHITECTURE.md`, `AGENTS_BACKEND.md`, `AGENT_TOOLS.md`, `AGENT_CODE_MODE.md`, `AGENT_SECURITY.md`, `AGENT_HARNESS.md`, `MEMORY_ARCHITECTURE.md`, `CONTEXT_ENGINEERING.md`, `RAG_GRAPHRAG_STRATEGY_2026.md`, `archive/KG_MERGE_AND_OVERLAY_ARCHITECTURE.md`, `CLAIM_VERIFICATION_ARCHITECTURE.md` |
 | Geo / Map | `geo/GEOMAP_OVERVIEW.md`, `geo/GEOMAP_PRODUCT_AND_POLICY.md`, `geo/GEOMAP_MODULE_CATALOG.md`, `geo/GEOMAP_VERIFY_GATES.md` |
 | Compute / Domain | `INDICATOR_ARCHITECTURE.md`, `RUST_LANGUAGE_IMPLEMENTATION.md`, `Portfolio-architecture.md`, `GAME_THEORY.md` |
 | Gateway / Provider | `GO_GATEWAY.md`, `gct-gateway-connections.md`, `go-research-financial-data-aggregation-2025-2026.md`, `references/status.md`, `REFERENCE_SOURCE_STATUS.md` |

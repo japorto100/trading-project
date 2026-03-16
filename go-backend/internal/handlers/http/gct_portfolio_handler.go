@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 // gctPortfolioClient is the interface the handler needs from the GCT client.
@@ -19,17 +19,17 @@ type gctPortfolioClient interface {
 
 // portfolioSummaryResponse is the JSON shape returned by /api/v1/gct/portfolio/summary.
 type portfolioSummaryResponse struct {
-	GCTAvailable bool                        `json:"gctAvailable"`
-	GeneratedAt  string                      `json:"generatedAt"`
-	Summary      portfolioSummaryMetrics     `json:"summary"`
-	Positions    []portfolioPosition         `json:"positions"`
-	Notes        []string                    `json:"notes,omitempty"`
+	GCTAvailable bool                    `json:"gctAvailable"`
+	GeneratedAt  string                  `json:"generatedAt"`
+	Summary      portfolioSummaryMetrics `json:"summary"`
+	Positions    []portfolioPosition     `json:"positions"`
+	Notes        []string                `json:"notes,omitempty"`
 }
 
 type portfolioSummaryMetrics struct {
-	TotalValueUSD  float64 `json:"totalValueUsd"`
-	ExchangeCount  int     `json:"exchangeCount"`
-	PositionCount  int     `json:"positionCount"`
+	TotalValueUSD float64 `json:"totalValueUsd"`
+	ExchangeCount int     `json:"exchangeCount"`
+	PositionCount int     `json:"positionCount"`
 }
 
 type portfolioPosition struct {
@@ -42,14 +42,14 @@ type portfolioPosition struct {
 
 // exchangeListResponse is the JSON shape returned by /api/v1/gct/exchanges.
 type exchangeListResponse struct {
-	GCTAvailable bool             `json:"gctAvailable"`
+	GCTAvailable bool               `json:"gctAvailable"`
 	Exchanges    []gct.ExchangeInfo `json:"exchanges"`
 }
 
 // balancesResponse is the JSON shape returned by /api/v1/gct/portfolio/balances/:exchange.
 type balancesResponse struct {
-	GCTAvailable bool            `json:"gctAvailable"`
-	Exchange     string          `json:"exchange"`
+	GCTAvailable bool                  `json:"gctAvailable"`
+	Exchange     string                `json:"exchange"`
 	Accounts     []gct.ExchangeAccount `json:"accounts"`
 }
 
@@ -217,4 +217,3 @@ func handleExchanges(w http.ResponseWriter, r *http.Request, client gctPortfolio
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
-

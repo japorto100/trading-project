@@ -101,7 +101,7 @@ func withJWTAuth(next http.Handler, cfg jwtAuthConfig) http.Handler {
 			if claims.IssuedAt != nil {
 				iat = claims.IssuedAt.Time
 			}
-			
+
 			if cfg.revocations != nil && cfg.revocations.IsRevoked(jti, sub, iat, time.Now()) {
 				writeJWTAuthError(w, http.StatusUnauthorized, "token revoked")
 				return

@@ -1,6 +1,6 @@
 # Trading Page Refactor Delta
 
-> **Stand:** 10. Maerz 2026 (Rev. 3)
+> **Stand:** 14. Maerz 2026 (Rev. 4)
 > **Zweck:** Execution-Slice fuer die Aufloesung der God-Component `src/app/page.tsx`.
 > URL-Routing, Hook-Extraktion, Zustand Store, TanStack Query Wiring.
 > **Root-Audit:** `docs/trading_page_audit.md`
@@ -142,6 +142,31 @@
   - In `RightDetailsSidebar` als neuer Tab `"orderbook"` einhaengen (Icon: `BookOpen`)
   - Kein externer Library-Dep — nur vorhandene TanStack Query + shadcn-Primitives
 
+### Phase L — Global Nav Shell (SOTA 2026, 14.03.2026)
+
+> Cross-cutting: betrifft alle 4 Surfaces (trading, geopolitical-map, control, files).
+> Entscheid: **Slim Persistent GlobalTopBar (40px) + Next.js Route Group `(shell)`** — kein Side-Rail, kein doppelter Header.
+> Referenz: SOTA-Research 14.03.2026 (TradingView/Binance-Pattern; NN/G Vertical Nav; Next.js Route Groups).
+
+- [x] **TRF43** `src/app/(shell)/layout.tsx` — Route Group wrapper mit `<GlobalTopBar />` (40px) + `flex-1 overflow-hidden` Content-Slot; alle Surface-Routen darin — 14.03.2026
+  - Verschoben: `trading/`, `geopolitical-map/`, `control/`, `files/` → `(shell)/`
+  - URL-Pfade unveraendert (`/trading`, `/geopolitical-map`, `/control`, `/files`)
+- [x] **TRF44** `src/components/GlobalTopBar.tsx` — 40px persistent nav (`<header>`); extrahiert aus TradingHeader — 14.03.2026
+  - Logo (Link → `/trading`) + 4 Surface-Buttons (`Trading|Map|Control|Files`) mit Active-State via `usePathname`
+  - `data-testid="link-{surface}"` auf allen Buttons
+  - Rechts: Uhr (hidden md) + `AlertPanel` + Account-Dropdown + Theme-Switcher
+  - Kein Re-Mount beim Surface-Wechsel (App-Router Layout-Garantie)
+- [x] **TRF45** `TradingHeader.tsx` → reine Chart-Toolbar (`role="toolbar"`) — 14.03.2026
+  - Entfernt: Logo, Nav-Links (Map/Control/Files), Uhr, Account-Dropdown, Theme-Switcher
+  - Behalten: SymbolSearch, Symbol-Badge+Favorites, TimeframeSelector, Replay-Controls, ChartTypeSelector, CompareSymbol, IndicatorPanel, Layout-Switcher, Refresh/Export/Fullscreen, SettingsPanel
+  - Props-Interface unveraendert (kein Breaking-Change an Aufruf-Sites)
+- [x] **TRF46** Error Pages fuer alle 4 Surfaces (framer-motion + OTel-Logging) — 14.03.2026
+  - `(shell)/trading/error.tsx` — `TrendingDown`-Icon, domain=`Trading/ChartWorkspace`
+  - `(shell)/geopolitical-map/error.tsx` — `ShieldX`-Icon (pre-existing), domain=`Geopolitical/D3MapCanvas`
+  - `(shell)/control/error.tsx` — `SlidersHorizontal`-Icon, domain=`Control/AgentRuntime`
+  - `(shell)/files/error.tsx` — `FolderX`-Icon, domain=`Files/DocumentViewer`
+- [x] **TRF47** Verify-Gates fuer Shell ergaenzt (`TRF.V17–TRF.V20`) — 14.03.2026
+
 ---
 
 ## 2. Monitor / Deferred Decisions
@@ -172,6 +197,13 @@
 - [ ] **TRF.V12** Orderbook-Tab in RightDetailsSidebar — Tab erscheint mit BookOpen-Icon; REST-Snapshot laedt Bids/Asks-Tabelle; Tiefenbalken sichtbar; Spread-Zeile korrekt; SSE-Stream liefert Live-Updates (Preise aendern sich ohne Reload)
 - [ ] **TRF.V13** WatchlistSidebar nach TRF38 — Symbol-Highlight + Favoriten-Toggle korrekt ohne Props aus page.tsx (Store-only); kein Regressionsfehler bei Symbol-Wechsel
 - [ ] **TRF.V14** CommandPalette nach TRF39 — Suche zeigt alle Symbole aus ALL_FUSION_SYMBOLS (nicht nur erste 10); Texteingabe filtert korrekt
+
+### Shell / GlobalTopBar (Live-Verify noetig)
+
+- [ ] **TRF.V17** `GlobalTopBar` sichtbar auf allen 4 Surfaces — `/trading`, `/geopolitical-map`, `/control`, `/files` — jeweils 40px am oberen Rand; kein Layout-Shift beim Surface-Wechsel
+- [ ] **TRF.V18** Active-State korrekt: nur der aktive Surface-Button `bg-accent`; alle anderen `text-muted-foreground`; korrekt nach Browser-Reload
+- [ ] **TRF.V19** `TradingHeader` zeigt weder Logo noch Nav-Links — nur Chart-Toolbar; `role="toolbar"` im DOM
+- [ ] **TRF.V20** Error Pages ausloesbar: Fehler in Surface-Component → framer-motion Error-Card mit domain-spezifischem Icon + Reset-Button → `reset()` stellt Surface wieder her; Hard-Reload-Link funktioniert
 
 ---
 

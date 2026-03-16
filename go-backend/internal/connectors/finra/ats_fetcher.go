@@ -1,7 +1,8 @@
 // Package finra provides FINRA ATS weekly summary fetcher. Phase 14c.2.
 // The official Query API contract uses:
-//   1. FIP OAuth client_credentials to obtain a Bearer token
-//   2. POST https://api.finra.org/data/group/otcMarket/name/weeklySummary with a JSON payload
+//  1. FIP OAuth client_credentials to obtain a Bearer token
+//  2. POST https://api.finra.org/data/group/otcMarket/name/weeklySummary with a JSON payload
+//
 // Ref: REFERENCE_SOURCE_STATUS.md, https://developer.finra.org/docs
 package finra
 
@@ -20,7 +21,7 @@ import (
 )
 
 const (
-	DefaultATSURL       = "https://api.finra.org/data/group/otcMarket/name/weeklySummary"
+	DefaultATSURL        = "https://api.finra.org/data/group/otcMarket/name/weeklySummary"
 	DefaultOAuthTokenURL = "https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token?grant_type=client_credentials"
 )
 
@@ -45,13 +46,13 @@ var allowedWeeklySummaryFields = map[string]struct{}{
 }
 
 var allowedCompareTypes = map[string]struct{}{
-	"equal":          {},
-	"not_equal":      {},
-	"greater":        {},
-	"greater_or_eq":  {},
-	"less":           {},
-	"less_or_eq":     {},
-	"contains":       {},
+	"equal":         {},
+	"not_equal":     {},
+	"greater":       {},
+	"greater_or_eq": {},
+	"less":          {},
+	"less_or_eq":    {},
+	"contains":      {},
 }
 
 type CompareFilter struct {

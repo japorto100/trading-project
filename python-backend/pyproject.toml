@@ -24,6 +24,8 @@ dependencies = [
     # Phase 6a: Cache adapter
     "cachetools>=5.3.0",
     "redis>=5.0.0",
+    # pandas: explicit dep (was only transitive via yfinance — not reliable)
+    "pandas>=2.2.0",
     # Phase 15b: Volatility Suite (numpy available via scipy; explicit for clarity)
     "numpy>=2.0.0",
     # Phase 15c: Regime Detection

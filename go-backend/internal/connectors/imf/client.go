@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 const DefaultBaseURL = "https://dataservices.imf.org/REST/SDMX_JSON.svc"

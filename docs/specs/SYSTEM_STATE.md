@@ -1,10 +1,12 @@
 # SYSTEM STATE (IST / SOLL)
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Kompakte Wahrheit ueber aktuellen Runtime-Stand, Schichten,
 > Transportpfade und offene Zielbilder. Dieses Dokument ist **kein** Changelog und
 > **keine** Roadmap.
 > **Roadmap-Owner:** [`EXECUTION_PLAN.md`](./EXECUTION_PLAN.md)
+> **Hinweis:** `SYSTEM_STATE.md` bleibt bewusst bestehen als kurze Runtime-Truth.
+> Architektur- und Daten-Details sind in eigene Owner-Specs ausgelagert.
 
 ---
 
@@ -18,6 +20,14 @@
 | Rust | lokaler Compute-Layer, aktuell vor allem via `python-backend/rust_core` | staerkere Produktionsgrenze fuer Hot Paths, selektiv auch direkter Go↔Rust-Pfad |
 | GCT / go-crypto-trader | externer Read-/Execution-nahe Crypto-Upstream hinter dem Gateway | read-only Slices selektiv absorbieren, keine blinde Volluebernahme |
 | Stores | SQLite/Prisma lokal, JSON-Fallbacks an einzelnen Stellen, Redis/DB/NATS optional oder vorbereitend | Gateway-owned Persistenz dort aufbauen, wo Broker-/execution-/idempotency-Truth wirklich entsteht |
+
+### Wichtigste offene Runtime-Drifts (kompakt)
+
+- Next erwartet `/api/v1/agent/chat`, die Go-Route ist nicht ueberall konsistent
+  verdrahtet.
+- `/api/v1/portfolio/order` ist in Policy-/Middleware-Teilen referenziert, aber
+  nicht in jedem Laufzeitpfad konsistent gemappt.
+- Capability-Enforcement ist in Teilbereichen noch fail-open/flag-gated.
 
 ---
 
@@ -221,6 +231,16 @@ sichtbar bleiben. Kein Layer soll diese Zustaende stillschweigend vermischen.
 |:------|:---------|
 | Roadmap / offene Arbeit | `EXECUTION_PLAN.md` |
 | Schichtenzustand | `SYSTEM_STATE.md` |
+| Architektur-Baseline und Plane-Schnitt | `architecture/ARCHITECTURE_BASELINE.md` |
+| Go Gateway Grenzkontrakte | `architecture/GO_GATEWAY_BOUNDARY.md` |
+| Agent Runtime und Policy | `architecture/AGENT_RUNTIME_ARCHITECTURE.md` |
+| Memory-Schichten und Storage-Ownership | `architecture/MEMORY_AND_STORAGE_BOUNDARIES.md` |
+| Orchestrierung/Messaging-Entscheidungen | `architecture/ORCHESTRATION_AND_MESSAGING.md` |
+| Datenaggregation und Datenzonen | `data/DATA_ARCHITECTURE.md` |
+| Aggregation IST + Gaps | `data/AGGREGATION_IST_AND_GAPS.md` |
+| Storage + Persistenz-Klassen | `data/STORAGE_AND_PERSISTENCE.md` |
+| UIL Grenzkontrakte | `data/UNSTRUCTURED_INGESTION_UIL.md` |
+| Provider-Status-Matrix | `data/SOURCE_STATUS.md` |
 | API / headers / SSE / contracts | `API_CONTRACTS.md` |
 | Frontend / state / BFF ownership | `FRONTEND_ARCHITECTURE.md` |
 | Auth / policy / secrets / GCT hardening | `AUTH_SECURITY.md` |

@@ -2,7 +2,7 @@
 #
 # TradeView Fusion - Control Surface (Mission Control inspired, product-safe)
 #
-# Stand: 13 Mar 2026
+# Stand: 14 Mar 2026
 
 ## 1) Zweck und Positionierung
 
@@ -377,6 +377,129 @@ TradeView Ziele:
 - ungefilterte admin-heavy panels ohne Produktbezug
 - security-relevante shortcuts, die Gateway/BFF umgehen
 
+## 6.4 Externe Referenz: mcp-manager (evaluiert)
+
+Evaluierte Referenz (extrahiert):
+
+- `D:/tradingview-clones/_tmp_ref_review/extraction_candidates/mcp-manager`
+
+Zielbild:
+
+- `mcp-manager` dient als Governance-/Operations-Blueprint fuer Control.
+- Uebernahme erfolgt als **Adapt** in die bestehende Kette
+  `UI -> Next BFF -> Go Gateway -> downstream services`.
+- Kein 1:1 Port von Tauri/Desktop-spezifischen Teilen.
+
+### 6.4.1 Relevante uebernehmbare Bausteine
+
+1) Governance + Allowlist + Approval Workflow
+- Relevanz: steuert, welche Tools/Skills installierbar sind.
+- Direktbezug Two-Tier: **TT3 Tools**, **TT6 Skills**, **TT8 Security**.
+- Soll in TradeView:
+  - Admin-Allowlist + User-Request + Review/Ablehnung
+  - klare blocked/approved Signale im Security-Tab
+  - kein silent install
+
+2) Per-App Tool-Filter + Token-Budget
+- Relevanz: reduziert Kontextkosten und Angriffsoberflaeche.
+- Direktbezug Two-Tier: **TT3 Tools**.
+- Soll in TradeView:
+  - Toggle pro Tool
+  - Budget-Anzeige (enabled vs total)
+  - deterministic apply + sichtbarer Restart-/Reload-Hinweis falls noetig
+
+3) Tool Discovery + Schema Cache
+- Relevanz: standardisierte Verfuegbarkeit/Qualitaet von Tool-Metadaten.
+- Direktbezug Two-Tier: **TT3 Tools**, **TT6 Skills**.
+- Soll in TradeView:
+  - discover/refresh Endpoint
+  - cached schema + token estimate fuer UI und Policy Gates
+
+4) Audit-First fuer mutierende Aktionen
+- Relevanz: Compliance, Nachvollziehbarkeit, Incident Review.
+- Direktbezug Two-Tier: **TT16 Full Audit Logs**.
+- Soll in TradeView:
+  - einheitliche Audit-Felder pro Mutation
+  - action-class, actor, target, status, errorCode, requestId, ts
+  - Sichtbarkeit im Developer Mode (chronologisch, filterbar)
+
+5) Auth- und Credential-Lifecycle Patterns
+- Relevanz: Security und Betriebssicherheit bei externen Integrationen.
+- Direktbezug Two-Tier: **TT8 Security**.
+- Soll in TradeView:
+  - auth probe (oauth/api-key/none)
+  - token/key status Signale fuer Security posture
+  - Secrets nur serverseitig, nie im Browser-Kontext
+
+### 6.4.2 Explizit nicht 1:1 uebernehmen
+
+- Tauri Shell, lokale Daemons, lokale Config-Datei-Edits in AI-Tools
+- Desktop-spezifische Keychain/Stronghold-Verkabelung
+- app-lokale Process-Lifecycle Steuerung als Produktstandard
+
+Stattdessen:
+
+- web-native Umsetzung ueber Next BFF + Go Gateway + zentrale Secrets/Policy-Layer.
+
+### 6.4.3 Konkreter Integrationsvorschlag fuer TradeView Control
+
+User Mode (TT3/TT6/TT8):
+
+- Tools Tab:
+  - Verfuegbare Tools + enabled state + token impact
+  - Add/Enable nur ueber Approval/Allowlist (falls policy verlangt)
+- Skills Tab:
+  - Own skills activate/deactivate
+  - optional user-add nur mit security scan gate
+- Security Tab:
+  - posture score + blocked/approved Events
+  - credential/auth-status als eigene Signalgruppe
+
+Developer Mode (TT16 + Ops):
+
+- Full Audit Logs Tab:
+  - alle Mutationen ueber Control
+  - filter nach actor/action/status/target/time window
+- Governance Admin View:
+  - allowlist verwalten
+  - requests approven/denyen
+  - policy reason sichtbar
+
+### 6.4.4 Datei-Targets (TradeView Fusion)
+
+UI:
+
+- `src/features/control/components/subtabs/ControlSkillsTab.tsx`
+- `src/features/control/components/subtabs/ControlSecurityTab.tsx`
+- neuer `ControlToolsTab.tsx` (TT3)
+- optional neuer `ControlAuditTab.tsx` (TT16)
+
+BFF:
+
+- neue Routen unter `src/app/api/control/tools/*` (list/filter/discovery/request)
+- neue Routen unter `src/app/api/control/governance/*` (allowlist/requests/review)
+- neue Route `src/app/api/control/audit/route.ts` (developer mode)
+
+Policy/Audit:
+
+- bestehende Action-Klassen in `src/features/control/lib/action-classes.ts` erweitern
+- Audit-Writer in `src/lib/server/control-audit.ts` fuer neue Mutationen mitnutzen
+
+### 6.4.5 Delivery-Reihenfolge (empfohlen)
+
+Phase A (Security/Governance Basis):
+
+- Governance-Contract + Audit-Contract + Security-Signale
+
+Phase B (User Tooling):
+
+- TT3 Tools inkl. Filter/Budget + Approval-Gate
+- TT6 Skills Lifecycle mit derselben Gate-Logik
+
+Phase C (Developer Observability):
+
+- TT16 Full Audit Logs + Admin Governance View
+
 ## 7) Konkrete Datei-Targets in TradeView Fusion
 
 ## 7.1 Header + Navigation
@@ -516,3 +639,80 @@ Phase 3:
 - Kein Parallel-Backend fuer identische Aufgaben.
 - Kein Aufweichen von Security/Harness/Context Regeln zugunsten schneller UI.
 
+## 13) Two-Tier Control Surface Architecture
+
+> Stand: 14. Maerz 2026 — Entscheid nach Product-Review.
+> Basis: Diskussion "was ist CLI/DevOps vs User-facing fuer einen Trader".
+
+### 13.1) Motivation
+
+Die urspruengliche Control-Surface (Abschnitte 5.1-5.9) war zu stark an Mission Control / Operator-Console orientiert. Fuer einen Trader oder Analysten sind Dinge wie "Kill Session", rohe Tool-Event-Timelines, Memory-Infrastruktur-Health oder Evals-Runs nicht relevant. Gleichzeitig braucht der Nutzer echte AI-Kontrolle: eigene Memory verwalten, seinen persoenlichen KG einsehen, Agents konfigurieren, Tools aktivieren. Dies fuehrt zur Zwei-Tier-Architektur.
+
+### 13.2) User Mode (viewer / analyst / trader — default)
+
+Tabs und Ziele:
+
+| Tab | Was der User sieht/kann | Ambivalentes / Diskussion |
+|---|---|---|
+| **Overview** | AI-Health (online/degraded/offline), aktive Tasks, letzter Fehler | Keine raw Infrastruktur-Metriken |
+| **Sessions** | "Was macht der Agent gerade fuer mich?" — read-only, Token-Druck | Kein Kill im User Mode |
+| **Tools** | Verfuegbare Tools toggle on/off, Tool hinzufuegen via Marketplace | Add: Approval-Gate + Security-Scan empfohlen (kein silent install) |
+| **Memory** | Persoenliche episodische Memory einsehen, bearbeiten, loeschen | Ref: https://arxiv.org/pdf/2603.07670 — episodic/semantic/procedural split fuer Tab-Design verwertbar |
+| **KG (Fast-Lane)** | **PRIORITY ITEM.** Persoenlicher User-KG: Nodes/Edges view + CRUD. Auth/Encryption bereits vorhanden. UI fehlt komplett. Fast-Lane = user overlay, Slow-Lane = backend (Developer Mode). Context-Tab entfaellt — KG IS der Kontext. | — |
+| **Skills** | Eigene Skills activate/deactivate. User-Add: ambivalent — Power-User mit Approval-Gate ja, normaler User nur toggle. | Entwicklermodus: alle Skills aller User + global deploy |
+| **Agents** | Eigene Agents activate/deactivate, Rolle anpassen, Tools pro Agent. **Per-Agent Permission Matrix** (Portfolio? Orders? External APIs?). v2: ReactFlow Visual Editor (n8n/LangGraph-Stil). | Entwicklermodus: Policy-Setzung, Cross-Agent-Rules |
+| **Security** | Posture-Score, Zugriffsliste, letzte Alerts | User-facing und compliance-relevant |
+
+### 13.3) Developer Mode (admin-Rolle)
+
+Entweder als Query-Param-Toggle (`/control?mode=dev`, nur fuer admin sichtbar) oder separater `/admin`-Route.
+
+*Empfehlung v1: Toggle reicht. Bei wachsendem Scope: `/admin` als eigene Route.*
+
+Developer-only Inhalte:
+
+- **Kill Session** — Prozess-Management (forceful terminate)
+- **Raw Tool Events** — Developer-Debug-Timeline
+- **Memory-Infrastruktur-Health** — Layer-Health, purge-all
+- **Slow-Lane KG** — globaler Backend-Graph, Schema-Admin
+- **Alle Skills aller User** — global deploy, policy
+- **Agent Policy Setting** — globale Guardrails
+- **Evals** — QA-Workflows, Drift-Detection
+- **RBAC Role Distribution** — globale Rollenverteilung (bleibt in `/api/admin/users`)
+- **Full Audit Logs** — alle Mutations, alle User
+
+### 13.4) Klärungen
+
+**Context vs. KG:**
+- User: KG = Kontext. "KG/Context"-Tab wird zu "KG (Fast-Lane)".
+- Developer: "Context" = Runtime-Context-Debug (Token-Usage, geladene Chunks, Merge-Mode) — bleibt als separater Dev-Tab.
+
+**RBAC fuer User:**
+- Nicht globales Rollenmanagement (bleibt in Admin).
+- User-facing RBAC = Per-Agent-Permission-Matrix im Agents-Tab.
+- "Darf Agent X auf mein Portfolio zugreifen? Auf Orders?" — das ist Vertrauen/Trust-Kontrolle.
+
+**ReactFlow / Visual Agent Editor:**
+- v2-Feature. Strategischer Marker. SOTA: LangGraph Studio, Flowise, n8n.
+- Integration als Sub-Tab im Agents-Tab oder eigene `/control/agent-builder`-Route.
+- Gibt Nutzern visuelle Kontrolle ueber Agent-Workflows ohne Code.
+
+**Memory-Paper-Referenz:**
+- https://arxiv.org/pdf/2603.07670 — Memory-Architektur-Paper.
+- Backend-relevant (episodic/semantic/procedural Memory-Split).
+- Frontend: episodic entries = primac Memory-Tab-Inhalt fuer User. Semantic Facts als zweite Ansicht.
+
+### 13.5) Auswirkung auf Abschnitt 4.2 (Subroute-Modell)
+
+Bisheriges Subroute-Modell (5.2-5.9) bleibt physisch erhalten. Logische Tier-Zuordnung:
+
+User Mode Routes: `/overview` `/sessions` `/tools` `/memory` `/kg` `/skills` `/agents` `/security`
+Developer Mode Routes (gate hinter admin): `/tool-events` `/kg-admin` `/evals` `/audit` (oder unter `/admin/*`)
+
+### 13.6) Naechste Schritte (Priorisierung)
+
+1. **Fast-Lane KG UI** (TT5) — hoechste Prioritaet, laengst faelliger Baustein
+2. **Memory Tab** User-facing CRUD (TT4)
+3. **Tools Tab** activate/deactivate + Marketplace-Hook (TT3)
+4. **Agents Tab** Per-Agent-Permission-Matrix (TT7)
+5. **Developer Mode Toggle** (TT9-TT16) — wenn Scope reif

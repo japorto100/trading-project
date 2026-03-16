@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 func TestGetSeries_ParsesEVDS3PayloadLatestFirst(t *testing.T) {

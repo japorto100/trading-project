@@ -126,4 +126,3 @@ func TestEventsService_ListEvents_ClampsLimit(t *testing.T) {
 		t.Fatalf("expected clamped limit 500, got %d", acledClient.lastQuery.Limit)
 	}
 }
-

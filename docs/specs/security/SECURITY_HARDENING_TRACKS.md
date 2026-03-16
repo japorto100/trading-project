@@ -1,6 +1,6 @@
 # Security Hardening Tracks
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Operative Security-Sub-Spec fuer bekannte Risiken,
 > Sofortmassnahmen, Folge-Tracks und Leitentscheidungen.
 > **Source-of-Truth-Rolle:** Autoritativ fuer Security-Restlage und

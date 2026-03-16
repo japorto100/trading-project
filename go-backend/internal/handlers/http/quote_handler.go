@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/handlers/marketparams"
 )
 

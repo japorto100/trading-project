@@ -29,6 +29,9 @@
 | `YouTube transcripts` | OSINT / narrative / speech extraction |
 | `Finanzmarktwelt (YouTube)` | Deutscher Macro-/Marktkommentar als sekundaire Discovery-Quelle (nie primaerer Truth-Layer) |
 | `Reddit` | Community / retail / social signal input |
+| `Bluesky Public Feeds` | Social-discourse Monitoring fuer Narrative-Shift-Detektion |
+| `Telegram Public Channels` | Fast-moving Channel-Signale (immer mit Compliance-/Provenance-Guardrails) |
+| `KiwiSDR Directories` | RF-/Radio-Context Discovery (nicht als primaerer Faktenfeed) |
 | `Community signals / chat exports` | Unkonventionelle Discovery-Inputs mit Human-in-the-loop |
 
 ---
@@ -41,7 +44,7 @@
 |-----------|-------|
 | `NBS China`, `PBoC`, `lokale Behoerden / ministry sites` | nur dann aktivieren, wenn Baseline-/Tier-1-Quellen eine dokumentierte Luecke lassen und die Translation-Bridge echten Mehrwert bringt |
 | `Yahoo (unofficial)`, `NSE India`, `investing.com` | inoffizielle Fallbacks, nie Primaerquelle |
-| `YouTube transcripts`, `Reddit`, `Community signals / chat exports` | Discovery-/OSINT-Layer, nicht strukturierter Truth-Layer |
+| `YouTube transcripts`, `Reddit`, `Bluesky`, `Telegram`, `KiwiSDR directories`, `Community signals / chat exports` | Discovery-/OSINT-Layer, nicht strukturierter Truth-Layer |
 
 ### Fazit
 

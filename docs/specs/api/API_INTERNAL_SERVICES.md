@@ -1,6 +1,6 @@
 # API Internal Service Boundaries
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Vertrag fuer die internen Service-Grenzen: Go -> Python, Go -> Rust,
 > Go -> GCT.
 > **Index:** [`../API_CONTRACTS.md`](../API_CONTRACTS.md)

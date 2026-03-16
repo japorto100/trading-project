@@ -22,7 +22,7 @@ func TestJWTRevocationBlocklist_UserRevocation(t *testing.T) {
 	blocklist := newJWTRevocationBlocklist()
 	now := time.Now()
 	userId := "user-123"
-	
+
 	// Revoke everything for this user issued before 'now'
 	blocklist.RevokeUser(userId, now)
 
@@ -47,7 +47,7 @@ func TestJWTRevocationBlocklist_ExpiredEntryIsPruned(t *testing.T) {
 	if !blocklist.IsRevoked("jti-expired", "", time.Time{}, now) {
 		t.Fatalf("expected jti to be revoked before expiry")
 	}
-	
+
 	// Wait for expiry simulation
 	later := now.Add(time.Second)
 	if blocklist.IsRevoked("jti-expired", "", time.Time{}, later) {

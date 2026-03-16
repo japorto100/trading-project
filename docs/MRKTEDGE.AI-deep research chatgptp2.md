@@ -1,267 +1,492 @@
-# MRKTEDGE.AI – Technische, UX- und AI/ML-Analyse auf Basis öffentlich verfügbarer Evidenz
+# MRKTEDGE.AI Benchmark 2026 - Technical Transfer Blueprint for tradeview-fusion
 
-> **Status (09. Maerz 2026):** Externer Benchmark / Referenzdokument. Kein
-> aktives Architektur-Owner-Dokument. Relevante normative Ableitungen werden in
-> Root-/Spec-Dokumente verteilt; diese Analyse bleibt als Recherche-Artefakt
-> erhalten.
+> Status (16 Mar 2026): External benchmark/reference document.  
+> This file is not a root owner spec. It defines what should be adopted, adapted, deferred, or avoided, and where recommendations should live in active root/spec docs.
 
-## Executive Summary
+---
 
-entity["company","MRKT AI","trading platform toronto, ca"] positioniert sich als browserbasierte, abonnementgetriebene „AI-powered“ Markt-Intelligence-Plattform, die **Fundamentals/Makro, Sentiment, Positionierung und News** zu einem **handlungsnahen Kontext-Layer** verdichtet („understand why markets move in seconds“). citeturn1view0turn23view0
+## 1. Purpose of This Rewrite
 
-Aus primären Artefakten auf der Domain lassen sich drei belastbare technische Eckpunkte ableiten:  
-Erstens deutet der Einsatz von `/_next/image` (inkl. Parametern wie `q` und `w`) stark auf **Next.js**-Rendering/Image-Optimierung hin; zudem verweisen Blog-Bilder auf **Sanity CDN (`cdn.sanity.io`)** als Content-/Asset-Quelle, was ein Headless-CMS-Muster stützt. citeturn21view0turn24view0turn24view3  
-Zweitens sind **Zahlungsabwicklung via Stripe** und **Nutzungsanalyse via Google Analytics** explizit in der Privacy Policy genannt. citeturn4view0  
-Drittens nutzt die Marketing-Site eingebettete Medien über **Cloudflare Stream** (URLs auf `cloudflarestream.com`), was ein CDN-/Video-Delivery-Bauteil darstellt. citeturn18view0turn18view1
+This rewrite replaces earlier mixed-format research text with a clean, actionable benchmark-to-implementation blueprint.
 
-Die AI/ML-Nutzung ist funktional klar belegt (AI-generierte Summaries/Analysen aus öffentlich verfügbaren Informationen; u.a. Headlines, Economic Data, Central Bank Events, Earnings), aber **Modellnamen, MLOps-Mechanik, Trainings-Setup, Feature-Engineering und Monitoring** werden öffentlich nicht spezifiziert. citeturn3view2turn10search0
+Goals:
 
-Für Hosting/Server-Infrastruktur existiert starke sekundäre Evidenz: ScamAdviser nennt als „Server/ISP“ **Vercel Inc** (inkl. IP/Registrar-Hinweisen). Das passt konsistent zur Next.js-Artifact-Lage, bleibt aber ohne eigene Header/DNS-Dumps eine Indikation, keine harte Primärmessung. citeturn26search0
+- keep only high-signal benchmark findings
+- separate verified facts from inferred assumptions
+- provide concrete implementation guidance for `tradeview-fusion`
+- recommend where each topic should be represented in existing root working docs
+- include package/vendor recommendations with "now vs later" guidance
 
-## Evidenzbasis und Konfidenzrahmen
+This step intentionally does **not** distribute changes across other docs yet.
 
-Die folgenden Quellenkategorien wurden ausgewertet: (a) offizielle Webseiteninhalte & Assets (Landing, Blog, Updates, Legal), (b) Social/Company-Profile & Posts, (c) Community-Signale (Reddit, Reviews), (d) Tech-Fingerprint-Dienste. Offizielle deutschsprachige Dokumente wurden in der Recherche nicht gefunden; die öffentlich zugänglichen Primary Sources sind überwiegend englisch. citeturn1view0turn4view0turn10search0turn31reddit24turn27search3
+Frontend extraction status (16 Mar 2026):
 
-### Evidenzquellen und typische Aussagekraft
+- Frontend deep-dive content has now been extracted into:
+  - `docs/FRONTEND_INTELLIGENCE_CALENDAR.md`
+  - `docs/FRONTEND_RESEARCH_HOME.md`
+- This benchmark remains the cross-domain transfer reference.
+- Backend dependencies required by those frontend docs are explicitly listed there as contract-level needs.
 
-| Evidenzquelle | Typ | Was wurde extrahiert | Aussagekraft | Konfidenz |
-|---|---|---|---|---|
-| mrktedge.ai (Landing/Pages) | Primär | Positionierung, Pricing, Datenanbieter-Branding, Feature-Claims, Kontakt/Legal-Verlinkung | Hoch für Produkt-Selbstbeschreibung, mittel für „Data powered by“ (ohne Vertragsdetails) | Hoch–Mittel citeturn1view0 |
-| Legal-Seiten (Privacy/Disclaimer) | Primär | Drittanbieter (Stripe/GA), PII-Kategorien, Retention, AI-Content-Hinweise | Hoch für rechtlich deklarierte Statements (Scope, Drittanbieter, AI-Disclaimer) | Hoch citeturn4view0turn3view2 |
-| Blog/Updates (mrktedge.ai/blog, /updates) | Primär | Funktionsumfang, UI-Workflows, PWA/Push, TTS/Multilingual-Features, Zeitstempel der Releases | Hoch für Feature-Existenz & Timeline; mittel für technische Implementierungsdetails | Hoch citeturn12view2turn23view0 |
-| Domain-Assets (Bild-URLs, `/_next/image`, Sanity-CDN, Cloudflare Stream) | Primär (Artefakte) | Framework-Indizien (Next.js), Headless-CMS-Indizien (Sanity), Video-Delivery (Cloudflare Stream) | Sehr hoch für „diese Technik ist eingebunden“; niedrig für „wie im Backend implementiert“ | Hoch citeturn24view0turn18view0 |
-| Unternehmensprofil/Posts auf LinkedIn | Semi-Primär | Company Facts (Gründung, Standort), Release Notes (UX/Features), AI-Positionierung | Mittel (Marketing-/Recruiting-Sprache), aber zeitnah & konsistent | Mittel–Hoch citeturn10search0turn14search2 |
-| Reddit-Threads | Community | Nutzerwahrnehmung, Skepsis, Feature-Beschreibungen, Community-Subreddit | Nützlich für „Voice of Customer“, aber nicht verifiziert | Niedrig–Mittel citeturn31reddit24turn33reddit47 |
-| BuiltWith / ScamAdviser | Sekundär | Tech-Fingerprints, Hosting-Indizien, Tracker | Gut als Hypothesen-Generator; nicht audit-sicher | Mittel citeturn27search3turn26search0 |
-| Trustpilot | Sekundär | Erfahrungsberichte, Support-/Pricing-Kritik, Scam-Impersonation-Warnungen | Subjektiv, kann jedoch Muster sichtbar machen | Niedrig–Mittel citeturn5search0turn14search6 |
+---
 
-### Konfidenzmatrix nach Untersuchungsdimension
+## 2. Evidence Refresh and Confidence Model
 
-| Dimension | Kurzfazit | Konfidenz |
-|---|---|---|
-| UI/UX-Design (Makro) | Aus Screens/Claims konsistent: Dark UI, Karten/Overlays, „Context-first“ Workflows, starke Informationsverdichtung | Mittel–Hoch citeturn3view1turn23view1turn10search0 |
-| Frontend-Framework/CMS | Next.js-Image-Route + Sanity-CDN in Asset-URLs stark belegt | Hoch citeturn24view0turn21view0 |
-| Backend/DB/Infra intern | Öffentliche Details fehlen; nur Hosting-Indizien via Vercel (sekundär) | Niedrig–Mittel citeturn26search0 |
-| AI/ML-Use-Cases | AI-Summaries/Analyse öffentlich deklariert; konkrete Modelle/Frameworks nicht genannt | Mittel citeturn3view2turn10search0 |
-| Security/Privacy | Privacy/Disclaimer decken Grundsatz ab; technische Controls (CSP, KMS, SOC2 etc.) nicht dokumentiert | Mittel citeturn4view0turn3view2 |
+### 2.1 Primary pages checked live
 
-## UI/UX-Design, Komponenten und Accessibility
+- `https://www.mrktedge.ai/`
+- `https://www.mrktedge.ai/economic-calendar`
+- `https://www.mrktedge.ai/updates`
+- `https://www.mrktedge.ai/privacy`
+- `https://www.mrktedge.ai/disclaimer`
+- `https://app.mrktedge.ai/manifest.webmanifest`
+- `https://app.mrktedge.ai/sw.js`
 
-MRKT kommuniziert eine klar „execution-orientierte“ UX: Kontext-Interpretation (Bias/Drivers/Events) soll *vor* dem Entry/Trade im Vordergrund stehen („gap between information and interpretation“, „build bias“). Das zieht sich konsistent durch Home, Blog-Artikel und Updates. citeturn1view0turn23view2turn23view1
+### 2.2 Confidence labels used
 
-### Visuelle Design-Sprache und zentrale UI-Komponenten aus Screenshots
+- `verified`: directly visible in primary pages/assets/legal text
+- `inferred`: strongly indicated by behavior/content but not formally documented
+- `unknown`: not publicly verifiable from accessible sources
 
-Die öffentlich eingebundenen Produkt-Screenshots auf der Landing Page liefern belastbare UI-Indizien (Layout, Komponentenarten, Informationsdichte). citeturn3view1turn3view0
+---
 
-**Beobachtete UI-Patterns (aus den MRKT-Assets):**
-- **Dark-Mode-first** mit neon-/glowartigen Akzenten (v.a. violett), klare visuelle Kodierung für „bullish/bearish“ (grün/rot) und „hot/high-impact“ (orange). citeturn3view1turn3view0  
-- **Card-/Overlay-UI**: mehrere „floating“ Panels über einem Chart (z.B. Headlines-Card, Bias/Drivers-Card, Event-Playbook-Card), passend zu „Context-at-a-glance“. citeturn3view1turn23view0  
-- **Tab-/Chip-Komponenten**: Pill-Buttons, Filter-Chips (Asset/Tag-Auswahl), Badges („HOT“) und segmentierte Kategorien in News-Items. citeturn3view1turn12view2  
-- **Daten-Grid/Table** im Economic Calendar (Spalten u.a. Event/Impact/Actual/Forecast/Min/Max/Bank Forecast) plus separater „Playbook“-Kasten (Outcome → Bias-Mapping). citeturn3view0turn4view1  
+## 3. What Is Actually Verified vs Inferred
 
-### Responsives Verhalten und PWA-Funktionalität
+## 3.1 Verified (high confidence)
 
-Aus dem Changelog ist eine explizite PWA-Strategie ableitbar: Push Notifications werden auf Desktop/Android und auf iOS **via PWA-Installation** („Add to Home Screen“) beschrieben. Das ist ein starkes Signal für Service Worker/Web Push und einen „always-on“-Alert-Kanal (wichtig für News/Market Events). citeturn12view2
+- Product positioning is context-first market intelligence, not broker execution.
+- Economic calendar emphasizes institutional ranges, shock detection, and pre-event playbook framing.
+- Public update history includes:
+  - MRKT VIEW dashboard
+  - Trump Tracker
+  - PWA push alerts
+  - multilingual TTS squawk
+- Privacy page explicitly mentions Google Analytics and Stripe.
+- Disclaimer explicitly states AI-generated summaries/analysis over public information, with possible inaccuracies.
+- PWA artifacts are directly visible:
+  - `display: "standalone"` in manifest
+  - active service worker with push handlers, click navigation, and iOS-PWA keep-alive logic
 
-Zusätzlich kommuniziert MRKT in Social Updates „improved mobile responsiveness“ und weitere UX-Minor-Fixes (z.B. fuzzy search, unlimited watchlist, delete symbols). Das deutet auf laufende Iteration am responsiven Layout und Interaktionsdetails hin. citeturn10search0
+## 3.2 Inferred (medium confidence)
 
-### Accessibility
+- "Event-to-decision" is a core interaction pattern (not just information display).
+- System likely requires ingestion, enrichment, indexing, and low-latency notification infrastructure.
+- There is likely a layered stack split between marketing/public pages and app runtime services.
 
-Es gibt **keine** öffentlich sichtbare A11y-Dokumentation (z.B. WCAG-Statement, VPAT) auf mrktedge.ai. Die einzige konkrete (sekundäre) Spur ist BuiltWith, das **Radix UI** detektiert (eine React-Komponentenbibliothek, die Accessibility als Designziel adressiert). Das bleibt ohne DOM-/Bundle-Analyse eine Indikation. citeturn27search3
+## 3.3 Unknown (must not be overclaimed)
 
-image_group{"layout":"carousel","aspect_ratio":"16:9","query":["MRKT AI terminal dashboard screenshot","MRKT economic calendar institutional ranges screenshot","MRKT candle analysis feature screenshot","MRKT alerts push notifications PWA screenshot"],"num_per_query":1}
+- internal DB architecture, queue/workflow choices, CI/CD setup
+- concrete AI model providers and training/fine-tuning strategy
+- production observability design and SLO discipline
+- formal AI redaction/retention/provenance controls beyond legal-level statements
 
-### Extrahierte Asset-URLs als UI-Evidenz
+---
 
-Aus direkten Asset-Links (Landing/Blog/Updates) lassen sich sowohl UI-Screens (Design/Komponenten) als auch Stack-Indizien (Next.js/Sanity/Video-CDN) ableiten. citeturn3view0turn24view0turn18view0turn19view0
+## 4. Transfer Decisions for tradeview-fusion
 
-**Beispiel-Asset-URLs (aus der Domain extrahiert):**
-```text
-Landing-Screens (direkt, statische Pfade):
-https://www.mrktedge.ai/features/home-hero.png
-https://www.mrktedge.ai/features/home-trade-the-news.png
+## 4.1 Adopt now
 
-Blog-Images (Next.js Image Optimizer => Sanity CDN im url-Parameter erkennbar):
-https://www.mrktedge.ai/_next/image?q=75&url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F...&w=3840
+- Event Intelligence as product core (not a simple calendar widget)
+- Research/Decision Home as first-class entry surface
+- PWA-first for notifications and cross-device continuity
+- Generic Actor/Narrative/Event Volatility tracking (not person-specific hardcoding)
+- explicit AI governance and provenance requirements in product/runtime decisions
+- observability-driven release gates for event and alert reliability
 
-Marketing-Videos (Cloudflare Stream Thumbnails, customer-<id>.cloudflarestream.com):
-https://customer-<...>.cloudflarestream.com/<...>/thumbnails/thumbnail.jpg
+## 4.2 Adapt carefully
 
-Changelog-Demos (GIFs; Link existiert, Abruf im Tool teils mit Cache-Miss/Statuscode):
-https://www.mrktedge.ai/updates/tts.gif
-https://www.mrktedge.ai/updates/mrkt-alerts-tutorial.gif
-```
-Diese URL-Muster stützen: (a) Next.js als Web-Framework, (b) Sanity als Asset/CMS-Backend für Blog-Inhalte, (c) Cloudflare Stream für Video-Delivery. citeturn24view0turn21view0turn18view0turn19view0
+- dashboard storytelling and card overlays (adapt to existing `tradeview-fusion` semantics)
+- sentiment/bias framing (must be evidence-linked and confidence-scored)
+- market-moving headline pipelines (must integrate geo/portfolio/context overlays)
 
-## Tech-Stack und Plattformbetrieb
+## 4.3 Defer
 
-### Komponenten: verifiziert vs. inferiert
+- heavy growth stack (CRM, affiliate, aggressive lifecycle automation)
+- complex payment orchestration before billing maturity
+- media-heavy video infrastructure unless product strategy requires it
 
-Die folgende Tabelle trennt strikt zwischen (i) durch Primary Artefakte/Legal-Texte verifizierten Komponenten, (ii) stark indizierten Komponenten, und (iii) rein inferierten/sekundären Hypothesen.
+## 4.4 Avoid
 
-| Layer | Komponente | Status | Evidenz | Kommentar |
-|---|---|---|---|---|
-| Frontend | Next.js (`/_next/image`) | Verifiziert (Artefakt) | URL-Muster in Blog-Image-Requests | Starkes Signal für Next.js Runtime/Image-Optimierung. citeturn24view0turn21view0 |
-| Content/CMS (Blog) | entity["company","Sanity","headless cms"] (cdn.sanity.io) | Verifiziert (Artefakt) | `cdn.sanity.io` im `url`-Parameter | Spricht für Headless CMS mindestens für Blog/Assets. citeturn24view0turn21view0 |
-| Hosting/Edge | entity["company","Vercel","hosting platform"] | Indiziert (sekundär) | ScamAdviser nennt ISP/Server „Vercel Inc“ (inkl. IP) | Konsistent zu Next.js, aber keine eigene Header-Messung. citeturn26search0 |
-| Video Delivery | entity["company","Cloudflare","cdn and security company"] Stream | Verifiziert (Artefakt) | `cloudflarestream.com` Thumbnail-URLs | Nutzung zumindest für Marketing-Einbettungen. citeturn18view0turn18view1 |
-| Payments | entity["company","Stripe","payments processor"] | Verifiziert (Legal) | In Privacy Policy explizit genannt | Payment/Checkout-Flow extern. citeturn4view0 |
-| Web Analytics | entity["company","Google","technology company"] Analytics | Verifiziert (Legal) | In Privacy Policy explizit genannt | Consent/Policy-Details sonst nicht offengelegt. citeturn4view0 |
-| Affiliate | entity["company","Tolt","affiliate software"] | Indiziert (Link + Fingerprint) | Affiliate-Link in Navigation; BuiltWith detektiert Tolt | Affiliate-Programm extern betrieben. citeturn1view0turn27search3 |
-| Product Analytics | entity["company","PostHog","product analytics company"] | Sekundär | BuiltWith detektiert PostHog | Ohne Network/JS-Audit nicht verifiziert. citeturn27search3 |
-| UI Components | Radix UI | Sekundär | BuiltWith detektiert „Radix UI“ | Plausibel in React/Next; A11y-Rückschluss nur bedingt. citeturn27search3 |
-| Marketing Automation | Klaviyo | Sekundär | BuiltWith detektiert Klaviyo | Könnte Newsletter/CRM-Connector sein. citeturn27search3 |
-| Data Providers | entity["organization","Reuters","news agency"]; entity["company","London Stock Exchange Group","financial markets company"]; entity["company","Nasdaq","stock exchange operator"]; entity["company","CME Group","derivatives marketplace"] | Claim (Marketing) | Branding „DATA POWERED BY“ | Vertrags-/Feed-Details öffentlich nicht spezifiziert. citeturn1view0 |
+- copying competitor stack assumptions as architecture truth
+- black-box AI conclusions without citations/provenance
+- adding new feature surfaces before event-quality and reliability gates are green
 
-### Backend, Datenbanken, CI/CD, Observability
+---
 
-Für Backendsprache(n), Datenbanken, Queueing/Streaming, CI/CD sowie klassische Observability (Tracing/Metrics/Logs, Incident Response) gibt es **keine** öffentlich belastbaren Angaben auf mrktedge.ai oder im sichtbaren LinkedIn-Text. citeturn10search0turn12view0
+## 5. Detailed Implementation Blueprint (for Later Execution)
 
-Was sich dennoch ableiten lässt (als Hypothese, nicht verifiziert):  
-Das Produktversprechen „real-time headlines“, „instant alerts“, PWA-Push und „click a candlestick to see what moved it“ impliziert serverseitige Komponenten für **Event-Ingestion**, **Stream-Verarbeitung**, **Indexierung/Lookup** und **Low-latency Notification Delivery**. Diese Architektur ist funktional plausibel, bleibt aber ohne API-/Header-/Bundle-Inspektion unspezifiziert. citeturn12view2turn23view0turn1view0
+## 5.1 Product Surface Model
 
-## AI/ML-Nutzung, Datenquellen und Governance
+Recommended default navigation model:
 
-### Öffentlich deklarierte AI/ML-Funktionalität
+- `/` -> `ResearchHome` (decision-first macro view)
+- `/workspace` -> deep trading workspace (charts/orders/indicators)
+- `/event/:id` -> event intelligence detail and playbook
+- `/volatility` -> actor/narrative/event volatility surface
 
-MRKT beschreibt AI als Kernkomponente zur Generierung von „summaries and analysis“ aus öffentlich verfügbaren Informationen (u.a. Market Headlines, Economic Data, Central Bank Events, Earnings Reports). Gleichzeitig wird auf mögliche Ungenauigkeiten/Misinterpretationen hingewiesen. citeturn3view2
+Design principle:
 
-Im Unternehmensprofil wird zusätzlich von „advanced AI trained on industry-leading models“ gesprochen, mit konkreten Domänen: real-time headlines, sentiment analysis, central banking events und economic calendar releases. Konkrete Modellnamen/Provider werden nicht genannt. citeturn10search0
-
-### Inference vs. Training, Cloud vs. On-Prem
-
-- **Inference (Produktbetrieb)**: Stark nahegelegt/implizit belegt durch Features wie AI-News-Zusammenfassungen, Sentiment, „so what“-Einordnung, sowie TTS/Multilingual. citeturn3view2turn12view2turn23view0  
-- **Training/Fine-Tuning**: Öffentlich **nicht spezifiziert**. Die Formulierung „trained on industry-leading models“ könnte von Prompting/RAG bis zu Fine-Tuning reichen, ist aber nicht auflösbar ohne Tech-Whitepaper, Job-Posts oder Repos. citeturn10search0  
-- **On-Prem vs. Cloud**: Öffentlich **nicht spezifiziert**. Das Hosting-Indiz (Vercel) spricht für Cloud-Betrieb der Webschicht; ob AI-Inferenz intern, via API-Anbieter oder hybrid erfolgt, bleibt offen. citeturn26search0turn3view2  
-
-### Feature Engineering, Modellmonitoring, Explainability
-
-MRKT verspricht als Wert „Transparency“ mit der Aussage, Nutzer:innen sollen verstehen, „wie unsere AI zu ihren Schlussfolgerungen kommt“. Das ist ein klares Produkt-/Brand-Statement zur Explainability, ohne technische Details (z.B. Provenance, Shapley, rationale extraction, citation graphs). citeturn12view0
-
-Konkrete Hinweise auf Monitoring/Guardrails:
-- Der Disclaimer betont, dass User „original sources“ prüfen sollen und dass AI-Summaries keine exakten Reproduktionen sind. Das impliziert zumindest eine **Provenance-Idee** (Quellverweise), aber konkrete Mechanismen sind nicht dokumentiert. citeturn3view2  
-- Community- und Team-Posts sprechen von „rebuild of how we process, categorize, and display these insights“ (Bias Key Factors) – das deutet auf eine Pipeline aus Klassifikation/Taxonomie/Scoring + UI-Aggregation hin, bleibt aber technisch unkonkret. citeturn10search0  
-
-### Privacy/PII-Handling und Datenaufbewahrung
-
-Die Privacy Policy nennt als erhobene Daten u.a. E-Mail, Vor-/Nachname, Cookies/Usage Data (inkl. IP-Adresse) sowie Retention „as long as necessary“ und mögliche grenzüberschreitende Transfers. Drittanbieter: Google Analytics und Stripe. citeturn4view0
-
-Was **nicht** öffentlich dokumentiert ist (als explizite Lücke):
-- Ob PII in AI-Prompts/Logs ausgeschlossen oder redigiert wird  
-- Retention/Deletion-Mechanik für AI-Outputs & Prompt-Logs  
-- Data Processing Addendums, Subprocessor-Liste über GA/Stripe hinaus  
-- Security-by-design für AI (Prompt Injection, data exfiltration, output filtering)  
-
-### Tabelle: Produktfeatures und AI-Einsatz
-
-| Feature | AI-Anteil (bewertet) | Evidenz | Bemerkung |
-|---|---|---|---|
-| Live Headlines mit „so what“/Summaries | Hoch | Disclaimer nennt AI-Summaries aus Market Headlines | Kern-Use-Case: Verdichtung/Interpretation. citeturn3view2turn23view0 |
-| Economic Calendar (Institutional ranges, playbooks, shock detection) | Mittel–Hoch | Economic Calendar Page + Blog beschreibt Kontext/Playbooks | Datenfeed + Regel-/Modelllogik möglich; genaue Methode offen. citeturn4view1turn23view0 |
-| Candle Analysis („what moved it“) | Mittel–Hoch | Blog beschreibt Click-a-candle → Ursachen/Headlines | Erfordert Event-Attribution/Indexing; AI könnte Zusammenfassung liefern. citeturn23view0turn33search2 |
-| AI Sentiment Index (0–100) & Drivers Dashboard | Hoch (als Claim) | Blog listet Sentiment Index/Drivers | Metrik-/Modell-Details fehlen. citeturn23view0 |
-| Bias / Key Factors | Mittel | LinkedIn Update beschreibt „key forces supporting it“ + Pipeline-Rebuild | Taxonomie/Scoring; AI möglich, nicht exakt ausgewiesen. citeturn10search0 |
-| Multilingual + News Squawk (TTS) | Hoch | Updates v1.7.0: TTS multilingual | Sprach-/TTS-Engine nicht spezifiziert. citeturn12view2 |
-| Search & Jump-to-Headline | Niedrig–Mittel | LinkedIn Post | Könnte klassisch index/search sein; „fuzzy search“-Hinweis spricht für Search-Layer. citeturn14search2turn10search0 |
-
-## Architektur, Integrationen, Deployment und Security-Praktiken
-
-### Inferenzbasierte Architektur
-
-Die Architektur unten ist aus Features (PWA Alerts, Candle Attribution, Live Headlines, Calendar, Subscription) sowie aus Stack-Indizien (Next.js, Sanity, Vercel, Stripe/GA, Cloudflare Stream) abgeleitet. Sie ist **hypothetisch** und markiert Lücken explizit. citeturn12view2turn24view0turn4view0turn26search0
+- research and execution are separate surfaces sharing the same context model
+- no duplicate logic/state between home and workspace
 
 ```mermaid
 flowchart LR
-  U[User: Browser / PWA] -->|HTTPS| FE[Next.js Web App]
-  FE -->|Auth session| AUTH[Auth / Identity Layer (unspezifiziert)]
-  FE --> API[Backend API (unspezifiziert)]
-  API --> BILL[Billing]
-  BILL --> STRIPE[Stripe]
-  FE --> ANALYTICS[Web/Product Analytics]
-  ANALYTICS --> GA[Google Analytics]
-  ANALYTICS --> PH[PostHog? (sekundär, unbestätigt)]
-
-  subgraph ContentAndMedia[Content & Media]
-    CMS[Sanity (Blog/CMS)] --> FE
-    VID[Cloudflare Stream (Marketing Media)] --> FE
-  end
-
-  subgraph MarketData[Market Data & Event Layer (unspezifiziert)]
-    VEND[Vendor Feeds / Data Providers] --> ING[Ingestion + Normalisierung]
-    ING --> STORE[(Event/Time-series Store)]
-    STORE --> INDEX[(Search/Attribution Index)]
-  end
-
-  INDEX --> AI[AI Inference Services (unspezifiziert)]
-  AI --> API
-
-  API --> PUSH[Push Notifications Service]
-  PUSH --> U
+  user[User] --> researchHome[ResearchHome]
+  user --> workspace[Workspace]
+  researchHome --> eventDetail[EventDetail]
+  researchHome --> volatilitySurface[VolatilitySurface]
+  eventDetail --> chartContext[ChartContext]
+  eventDetail --> geoContext[GeoContext]
+  eventDetail --> portfolioImpact[PortfolioImpact]
+  workspace --> eventDetail
 ```
 
-### Integrationen und Partnerschaften
+## 5.2 Event Intelligence Domain Model
 
-MRKT nennt Datenprovider-Branding (Reuters, LSE Group, Nasdaq, CME Group) und positioniert es als „DATA POWERED BY“. Konkrete API-Produkte, Lizenz-Scopes, Refresh-Raten oder Compliance-Constraints werden nicht publiziert. citeturn1view0
+Minimum event object (first production version):
 
-Eine als „brand-only partnership“ deklarierte Kooperation besteht mit entity["company","Dominion Markets","cfd broker mauritius"]; dort wird explizit festgehalten, dass MRKT kein Broker ist und keine Trades ausführt. Zudem wird die Lizenzierung durch die FSC von entity["country","Mauritius","country"] erwähnt. citeturn12view1
-
-### Multi-Tenant-Design, Skalierung, Fault Tolerance
-
-Öffentlich belegt sind Personalisierung/Onboarding („dashboard adapts … to your portfolio“) und PWA Alerts – das spricht funktional für ein Multi-User/Multi-Tenant-SaaS-Design mit user-spezifischen Settings, Watchlists und Notification Preferences. Konkrete Tenant-Isolation (DB-per-tenant vs. shared schema), Rate limiting oder Backpressure-Design sind nicht dokumentiert. citeturn12view2turn12view0
-
-„Real-time push notifications“ sowie „tap to dive in“ implizieren eine Architektur, die bei Lastspitzen (News-Events) robust bleiben muss; ob dafür Queues/Streams genutzt werden, ist öffentlich nicht spezifiziert. citeturn12view2
-
-### Deployment- und Security-Signale
-
-- Privacy Policy nennt Standardthemen (Data transfer, retention, security measures), aber keine spezifischen technischen Kontrollen oder Zertifizierungen. citeturn4view0  
-- ScamAdviser weist auf WHOIS-Privacy, Registrar/Server-Indizien (GoDaddy/Domains By Proxy/„Vercel“) hin. Das sind Umfeldsignale, nicht Security-Audits. citeturn26search0  
-- Community/Reviews weisen auf Scam-Impersonation-Risiken in Discord hin; MRKT antwortet dort mit Sicherheitsratschlägen (kein technischer Beweis, aber operatives Trust-Thema). citeturn5search0turn36search4  
-
-## Öffentliche Timeline und Tech-/Feature-Evolution
-
-### Release-Historie aus „Updates“
-
-Die Updates-Seite dokumentiert mehrere Versionen mit Datum (v1.1.0 bis v1.7.0) und benennt u.a. Personalisierung, MRKT VIEW, Trump Tracker, AI Breakdowns, Alerts (PWA Push) und Multilingual News Squawk (TTS). citeturn12view2
-
-```mermaid
-timeline
-  title Öffentliche Feature-Timeline
-  2025-03-13 : v1.1.0 Onboarding + personalisierte Dashboards + Custom Reports
-  2025-04-18 : v1.2.0 MRKT VIEW (Dashboards/Drivers/Summaries)
-  2025-04-27 : v1.3.0 Trump Tracker
-  2025-05-11 : v1.4.0 FX Dashboard Upgrade + "AI-powered breakdowns"
-  2025-07-10 : v1.6.0 MRKT Alerts (Push Notifications via PWA)
-  2025-07-31 : v1.7.0 Multilingual News Squawk (Text-to-Speech)
+```json
+{
+  "eventId": "evt_...",
+  "title": "US CPI (YoY)",
+  "region": "US",
+  "category": "macro",
+  "scheduledAt": "2026-04-10T12:30:00Z",
+  "expectedRange": { "min": 2.7, "consensus": 2.9, "max": 3.1 },
+  "actual": null,
+  "surpriseScore": null,
+  "impactScore": 0.0,
+  "affectedAssets": ["DXY", "XAUUSD", "US10Y", "SPX"],
+  "playbook": [
+    { "scenario": "above_max", "bias": "hawkish_usd_up" },
+    { "scenario": "in_range", "bias": "neutral_wait" },
+    { "scenario": "below_min", "bias": "dovish_usd_down" }
+  ],
+  "sources": [{ "name": "provider_x", "url": "..." }],
+  "confidence": 0.0
+}
 ```
 
-Ergänzend zeigen LinkedIn-Updates 2025/2026 eine fortlaufende UX-Iteration (Drag & Drop Assets auf Homepage, Candle explanations & comments, fuzzy search, mobile responsiveness). citeturn10search0turn14search2
+Required properties:
 
-### Historische Tech-Änderungen
+- expectation band, not only single forecast
+- explicit scenario playbook
+- affected assets and confidence fields
+- source links for explainability
 
-Ein expliziter, historischer Stack-Wechsel (z.B. „migrated from X to Y“) ist in den öffentlichen Quellen nicht dokumentiert. BuiltWith erwähnt allerdings „historical technologies“ und einen Detektionszeitpunkt (Okt 2025), ohne die Change-Details offen zu legen. Das reicht nicht für eine belastbare Tech-Migration-Timeline. citeturn27search3turn12view2
+## 5.3 Event Decision Engine (not just calendar rendering)
 
-## Verifikationslücken und empfohlene Follow-up-Aktionen
+Minimum engine functions:
 
-Die wesentlichen Lücken betreffen Backend/Infra, Security Controls und AI/ML-Implementierungsdetails. Um die wichtigsten Hypothesen sauber zu verifizieren, sind folgende Schritte (ohne NDA, rein technisch) am effizientesten:
+- normalize releases to canonical event schema
+- compute surprise and impact score
+- rank "what matters now"
+- generate scenario cards with links to chart/geo/portfolio
+- attach evidence bundle used for each summary
 
-**Header-/Edge-Fingerprinting (primär messen)**
-- `curl -I https://www.mrktedge.ai/` und `curl -I https://app.mrktedge.ai/` (Server, cache headers, CSP/HSTS, `x-vercel-*`, `cf-ray` etc.). Hosting-Indizien aus ScamAdviser lassen sich damit bestätigen oder falsifizieren. citeturn26search0turn13view2  
+Algorithmic baseline:
 
-**JS-Bundles und Abhängigkeiten (Framework/Libraries verifizieren)**
-- `view-source:` oder DevTools → Network: `_next/static/chunks/...` und `_next/static/css/...` herunterladen; dann `grep` nach `radix`, `posthog`, `sentry`, `datadog`, `stripe`, `sanity`, i18n-Libs etc. Das wäre die Primärverifikation für BuiltWith-Hypothesen. citeturn27search3turn24view0  
+- deterministic rules first
+- bounded ML scoring second
+- fully explainable outputs and fallback reasons
 
-**PWA-/Push-Implementierung (Service Worker & Push Provider)**
-- Browser DevTools → Application: Service Worker, Manifest, Push Subscription Endpoint. Updates beschreiben PWA-Push, aber nicht den Provider (FCM/APNs via WebPush-Gateway etc.). citeturn12view2  
+## 5.4 Volatility Tracker Generalization
 
-**Accessibility Audit**
-- Lighthouse + axe-core auf öffentlichen Pages und (wenn möglich) dem Sign-in Flow: Keyboard-Navigation (Tab-Order), ARIA, Contrast, Reduced Motion. Es gibt keine A11y-Statements, daher ist ein Audit der schnellste Klarheitsgewinn. citeturn27search3turn1view0  
+Do not implement as one-off "Trump tracker".
 
-**AI/ML-Transparenz (Modelle, RAG, Monitoring, PII)**
-- Nach einem technischen Whitepaper fragen oder prüfen, ob MRKT eine Subprocessor-Liste/AI-Policy bereitstellt. Kernfragen: Modellprovider, Prompt-Logging, PII-Redaction, Evaluation/Monitoring, Hallucination-Handling, Citation/Provenance. Der Disclaimer bestätigt AI-Nutzung, aber nicht deren Ausgestaltung. citeturn3view2turn4view0turn12view0  
+Implement as:
 
-**Job-Postings/GitHub/Patente (derzeit unauffindbar)**
-- In der offenen Web-Recherche wurden keine eindeutig zuordenbaren öffentlichen Repositories oder Patente für MRKTedge.ai identifiziert; falls MRKT Hiring betreibt, sind Job-Posts der beste öffentliche Stack-Indikator (DB, Queue, Cloud, Observability). (Aktueller Status: **unspecified**.) citeturn28search0turn36search0  
+- `actorVolatility`
+- `narrativeVolatility`
+- `eventVolatility`
 
-### Quellenliste als klickbare Links
+with shared model:
 
-Alle Quellen sind im Text jeweils direkt nach den relevanten Aussagen zitiert (klickbar). Für eine kompakte Übersicht sind die wichtigsten Primary Sources: Landing Page, About, Privacy, Disclaimer, Economic Calendar, Updates, Blog sowie ausgewählte Social/Community/Tech-Fingerprint-Quellen. citeturn1view0turn12view0turn4view0turn3view2turn4view1turn12view2turn8search0turn10search0turn31reddit24turn27search3turn26search0
+- trigger source
+- volatility probability
+- affected assets
+- scenario map
+- geo linkage
+- confidence and freshness
+
+## 5.5 PWA + Notification Requirements
+
+Given verified PWA patterns, recommended minimum for `tradeview-fusion`:
+
+- manifest with proper install metadata
+- service worker with stable push handler
+- deep-link notifications (`event/:id`, `headline/:id`)
+- reconnect strategy and idempotent notification dedupe
+- explicit iOS behavior notes and user guidance
+
+Operational gates:
+
+- push delivery success rate
+- notification click-through deep-link success
+- stale event rate
+- duplicate alert rate
+
+## 5.6 AI Governance Requirements
+
+Must-have runtime controls:
+
+- prompt PII policy (allow/deny/redact classes)
+- output retention classes with TTL
+- source citation contract per AI summary
+- confidence thresholds and low-confidence fallback UI
+- human override path for sensitive outputs
+
+Must-have policy events:
+
+- redaction_applied
+- citation_missing
+- low_confidence_fallback
+- policy_blocked_output
+
+## 5.7 Observability and Release Gates
+
+Treat observability as product functionality.
+
+Required metrics:
+
+- event ingestion latency
+- event freshness
+- impact score compute latency
+- alert send and click latency
+- summary generation latency
+- citation completeness rate
+- false/high-noise alert ratio
+
+No major feature expansion before these gates are stable.
+
+---
+
+## 6. Package and Vendor Recommendations (Detailed)
+
+Important: this is recommendation guidance, not a mandated stack lock.
+
+## 6.1 Frontend, State, Validation
+
+Adopt-first candidates:
+
+- `@tanstack/react-query` for async server state and caching
+- `zustand` or `jotai` for local interaction state
+- `zod` for schema validation across UI/BFF boundaries
+- `react-hook-form` + `zodResolver` for bounded input flows
+- `date-fns` or `dayjs` for event-time handling
+
+Design system/accessibility:
+
+- `radix-ui` primitives + existing style system
+- optional `cmdk` for command surfaces
+
+PWA/notification support:
+
+- `next-pwa` (if aligned with existing Next runtime decisions)
+- web push integration at backend boundary, not directly from browser business logic
+
+## 6.2 Search, Ranking, and Event Processing
+
+Frontend/BFF-level:
+
+- `fuse.js` for local fuzzy filtering (small lists)
+
+Backend-level (conceptual guidance):
+
+- dedicated event ranking service with deterministic baseline rules
+- optional vector reranking later, only after baseline reliability
+
+## 6.3 Analytics, Feature Flags, Replay
+
+Now:
+
+- privacy-first analytics baseline (`Plausible`, `Matomo`, or self-hosted option)
+- explicit event taxonomy and consent gates
+
+Later:
+
+- product analytics depth (`PostHog`) if feature flags + funnels + experiments become core
+- session replay only with strict masking/redaction in trading-sensitive surfaces
+
+Avoid now:
+
+- analytics sprawl with multiple overlapping trackers
+
+## 6.4 Observability
+
+Now:
+
+- OpenTelemetry-compatible instrumentation
+- SLO dashboard with explicit event/alert pipelines
+
+Candidates:
+
+- `Grafana + Loki + Tempo`
+- `SigNoz`
+- `OpenObserve`
+
+Optional:
+
+- `Sentry`/`GlitchTip` for frontend error aggregation if needed
+
+## 6.5 Workflow/Queue/Async
+
+Since product requires event-driven reliability:
+
+- queue/workflow orchestration should be first-class before feature explosion
+- choose one clear workflow model (for retries, dedupe, idempotency, DLQ)
+
+Candidate families:
+
+- managed queue + worker model
+- workflow engines with retry semantics
+
+Decision criterion:
+
+- operational simplicity + replay safety + traceability
+
+## 6.6 Payments, CMS, Media
+
+Payments:
+
+- now: only if billing launch is near-term
+- baseline: Stripe is fastest integration path
+- EU/CH alternatives can be layered later when regional methods require it
+
+CMS:
+
+- use only for content/education/marketing, not for trading core domain state
+- candidates include headless CMS options (Sanity-family patterns are benchmark-relevant)
+
+Media:
+
+- keep optional until clear product need for persistent video workflows
+- avoid over-investment in media infra if not a GTM driver
+
+---
+
+## 7. Root Working-Doc Recommendation Map (No File Edits in This Step)
+
+This chapter maps recommendations to existing owner docs and two candidate docs.
+
+## 7.1 Existing root/spec docs (primary targets)
+
+| Doc | What should be represented | Minimum acceptance criteria |
+|---|---|---|
+| `docs/specs/ARCHITECTURE.md` | Event Intelligence and Research Home as first-class surfaces | Explicit route/surface defaults and dataflow boundaries |
+| `docs/specs/FRONTEND_ARCHITECTURE.md` | shared state model between `/` and `/workspace`, drilldowns, PWA UX flows | route contracts, state ownership table, deep-link behavior |
+| `docs/FRONTEND_COMPONENTS.md` | event cards, playbook cards, volatility widgets, confidence UI patterns | component taxonomy with evidence/citation affordances |
+| `docs/UNIFIED_INGESTION_LAYER.md` | event normalization, impact scoring pipeline, dedupe/replay | canonical event schema + pipeline stages defined |
+| `docs/specs/API_CONTRACTS.md` | event list/detail/playbook/alerts contracts | versioned payloads and validation rules |
+| `docs/specs/AUTH_SECURITY.md` | AI prompt/output policy, consent, replay masking, retention classes | enforceable policy matrix and audit event requirements |
+| `docs/AGENT_ARCHITECTURE.md` | bounded use of AI summaries and evidence-aware agent behavior | confidence thresholds and fallback paths |
+| `docs/AGENT_TOOLS.md` | tool access constraints for event intelligence operations | read/write scope policies and blocked action classes |
+| `docs/specs/ROLLOUT_GATES.md` | event/alert reliability gates and launch thresholds | measurable SLO gates and rollback criteria |
+| `docs/references/status.md` | source/provider maturity and readiness for event pipelines | per-source reliability and freshness fields |
+
+## 7.2 Focused frontend docs (created)
+
+These documents do not replace existing owners; they reduce overload and keep frontend execution explicit.
+
+### `docs/FRONTEND_INTELLIGENCE_CALENDAR.md`
+
+Purpose:
+
+- frontend-facing intelligence calendar behavior
+- card logic, timeline views, surprise/impact visualization
+- playbook rendering and user interactions
+
+Must not own:
+
+- backend ingestion mechanics
+- cross-domain security policy
+
+### `docs/FRONTEND_RESEARCH_HOME.md`
+
+Purpose:
+
+- IA and UX contract for `ResearchHome`
+- route-level responsibilities and cross-surface drilldowns
+- personalization blocks and "what matters now" ranking presentation
+
+Must not own:
+
+- deep workspace implementation details
+- raw API contract ownership
+
+Non-overlap rule:
+
+- `FRONTEND_RESEARCH_HOME.md` owns entry IA and decision-flow UX
+- `FRONTEND_INTELLIGENCE_CALENDAR.md` owns calendar/event surface behavior details
+
+---
+
+## 8. Do-Not-Forget Checklist
+
+- do not ship event UI without source links and confidence
+- do not ship push alerts without dedupe and deep-link validation
+- do not mix marketing analytics with trading-sensitive replay by default
+- do not present AI bias/sentiment without clear uncertainty cues
+- do not add new feature surfaces while reliability gates are failing
+- do not hardcode one political actor into architecture contracts
+- do not treat benchmark stack clues as truth for internal design
+
+---
+
+## 9. Phased Execution Path (When Distribution Begins)
+
+Phase 0: Foundation alignment
+
+- lock canonical event schema
+- lock route and surface boundaries
+- lock policy and observability baselines
+
+Phase 1: Event intelligence MVP
+
+- event feed + detail + playbook
+- impact score baseline rules
+- first drilldown chain (`event -> chart/geo/portfolio`)
+
+Phase 2: Volatility tracker and alert reliability
+
+- actor/narrative/event tracker
+- push quality controls and click-through reliability
+
+Phase 3: AI governance hardening
+
+- prompt/output policy enforcement
+- provenance checks and confidence fallback UX
+
+Phase 4: selective expansion
+
+- only after stable quality gates
+- evaluate advanced analytics/flags or regional billing/media needs
+
+---
+
+## 10. External Verification Backlog (Optional Ongoing)
+
+For benchmark maintenance:
+
+- periodic re-check of MRKT updates page for feature evolution
+- periodic re-check of privacy/disclaimer changes
+- optional manual browser audit of app service worker and notification behavior
+
+This preserves benchmark relevance without overfitting architecture to competitor internals.
+
+---
+
+## 11. Final Position
+
+MRKTEDGE is a strong product benchmark for:
+
+- decision-first market UX
+- event intelligence framing
+- notification/PWA operating model
+
+For `tradeview-fusion`, the winning strategy is:
+
+- absorb the product principles
+- enforce stronger architecture/governance rigor
+- keep reliability and explainability as release gates
+
+The benchmark should remain a reference artifact; implementation authority remains with active root/spec owner docs.

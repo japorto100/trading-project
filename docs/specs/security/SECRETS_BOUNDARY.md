@@ -1,6 +1,6 @@
 # Secrets Boundary
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Spec fuer Secret-Lebensorte, GCT-/Exchange-Key-Grenzen,
 > Sofortmassnahmen und Hardening-Roadmap.
 > **Rolle:** Fokussierte Teil-Spec unter dem Umbrella-Dokument

@@ -31,6 +31,13 @@
 - `docs/geo/GEOMAP_MODULE_CATALOG.md`
 - `docs/geo/GEOMAP_VERIFY_GATES.md`
 - `docs/geo/GEOMAP_ROADMAP_AND_MILESTONES.md`
+- `docs/geo/CRUCIX_AI_REVIEW.md`
+- `docs/geo/WORLDWIDEVIEW_AI_REVIEW.md`
+- `docs/geo/OGI_AI_REVIEW.md`
+- `docs/geo/SHADOWBROKER_AI_REVIEW.md`
+- `docs/geo/SOVEREIGN_WATCH_AI_REVIEW.md`
+- `docs/geo/CONFLICT_GLOBE_GL_AI_REVIEW.md`
+- `docs/geo/External_GEOSENTINEL_FRONTEND_REVIEW.md`
 - `docs/MEMORY_ARCHITECTURE.md`
 - `docs/specs/EXECUTION_PLAN.md`
 
@@ -38,6 +45,15 @@
 
 - GeoMap-Arbeit wird nur als "geschlossen" markiert, wenn Verify + Produkt-/Policy-Owner konsistent sind.
 - Root- und Geo-Owner-Dokumente sind Pflicht-Lektuere, nicht optionales Beiwerk.
+- Vor Flat-Mode-Contract-Aenderungen ist `PHAROS_AI_REVIEW.md` gegen den aktuellen `pharos-ai` Upstream-Stand zu revalidieren; das ist ein Monitoring-Gate, kein Scope-Shift.
+- Vor Panel-/Workspace-Informationsarchitektur-Aenderungen ist `CRUCIX_AI_REVIEW.md` gegen den lokalen Referenzstand in `_tmp_ref_review/geo/Crucix` zu revalidieren; das ist ein Monitoring-Gate, kein Codeimport-Gate.
+- Vor Plugin-/Adapter-/Timeline-/Panel-Contract-Aenderungen ist `WORLDWIDEVIEW_AI_REVIEW.md` gegen den lokalen Referenzstand in `_tmp_ref_review/geo/worldwideview` sowie den kuratierten Stand in `_tmp_ref_review/extraction_candidates/worldwideview/extraction_manifest.txt` zu revalidieren; das ist ein Monitoring-Gate, kein Codeimport-Gate.
+- Vor Agent-/Runtime-/Worker-/Audit-Contract-Aenderungen ist `OGI_AI_REVIEW.md` gegen den lokalen Referenzstand in `_tmp_ref_review/geo/ogi` sowie den kuratierten Stand in `_tmp_ref_review/extraction_candidates/ogi/extraction_manifest.txt` zu revalidieren; das ist ein Monitoring-Gate, kein Codeimport-Gate.
+- Vor Backend-Resilience-/Map-Orchestrierungs-/Proxy-/Polling-Contract-Aenderungen ist `SHADOWBROKER_AI_REVIEW.md` gegen den lokalen Referenzstand in `_tmp_ref_review/geo/Shadowbroker` sowie den kuratierten Stand in `_tmp_ref_review/extraction_candidates/shadowbroker/extraction_manifest.txt` zu revalidieren; das ist ein Monitoring-Gate, kein Codeimport-Gate.
+- Vor Ingestion-/Replay-/History-/Map-Worker-/Layer-Contract-Aenderungen ist `SOVEREIGN_WATCH_AI_REVIEW.md` gegen den lokalen Referenzstand in `_tmp_ref_review/geo/Sovereign_Watch` sowie den kuratierten Stand in `_tmp_ref_review/extraction_candidates/sovereign_watch/extraction_manifest.txt` zu revalidieren; das ist ein Monitoring-Gate, kein Codeimport-Gate.
+- Vor Graph-Visualisierungs-/Arc-/Path-/Entity-Relation-/Timeline-Explorer-Contract-Aenderungen ist `CONFLICT_GLOBE_GL_AI_REVIEW.md` gegen den lokalen Referenzstand in `_tmp_ref_review/geo/conflict-globe.gl` sowie den kuratierten Stand in `_tmp_ref_review/extraction_candidates/conflict_globe_gl/extraction_manifest.txt` zu revalidieren; das ist ein Monitoring-Gate, kein Codeimport-Gate.
+- Vor Frontend-Map-UX-/Search-/Filter-/Layer-Chrome-/Selection-Contract-Aenderungen ist `External_GEOSENTINEL_FRONTEND_REVIEW.md` gegen den lokalen Referenzstand in `_tmp_ref_review/geo/GeoSentinel` zu revalidieren; das ist ein Monitoring-Gate, kein Codeimport-Gate.
+- OGI-Graph-Themen werden in diesem GeoMap-Schritt nicht direkt umgesetzt und laufen getrennt ueber die dedizierten Slices `graph_execution_delta.md` und `backend_geomap_delta.md`.
 
 ---
 
@@ -104,6 +120,12 @@ Gesamtcheckliste fuer effektives Abarbeiten aller GeoMap-Dokumente.
 - [ ] **V.14** — Flat-Handoff-Gate bestanden: Event-Inspector-, Timeline-/Story- und Header-Fallback-Einstiege uebernehmen Bounds, Filter, Zeitfenster und Focus konsistent in den Flat-Workspace-State; Rueckweg in den Globe behaelt den strategischen Arbeitszustand stabil
 - [ ] **V.15** — Flat-Renderer-Gate bestanden: sichtbarer Flat-Viewport zeigt Bounds, gefilterte Event-Punkte, Layer-Visibility und Selection konsistent; Rueckweg und erneuter Handoff bleiben stabil
 - [ ] **V.16** — Flat-Conflict-Gate bestanden: konfliktnahe Layer (`strikes`/`targets`/`assets`/`zones`/`heat`) rendern reproduzierbar im Flat-Mode, inklusive Timeline-/Story-Kopplung und Layer-Toggles
+- [ ] **V.17** — 3D-Tiles-Eval-Gate bestanden: Flat-Prototyp mit `deck.gl` + `@loaders.gl/3d-tiles` laeuft reproduzierbar (Load/Render/Pick), inkl. dokumentierter Degradation bei ausbleibenden Tiles/Services
+- [ ] **V.18** — Cesium-Eval-Gate bestanden: trigger-basierte Bewertung fuer Scene-/Terrain-/3D-Tiles-/time-dynamic-Bedarf abgeschlossen; Entscheidung (`defer`/`adopt`) mit Evidence dokumentiert und ohne v2-Core-Rewrite fortgeschrieben
+- [ ] **V.19** — Macro+Markets-Panel-Gate bestanden: Snapshot aus Macro-/Market-Routen rendert stabil inkl. `loading/error/degraded`, Timestamp und `LIVE/DELAYED`-Badge
+- [ ] **V.20** — Sweep-Delta-Panel-Gate bestanden: `new/escalated/de-escalated` inkl. Richtung/Schweregrad reproduzierbar; Empty-State ist klar
+- [ ] **V.21** — Panel-Degradation-Gate bestanden: Ausfall einzelner Macro-/Market-Quellen degradiert nur lokale Panels, nicht Sidebar/Shell
+- [ ] **V.22** — Panel-Interaction-Gate bestanden: Panel-Aktionen koennen Region-/Filter-/Event-Fokus setzen, ohne Timeline/Inspector zu brechen
 
 ### 0.5 GEOMAP_PRODUCT_AND_POLICY + ROADMAP
 
@@ -115,8 +137,24 @@ Gesamtcheckliste fuer effektives Abarbeiten aller GeoMap-Dokumente.
 - [ ] **M.6** — Proposed defaults (Sek. 29): sort, asset edits owner-only, export, timeline
 - [ ] **M.7** — Feedback-Driven Review (Sek. 3): System-Klassifikation, Analysten-Entscheidungen, Collaborative Review — OFFEN
 - [ ] **M.8** — SOTA-Backlog (Sek. 35): Policy-as-Code, Evaluation Harness, Explain-Why, OffscreenCanvas/supercluster Worker
-- [ ] **M.9** — Externe Referenzreview-Dokumente gepflegt (aktuell: `PHAROS_AI_REVIEW.md`) und gegen GeoMap-Roadmap gespiegelt
-- [~] **M.10** — `pharos-ai` Monitoring (`2026-03-12` bis `2026-03-13`) verfolgt: oeffentlicher `agent/`-Ordner plus relevante Agent-Commits (`b65d678`, `a5aa8b2`, `a1d613b`) sind sichtbar; vollstaendiger ingest-/datafetch-/agent-runtime layer bleibt weiter Beobachtungspunkt, Folgeentscheid fuer Flat/Conflict-Vorbau dokumentiert
+- [ ] **M.9** — Externe Referenzreview-Dokumente gepflegt (aktuell: `PHAROS_AI_REVIEW.md`, `CRUCIX_AI_REVIEW.md`, `WORLDWIDEVIEW_AI_REVIEW.md`, `SHADOWBROKER_AI_REVIEW.md`, `SOVEREIGN_WATCH_AI_REVIEW.md`, `CONFLICT_GLOBE_GL_AI_REVIEW.md`, `External_GEOSENTINEL_FRONTEND_REVIEW.md`) und gegen GeoMap-Execution/Owner-MDs gespiegelt
+- [~] **M.10** — Externes Referenz-Monitoring (konsolidiert): `PHAROS_AI_REVIEW.md`, `CRUCIX_AI_REVIEW.md`, `WORLDWIDEVIEW_AI_REVIEW.md`, `SHADOWBROKER_AI_REVIEW.md`, `SOVEREIGN_WATCH_AI_REVIEW.md`, `CONFLICT_GLOBE_GL_AI_REVIEW.md` und `External_GEOSENTINEL_FRONTEND_REVIEW.md` sind gegen die lokalen Referenzstaende gespiegelt; Statusformat bleibt einheitlich als `window`, `delta`, `impact_on_geomap`, `next_check`.
+- [ ] **M.11** — Externes Referenzreview-Dokument `CRUCIX_AI_REVIEW.md` gepflegt und gegen GeoMap-Execution/Owner-MDs gespiegelt
+- [ ] **M.12** — Panel-Informationsarchitektur normativ festgezogen (`Macro+Markets`, `Sweep Delta`, `Cross-Source Summary`) inklusive Owner-Entscheid und Verify-Hinweis
+- [ ] **M.13** — Externes Referenzreview-Dokument `WORLDWIDEVIEW_AI_REVIEW.md` gepflegt und gegen GeoMap-Execution/Owner-MDs gespiegelt
+- [ ] **M.14** — `worldwideview` Clone-zu-Extraction-Konsistenz geprueft (Manifest-Count/Stages und A/B/C-Priorisierung aktuell)
+- [ ] **M.15** — Externes Referenzreview-Dokument `OGI_AI_REVIEW.md` gepflegt und gegen GeoMap-Execution/Owner-MDs gespiegelt (dieser Schritt non-graph scope)
+- [ ] **M.16** — Externes Referenz-Monitoring `ogi` konsolidiert: `window`, `delta`, `impact_on_geomap`, `next_check` dokumentiert (Agent/Runtime/Infra)
+- [ ] **M.17** — `ogi` Clone-zu-Extraction-Konsistenz geprueft (`extraction_manifest.txt` + `OGI_EXTRACTION_RECOMMENDATIONS.md`), Graph-Themen explizit getrennt in `graph_execution_delta.md` / `backend_geomap_delta.md`
+- [ ] **M.18** — Externes Referenzreview-Dokument `SHADOWBROKER_AI_REVIEW.md` gepflegt und gegen GeoMap-Execution/Owner-MDs gespiegelt
+- [ ] **M.19** — `shadowbroker` Clone-zu-Extraction-Konsistenz geprueft (Manifest-Count/Stages und A/B/C-Priorisierung aktuell)
+- [ ] **M.20** — Externes Referenzreview-Dokument `SOVEREIGN_WATCH_AI_REVIEW.md` gepflegt und gegen GeoMap-Execution/Owner-MDs gespiegelt
+- [ ] **M.21** — `sovereign_watch` Clone-zu-Extraction-Konsistenz geprueft (Manifest-Count/Stages inkl. Gap-Patch und A/B/C-Priorisierung aktuell)
+- [ ] **M.22** — Externes Referenzreview-Dokument `CONFLICT_GLOBE_GL_AI_REVIEW.md` gepflegt und gegen GeoMap-Execution/Owner-MDs gespiegelt
+- [ ] **M.23** — `conflict_globe_gl` Clone-zu-Extraction-Konsistenz geprueft (Manifest-Count/Stages und A/B/C-Priorisierung aktuell)
+- [ ] **M.24 (Evaluate)** — `conflict-globe.gl` Graph-Befund gegen GeoMap-Graph-Strategie evaluieren: visuelle Relationship-Overlays (`arcs`/`paths`/`rings`/`hexbin`/`heatmap`) als Kandidat bewerten, aber fehlenden KG-Backend-Stack (kein Neo4j/RDF/SPARQL) explizit dokumentieren und als `visual-graph-only` oder `augment-with-kg-backend` entscheiden
+- [ ] **M.25** — Externes Referenzreview-Dokument `External_GEOSENTINEL_FRONTEND_REVIEW.md` gepflegt und gegen GeoMap-Execution/Owner-MDs gespiegelt
+- [ ] **M.26 (Evaluate)** — `GeoSentinel` Frontend-Befund gegen GeoMap-UI-Strategie evaluieren: Search-/Filter-/Layer-Chrome-/Selection-/Tracking-Patterns als Kandidaten bewerten, Monolith-HTML-/Inline-Logik explizit als non-adopt dokumentieren
 
 ### 0.6 GEOMAP_MODULE_CATALOG
 
@@ -126,10 +164,12 @@ Gesamtcheckliste fuer effektives Abarbeiten aller GeoMap-Dokumente.
 - [ ] **O.4** — d3-Module v1.5 (Game Theory + Timeline): d3-hierarchy, d3-shape, d3-brush, d3-axis, d3-legend, d3-annotation
 - [ ] **O.5** — Feature→Module-Matrix (Sek. 10): Regime-State Layer, CBDC Status, Financial Openness, etc. prüfen
 - [x] **O.6** — Flat/Regional-Analystenmodus im Modul-Katalog normativ gespiegelt (deck.gl / MapLibre / PMTiles als Second-Mode, nicht Globe-Replacement)
-- [ ] **O.7** — Externe Referenz-Reviews in Modulentscheidungen gespiegelt (aktuell: `PHAROS_AI_REVIEW.md`)
+- [ ] **O.7** — Externe Referenz-Reviews in Modulentscheidungen gespiegelt (aktuell: `PHAROS_AI_REVIEW.md`, `CRUCIX_AI_REVIEW.md`, `WORLDWIDEVIEW_AI_REVIEW.md`, `SHADOWBROKER_AI_REVIEW.md`, `SOVEREIGN_WATCH_AI_REVIEW.md`, `CONFLICT_GLOBE_GL_AI_REVIEW.md`, `External_GEOSENTINEL_FRONTEND_REVIEW.md`)
 - [ ] **O.8** — Replay-/Timeline-Module normativ gespiegelt: `d3-brush`, `d3-axis`, `d3-array`, `d3-shape` fuer Conflict-Replay und Story-Zeitfenster
 - [x] **O.9** — View-Handoff-Matrix im Modul-Katalog gespiegelt: Region-/Story-/Draw-Area-Handoffs mit shared Payload statt Toggle-only
 - [x] **O.10** — Layer-Taxonomie im Modul-Katalog gespiegelt: Geo Core / Conflict / Macro-State / Context / panel-first Signale fuer Globe vs. Flat
+- [ ] **O.11** — Crucix-abgeleitete panel-first Module im Modul-Katalog gespiegelt (`macro_markets`, `sweep_delta`, `cross_source_signal_summary`) inkl. Placement-/Verify-Notizen
+- [ ] **O.12** — `worldwideview`-abgeleitete Module/Patterns im Modul-Katalog gespiegelt (Plugin-Contracts, Adapter-Resilience, Search/Selection/Timeline/Panel-Orchestrierung) inkl. Placement-/Verify-Notizen
 
 ---
 
@@ -169,6 +209,10 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [x] **E.14** — Basemap-Richness-Policy fuer Globe vs. Flat definiert: `basemap-richness.ts` kapselt den normativen Unterschied zwischen reduziertem Earth-Globe (`countries/graticule/place/water/waterway`, keine PMTiles/MapLibre) und spaeter reichhaltigerem Earth-Flat-Mode (`terrain/roads/admin-detail/poi` optional, PMTiles/MapLibre erlaubt). Moon bleibt fuer v2 in beiden Richtungen explizit deferred.
 - [~] **E.15** — sichtbare Flat-Renderer-Boundary begonnen: erster MapLibre-Viewport plus separate deck.gl-Overlay-Boundary fuer Bounds und erste Event-Punkte vorhanden; echter layer-driven Payload-Pfad fuer weitere Flat-Layer bleibt offen
 - [ ] **E.16** — reale PMTiles-/Basemap-Integration fuer Flat definieren und anbinden: Style, Attribution, Hosting, Basemap-Minimum und Browser-Verify gegen `PMTILES_CONTRACT.md`
+- [ ] **E.17** — `deck.gl + @loaders.gl/3d-tiles` Evaluations-Track definiert: Scope, NFRs (FPS/Frame-Time/Memory/Tile-Pop-in/Picking), Datenquellen und Exit-Kriterien dokumentiert; kein impliziter Produkt-Commit
+- [ ] **E.18** — Flat-3D-Tiles-Payload-Boundary spezifiziert: gemeinsamer Domain-/Layer-Contract wird renderer-tauglich fuer `Tile3DLayer` abgebildet (inkl. Degradation und Selection/Story-/Filter-Kopplung)
+- [ ] **E.19** — CesiumJS-Evaluations-Track fuer Scene-/Multi-Body-/Terrain-Anforderungen definiert (trigger-basiert, kein v2-Core-Replacement): Decision-Matrix, Integrationskosten, Runtime-/Ops-/Policy-Risiken
+- [ ] **E.20** — Renderer-Entscheidungsregel formalisiert: Geo-Mode bleibt `d3-geo` (strategischer Globe), Flat-Mode bleibt `deck.gl/MapLibre` (operativ); `CesiumJS` nur bei erfuellten Scene-Triggern
 
 ---
 
@@ -211,6 +255,9 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **API.5** — Source-health / provider-outage / rate-budget-Verhalten fuer GeoMap-Routen owner-konsistent dokumentiert
 - [ ] **API.6** — Search-Around-API-Vertrag liefert typisierte Graph-Ergebnisse (`nodes`, `edges`, `time_window`, optionale `metrics`) fuer Globe/Flat/Panels konsistent
 - [ ] **API.7** — Writeback-Endpoints erzwingen Audit-/Evidence-Felder (`actor`, `reason`, `old/new`, `policy decision`, `timestamp`) fuer Geo-Mutationen
+- [ ] **API.8** — `GET /api/geopolitical/market-snapshot` Vertrag liefert konsistente `success/error/requestId/degraded`-Antworten fuer GeoMap-Panel-Snapshots
+- [ ] **API.9** — `GET /api/geopolitical/delta` Vertrag liefert typisiertes Delta (`summary`, `new`, `escalated`, `de-escalated`, `timestamp`) fuer GeoMap-Panels
+- [ ] **API.10** — Snapshot-/Delta-Routen halten Metadata-first-/legal-safe Source-Policy aus `GEOMAP_SOURCES_AND_PROVIDER_POLICY.md` ein
 
 ---
 
@@ -235,6 +282,14 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **T.17** — Ontologie-/Graph-Contract-Test: Relationstypen, Traversal-Depth, Zeitfenster und Confidence-Verhalten bleiben in Search-Around reproduzierbar
 - [ ] **T.18** — GeoTrack-/Interpolation-Test: `LINEAR|NEAREST|PREVIOUS|NEXT|NONE` verhalten sich in Replay/Story deterministisch und explizit
 - [ ] **T.19** — Geo-Writeback-Audit-Test: Kartenmutationen erzeugen append-first Audit-/Timeline-Eintraege mit vollstaendigen Evidence-Metadaten
+- [ ] **T.20** — Flat-3D-Tiles-Prototyp-Test: deterministische Tile-Load-/Unload-Events, stabile Kamera-Synchronisation und reproduzierbares Verhalten bei Netzwerk-Drosselung
+- [ ] **T.21** — 3D-Tiles-Performance-Test: FPS/Frame-Time, GPU-/RAM-Budget und Main-Thread-Blockierung bleiben innerhalb definierter NFR-Grenzen; Context-Loss/Recovery wird explizit getestet
+- [ ] **T.22** — Renderer-Contract-Regressionstest: derselbe Domain-/Filter-/Story-Zustand bleibt zwischen Globe (`d3-geo`) und Flat (`deck.gl/MapLibre`) konsistent; Evaluationspfade verletzen keinen shared Contract
+- [ ] **T.23** — Cesium-Eval-Sicherheits-/Ops-Test: Token-/Credential-Handling, Attribution-/Lizenzpfad und Degradation bei fehlenden 3D-Services verhalten sich deterministisch
+- [ ] **T.24** — Macro+Markets-Panel-Test: Render/Badge/Degraded-State bleiben bei Teilfehlern stabil
+- [ ] **T.25** — Sweep-Delta-Panel-Test: Bucket-Logik (`new/escalated/de-escalated`) inkl. Empty-State ist reproduzierbar
+- [ ] **T.26** — Snapshot-/Delta-Contract-Test: `market-snapshot` und `delta` halten Type-/Field-Vertrag stabil
+- [ ] **T.27** — Panel-Regressionstest: neue Panels brechen Timeline-/Inspector-Wechsel, Sidebar-Scroll und Keyboard-Navigation nicht
 
 ---
 
@@ -256,6 +311,8 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [~] **SOTA.14** — Contextual Handoff UX begonnen: Event-Inspector, Timeline-/Story-Detail, Region-News, Cluster-Drilldowns und ausgewaehlte Drawings tragen bereits kontextuelle Einstiege; Browser-/Flat-Renderer-Abnahme bleibt der naechste Ziel-UX-Block vor dem Flat/Conflict-Mode
 - [ ] **SOTA.15** — layer-driven Flat-Conflict-Workspace wie in starken Referenzen: typed payloads, zentrale Filter-Engine, Replay-/Story-Kopplung und operative Selection/Detail-Ansicht
 - [ ] **SOTA.16** — Geo-Ontologie als eigener Runtime-Owner etabliert: Search-Around, geotemporale Tracks und Writeback-Audit sind dokumentiert und gate-gefuehrt
+- [ ] **SOTA.17** — 3D-Tiles-Strategie 2026 verankert: `deck.gl` + `@loaders.gl/3d-tiles` als leichter Integrationspfad evaluiert; klare Grenze dokumentiert, ab wann CesiumJS technisch/produktseitig vorzuziehen ist
+- [ ] **SOTA.18** — Cesium-vs-deck/maplibre Decision-Matrix als laufender Owner-Artefakt gepflegt (Capabilities, Integrationskosten, Runtime-Risiken, Produktfit, Team-/Ops-Aufwand)
 
 ---
 
@@ -276,6 +333,12 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [~] overlay chrome separation (Store-/Shell-Trennung fuer Filters/Legend/Timeline umgesetzt; manuelle Verify nach `V.8` noch offen)
 - [~] flat handoff UX (typed handoff/store/scaffold vorhanden; Event-/Timeline-Einstiege vorhanden, manuelle Verify nach `V.14` und weitere kontextuelle Einstiege offen)
 - [~] drawing UX (funktional, Cursor-Modus + Workflow-Hinweise + Viewport-Status-Chrome + manuelle Koordinatenvalidierung vorhanden, aber Marker-/Geometry-Placement, Selection und Edit-Mode noch nicht analyst-grade)
+- [ ] Crucix-panel blueprint verify (Macro+Markets + Sweep Delta + Degradation + Panel-Interaction) gegen `CRUCIX_AI_REVIEW.md` abgeschlossen
+- [ ] Worldwideview-blueprint verify (A-Paket zuerst: Plugin/DataBus/Polling + history/availability + key-verify + selection/timeline/search coupling) gegen `WORLDWIDEVIEW_AI_REVIEW.md` abgeschlossen
+- [ ] Shadowbroker-blueprint verify (A-Paket zuerst: fast/slow polling + ETag/freshness + resilient fetch/fallback + Map-Orchestrierung) gegen `SHADOWBROKER_AI_REVIEW.md` abgeschlossen
+- [ ] SovereignWatch-blueprint verify (A-Paket zuerst: replay/history/search contracts + broadcast/historian + multi-source poller resilience + worker/layer orchestration) gegen `SOVEREIGN_WATCH_AI_REVIEW.md` abgeschlossen
+- [ ] ConflictGlobe-blueprint verify (A-Paket zuerst: arc/path/ring/hexbin/heatmap graph overlays + timeline/search/selection coupling + lightweight stream aggregation) gegen `CONFLICT_GLOBE_GL_AI_REVIEW.md` abgeschlossen
+- [ ] GeoSentinel-frontend blueprint verify (A-Paket zuerst: search-orchestrator + category filter chips + layer-chrome separation + active-list/selection sync + zoom-adaptive marker rendering) gegen `External_GEOSENTINEL_FRONTEND_REVIEW.md` abgeschlossen
 
 **Ops:**
 - [~] alert routing test (Route vorhanden, kein UI, kein E2E-Test)
@@ -288,8 +351,21 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 - [ ] **INF.2** — LLM-Summary-Gap: NLP-Pipeline fuer echte Zusammenfassung
 - [ ] **INF.3** — Persistence: Zeichnungen/Marker von localStorage nach Prisma migrieren
 - [ ] **INF.4** — Zombie-Processes (Windows Dev): Go-Gateway sauberes Shutdown
-- [~] **INF.5** — Externes Referenz-Monitoring: `pharos-ai` Agent-Artefakte (`2026-03-12` bis `2026-03-13`) geprueft; aktuell oeffentlich sind `agent/`-Mirrors plus Doctrine-/Admin-Workflow-Bausteine, aber noch kein vollstaendiger ingest-/datafetch-/agent-runtime layer. Weitere Auswirkungen auf Conflict-/Source-Layer bleiben zu beobachten
+- [~] **INF.5** — Externes Referenz-Monitoring (Detailstand):  
+  - `pharos-ai` — window: `2026-03-12..2026-03-16`; delta: Agent-Mirror + Snapshot/Chat/RAG/README; impact_on_geomap: Monitoring bleibt aktiv, kein Scope-Shift; next_check: vor Flat/Conflict-Contract-Delta  
+  - `Crucix` — window: lokaler Clone-Stand `2026-03-16`; delta: panel-first / delta-thinking Blueprint stabil; impact_on_geomap: Macro+Markets/Sweep/Cross-Source als verify-pflichtige Referenz; next_check: vor Panel-/Workspace-Architektur-Delta  
+  - `worldwideview` — window: lokaler Clone + Extraction-Stand `2026-03-16`; delta: Plugin/Adapter/UI-Patterns auf A/B/C priorisiert (`selected_count=76` im Manifest); impact_on_geomap: A-Paket priorisiert, B adapterbasiert, C bewusst ausgeschlossen; next_check: bei Manifest-/A/B/C-Aenderung oder vor Contract-Delta  
+  - `ogi` — window: lokaler Clone + Extraction-Stand `2026-03-16`; delta: Agent-/Runtime-/Worker-/Audit-Muster priorisiert, Graph-Themen in dedizierte Slices ausgelagert; impact_on_geomap: Runtime-Hardening nutzbar ohne Scope-Drift in Graph; next_check: bei Manifest-Aenderung oder vor Agent-/Runtime-Contract-Delta  
+  - `shadowbroker` — window: lokaler Clone + Extraction-Stand `2026-03-16`; delta: Backend-Resilience-/Proxy-/Polling-/Map-Orchestrierungs-Patterns auf A/B/C priorisiert (`selected_count=40` im Manifest); impact_on_geomap: A-Paket fuer Flat-Mode-nahe Runtime-Hardening priorisiert, B adapterbasiert, C bewusst ausgeschlossen; next_check: bei Manifest-/A/B/C-Aenderung oder vor Backend-/Map-Contract-Delta  
+  - `sovereign_watch` — window: lokaler Clone + Extraction-Stand `2026-03-16`; delta: Ingestion-/Replay-/History-/Map-Worker-/Layer-Patterns auf A/B/C priorisiert (`selected_count=122`, `gap_patch_count=25` im Manifest); impact_on_geomap: A-Paket priorisiert fuer Backend-/Runtime-Hardening, B adapterbasiert, C referenz-only; next_check: bei Manifest-/A/B/C-Aenderung oder vor Ingestion-/Replay-/Map-Contract-Delta  
+  - `conflict_globe_gl` — window: lokaler Clone + Extraction-Stand `2026-03-16`; delta: Graph-Visualisierungs-/Arc-/Path-/Timeline-/Entity-Patterns auf A/B/C priorisiert (`selected_count=44` im Manifest); impact_on_geomap: A-Paket fuer visuelle Relationship-Layer und Timeline/Search/Selection-Kopplung priorisiert, B adapterbasiert, C referenz-only; next_check: bei Manifest-/A/B/C-Aenderung oder vor Graph-Overlay-/Timeline-Contract-Delta  
+  - `geosentinel_frontend` — window: lokaler Clone-Stand `2026-03-16`; delta: Frontend-Map-UX-/Search-/Filter-/Layer-/Selection-/Tracking-Patterns in `External_GEOSENTINEL_FRONTEND_REVIEW.md` auf A/B/C priorisiert; impact_on_geomap: A-Paket fuer modulare UI-Runtime-Verbesserung priorisiert, Monolith-HTML als non-adopt markiert; next_check: vor Frontend-Map-Contract-Delta oder bei Review-Aenderung
 - [ ] **INF.6** — Source-Bias-/Cross-Bias-Operationalisierung fuer GeoMap-Candidates geplant (mindestens als Rules-/Review-Backlog)
+- [ ] **INF.7** — Externes Referenz-Monitoring `worldwideview`: Clone-Stand und Extraction-Manifest synchron, neue High-Benefit-Patterns auf A/B/C bewertet
+- [ ] **INF.8** — Externes Referenz-Monitoring `shadowbroker`: Clone-Stand und Extraction-Manifest synchron, neue High-Benefit-Patterns auf A/B/C bewertet
+- [ ] **INF.9** — Externes Referenz-Monitoring `sovereign_watch`: Clone-Stand und Extraction-Manifest synchron, neue High-Benefit-Patterns auf A/B/C bewertet
+- [ ] **INF.10** — Externes Referenz-Monitoring `conflict_globe_gl`: Clone-Stand und Extraction-Manifest synchron, neue High-Benefit-Patterns auf A/B/C bewertet
+- [ ] **INF.11** — Externes Referenz-Monitoring `geosentinel_frontend`: Clone-Stand und Frontend-A/B/C-Review (`External_GEOSENTINEL_FRONTEND_REVIEW.md`) synchron, neue High-Benefit-Patterns auf A/B/C bewertet
 
 ---
 
@@ -326,7 +402,14 @@ Pflicht vor neuer Geo-Engine-Arbeit (Sek. 35.4b):
 | GeoMap Verify | `docs/geo/GEOMAP_VERIFY_GATES.md` (E2E, Draw, Save-Fehlerpfad, Performance-Baseline) |
 | GeoMap Options | `docs/geo/GEOMAP_MODULE_CATALOG.md` (d3-Module, Feature→Module-Matrix) |
 | Memory-Gesamtarchitektur (KG-Basis) | `docs/MEMORY_ARCHITECTURE.md` |
-| Externe Referenzreview | `docs/geo/PHAROS_AI_REVIEW.md` |
+| Externe Referenzreview (Pharos AI) | `docs/geo/PHAROS_AI_REVIEW.md` |
+| Externe Referenzreview (Crucix) | `docs/geo/CRUCIX_AI_REVIEW.md` |
+| Externe Referenzreview (WorldWideView) | `docs/geo/WORLDWIDEVIEW_AI_REVIEW.md` |
+| Externe Referenzreview (OGI) | `docs/geo/OGI_AI_REVIEW.md` |
+| Externe Referenzreview (Shadowbroker) | `docs/geo/SHADOWBROKER_AI_REVIEW.md` |
+| Externe Referenzreview (Sovereign Watch) | `docs/geo/SOVEREIGN_WATCH_AI_REVIEW.md` |
+| Externe Referenzreview (Conflict Globe GL) | `docs/geo/CONFLICT_GLOBE_GL_AI_REVIEW.md` |
+| Externe Referenzreview (GeoSentinel Frontend) | `docs/geo/External_GEOSENTINEL_FRONTEND_REVIEW.md` |
 | Gesamtroadmap | [`../EXECUTION_PLAN.md`](../EXECUTION_PLAN.md) |
 
 ---
@@ -352,6 +435,13 @@ Fuer jeden geschlossenen GeoMap-Punkt mindestens:
 - `docs/geo/GEOMAP_DATA_CONTRACTS_AND_FEEDBACK.md`
 - `docs/geo/GEOMAP_ONTOLOGY_GRAPH_RUNTIME.md`
 - `docs/MEMORY_ARCHITECTURE.md`
+- `docs/geo/OGI_AI_REVIEW.md`
+- `docs/geo/SHADOWBROKER_AI_REVIEW.md`
+- `docs/geo/SOVEREIGN_WATCH_AI_REVIEW.md`
+- `docs/geo/CONFLICT_GLOBE_GL_AI_REVIEW.md`
+- `docs/geo/External_GEOSENTINEL_FRONTEND_REVIEW.md`
+- `docs/specs/execution/graph_execution_delta.md`
+- `docs/specs/execution/backend_geomap_delta.md`
 
 ---
 

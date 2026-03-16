@@ -1,6 +1,6 @@
 # Policy Guardrails
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Policy- und Boundary-Spec fuer GCT-Zugriff, MCP/WebMCP,
 > Consent/Privacy, Monitoring und residuale Sicherheits-Gates.
 > **Rolle:** Fokussierte Teil-Spec unter dem Umbrella-Dokument

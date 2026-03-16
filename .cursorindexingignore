@@ -1,0 +1,42 @@
+
+# Don't index SpecStory auto-save files, but allow explicit context inclusion via @ references
+.specstory/**
+
+# Dependency directories
+**/node_modules/**
+
+# Python virtual environments
+**/.venv/**
+**/venv/**
+**/env/**
+
+# Rust and general build outputs
+**/target/**
+**/dist/**
+**/build/**
+**/.next/**
+**/out/**
+
+# Caches and test artifacts
+**/__pycache__/**
+**/.pytest_cache/**
+**/.mypy_cache/**
+**/.ruff_cache/**
+**/.cache/**
+**/test-results/**
+**/screenshots/**
+**/tmp/**
+
+
+# Databases and local storage
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/openobserve_data/**
+**/tools/seaweedfs/data/**
+**/tools/garage/data/**
+**/tools/garage/meta/**
+
+# Logs and traces
+**/*.log
+**/trace_geomap.json

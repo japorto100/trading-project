@@ -1,6 +1,6 @@
 # Client Data Encryption
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Spec fuer client-seitige Verschluesselung von Frontend User-KG- und
 > aehnlichen Browserdaten.
 > **Rolle:** Fokussierte Teil-Spec unter dem Umbrella-Dokument

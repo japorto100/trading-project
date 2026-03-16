@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 const sampleRatesXML = `<?xml version="1.0" encoding="UTF-8"?>

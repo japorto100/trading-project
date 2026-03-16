@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 type fakeMacroIngestHistory struct {

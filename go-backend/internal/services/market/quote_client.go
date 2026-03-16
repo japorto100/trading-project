@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/contracts"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
-	"tradeviewfusion/go-backend/internal/router/adaptive"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/contracts"
+	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
 
 type cryptoTickerClient interface {

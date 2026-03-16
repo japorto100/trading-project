@@ -34,9 +34,9 @@ func NewClient(cfg Config) *Client {
 
 	return &Client{
 		ipcClient: ipc.NewClient(ipc.Config{
-			GrpcAddress:  strings.TrimSpace(cfg.GrpcAddress),
-			HTTPBaseURL:  baseURL,
-			Timeout:      timeout,
+			GrpcAddress: strings.TrimSpace(cfg.GrpcAddress),
+			HTTPBaseURL: baseURL,
+			Timeout:     timeout,
 		}),
 	}
 }

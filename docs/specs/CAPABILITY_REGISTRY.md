@@ -1,6 +1,6 @@
 # Capability Registry (Phase 23)
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Spec fuer Capability-IDs, Scopes, Owner und Risk-Tiers im Go Policy
 > Gateway und angrenzenden Tool-/API-Surfaces.
 > **Source-of-Truth-Rolle:** Autoritativ fuer die Capability-Taxonomie, nicht
@@ -88,9 +88,20 @@ Sammel-Surfaces unpraezise zu klassifizieren.
 
 ---
 
+## IST-Hinweis (Stand 16.03.2026)
+
+Capability-Enforcement ist in Teilbereichen noch fail-open oder Feature-Flag-gated,
+insbesondere bei mutation-nahen Pfaden (portfolio/order, agent/chat).
+Naechste Haertung: Go Gateway Capability-Check fuer alle P0-Routes forcieren.
+
+Details: `docs/specs/architecture/GO_GATEWAY_BOUNDARY.md`, `docs/specs/data/AGGREGATION_IST_AND_GAPS.md`
+
+---
+
 ## Querverweise
 
 - `docs/specs/ARCHITECTURE.md`
+- `docs/specs/architecture/GO_GATEWAY_BOUNDARY.md`
 - `docs/specs/PLUGIN_PILOT.md`
 - `docs/specs/PARTNER_BOUNDARY.md`
-- `docs/other_project/SUPERAPP.md` (strategische Referenz)
+- `docs/specs/data/AGGREGATION_IST_AND_GAPS.md`

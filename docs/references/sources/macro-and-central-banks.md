@@ -111,6 +111,16 @@
 | `NBS China` | National Bureau of Statistics China |
 | `PBoC` | People's Bank of China releases / reference series |
 
+### US Macro / Public Finance Extensions (Crucix Gap-Close)
+
+| Quelle | Rolle | URL |
+|--------|-------|-----|
+| `US Treasury FiscalData` | Treasury statements, debt, yields, fiscal aggregates | https://fiscaldata.treasury.gov/api-documentation/ |
+| `BLS Public Data API` | Labor-market and inflation-adjacent series | https://www.bls.gov/developers/ |
+| `EIA Open Data API` | Energy balances, supply/demand, petroleum/power context | https://www.eia.gov/opendata/ |
+| `NY Fed GSCPI` | Global supply-chain pressure index | https://www.newyorkfed.org/research/policy/gscpi |
+| `USAspending API` | Federal spending flows / category and agency views | https://api.usaspending.gov/ |
+
 ---
 
 ## Arbeitsregel

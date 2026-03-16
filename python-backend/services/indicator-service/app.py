@@ -137,6 +137,8 @@ from ml_ai.indicator_engine.pipeline import (  # noqa: E402
     ADXRequest,
     ADXResponse,
     HMARequest,
+    IchimokuRequest,
+    IchimokuResponse,
     IndicatorResponse,
     KeltnerRequest,
     KeltnerResponse,
@@ -147,6 +149,7 @@ from ml_ai.indicator_engine.pipeline import (  # noqa: E402
     VWAPRequest,
     calculate_adx,
     calculate_hma,
+    calculate_ichimoku,
     calculate_keltner,
     calculate_macd,
     calculate_stochastic,
@@ -380,6 +383,11 @@ def indic_vwap(payload: VWAPRequest) -> IndicatorResponse:
 @app.post("/api/v1/indicators/keltner", response_model=KeltnerResponse)
 def indic_keltner(payload: KeltnerRequest) -> KeltnerResponse:
     return calculate_keltner(payload)
+
+
+@app.post("/api/v1/indicators/ichimoku", response_model=IchimokuResponse)
+def indic_ichimoku(payload: IchimokuRequest) -> IchimokuResponse:
+    return calculate_ichimoku(payload)
 
 
 # Phase 7d: Fibonacci confluence

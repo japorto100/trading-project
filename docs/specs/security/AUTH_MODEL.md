@@ -1,6 +1,6 @@
 # Auth Model
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Fokussierte Auth-Spec fuer User-Authentifizierung, Session-Modell,
 > Recovery, RBAC und Idle-Schutz.
 > **Rolle:** Boundary-Doc unter dem weiterhin vollstaendigen Umbrella-Dokument

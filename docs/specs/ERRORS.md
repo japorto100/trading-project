@@ -1,10 +1,12 @@
-# Error Handling, Observability & Resilience Spec 2026
+# ERRORS — Error Handling & Resilience
 
-**Stand:** 07. März 2026  
-**Status:** Normatives Spec-Dokument  
-**Architektur-Fokus:** Error Handling, Observability, Resilience, No Vendor Lock-In
+> **Stand:** 16. Maerz 2026
+> **Zweck:** Verbindliche Fehler- und Resilience-Normen ueber den gesamten Stack
+> (Next.js/React, Go, Python).
+> **Source-of-Truth-Rolle:** Autoritativ fuer Error Taxonomy, strukturierte Fehlerantworten,
+> Error Boundaries, Backend-Fehlerkonventionen und Resilience-Patterns.
+> Observability/Telemetrie-Normen: siehe `OBSERVABILITY.md`.
 
-Dieses Dokument definiert die verbindlichen Fehler-, Telemetrie- und Resilience-Normen über den gesamten Stack (`Next.js`/React, Go, Python).  
 Ziel ist die klare Trennung zwischen:
 
 - **erwarteten Fehlern** (Domain / Validation / Policy / Limits)
@@ -23,9 +25,7 @@ Dieses Dokument ist **kein** Sammelcontainer mehr für Frontend-Referenzen, Futu
 - strukturierte Fehlerantworten
 - Frontend Error Boundaries und Route Bubble
 - Backend-Fehlerkonventionen in Go und Python
-- Correlation IDs, Traces, Logs, Metrics
 - Retry / Fallback / Circuit Breaker / degraded mode
-- minimale Betriebsnormen für Observability
 
 ### 0.2 Dieses Dokument regelt **nicht** primär
 
@@ -120,7 +120,7 @@ Wichtige React-/Frontend-Optionen, die hier relevant bleiben:
 - `useOptimistic`
 - `useActionState`
 
-Die detaillierte Server-State-Strategie bleibt in `docs/specs/FRONTEND_ARCHITECTURE.md` verankert; `TanStack Query` ist dort die primäre Client-Server-State-Referenz.
+Die detaillierte Server-State-Strategie bleibt in `docs/specs/architecture/FRONTEND_ARCHITECTURE.md` verankert; `TanStack Query` ist dort die primaere Client-Server-State-Referenz.
 
 ---
 
@@ -185,56 +185,11 @@ Die konkrete Form der Fehlerobjekte und streamenden Error-Events gehört in `doc
 
 ## 5. Observability & Telemetrie
 
-### 5.1 OpenTelemetry als Standard
+> Vollstaendige Observability-Normen (OTel, Structured Logging, Correlation IDs, Golden Signals):
+> **`docs/specs/OBSERVABILITY.md`**
 
-Geschäftslogik soll nicht direkt an proprietäre Observability-SDKs gekoppelt werden.
-
-Standard:
-
-- Emission über `OpenTelemetry`
-- OTLP als Standardpfad für Traces, Logs, Metrics
-
-Für `tradeview-fusion` gilt aktuell:
-
-- präferierter Stack: `OpenObserve`
-- mögliche Ergänzungen / spätere Optionen:
-  - `OTel Collector`
-  - `Jaeger`
-  - `Prometheus`
-  - `Grafana`
-  - `Loki`
-
-### 5.2 Structured Logging
-
-Logs sollen strukturiert und korrelierbar sein.
-
-Mögliche Stack-Optionen:
-
-| Stack | Optionen |
-|---|---|
-| TypeScript | `pino`, `winston` |
-| Go | `log/slog` |
-| Python | `structlog` |
-
-Pflichtfelder in Request-/Fehlerlogs:
-
-- Correlation ID / Request ID
-- Service
-- Route / Path
-- Status
-- Dauer / Latenz
-- optional User-/Role-Kontext, wenn policy-relevant
-
-### 5.3 Correlation IDs
-
-Jeder relevante Request-Pfad soll durchgängig korrelierbar sein:
-
-- Browser / Next.js
-- Go Gateway
-- Python Services
-- später ggf. Jobs / Agenten / IPC / Streams
-
-Ohne Correlation IDs ist Fehleranalyse in einem polyglotten System nicht ausreichend.
+Kurzfassung: OTel/OTLP fuer alle Services, `OpenObserve` als praeferierter Stack,
+`log/slog` (Go), `structlog` (Python), `pino` (TS). Correlation IDs von Next.js → Go → Python → Jobs.
 
 ---
 

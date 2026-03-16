@@ -442,3 +442,80 @@ model MemorySyncCheckpoint {
 
   @@unique([layerType])
 }
+
+// --- Phase 22b: Files Surface ---
+
+// DocumentRecord — metadata sidecar for every managed file.
+// Primary store is Object Storage (R2/S3); this record tracks indexing state.
+// Strings instead of enums (SQLite mode).
+model DocumentRecord {
+  id          String   @id @default(cuid())
+  storageKey  String   @unique
+  name        String
+  // type: pdf | docx | html | xlsx | csv | mp3 | wav | opus | mp4 | webm | hls | png | jpg | jpeg | svg | avif | webp | parquet | json | other
+  type        String
+  // subtype: e.g. "earnings-call" | "10-K" | "research-note" | "chart" | ""
+  subtype     String?
+  ticker      String?
+  // status: pending | indexed | failed
+  status      String   @default("pending")
+  chunkCount  Int?
+  durationSec Float?
+  sizeBytes   Int?
+  mimeType    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  auditLogs   FileAuditLog[]
+
+  @@index([status])
+  @@index([ticker])
+  @@index([type, status])
+}
+
+// FileAuditLog — immutable audit trail for all file mutations.
+// Conforms to AGENT_SECURITY.md action-class schema.
+// actionClass: read-only | bounded-write | approval-write
+// action: upload | delete | reindex | download
+model FileAuditLog {
+  id          String          @id @default(cuid())
+  documentId  String?
+  action      String
+  actionClass String
+  actorUserId String?
+  actorRole   String?
+  requestId   String
+  target      String
+  // status: ok | failed
+  status      String          @default("ok")
+  errorCode   String?
+  // expiresAt used for approval-write nonce tracking
+  expiresAt   DateTime?
+  createdAt   DateTime        @default(now())
+  document    DocumentRecord? @relation(fields: [documentId], references: [id])
+
+  @@index([documentId])
+  @@index([action, createdAt])
+  @@index([actorUserId, createdAt])
+}
+
+// ControlAuditLog — immutable audit trail for Control Surface mutations (AC20).
+// Written by BFF routes for every bounded-write / approval-write control action.
+// Never throws — audit failure must not break primary request.
+model ControlAuditLog {
+  id          String   @id @default(cuid())
+  action      String   // kill-session | pause-session | resume-session | purge-memory
+  actionClass String   // bounded-write | approval-write
+  actorUserId String?
+  actorRole   String?
+  requestId   String
+  target      String   // sessionId or resource identifier
+  status      String   @default("ok") // ok | failed
+  errorCode   String?
+  // expiresAt: nonce window for approval-write actions (30s)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([target, createdAt])
+}

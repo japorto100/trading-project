@@ -1,33 +1,83 @@
 "use client";
 
-// Agent Chat UI — stub component (Phase 22a)
-// Full implementation: docs/specs/execution/agent_chat_ui_delta.md
-//
-// Architecture:
-//   User → AgentChatPanel → POST /api/agent/chat (SSE stream)
-//   → Go Gateway → Python memory-service (Anthropic Claude)
-//   ← SSE chunks → setQueryData / local state → rendered message thread
-//
-// TanStack AI candidate: https://tanstack.com/ai — streaming text rendering,
-// message thread management, tool-call visualization.
-// Adopt when Phase 22a implementation begins.
+// Agent Chat Panel — Phase 22a
+// Thin orchestrator: wires session hook + sub-components.
+// Architecture: AgentChatPanel → /api/agent/chat (SSE BFF) → Go Gateway → Python/Anthropic
 
+import { useRef } from "react";
+import { AgentChatComposer, type AgentChatComposerRef } from "./components/AgentChatComposer";
+import { AgentChatErrorBanner } from "./components/AgentChatErrorBanner";
+import { AgentChatEventRail } from "./components/AgentChatEventRail";
+import { AgentChatHeader } from "./components/AgentChatHeader";
+import { AgentChatReconnectBanner } from "./components/AgentChatReconnectBanner";
+import { AgentChatThread } from "./components/AgentChatThread";
+import { AgentChatToolbar } from "./components/AgentChatToolbar";
+import { useChatSession } from "./hooks/useChatSession";
 import type { AgentChatConfig } from "./types";
 
 interface AgentChatPanelProps {
 	config?: Partial<AgentChatConfig>;
+	/** AC68: called by parent (GlobalChatOverlay) after panel opens to focus composer */
+	onMounted?: (focusFn: () => void) => void;
 }
 
-export function AgentChatPanel({ config: _config }: AgentChatPanelProps) {
+export function AgentChatPanel({ config: _config, onMounted }: AgentChatPanelProps) {
+	const composerRef = useRef<AgentChatComposerRef>(null);
+
+	// AC68: expose focus to parent on first render
+	const handleComposerRef = (el: AgentChatComposerRef | null) => {
+		(composerRef as React.MutableRefObject<AgentChatComposerRef | null>).current = el;
+		if (el && onMounted) onMounted(() => el.focus());
+	};
+	const {
+		messages,
+		isStreaming,
+		isConnecting,
+		error,
+		threadId,
+		send,
+		abort,
+		retry,
+		toggleBlockCollapse,
+		clearError,
+		lastUserContent,
+	} = useChatSession();
+
+	const railStatus = isConnecting ? "reconnecting" : isStreaming ? "live" : "idle";
+
 	return (
-		<div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-			<div className="text-sm font-semibold text-foreground">Agent Chat</div>
-			<p className="text-xs text-muted-foreground max-w-xs">
-				Streaming chat interface to the agent layer. Implementation planned for Phase 22a.
-			</p>
-			<p className="text-[10px] text-muted-foreground/60">
-				See <code className="font-mono">docs/specs/execution/agent_chat_ui_delta.md</code>
-			</p>
+		<div className="flex h-full flex-col bg-background overflow-hidden">
+			<AgentChatHeader />
+
+			{/* AC71: Model selector + thread controls */}
+			<AgentChatToolbar />
+
+			{/* AC70: Stream status rail */}
+			<AgentChatEventRail status={railStatus} isStreaming={isStreaming} />
+
+			<AgentChatThread
+				messages={messages}
+				isConnecting={isConnecting}
+				isStreaming={isStreaming}
+				onToggleBlock={toggleBlockCollapse}
+				onSuggestion={(text) => void send(text)}
+			/>
+
+			{/* AC72: Reconnect/degraded banner (separate from error) */}
+			<AgentChatReconnectBanner status={isConnecting ? "reconnecting" : "live"} />
+
+			{error && <AgentChatErrorBanner message={error} onDismiss={clearError} />}
+
+			<AgentChatComposer
+				ref={handleComposerRef}
+				isStreaming={isStreaming}
+				threadId={threadId}
+				onSend={send}
+				onAbort={abort}
+				onRetry={retry}
+				hasError={!!error}
+				savedInput={lastUserContent}
+			/>
 		</div>
 	);
 }

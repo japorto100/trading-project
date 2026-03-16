@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
 const DefaultBaseURL = "https://api.bcb.gov.br"
@@ -70,7 +70,7 @@ func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType as
 		lastUpdated = time.Now().Unix()
 	}
 	return gct.Ticker{
-		Pair:        currency.NewPair(currency.NewCode(seriesPrefix + seriesID), currency.NewCode("USD")),
+		Pair:        currency.NewPair(currency.NewCode(seriesPrefix+seriesID), currency.NewCode("USD")),
 		Currency:    seriesPrefix + seriesID,
 		LastUpdated: lastUpdated,
 		Last:        value,

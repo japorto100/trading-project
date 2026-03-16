@@ -18,8 +18,8 @@ type PaymentIntent struct {
 }
 
 type ReconciliationReport struct {
-	Period    string
-	Matched   int
+	Period     string
+	Matched    int
 	Mismatched int
 }
 

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"tradeviewfusion/go-backend/internal/connectors/gct"
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
+	"tradeviewfusion/go-backend/internal/connectors/gct"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
 
@@ -85,7 +85,7 @@ func parseMacroSymbol(symbol, exchange string) (currency.Pair, string, bool) {
 	normalized := strings.TrimSpace(strings.ToUpper(symbol))
 	normalized = strings.ReplaceAll(normalized, "-", "/")
 
-		if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi" || exchange == "imf" {
+	if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi" || exchange == "imf" {
 		trimmed := strings.ReplaceAll(normalized, "/", "")
 		trimmed = strings.ReplaceAll(trimmed, "-", "_")
 		trimmed = strings.ReplaceAll(trimmed, ".", "_")

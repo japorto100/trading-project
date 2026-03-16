@@ -1,6 +1,6 @@
 # API Shared Invariants
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Oberste Regeln, Cross-Cutting Headers und Fehlervertrag, die fuer
 > alle API-Grenzen gelten.
 > **Index:** [`../API_CONTRACTS.md`](../API_CONTRACTS.md)

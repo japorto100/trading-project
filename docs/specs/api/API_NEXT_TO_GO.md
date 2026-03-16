@@ -1,6 +1,6 @@
 # API Next.js to Go Gateway
 
-> **Stand:** 09. Maerz 2026
+> **Stand:** 16. Maerz 2026
 > **Zweck:** Vertrag fuer Next.js -> Go Gateway: Transportregeln, Gateway-Baseline,
 > Market-, Streaming-, Geo-, Strategy-, Portfolio- und Auth-Contracts.
 > **Index:** [`../API_CONTRACTS.md`](../API_CONTRACTS.md)
@@ -307,9 +307,21 @@ Details: [`../security/AUTH_MODEL.md`](../security/AUTH_MODEL.md), [`../security
 
 ---
 
+## Bekannte offene Drifts (Stand 16.03.2026)
+
+| Route | Next erwartet | Go-Status | Prio |
+|:------|:-------------|:----------|:-----|
+| `/api/v1/agent/chat` | Chat-Streaming-Endpoint | Route-Stub, nicht vollstaendig verdrahtet | P0 |
+| `/api/v1/portfolio/order` | Order-Submit-Endpoint | Middleware referenziert, Mux-Route fehlt | P0 |
+
+Details: `docs/specs/data/AGGREGATION_IST_AND_GAPS.md`
+
+---
+
 ## Querverweise
 
 - [`API_BROWSER_TO_NEXT.md`](./API_BROWSER_TO_NEXT.md)
 - [`API_INTERNAL_SERVICES.md`](./API_INTERNAL_SERVICES.md)
 - [`../execution/compute_delta.md`](../execution/compute_delta.md)
 - [`../UIL_ROUTE_MATRIX.md`](../UIL_ROUTE_MATRIX.md)
+- [`../data/AGGREGATION_IST_AND_GAPS.md`](../data/AGGREGATION_IST_AND_GAPS.md)

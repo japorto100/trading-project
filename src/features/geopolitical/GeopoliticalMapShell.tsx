@@ -10,6 +10,7 @@ import {
 	useState,
 } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { CommandPalette } from "@/components/CommandPalette";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -44,7 +45,6 @@ import { MapViewportPanel } from "@/features/geopolitical/shell/MapViewportPanel
 import { MarkerListModal } from "@/features/geopolitical/shell/MarkerListModal";
 import { DEFAULT_EDIT_FORM } from "@/features/geopolitical/shell/types";
 import { useGeoMapWorkspaceStore } from "@/features/geopolitical/store";
-import { CommandPalette } from "@/features/trading/CommandPalette";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));

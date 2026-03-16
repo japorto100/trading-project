@@ -9,14 +9,14 @@ type Stage string
 
 const (
 	StageInternal Stage = "internal"
-	StagePilot   Stage = "pilot"
-	StageLimited Stage = "limited_external"
-	StageGeneral Stage = "general"
+	StagePilot    Stage = "pilot"
+	StageLimited  Stage = "limited_external"
+	StageGeneral  Stage = "general"
 )
 
 type GateConfig struct {
-	ErrorRateMax   float64
-	LatencyP95Ms   int
+	ErrorRateMax    float64
+	LatencyP95Ms    int
 	AvailabilityMin float64
 }
 

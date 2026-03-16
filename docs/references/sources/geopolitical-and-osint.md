@@ -33,6 +33,20 @@
 | `CrisisWatch RSS` | Regelmaessige Konflikt-Updates / feed polling | https://www.crisisgroup.org/crisiswatch |
 | `ACLED Conflict Index / Country Monitors` | Zusatzprodukte / overlay candidates | https://acleddata.com/conflict-index/ |
 
+### Crucix Gap-Close Addendum (March 2026)
+
+| Quelle | Rolle | URL | Einordnung |
+|--------|-------|-----|------------|
+| `OpenSanctions API` | Entity-/Sanctions-Search als Screening-Ergaenzung zu offiziellen Listen | https://api.opensanctions.org/search/default | `OPTIONAL` |
+| `ADS-B Exchange Globe` | Luftlage-Kontext fuer konfliktnahe Regionen | https://globe.adsbexchange.com/ | `CONTEXT` |
+| `WHO News / Emergencies` | Public-Health-/Outbreak-Kontext fuer Event-Korrelation | https://www.who.int/news-room | `OPTIONAL` |
+| `Safecast Measurements` | Radiation-/Env-Exposure Context Layer | https://api.safecast.org/en-US/measurements.json | `OPTIONAL` |
+| `NASA FIRMS` | Wildfire-/Thermal-Hotspot-Layer fuer Risiko-/Infra-Kontext | https://firms.modaps.eosdis.nasa.gov/ | `OPTIONAL` |
+| `US EPA Data APIs` | Environmental incidents / compliance context fuer Geo-Risikobilder | https://www.epa.gov/developers/data-apis | `OPTIONAL` |
+| `USPTO PatentsView` | Technology-/Innovation-Signal layer fuer strategische Trend- und Wettbewerbskontexte | https://patentsview.org/apis | `OPTIONAL` |
+
+> Hinweis: `ReliefWeb`, `OpenSky`, `CelesTrak`, `NOAA` und `KiwiSDR` sind in dieser Datei bereits an anderen Stellen enthalten; der Addendum-Block schliesst nur die sichtbaren Crucix-Luecken auf Katalogebene.
+
 ### Soft-Signal-adjacent Open Sources
 
 | Quelle | Rolle | URL |

@@ -43,6 +43,7 @@
 | `CONTEXT_ENGINEERING.md` | retrieval-/context-assembly-Fachdokument |
 | `AGENT_ARCHITECTURE.md` | Agent-Rollen, Orchestrierung, Laufzeit |
 | `AGENT_TOOLS.md` | Tooling-/Capability-/WebMCP-/Browser-Fachdokument |
+| `AGENT_CODE_MODE.md` | evaluate-only Owner fuer optionales code-mode Runtime-Pattern |
 | `archive/KG_MERGE_AND_OVERLAY_ARCHITECTURE.md` | archivierte Merge-/Overlay-Referenz (Normen in aktive Docs verteilt) |
 | `CLAIM_VERIFICATION_ARCHITECTURE.md` | claim/evidence/belief pipeline |
 | `GAME_THEORY.md` | Simulation-/game-theory-/control-theory-Fachdokument |

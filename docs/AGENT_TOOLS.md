@@ -279,6 +279,25 @@ Prompt".
 Das Tool-Search-Muster bleibt damit in der Heimat von Runtime-/Tooling-Entscheiden
 und muss nicht als eigene Root-Verfassung weiterleben.
 
+### 3.2 Optionales Code-Mode-Muster (evaluate-only)
+
+Bei MCP-Tools mit grossen JSON-/API-Antworten kann ein optionaler "code mode"
+evaluiert werden: Der Agent schreibt ein kleines Auswertungsskript, die
+Sandbox fuehrt es auf dem Rohpayload aus, und nur der kompakte Output geht in
+den Kontext.
+
+Arbeitsregeln fuer `tradeview-fusion`:
+
+- **evaluate-only**: kein Default-Switch ohne Evidence in den Harness-Gates
+- nur fuer High-Volume-Responses (z. B. grosse Listen, Telemetrie, Bulk-Snapshots)
+- kein Ersatz fuer normale Tool-Responses bei kleinen Payloads
+- Ausfuehrung nur in isolierter Runtime-Boundary (keine Host-Ausfuehrung)
+- Ergebnisformat muss klein, deterministisch und auditierbar sein
+
+Kandidaten-Referenz (evaluate-only):
+
+- [chenhunghan/code-mode-skill](https://github.com/chenhunghan/code-mode-skill)
+
 ---
 
 ## 4. Browser Control Tools
@@ -852,7 +871,7 @@ Welche Rolle bekommt welche Tools? Principle of Least Privilege.
 
 ## 15. Formale Planungssprachen — PDDL / ADL (Phase 22+)
 
-> **Stand:** 12. Maerz 2026 | **Phase-Slot:** 22b (PLANNED)
+> **Stand:** 16. Maerz 2026 | **Phase-Slot:** 22b (PLANNED)
 
 ### Ueberblick
 
@@ -891,6 +910,34 @@ relevant fuer: Order-Execution-Chains (kein Doppelkauf), GeoMap Scenario-Baum
 - Fuer den ersten Pilot gilt die Modellierungsannahme
   **non-self-overlapping actions** (konservativer Start, geringeres Risiko).
 
+### Fachliche Basis (Research-Delta, arXiv 2603.12188)
+
+Die aktuelle Fachbasis fuer Phase 22b ist die Arbeit
+`Compiling Temporal Numeric Planning into Discrete PDDL+` (Micheli/Scala/Valentini, 2026):
+
+- Die Kompilierung von `PDDL 2.1 Level 3` nach diskretem `PDDL+` wird formal als
+  **sound + complete** beschrieben.
+- Der Compile-Pfad ist **polynomial in der Problemgroesse**, mit maximal
+  konstantem Planlaengen-Overhead.
+- Die Semantik deckt heikle Punkte explizit ab:
+  `overall conditions`, `no-moving-target`, `mutex/non-interference`.
+- Der Lock-Mechanismus in der Zielkodierung (`read/assign/increment`-Locks) ist
+  relevant fuer korrekte Parallelitaet in Multi-Step-Workflows.
+- Die Publikation arbeitet mit der Annahme **non-self-overlapping actions**.
+- Die Compiler-Implementierung laeuft in `unified_planning`; delayed effects und
+  timed initial literals werden ueber Events modelliert.
+
+### Operative Implikation fuer TradeView Fusion
+
+- PDDL/ADL wird als **Plan-Validierungsschicht** genutzt, nicht als Ersatz fuer
+  JSON Tool Schemas, OpenAPI oder Runtime-Policy-Checks.
+- Bester Pilot-Fit bleibt der "Morning Research Run" mit Deadline-, Ressourcen-
+  und Fallback-Constraints.
+- Nicht-Zielfaelle bleiben unveraendert: low-latency execution, triviale CRUD/UI,
+  rein heuristische Ranking-Entscheide.
+- Evidence-first Einfuehrung: ohne reproduzierbare Metrikverbesserung keine
+  breitere Adoption.
+
 ### Nicht-Ziele
 
 - Kein Ersatz fuer Low-Latency-Order-Execution.
@@ -912,8 +959,15 @@ PDDL/ADL einplanen **wenn:**
       (API-Limits, Datenfrische, CPU-Budget, Fallback-Provider, Deadline)
 - [ ] **PDL.V2** Solver-Pfad lokal testen (FastDownward per Python subprocess;
       optional zweiter Pfad via unified_planning fuer Vergleich)
-- [ ] **PDL.V3** Go/No-Go mit Messwerten entscheiden:
-      Plan-Validitaet, p95 Planzeit, Deadline-Adherence, Replan-Rate
+- [ ] **PDL.V3** Semantik-Checkliste formalisieren
+      (`overall`, `no-moving-target`, `mutex`, non-self-overlap)
+- [ ] **PDL.V4** Research-Evidence in Pilot-Metriken mappen
+      (valid/invalid blocking, p95 Zeit, Deadline-Adherence, Replan-Rate)
+- [ ] **PDL.V5** Go/No-Go mit Messwerten entscheiden (Adopt/Defer)
+
+### Referenz
+
+- arXiv: `https://arxiv.org/html/2603.12188v1`
 
 ---
 
