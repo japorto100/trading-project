@@ -129,7 +129,7 @@
 		"otplib": "^12",
 		"pdfjs-dist": "3.11.174",
 		"pmtiles": "^4.4.0",
-		"prisma": "^6.11.1",
+		"prisma": "^7.5.0",
 		"protobufjs": "^8.0.0",
 		"qrcode.react": "^4.2.0",
 		"react": "^19.0.0",
