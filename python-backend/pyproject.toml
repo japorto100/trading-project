@@ -13,7 +13,7 @@ dependencies = [
     "pytest>=8.3",
     "ruff>=0.13.0",
     "scipy>=1.14.0",
-    "uvicorn==0.35.0",
+    "uvicorn==0.42.0",
     # python_runtime_eval_delta: Granian (Rust/Tokio ASGI server, drop-in for uvicorn)
     # eval GRN.V1-V4 before Phase 20 rollout decision. Pin loosely for eval flexibility.
     "granian>=2.0.0",
