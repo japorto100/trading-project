@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { getErrorMessage } from "@/lib/utils";
-
-const GO_GATEWAY_BASE = process.env.GO_GATEWAY_BASE_URL ?? "http://127.0.0.1:9060";
 
 const ALLOWED_SLUGS = new Set([
 	"correlations",
@@ -57,7 +56,7 @@ export async function POST(
 
 	try {
 		const body = await request.text();
-		const url = `${GO_GATEWAY_BASE}/api/v1/portfolio/${resolveBackendSlug(slug)}`;
+		const url = `${getGatewayBaseURL()}/api/v1/portfolio/${resolveBackendSlug(slug)}`;
 
 		const headers: HeadersInit = {
 			"Content-Type": "application/json",

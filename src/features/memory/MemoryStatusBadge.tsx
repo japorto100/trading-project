@@ -11,9 +11,9 @@ interface MemoryHealthData {
 }
 
 function statusColor(status: string): string {
-	if (status === "ready") return "text-emerald-400";
-	if (status === "degraded") return "text-yellow-400";
-	return "text-zinc-500";
+	if (status === "ready") return "text-status-success";
+	if (status === "degraded") return "text-status-warning";
+	return "text-muted-foreground";
 }
 
 export function MemoryStatusBadge() {
@@ -37,11 +37,11 @@ export function MemoryStatusBadge() {
 
 	return (
 		<span
-			className="flex items-center gap-1 text-[10px] font-mono opacity-70 hover:opacity-100 transition-opacity"
+			className="flex items-center gap-1 text-[11px] font-mono opacity-80 hover:opacity-100 transition-opacity"
 			title={`Memory: KG=${health.kg} Vector=${health.vector} Cache=${health.cache} Episodic=${health.episodic}`}
 		>
 			<span className={statusColor(health.kg)}>{kgLabel}</span>
-			<span className="text-zinc-600">|</span>
+			<span className="text-muted-foreground">|</span>
 			<span className={statusColor(health.vector)}>{vecLabel}</span>
 		</span>
 	);

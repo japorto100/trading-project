@@ -29,10 +29,10 @@ export async function buildPortfolioSnapshotForProfile(
 			);
 
 			for (const entry of gatewayResults) {
-				const quote = entry.result?.data;
-				if (!quote) {
+				if (!entry.result.ok) {
 					continue;
 				}
+				const quote = entry.result.data;
 				const price = Number(quote.price);
 				if (Number.isFinite(price) && price > 0) {
 					prices[entry.symbol] = price;

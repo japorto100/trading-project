@@ -22,8 +22,12 @@
 5. [Agentic Storage Write-Path](#5-agentic-storage-write-path)
 6. [Evidence-Completeness Gates](#6-evidence-completeness-gates)
 7. [Security-Evals als Dauer-Gates](#7-security-evals-als-dauer-gates)
-8. [Priorisierte Einfuehrungsreihenfolge](#8-priorisierte-einfuehrungsreihenfolge)
-9. [Querverweise](#9-querverweise)
+8. [Contextual Security als Pflichtschicht](#8-contextual-security-als-pflichtschicht)
+9. [Identity, Delegation und Access Mediation](#9-identity-delegation-und-access-mediation)
+10. [Credential- und Secret-Management](#10-credential--und-secret-management)
+11. [Information Flow Control und Taint-Pfade](#11-information-flow-control-und-taint-pfade)
+12. [Priorisierte Einfuehrungsreihenfolge](#12-priorisierte-einfuehrungsreihenfolge)
+13. [Querverweise](#13-querverweise)
 
 ---
 
@@ -161,21 +165,143 @@ in der Zielkonfiguration reproduzierbar bestehen.
 
 ---
 
-## 8. Priorisierte Einfuehrungsreihenfolge
+## 8. Contextual Security als Pflichtschicht
+
+Neben klassischer Confidentiality/Integrity/Availability braucht der Agent eine
+eigene Kontext-Sicherheitsregel:
+
+- der Agent darf nur Kontextelemente verwenden, die zum aktiven Task gehoeren
+- `system > policy > user intent > retrieved data > tool result` ist eine feste
+  Prioritaetskette
+- Daten duerfen keine versteckten Instruktionen einschleusen (`instruction != data`)
+- Kontextwechsel (`task pivot`) erzwingt Re-Validation statt stiller Weiterfuehrung
+
+**Arbeitsregel:**
+
+Jeder kritische Tool-Call enthaelt einen maschinenlesbaren
+`context_integrity_check` mit:
+
+- `task_id`
+- `allowed_context_classes`
+- `blocked_context_classes`
+- `justification`
+- `policy_decision_id`
+
+Ohne gueltigen Check keine Ausfuehrung.
+
+---
+
+## 9. Identity, Delegation und Access Mediation
+
+Access Control braucht fuer Agenten klare Identitaeten und Delegation:
+
+- **user identity:** wer den Auftrag erteilt hat
+- **agent identity:** welche Agent-Instanz handelt
+- **task identity:** kurzlebige Ausfuehrungsidentitaet pro Task
+
+Delegation ist standardmaessig:
+
+- scoped (nur noetige Rechte)
+- time-bound (Ablaufzeit)
+- revocable (Kill/Invalidate)
+- auditierbar (wer hat wann was delegiert)
+
+**Complete Mediation:**
+
+Jeder Zugriff auf Tool, Speicher, Connector oder externes Ziel muss den gleichen
+Policy-Entscheidpfad durchlaufen. Kein "trusted fast lane".
+
+---
+
+## 10. Credential- und Secret-Management
+
+Secrets sind kein Agent-Kontext und kein normaler ENV-Transportpfad.
+
+Pflichtregeln:
+
+- keine unverschluesselten API-Keys/Passwoerter im Prompt oder in Logs
+- keine dauerhaften High-Privilege-Credentials direkt beim Agent
+- bevorzugt kurzlebige Tokens (`jit_token`, session-scoped)
+- Secrets nur ueber Vault-/Broker-Schnittstelle beziehen
+- Ausgabe-/Tool-Args mit Secret-Redaction vor Persistenz/Audit
+
+Minimalvertrag je Secret-Zugriff:
+
+- `secret_ref` statt Klartext
+- `scope`
+- `ttl`
+- `purpose`
+- `issued_to` (task/agent)
+
+---
+
+## 11. Information Flow Control und Taint-Pfade
+
+Untrusted Inputs muessen ueber den gesamten Lauf als tainted markiert bleiben.
+
+Mindestens drei Labels:
+
+- `trusted`
+- `untrusted`
+- `sensitive`
+
+Pflichtpruefungen:
+
+- `untrusted -> execute/write/delete` nur nach Guardrail-Entscheid
+- `sensitive -> external sink` standardmaessig blockieren
+- transitive taint propagation ueber Retrieval, Tool-Resultate und Replans
+
+Audit-Mindestdaten pro Flow-Entscheid:
+
+- source label
+- sink class
+- decision (`allow|deny|sanitize|human_approval`)
+- rule id
+
+### 11.1 Sofort umsetzbare Security-Gates fuer Token-/KV-Caching
+
+1. **Cache-Scope hart trennen**
+   - kein Cross-User-/Cross-Tenant-Reuse ohne identische Security-Kontexte.
+
+2. **Prompt- und Tool-Signatur in Cache-Key aufnehmen**
+   - verhindert falsches Reuse nach Policy-/Template-/Tool-Aenderungen.
+
+3. **Sensitive-Daten niemals als reusable Prefix cachen**
+   - sensible Abschnitte markieren und aus sharebaren Cache-Pfaden ausschliessen.
+
+4. **KV-Quantisierung nur mit Guardrail-Checks kombinieren**
+   - bei Genauigkeitsabfall in kritischen Pfaden auf konservativeres Profil zurueckschalten.
+
+5. **Audit-Pflicht fuer Cache-Entscheidungen**
+   - `cache_hit`, `cache_miss`, `cache_bypass_reason`, `policy_decision_id` loggen.
+
+Technische Referenzen:
+
+- [vLLM Prefix Caching](https://docs.vllm.ai/en/stable/design/prefix_caching.html)
+- [vLLM Hybrid KV Cache Manager](https://docs.vllm.ai/en/stable/design/hybrid_kv_cache_manager/)
+- [SGLang Quantized KV Cache](https://docs.sglang.io/advanced_features/quantized_kv_cache.html)
+
+---
+
+## 12. Priorisierte Einfuehrungsreihenfolge
 
 1. Retrieval Broker als erzwungener Pfad
 2. Tool Proxy + Capability Envelope
 3. Agentic Storage Write-Path mit versionierter Publish-Grenze
 4. Evidence-Completeness Gates fuer kritische Flows
-5. Security-Evals dauerhaft in Verify-Gates integrieren
+5. Contextual-Security + Complete-Mediation Regeln in alle kritischen Pfade
+6. Credential-Vault + JIT-Token statt statischer Secrets
+7. IFC/Taint-Pfade fuer Tool- und Output-Sinks
+8. Security-Evals dauerhaft in Verify-Gates integrieren
 
 ---
 
-## 9. Querverweise
+## 13. Querverweise
 
 - `AGENT_ARCHITECTURE.md` (Planner/Executor/Replanner + Rollen)
 - `AGENT_TOOLS.md` (Toolfamilien und Zugriffspfade)
 - `AGENT_HARNESS.md` (Harness-Governance, OpenSandbox, Runtime-Guardrails)
+- `AGENT_MODEL_TOKEN_TUNING.md` (LLM/KV/Cache-Tuning mit Security-Gates)
 - `RAG_GRAPHRAG_STRATEGY_2026.md` (Hybrid Retrieval, Query-Modi, UQ-Strategie)
 - `CONTEXT_ENGINEERING.md` (Context Assembly und Retrieval-Policies)
 - `MEMORY_ARCHITECTURE.md` (Memory-Tiering und Artefaktlayer)

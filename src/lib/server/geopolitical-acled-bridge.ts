@@ -1,6 +1,6 @@
 import type { GeoEvent, GeoSeverity } from "@/lib/geopolitical/types";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 const DEFAULT_CACHE_MS = 60_000;
 const ACLED_DASHBOARD_URL = "https://acleddata.com/dashboard/#/dashboard";
 const GDELT_HOME_URL = "https://www.gdeltproject.org/";
@@ -188,7 +188,7 @@ function buildCacheKey(input: {
 export async function fetchExternalEventsViaGateway(
 	filters: ExternalProxyFilters,
 ): Promise<ExternalProxyResult> {
-	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBaseURL = getGatewayBaseURL();
 	const source = normalizeSource(filters.source);
 	const page = normalizePage(filters.page);
 	const pageSize = normalizePageSize(filters.pageSize);

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MemoryStatusBadge } from "@/features/memory/MemoryStatusBadge";
+import { IndicatorAiTooltip } from "@/features/trading/components/IndicatorAiTooltip";
 import type { CompositeSignalInsights } from "@/features/trading/types";
 
 interface SignalInsightsBarProps {
@@ -79,22 +80,42 @@ export function SignalInsightsBar({
 					<Volume2 className="h-3 w-3" /> Volume Flow
 				</div>
 				<div className="flex items-center gap-2 text-[11px]">
-					<div
-						className={`flex items-center gap-1 px-2 py-0.5 rounded-md border ${rvol === null ? "bg-muted/20 border-border/50 text-muted-foreground" : metricBadgeTone(rvol - 1)}`}
+					<IndicatorAiTooltip
+						label="RVOL"
+						value={rvol === null ? "n/a" : `${rvol.toFixed(2)}x`}
+						prompt={`RVOL=${rvol === null ? "n/a" : `${rvol.toFixed(2)}x`} (relative volume vs 20-bar average)`}
 					>
-						<span className="opacity-70">RVOL</span>
-						<span className="font-mono font-bold">{rvol === null ? "n/a" : rvol.toFixed(2)}x</span>
-					</div>
-					<div
-						className={`flex items-center gap-1 px-2 py-0.5 rounded-md border ${cmf === null ? "bg-muted/20 border-border/50 text-muted-foreground" : metricBadgeTone(cmf)}`}
+						<div
+							className={`flex items-center gap-1 px-2 py-0.5 rounded-md border cursor-help ${rvol === null ? "bg-muted/20 border-border/50 text-muted-foreground" : metricBadgeTone(rvol - 1)}`}
+						>
+							<span className="opacity-70">RVOL</span>
+							<span className="font-mono font-bold">
+								{rvol === null ? "n/a" : rvol.toFixed(2)}x
+							</span>
+						</div>
+					</IndicatorAiTooltip>
+					<IndicatorAiTooltip
+						label="CMF"
+						value={cmf === null ? "n/a" : cmf.toFixed(2)}
+						prompt={`CMF=${cmf === null ? "n/a" : cmf.toFixed(2)} (Chaikin Money Flow, range -1 to +1)`}
 					>
-						<span className="opacity-70">CMF</span>
-						<span className="font-mono font-bold">{cmf === null ? "n/a" : cmf.toFixed(2)}</span>
-					</div>
-					<div className="flex items-center gap-1 px-2 py-0.5 rounded-md border bg-muted/20 border-border/50 text-muted-foreground">
-						<span className="opacity-70">ATR</span>
-						<span className="font-mono">{atr === null ? "n/a" : atr.toFixed(2)}</span>
-					</div>
+						<div
+							className={`flex items-center gap-1 px-2 py-0.5 rounded-md border cursor-help ${cmf === null ? "bg-muted/20 border-border/50 text-muted-foreground" : metricBadgeTone(cmf)}`}
+						>
+							<span className="opacity-70">CMF</span>
+							<span className="font-mono font-bold">{cmf === null ? "n/a" : cmf.toFixed(2)}</span>
+						</div>
+					</IndicatorAiTooltip>
+					<IndicatorAiTooltip
+						label="ATR"
+						value={atr === null ? "n/a" : atr.toFixed(2)}
+						prompt={`ATR=${atr === null ? "n/a" : atr.toFixed(2)} (Average True Range, measures volatility)`}
+					>
+						<div className="flex items-center gap-1 px-2 py-0.5 rounded-md border bg-muted/20 border-border/50 text-muted-foreground cursor-help">
+							<span className="opacity-70">ATR</span>
+							<span className="font-mono">{atr === null ? "n/a" : atr.toFixed(2)}</span>
+						</div>
+					</IndicatorAiTooltip>
 				</div>
 			</div>
 
@@ -106,31 +127,43 @@ export function SignalInsightsBar({
 					<BrainCircuit className="h-3 w-3" /> AI & Rhythm
 				</div>
 				<div className="flex items-center gap-2 text-[11px]">
-					<div
-						className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border ${
-							heartbeatScore >= 0.7
-								? "bg-success/10 text-success border-success/20"
-								: heartbeatScore >= 0.4
-									? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-									: "bg-muted/20 text-muted-foreground border-border/50"
-						}`}
+					<IndicatorAiTooltip
+						label="Rhythm"
+						value={`${(heartbeatScore * 100).toFixed(0)}%`}
+						prompt={`Heartbeat/Rhythm score=${(heartbeatScore * 100).toFixed(0)}% (market rhythm consistency, 0-100%)`}
 					>
-						<Waves className="h-3 w-3" />
-						<span>Rhythm: {(heartbeatScore * 100).toFixed(0)}%</span>
-					</div>
-
-					{compositeSignal && (
 						<div
-							className={`flex items-center gap-1 px-2 py-0.5 rounded-md border font-bold uppercase tracking-wider ${
-								compositeSignal.signal === "buy"
-									? "bg-success/10 text-success border-success/30 shadow-[0_0_15px_oklch(0.696_0.17_162.48/0.3)]"
-									: compositeSignal.signal === "sell"
-										? "bg-error/10 text-error border-error/30"
+							className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md border cursor-help ${
+								heartbeatScore >= 0.7
+									? "bg-success/10 text-success border-success/20"
+									: heartbeatScore >= 0.4
+										? "bg-amber-500/10 text-amber-500 border-amber-500/20"
 										: "bg-muted/20 text-muted-foreground border-border/50"
 							}`}
 						>
-							{compositeSignal.signal} {(compositeSignal.confidence * 100).toFixed(0)}%
+							<Waves className="h-3 w-3" />
+							<span>Rhythm: {(heartbeatScore * 100).toFixed(0)}%</span>
 						</div>
+					</IndicatorAiTooltip>
+
+					{compositeSignal && (
+						<IndicatorAiTooltip
+							label="Signal"
+							value={`${compositeSignal.signal} ${(compositeSignal.confidence * 100).toFixed(0)}%`}
+							prompt={`Composite signal=${compositeSignal.signal} confidence=${(compositeSignal.confidence * 100).toFixed(0)}% (multi-indicator fusion)`}
+						>
+							<div
+								className={`flex items-center gap-1 px-2 py-0.5 rounded-md border font-bold uppercase tracking-wider cursor-help ${
+									compositeSignal.signal === "buy"
+										? "bg-success/10 text-success border-success/30 shadow-[0_0_15px_oklch(0.696_0.17_162.48/0.3)]"
+										: compositeSignal.signal === "sell"
+											? "bg-error/10 text-error border-error/30"
+											: "bg-muted/20 text-muted-foreground border-border/50"
+								}`}
+							>
+								{compositeSignal.signal} {(compositeSignal.confidence * 100).toFixed(0)}%
+							</div>
+						</IndicatorAiTooltip>
 					)}
 
 					<MemoryStatusBadge />

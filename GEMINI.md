@@ -22,6 +22,7 @@
 ## Recommended Workflow
 ```bash
 cd tradeview-fusion
+git submodule update --init --recursive   # GCT + _tmp_ref_review (required after fresh clone)
 bun install
 bun run db:generate   # required after fresh install
 bun run lint          # Biome check (0 errors expected)
@@ -45,6 +46,23 @@ bun run build
 - For error handling in API routes: `catch (error: unknown)` + `getErrorMessage()` from `@/lib/utils`. Never use `catch (error: any)`.
 - Do not re-add ESLint. Biome (`biome.json`) is the sole linter/formatter.
 - When updating spec documents: update `Stand` date, add `Aenderungshistorie` entry, update cross-references in related docs.
+
+## Git Submodules
+- **GCT** (`go-backend/go-crypto-trader`) ist ein Submodule auf Upstream `thrasher-corp/gocryptotrader`. Wird via `go.mod replace ./go-crypto-trader` eingebunden — ohne initialisiertes Submodule schlägt `go build` fehl.
+- **`_tmp_ref_review/`** enthält 22 Referenz-Repos (agents/geo/graph/security) als Submodules — nur zum Lesen, kein Build-Einfluss.
+- Update GCT: `git submodule update --remote go-backend/go-crypto-trader && cd go-backend && go mod tidy`
+- Update alle `_tmp_ref_review`-Clones: `git submodule update --remote --merge` (nur auf die Subpfade anwenden)
+
+## Go Backend — Commands Reference
+See `go-backend/DEVELOPMENT.md` for the full reference. Key gates:
+```bash
+cd go-backend
+go build ./...
+go vet ./...
+golangci-lint run ./...
+go test -race -shuffle=on -count=1 -timeout 300s ./...
+govulncheck ./...
+```
 
 ## Pitfalls
 - After `bun install`, always run `bun run db:generate` before dev or build. Without it, Prisma client is missing and build fails with `Cannot find module '.prisma/client/default'`.

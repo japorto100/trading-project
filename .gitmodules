@@ -1,0 +1,72 @@
+[submodule "_tmp_ref_review/agents/agentzero-complete"]
+	path = _tmp_ref_review/agents/agentzero-complete
+	url = https://github.com/agent0ai/agent-zero
+[submodule "_tmp_ref_review/agents/onyx"]
+	path = _tmp_ref_review/agents/onyx
+	url = https://github.com/onyx-dot-app/onyx.git
+[submodule "_tmp_ref_review/agents/openclaw"]
+	path = _tmp_ref_review/agents/openclaw
+	url = https://github.com/openclaw/openclaw
+[submodule "_tmp_ref_review/agents/perplexica"]
+	path = _tmp_ref_review/agents/perplexica
+	url = https://github.com/ItzCrazyKns/Perplexica
+[submodule "_tmp_ref_review/agents/tambo"]
+	path = _tmp_ref_review/agents/tambo
+	url = https://github.com/tambo-ai/tambo
+[submodule "_tmp_ref_review/ccxt"]
+	path = _tmp_ref_review/ccxt
+	url = https://github.com/ccxt/ccxt.git
+[submodule "_tmp_ref_review/geo/conflict-globe.gl"]
+	path = _tmp_ref_review/geo/conflict-globe.gl
+	url = https://github.com/r13xr13/conflict-globe.gl.git
+[submodule "_tmp_ref_review/geo/Crucix"]
+	path = _tmp_ref_review/geo/Crucix
+	url = https://github.com/calesthio/Crucix
+[submodule "_tmp_ref_review/geo/GeoSentinel"]
+	path = _tmp_ref_review/geo/GeoSentinel
+	url = https://github.com/h9zdev/GeoSentinel.git
+[submodule "_tmp_ref_review/geo/ogi"]
+	path = _tmp_ref_review/geo/ogi
+	url = https://github.com/khashashin/ogi.git
+[submodule "_tmp_ref_review/geo/pharos-ai"]
+	path = _tmp_ref_review/geo/pharos-ai
+	url = https://github.com/Juliusolsson05/pharos-ai
+[submodule "_tmp_ref_review/geo/Shadowbroker"]
+	path = _tmp_ref_review/geo/Shadowbroker
+	url = https://github.com/BigBodyCobain/Shadowbroker.git
+[submodule "_tmp_ref_review/geo/Sovereign_Watch"]
+	path = _tmp_ref_review/geo/Sovereign_Watch
+	url = https://github.com/d3mocide/Sovereign_Watch.git
+[submodule "_tmp_ref_review/geo/worldwideview"]
+	path = _tmp_ref_review/geo/worldwideview
+	url = https://github.com/silvertakana/worldwideview.git
+[submodule "_tmp_ref_review/graph/cytoscape"]
+	path = _tmp_ref_review/graph/cytoscape
+	url = https://github.com/cytoscape/cytoscape.git
+[submodule "_tmp_ref_review/graph/flowsint"]
+	path = _tmp_ref_review/graph/flowsint
+	url = https://github.com/reconurge/flowsint.git
+[submodule "_tmp_ref_review/graph/gephi-lite"]
+	path = _tmp_ref_review/graph/gephi-lite
+	url = https://github.com/gephi/gephi-lite.git
+[submodule "_tmp_ref_review/graph/gitnexus-web"]
+	path = _tmp_ref_review/graph/gitnexus-web
+	url = https://github.com/abhigyanpatwari/GitNexus
+[submodule "_tmp_ref_review/lightweight-charts"]
+	path = _tmp_ref_review/lightweight-charts
+	url = https://github.com/tradingview/lightweight-charts.git
+[submodule "_tmp_ref_review/paperless-ngx"]
+	path = _tmp_ref_review/paperless-ngx
+	url = https://github.com/paperless-ngx/paperless-ngx
+[submodule "_tmp_ref_review/security/mcp-manager"]
+	path = _tmp_ref_review/security/mcp-manager
+	url = https://github.com/Brightwing-Systems-LLC/mcp-manager
+[submodule "_tmp_ref_review/security/mission-control"]
+	path = _tmp_ref_review/security/mission-control
+	url = https://github.com/builderz-labs/mission-control
+[submodule "go-backend/go-crypto-trader"]
+	path = go-backend/go-crypto-trader
+	url = https://github.com/thrasher-corp/gocryptotrader.git
+[submodule "_tmp_ref_review/math/kand"]
+	path = _tmp_ref_review/math/kand
+	url = https://github.com/rust-ta/kand

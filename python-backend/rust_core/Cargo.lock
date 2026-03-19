@@ -371,6 +371,7 @@ dependencies = [
  "approx",
  "pyo3",
  "redb",
+ "serde_json",
  "tempfile",
 ]
 

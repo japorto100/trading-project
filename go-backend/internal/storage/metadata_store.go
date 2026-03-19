@@ -24,10 +24,25 @@ func NewSQLiteMetadataStore(path string) (*SQLiteMetadataStore, error) {
 	if err := os.MkdirAll(filepath.Dir(trimmed), 0o755); err != nil {
 		return nil, fmt.Errorf("create metadata db dir: %w", err)
 	}
-	db, err := sql.Open("sqlite", trimmed)
+	// URI DSN: busy_timeout is applied at connection level before any lock is
+	// acquired, so journal_mode=WAL can retry on the first open instead of
+	// returning SQLITE_BUSY immediately. WAL is persistent — once set on the
+	// file, subsequent opens are no-ops. _txlock=immediate prevents deferred→
+	// write upgrade failures that bypass busy_timeout.
+	// TODO(postgres): replace with pgxpool when METADATA_STORE_DRIVER=postgres.
+	dsn := "file:" + filepath.ToSlash(trimmed) +
+		"?_pragma=busy_timeout(5000)" +
+		"&_pragma=journal_mode(WAL)" +
+		"&_pragma=synchronous(NORMAL)" +
+		"&_txlock=immediate"
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open metadata db: %w", err)
 	}
+	// Single writer connection — serialises writes at the Go layer so SQLite
+	// never sees concurrent write attempts from the same process.
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 	store := &SQLiteMetadataStore{db: db}
 	if err := store.migrate(); err != nil {
 		_ = db.Close()

@@ -14,7 +14,6 @@ import type {
 } from "@simplewebauthn/types";
 import { type NextRequest, NextResponse } from "next/server";
 import { createPasskeySessionBootstrap } from "@/lib/server/passkey-session-bootstrap";
-import { getPrismaClient } from "@/lib/server/prisma";
 
 const REG_CHALLENGE_COOKIE = "tvf_passkey_reg_challenge";
 const AUTH_CHALLENGE_COOKIE = "tvf_passkey_auth_challenge";
@@ -37,6 +36,25 @@ interface WebAuthnRuntimeConfig {
 }
 
 type JsonResponse = { error: string; details?: string };
+
+type GoPasskeyUser = {
+	id: string;
+	email?: string | null;
+	name?: string | null;
+	role?: string | null;
+};
+
+type GoPasskeyAuthenticator = {
+	id: string;
+	name?: string | null;
+	credentialId: string;
+	deviceType: string;
+	backedUp: boolean;
+	counter: number;
+	transports: string[];
+	createdAt: string;
+	lastUsedAt?: string | null;
+};
 
 function isPasskeyScaffoldEnabled(): boolean {
 	return (process.env.AUTH_PASSKEY_SCAFFOLD_ENABLED ?? "false").trim().toLowerCase() === "true";
@@ -162,15 +180,6 @@ function isAuthenticatorTransport(value: string): value is AuthenticatorTranspor
 	return ["ble", "cable", "hybrid", "internal", "nfc", "smart-card", "usb"].includes(value);
 }
 
-function parseTransportCSV(value: string | null): AuthenticatorTransportFuture[] | undefined {
-	if (!value) return undefined;
-	const transports = value
-		.split(",")
-		.map((entry) => entry.trim())
-		.filter(isAuthenticatorTransport);
-	return transports.length > 0 ? transports : undefined;
-}
-
 function encodeUint8ArrayBase64URL(bytes: Uint8Array): string {
 	return Buffer.from(bytes).toString("base64url");
 }
@@ -233,8 +242,28 @@ function noStoreJson<T>(body: T, init?: ResponseInit): NextResponse<T> {
 	return response;
 }
 
-function prismaUnavailable(): NextResponse<JsonResponse> {
-	return noStoreJson({ error: "database unavailable" }, { status: 503 });
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
+}
+
+async function postGoPasskeyAction<T>(path: string, body: Record<string, unknown>): Promise<T> {
+	const response = await fetch(`${getGoGatewayUrl()}${path}`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(body),
+		cache: "no-store",
+	});
+	const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+	if (!response.ok) {
+		throw new Error(
+			typeof payload.error === "string" && payload.error.trim() !== ""
+				? payload.error
+				: `Go passkey action failed with ${response.status}`,
+		);
+	}
+	return payload as T;
 }
 
 export async function handlePasskeyRegistrationOptions(
@@ -249,9 +278,6 @@ export async function handlePasskeyRegistrationOptions(
 		return passkeyFeatureDisabledResponse();
 	}
 
-	const prisma = getPrismaClient();
-	if (!prisma) return prismaUnavailable();
-
 	let body: unknown;
 	try {
 		body = await request.json();
@@ -263,19 +289,15 @@ export async function handlePasskeyRegistrationOptions(
 		return noStoreJson({ error: "email is required" }, { status: 400 });
 	}
 
-	const user =
-		(await prisma.user.findUnique({
-			where: { email: parsed.email },
-			include: { authenticators: true },
-		})) ??
-		(await prisma.user.create({
-			data: {
-				email: parsed.email,
-				name: parsed.displayName ?? parsed.email.split("@")[0] ?? "user",
-				role: (process.env.AUTH_DEFAULT_ROLE ?? "viewer").trim() || "viewer",
-			},
-			include: { authenticators: true },
-		}));
+	const context = await postGoPasskeyAction<{
+		user: GoPasskeyUser;
+		authenticators: GoPasskeyAuthenticator[];
+	}>("/api/v1/auth/passkeys/registration-context", {
+		email: parsed.email,
+		displayName: parsed.displayName,
+		role: (process.env.AUTH_DEFAULT_ROLE ?? "viewer").trim() || "viewer",
+	});
+	const user = context.user;
 
 	const cfg = resolveWebAuthnConfig(request);
 	const options = await generateRegistrationOptions({
@@ -284,9 +306,9 @@ export async function handlePasskeyRegistrationOptions(
 		userName: user.email ?? parsed.email,
 		userDisplayName: parsed.displayName ?? user.name ?? user.email ?? "user",
 		userID: Buffer.from(user.id, "utf8"),
-		excludeCredentials: user.authenticators.map((authenticator) => ({
-			id: authenticator.credentialID,
-			transports: parseTransportCSV(authenticator.transports ?? null),
+		excludeCredentials: context.authenticators.map((authenticator) => ({
+			id: authenticator.credentialId,
+			transports: authenticator.transports?.filter(isAuthenticatorTransport),
 		})),
 		authenticatorSelection: {
 			residentKey: "preferred",
@@ -300,7 +322,7 @@ export async function handlePasskeyRegistrationOptions(
 		meta: {
 			mode: "scaffold",
 			flow: "register",
-			existingAuthenticators: user.authenticators.length,
+			existingAuthenticators: context.authenticators.length,
 			rpID: cfg.rpID,
 		},
 	});
@@ -318,9 +340,6 @@ export async function handlePasskeyRegistrationVerify(
 	if (!isPasskeyScaffoldEnabled()) {
 		return passkeyFeatureDisabledResponse();
 	}
-	const prisma = getPrismaClient();
-	if (!prisma) return prismaUnavailable();
-
 	const challenge = readPasskeyChallengeCookie(request, "register");
 	if (!challenge?.challenge || !challenge.userId) {
 		return noStoreJson({ error: "missing or expired registration challenge" }, { status: 400 });
@@ -362,32 +381,20 @@ export async function handlePasskeyRegistrationVerify(
 	}
 
 	const info = verification.registrationInfo;
-	await prisma.authenticator.upsert({
-		where: { credentialID: info.credentialID },
-		create: {
+	await postGoPasskeyAction<{ authenticator: GoPasskeyAuthenticator }>(
+		"/api/v1/auth/passkeys/registration-verify",
+		{
 			userId: challenge.userId,
 			providerAccountId: info.credentialID,
-			credentialID: info.credentialID,
+			credentialId: info.credentialID,
 			credentialPublicKey: encodeUint8ArrayBase64URL(info.credentialPublicKey),
 			counter: info.counter,
 			credentialDeviceType: info.credentialDeviceType,
 			credentialBackedUp: info.credentialBackedUp,
-			transports: parsed.credential.response.transports?.join(",") ?? null,
+			transports: parsed.credential.response.transports ?? [],
 			name: parsed.nickname ?? "Passkey",
-			lastUsedAt: new Date(),
 		},
-		update: {
-			userId: challenge.userId,
-			providerAccountId: info.credentialID,
-			credentialPublicKey: encodeUint8ArrayBase64URL(info.credentialPublicKey),
-			counter: info.counter,
-			credentialDeviceType: info.credentialDeviceType,
-			credentialBackedUp: info.credentialBackedUp,
-			transports: parsed.credential.response.transports?.join(",") ?? null,
-			name: parsed.nickname ?? undefined,
-			lastUsedAt: new Date(),
-		},
-	});
+	);
 
 	const response = noStoreJson({
 		verified: true,
@@ -415,9 +422,6 @@ export async function handlePasskeyAuthenticationOptions(
 	if (!isPasskeyScaffoldEnabled()) {
 		return passkeyFeatureDisabledResponse();
 	}
-	const prisma = getPrismaClient();
-	if (!prisma) return prismaUnavailable();
-
 	let body: unknown = {};
 	try {
 		body = await request.json();
@@ -429,20 +433,22 @@ export async function handlePasskeyAuthenticationOptions(
 		return noStoreJson({ error: "invalid body" }, { status: 400 });
 	}
 
-	const user = parsed.email
-		? await prisma.user.findUnique({
-				where: { email: parsed.email },
-				include: { authenticators: true },
-			})
-		: null;
+	const context = parsed.email
+		? await postGoPasskeyAction<{
+				user: GoPasskeyUser | null;
+				authenticators: GoPasskeyAuthenticator[];
+			}>("/api/v1/auth/passkeys/authentication-context", { email: parsed.email })
+		: { user: null, authenticators: [] };
 
 	const cfg = resolveWebAuthnConfig(request);
 	const options = await generateAuthenticationOptions({
 		rpID: cfg.rpID,
-		allowCredentials: user?.authenticators.map((authenticator) => ({
-			id: authenticator.credentialID,
-			transports: parseTransportCSV(authenticator.transports ?? null),
-		})),
+		allowCredentials: context.user
+			? context.authenticators.map((authenticator) => ({
+					id: authenticator.credentialId,
+					transports: authenticator.transports?.filter(isAuthenticatorTransport),
+				}))
+			: undefined,
 		userVerification: "preferred",
 	});
 
@@ -451,14 +457,14 @@ export async function handlePasskeyAuthenticationOptions(
 		meta: {
 			mode: "scaffold",
 			flow: "authenticate",
-			allowCredentialsCount: user?.authenticators.length ?? 0,
-			discoverableAllowed: !user,
+			allowCredentialsCount: context.authenticators.length,
+			discoverableAllowed: !context.user,
 			rpID: cfg.rpID,
 		},
 	});
 	setPasskeyChallengeCookie(request, response, "authenticate", {
 		challenge: options.challenge,
-		userId: user?.id,
+		userId: context.user?.id,
 		email: parsed.email ?? undefined,
 	});
 	return response;
@@ -470,9 +476,6 @@ export async function handlePasskeyAuthenticationVerify(
 	if (!isPasskeyScaffoldEnabled()) {
 		return passkeyFeatureDisabledResponse();
 	}
-	const prisma = getPrismaClient();
-	if (!prisma) return prismaUnavailable();
-
 	const challenge = readPasskeyChallengeCookie(request, "authenticate");
 	if (!challenge?.challenge) {
 		return noStoreJson({ error: "missing or expired authentication challenge" }, { status: 400 });
@@ -489,12 +492,24 @@ export async function handlePasskeyAuthenticationVerify(
 		return noStoreJson({ error: "credential payload is required" }, { status: 400 });
 	}
 
-	const record = await prisma.authenticator.findUnique({
-		where: { credentialID: parsed.credential.id },
-		include: { user: true },
-	});
-	if (!record) {
-		return noStoreJson({ error: "authenticator not found" }, { status: 404 });
+	let record: {
+		authenticator: GoPasskeyAuthenticator;
+		user: GoPasskeyUser;
+		credentialPublicKey: string;
+	};
+	try {
+		record = await postGoPasskeyAction<{
+			authenticator: GoPasskeyAuthenticator;
+			user: GoPasskeyUser;
+			credentialPublicKey: string;
+		}>("/api/v1/auth/passkeys/credential-record", {
+			credentialId: parsed.credential.id,
+		});
+	} catch (error: unknown) {
+		return noStoreJson(
+			{ error: error instanceof Error ? error.message : "authenticator not found" },
+			{ status: 404 },
+		);
 	}
 
 	const cfg = resolveWebAuthnConfig(request);
@@ -506,10 +521,10 @@ export async function handlePasskeyAuthenticationVerify(
 			expectedOrigin: cfg.expectedOrigins,
 			expectedRPID: cfg.rpID,
 			authenticator: {
-				credentialID: record.credentialID,
+				credentialID: record.authenticator.credentialId,
 				credentialPublicKey: decodeUint8ArrayBase64URL(record.credentialPublicKey),
-				counter: record.counter,
-				transports: parseTransportCSV(record.transports ?? null),
+				counter: record.authenticator.counter,
+				transports: record.authenticator.transports?.filter(isAuthenticatorTransport),
 			},
 			requireUserVerification: false,
 		});
@@ -527,15 +542,15 @@ export async function handlePasskeyAuthenticationVerify(
 		return noStoreJson({ error: "authentication not verified" }, { status: 400 });
 	}
 
-	await prisma.authenticator.update({
-		where: { id: record.id },
-		data: {
+	await postGoPasskeyAction<{ authenticator: GoPasskeyAuthenticator; user: GoPasskeyUser }>(
+		"/api/v1/auth/passkeys/authentication-verify",
+		{
+			credentialId: record.authenticator.credentialId,
 			counter: verification.authenticationInfo.newCounter,
-			lastUsedAt: new Date(),
-			credentialBackedUp: verification.authenticationInfo.credentialBackedUp,
 			credentialDeviceType: verification.authenticationInfo.credentialDeviceType,
+			credentialBackedUp: verification.authenticationInfo.credentialBackedUp,
 		},
-	});
+	);
 
 	const response = noStoreJson({
 		verified: true,
@@ -543,8 +558,8 @@ export async function handlePasskeyAuthenticationVerify(
 		nextStep: "exchange-passkey-verification-for-next-auth-session",
 		user: {
 			id: record.user.id,
-			email: record.user.email,
-			role: record.user.role,
+			email: record.user.email ?? null,
+			role: record.user.role ?? "viewer",
 		},
 		credential: {
 			id: verification.authenticationInfo.credentialID,
@@ -558,8 +573,8 @@ export async function handlePasskeyAuthenticationVerify(
 						userId: record.user.id,
 						...createPasskeySessionBootstrap({
 							userId: record.user.id,
-							email: record.user.email,
-							role: record.user.role,
+							email: record.user.email ?? null,
+							role: record.user.role ?? "viewer",
 						}),
 					},
 				}

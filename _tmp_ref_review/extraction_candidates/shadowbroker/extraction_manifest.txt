@@ -1,0 +1,63 @@
+[META]
+project=shadowbroker
+source_clone=d:/tradingview-clones/_tmp_ref_review/geo/Shadowbroker
+extraction_root=d:/tradingview-clones/_tmp_ref_review/extraction_candidates/shadowbroker
+selected_count=40
+stage1_count=14
+stage2_count=12
+stage3_count=14
+focus=backend_resilience+frontend_contracts+map_orchestration
+
+[STAGE1_BACKEND_CORE]
+backend/main.py
+backend/services/data_fetcher.py
+backend/services/network_utils.py
+backend/services/ais_stream.py
+backend/services/carrier_tracker.py
+backend/services/geopolitics.py
+backend/services/region_dossier.py
+backend/services/sentinel_search.py
+backend/services/cctv_pipeline.py
+backend/services/api_settings.py
+backend/services/news_feed_config.py
+backend/services/radio_intercept.py
+backend/services/kiwisdr_fetcher.py
+backend/services/liveuamap_scraper.py
+
+[STAGE2_FRONTEND_ORCHESTRATION]
+frontend/src/app/layout.tsx
+frontend/src/app/page.tsx
+frontend/src/app/api/[...path]/route.ts
+frontend/src/lib/api.ts
+frontend/src/components/MaplibreViewer.tsx
+frontend/src/components/CesiumViewer.tsx
+frontend/src/components/WorldviewLeftPanel.tsx
+frontend/src/components/FindLocateBar.tsx
+frontend/src/components/FilterPanel.tsx
+frontend/src/components/AdvancedFilterModal.tsx
+frontend/src/components/SettingsPanel.tsx
+frontend/src/components/NewsFeed.tsx
+
+[STAGE3_UI_SUPPORT_AND_UTILS]
+frontend/src/components/WorldviewRightPanel.tsx
+frontend/src/components/RadioInterceptPanel.tsx
+frontend/src/components/MapLegend.tsx
+frontend/src/components/ScaleBar.tsx
+frontend/src/components/WikiImage.tsx
+frontend/src/components/ErrorBoundary.tsx
+frontend/src/components/TopRightControls.tsx
+frontend/src/components/OnboardingModal.tsx
+frontend/src/components/ChangelogModal.tsx
+frontend/src/components/MarketsPanel.tsx
+frontend/src/lib/ThemeContext.tsx
+frontend/src/lib/trackedData.ts
+frontend/src/lib/airlineCodes.ts
+frontend/src/utils/solarTerminator.ts
+
+[EXTRACTION_NOTES]
+- no_direct_llm_stack_detected=true
+- ai_like_logic_present=heuristic_machine_assessment_in_news_pipeline
+- strongest_transferables=dual_tier_polling+etag_contract+imperative_map_source_updates
+- strongest_backend_patterns=multi_source_ingestion+disk_cache+fallback_transport(curl)+rate_limit_guardrails
+- strongest_frontend_patterns=high_volume_layer_rendering+modal_filter_contract+search_and_locate_index
+- intentionally_excluded_low_value=backend_oneoff_scripts+types_shim+services___init__

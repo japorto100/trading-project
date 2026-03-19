@@ -41,7 +41,12 @@ func NewLocalSnapshotRecorder(cfg LocalSnapshotRecorderConfig) func(context.Cont
 	}
 	rootDir := filepath.Dir(basePath)
 	metaDir := filepath.Join(rootDir, "source-snapshots")
-	dbPath := filepath.Join(metaDir, "source_snapshots.db")
+	// Per-source DB file avoids SQLITE_BUSY when parallel DiffWatcher goroutines
+	// open the same path concurrently. Each source (OFAC, UN, SECO, EU…) gets
+	// its own file; all land in the same metaDir directory.
+	// TODO(postgres): replace with shared schema when METADATA_STORE_DRIVER=postgres.
+	baseName := strings.TrimSuffix(filepath.Base(basePath), filepath.Ext(filepath.Base(basePath)))
+	dbPath := filepath.Join(metaDir, baseName+"_meta.db")
 	objectStore, err := storage.NewObjectStoreFromEnv(context.Background(), storage.DefaultSnapshotFilesystemBaseDir(basePath))
 	if err != nil {
 		return nil
@@ -105,7 +110,8 @@ func NewLocalSnapshotNormalizer(cfg LocalSnapshotRecorderConfig) func(context.Co
 	}
 	rootDir := filepath.Dir(basePath)
 	metaDir := filepath.Join(rootDir, "source-snapshots")
-	dbPath := filepath.Join(metaDir, "source_snapshots.db")
+	baseName := strings.TrimSuffix(filepath.Base(basePath), filepath.Ext(filepath.Base(basePath)))
+	dbPath := filepath.Join(metaDir, baseName+"_meta.db")
 	objectStore, err := storage.NewObjectStoreFromEnv(context.Background(), storage.DefaultSnapshotFilesystemBaseDir(basePath))
 	if err != nil {
 		return nil

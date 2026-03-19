@@ -3,7 +3,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
 import type { OrderSide, OrderType } from "@/lib/orders/types";
-import { createPaperOrder, listPaperOrders } from "@/lib/server/orders-store";
 
 function asNumber(value: unknown): number {
 	const num = Number(value);
@@ -25,12 +24,39 @@ function errorResponse(requestId: string, error: unknown): NextResponse {
 			{
 				success: false,
 				error: message,
+				reason: persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR",
 				requestId,
 				degraded: true,
 				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
 			},
 			{ status: persistenceError ? 503 : 500 },
 		),
+		requestId,
+	);
+}
+
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
+}
+
+async function proxyGo(
+	requestId: string,
+	method: "GET" | "POST",
+	path: string,
+	body?: Record<string, unknown>,
+) {
+	const response = await fetch(`${getGoGatewayUrl()}${path}`, {
+		method,
+		headers: {
+			"Content-Type": "application/json",
+			"X-Request-ID": requestId,
+		},
+		body: body ? JSON.stringify(body) : undefined,
+		cache: "no-store",
+	});
+	const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+	return withRequestId(
+		NextResponse.json({ ...payload, requestId }, { status: response.status }),
 		requestId,
 	);
 }
@@ -55,6 +81,7 @@ export async function GET(request: NextRequest) {
 				{
 					success: false,
 					error: "profileKey is required",
+					reason: "MISSING_PROFILE_KEY",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -68,17 +95,9 @@ export async function GET(request: NextRequest) {
 	const symbolParam = request.nextUrl.searchParams.get("symbol");
 	const symbol = symbolParam ? canonicalizeFusionSymbol(symbolParam) : undefined;
 	try {
-		const orders = await listPaperOrders(profileKey, symbol);
-		return withRequestId(
-			NextResponse.json({
-				success: true,
-				orders,
-				requestId,
-				degraded: false,
-				degraded_reasons: [],
-			}),
-			requestId,
-		);
+		const params = new URLSearchParams({ profileKey });
+		if (symbol) params.set("symbol", symbol);
+		return await proxyGo(requestId, "GET", `/api/v1/fusion/orders?${params.toString()}`);
 	} catch (error: unknown) {
 		return errorResponse(requestId, error);
 	}
@@ -95,6 +114,7 @@ export async function POST(request: NextRequest) {
 				{
 					success: false,
 					error: "invalid JSON body",
+					reason: "INVALID_JSON_BODY",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -112,6 +132,7 @@ export async function POST(request: NextRequest) {
 				{
 					success: false,
 					error: "invalid order payload",
+					reason: "INVALID_ORDER_PAYLOAD",
 					details: parsed.error.flatten(),
 					requestId,
 					degraded: false,
@@ -133,7 +154,7 @@ export async function POST(request: NextRequest) {
 	const takeProfit = asNumber(parsed.data.takeProfit);
 
 	try {
-		const order = await createPaperOrder({
+		return await proxyGo(requestId, "POST", "/api/v1/fusion/orders", {
 			profileKey,
 			symbol,
 			side,
@@ -143,13 +164,6 @@ export async function POST(request: NextRequest) {
 			stopLoss: stopLoss > 0 ? stopLoss : undefined,
 			takeProfit: takeProfit > 0 ? takeProfit : undefined,
 		});
-		return withRequestId(
-			NextResponse.json(
-				{ success: true, order, requestId, degraded: false, degraded_reasons: [] },
-				{ status: 201 },
-			),
-			requestId,
-		);
 	} catch (error: unknown) {
 		return errorResponse(requestId, error);
 	}

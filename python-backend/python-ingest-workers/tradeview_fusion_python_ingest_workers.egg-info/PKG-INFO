@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: tradeview-fusion-python-ingest-workers
+Version: 0.1.0
+Summary: Python Ingest Workers — async ingest, chunking, embedding, indexing (placeholder)
+Requires-Python: >=3.11
+Requires-Dist: tradeview-fusion-python-backend

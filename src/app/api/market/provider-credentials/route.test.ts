@@ -100,4 +100,26 @@ describe("POST /api/market/provider-credentials", () => {
 			fred: "fred-token",
 		});
 	});
+
+	it("returns an explicit reason for invalid structured mutation payloads", async () => {
+		const request = new NextRequest("http://localhost:3000/api/market/provider-credentials", {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				"x-request-id": "req-provider-credentials-invalid-payload",
+			},
+			body: JSON.stringify({
+				credentials: ["not-an-object"],
+				replaceAll: "yes",
+			}),
+		});
+
+		const response = await POST(request);
+		expect(response.status).toBe(400);
+		expect(response.headers.get("x-request-id")).toBe("req-provider-credentials-invalid-payload");
+
+		const payload = (await response.json()) as { error: string; reason: string };
+		expect(payload.error).toBe("Provider credential payload has invalid structured fields");
+		expect(payload.reason).toBe("INVALID_MUTATION_PAYLOAD");
+	});
 });

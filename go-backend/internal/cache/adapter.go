@@ -1,12 +1,17 @@
 // Package cache provides a minimal cache adapter abstraction.
 // Default: in-memory LRU with per-entry TTL.
-// Optional: Redis adapter (enabled via MEMORY_REDIS_ENABLED=true).
+// Optional: Redis/Valkey adapter (enabled via MEMORY_REDIS_ENABLED=true or
+// MEMORY_CACHE_PROVIDER=redis|valkey).
 package cache
 
 import (
 	"context"
+	"os"
+	"strings"
 	"sync"
 	"time"
+
+	redis "github.com/redis/go-redis/v9"
 )
 
 // Adapter is the minimal interface for a key-value cache.
@@ -19,7 +24,7 @@ type Adapter interface {
 	Delete(ctx context.Context, key string)
 	// Ping checks liveness of the cache backend.
 	Ping(ctx context.Context) bool
-	// BackendName returns a short identifier ("memory", "redis").
+	// BackendName returns a short identifier ("memory", "redis", "valkey").
 	BackendName() string
 }
 
@@ -111,37 +116,21 @@ func (a *InMemoryAdapter) evictOneLocked() {
 // ---------------------------------------------------------------------------
 
 // RedisAdapter wraps a go-redis v9 client.
-// It is only instantiated when MEMORY_REDIS_ENABLED=true.
+// It is used for both Redis and Valkey via the same RESP-compatible client.
 type RedisAdapter struct {
-	client redisClient
-}
-
-// redisClient is the subset of go-redis/v9 Client we need.
-// Defining an interface here keeps the redis import optional.
-type redisClient interface {
-	Get(ctx context.Context, key string) redisStringCmd
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) redisStatusCmd
-	Del(ctx context.Context, keys ...string) redisIntCmd
-	Ping(ctx context.Context) redisStatusCmd
-}
-
-type redisStringCmd interface {
-	Result() (string, error)
-}
-
-type redisStatusCmd interface {
-	Err() error
-}
-
-type redisIntCmd interface {
-	Err() error
+	client      *redis.Client
+	backendName string
 }
 
 // NewRedisAdapter creates a RedisAdapter.
-// It accepts the concrete *redis.Client via interface injection to avoid
-// importing github.com/redis/go-redis/v9 at this package level.
-func NewRedisAdapter(client redisClient) *RedisAdapter {
-	return &RedisAdapter{client: client}
+func NewRedisAdapter(client *redis.Client, backendName string) *RedisAdapter {
+	if strings.TrimSpace(backendName) == "" {
+		backendName = "redis"
+	}
+	return &RedisAdapter{
+		client:      client,
+		backendName: backendName,
+	}
 }
 
 func (a *RedisAdapter) Get(ctx context.Context, key string) (string, bool) {
@@ -164,18 +153,60 @@ func (a *RedisAdapter) Ping(ctx context.Context) bool {
 	return a.client.Ping(ctx).Err() == nil
 }
 
-func (a *RedisAdapter) BackendName() string { return "redis" }
+func (a *RedisAdapter) BackendName() string { return a.backendName }
 
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
 
 // NewAdapter returns an InMemoryAdapter by default.
-// If redisEnabled is true and url is non-empty, it returns a RedisAdapter.
-// The caller must supply a pre-configured redis client when using Redis.
-func NewAdapter(redisEnabled bool, client redisClient) Adapter {
+// If redisEnabled is true and client is non-nil, it returns a RedisAdapter.
+func NewAdapter(redisEnabled bool, client *redis.Client) Adapter {
 	if redisEnabled && client != nil {
-		return NewRedisAdapter(client)
+		return NewRedisAdapter(client, "redis")
 	}
 	return NewInMemoryAdapter(0)
+}
+
+// NewAdapterFromEnv returns an adapter based on local env defaults.
+// Supported variables:
+//
+//	MEMORY_CACHE_PROVIDER=local|redis|valkey
+//	CACHE_PROVIDER=local|redis|valkey
+//	MEMORY_REDIS_ENABLED=true
+//	MEMORY_VALKEY_URL / MEMORY_REDIS_URL
+func NewAdapterFromEnv() Adapter {
+	provider := strings.ToLower(strings.TrimSpace(os.Getenv("MEMORY_CACHE_PROVIDER")))
+	if provider == "" {
+		provider = strings.ToLower(strings.TrimSpace(os.Getenv("CACHE_PROVIDER")))
+	}
+	if provider == "" {
+		if strings.EqualFold(strings.TrimSpace(os.Getenv("MEMORY_REDIS_ENABLED")), "true") ||
+			strings.TrimSpace(os.Getenv("MEMORY_REDIS_ENABLED")) == "1" {
+			if strings.TrimSpace(os.Getenv("MEMORY_VALKEY_URL")) != "" {
+				provider = "valkey"
+			} else {
+				provider = "redis"
+			}
+		}
+	}
+
+	switch provider {
+	case "redis", "valkey":
+		url := strings.TrimSpace(os.Getenv("MEMORY_VALKEY_URL"))
+		if provider == "redis" || url == "" {
+			url = strings.TrimSpace(os.Getenv("MEMORY_REDIS_URL"))
+		}
+		if strings.TrimSpace(url) == "" {
+			url = "redis://127.0.0.1:6379/0"
+		}
+		opts, err := redis.ParseURL(url)
+		if err != nil {
+			return NewInMemoryAdapter(0)
+		}
+		client := redis.NewClient(opts)
+		return NewRedisAdapter(client, provider)
+	default:
+		return NewInMemoryAdapter(0)
+	}
 }

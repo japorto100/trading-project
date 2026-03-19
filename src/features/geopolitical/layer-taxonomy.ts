@@ -16,6 +16,39 @@ export interface GeoMapLayerFamilyDefinition {
 	description: string;
 }
 
+export type GeoFlatLayerOptionId =
+	| "events"
+	| "flights"
+	| "vessels"
+	| "surveillance"
+	| "orbital"
+	| "rf"
+	| "infra"
+	| "strikes"
+	| "missiles"
+	| "targets"
+	| "assets"
+	| "zones"
+	| "heat"
+	| "arcs"
+	| "paths"
+	| "rings"
+	| "hexbin"
+	| "regime"
+	| "sanctions"
+	| "macro-state"
+	| "region-news"
+	| "analyst-notes"
+	| "panel-signals";
+
+export interface GeoFlatLayerOptionDefinition {
+	id: GeoFlatLayerOptionId;
+	label: string;
+	family: GeoMapLayerFamily;
+	placement: GeoMapLayerPlacement;
+	sourceRefs: string[];
+}
+
 export const GEO_MAP_LAYER_FAMILY_CATALOG: Readonly<
 	Record<GeoMapLayerFamily, GeoMapLayerFamilyDefinition>
 > = {
@@ -60,6 +93,170 @@ export const GEO_MAP_LAYER_FAMILY_CATALOG: Readonly<
 			"Schwache oder schwer geolokalisierbare Signale, die primär in Panels erscheinen und nicht standardmäßig die Karte überladen.",
 	},
 };
+
+export const GEO_MAP_FLAT_LAYER_OPTION_CATALOG: readonly GeoFlatLayerOptionDefinition[] = [
+	{
+		id: "events",
+		label: "Events",
+		family: "geo-core",
+		placement: "shared",
+		sourceRefs: ["pharos-ai"],
+	},
+	{
+		id: "flights",
+		label: "Flights",
+		family: "geo-core",
+		placement: "shared",
+		sourceRefs: ["GeoSentinel", "Shadowbroker", "Sovereign_Watch"],
+	},
+	{
+		id: "vessels",
+		label: "Vessels",
+		family: "geo-core",
+		placement: "shared",
+		sourceRefs: ["GeoSentinel", "Shadowbroker", "Sovereign_Watch"],
+	},
+	{
+		id: "surveillance",
+		label: "Surveillance",
+		family: "geo-core",
+		placement: "shared",
+		sourceRefs: ["GeoSentinel", "Shadowbroker"],
+	},
+	{
+		id: "orbital",
+		label: "Orbital",
+		family: "geo-core",
+		placement: "shared",
+		sourceRefs: ["Sovereign_Watch"],
+	},
+	{
+		id: "rf",
+		label: "RF",
+		family: "geo-core",
+		placement: "shared",
+		sourceRefs: ["Sovereign_Watch"],
+	},
+	{
+		id: "infra",
+		label: "Infra",
+		family: "geo-core",
+		placement: "shared",
+		sourceRefs: ["Sovereign_Watch", "Shadowbroker"],
+	},
+	{
+		id: "strikes",
+		label: "Strikes",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["pharos-ai"],
+	},
+	{
+		id: "missiles",
+		label: "Missiles",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["pharos-ai", "conflict_globe_gl"],
+	},
+	{
+		id: "targets",
+		label: "Targets",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["pharos-ai"],
+	},
+	{
+		id: "assets",
+		label: "Assets",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["pharos-ai"],
+	},
+	{
+		id: "zones",
+		label: "Zones",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["pharos-ai"],
+	},
+	{
+		id: "heat",
+		label: "Heat",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["pharos-ai", "conflict_globe_gl"],
+	},
+	{
+		id: "arcs",
+		label: "Arcs",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["conflict_globe_gl"],
+	},
+	{
+		id: "paths",
+		label: "Paths",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["conflict_globe_gl"],
+	},
+	{
+		id: "rings",
+		label: "Rings",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["conflict_globe_gl"],
+	},
+	{
+		id: "hexbin",
+		label: "Hexbin",
+		family: "conflict",
+		placement: "flat-first",
+		sourceRefs: ["conflict_globe_gl"],
+	},
+	{
+		id: "regime",
+		label: "Regime",
+		family: "macro-state",
+		placement: "shared",
+		sourceRefs: ["tradeview-fusion"],
+	},
+	{
+		id: "sanctions",
+		label: "Sanctions",
+		family: "macro-state",
+		placement: "shared",
+		sourceRefs: ["tradeview-fusion"],
+	},
+	{
+		id: "macro-state",
+		label: "Macro State",
+		family: "macro-state",
+		placement: "shared",
+		sourceRefs: ["tradeview-fusion"],
+	},
+	{
+		id: "region-news",
+		label: "Region News",
+		family: "context",
+		placement: "shared",
+		sourceRefs: ["worldwideview", "GeoSentinel"],
+	},
+	{
+		id: "analyst-notes",
+		label: "Analyst Notes",
+		family: "context",
+		placement: "shared",
+		sourceRefs: ["tradeview-fusion"],
+	},
+	{
+		id: "panel-signals",
+		label: "Panel Signals",
+		family: "panel-first",
+		placement: "panel-first",
+		sourceRefs: ["worldwideview", "GeoSentinel", "Shadowbroker"],
+	},
+] as const;
 
 const GEO_MAP_GLOBE_DEFAULT_LAYER_FAMILIES: GeoMapLayerFamily[] = [
 	"geo-core",
@@ -116,4 +313,17 @@ export function isGeoMapLayerFamilyAvailableOnView(
 	viewMode: GeoMapViewMode,
 ): boolean {
 	return GEO_MAP_LAYER_FAMILY_CATALOG[family].supportedViews.includes(viewMode);
+}
+
+export function getGeoMapFlatLayerOptionsByFamily(
+	family: GeoMapLayerFamily,
+): GeoFlatLayerOptionDefinition[] {
+	return GEO_MAP_FLAT_LAYER_OPTION_CATALOG.filter((option) => option.family === family);
+}
+
+export function getGeoMapFlatLayerOptionsForFamilies(
+	families: GeoMapLayerFamily[],
+): GeoFlatLayerOptionDefinition[] {
+	const familySet = new Set(families);
+	return GEO_MAP_FLAT_LAYER_OPTION_CATALOG.filter((option) => familySet.has(option.family));
 }

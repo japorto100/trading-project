@@ -9,7 +9,6 @@ import { ChartTypeSelector } from "@/components/ChartTypeSelector";
 import { CompareSymbol } from "@/components/CompareSymbol";
 import { SymbolSearch } from "@/components/fusion/SymbolSearch";
 import { IndicatorPanel, type IndicatorSettings } from "@/components/IndicatorPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
 import { TimeframeSelector } from "@/components/TimeframeSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -263,10 +262,7 @@ export function TradingHeader({
 					<Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={onFullscreen}>
 						<Fullscreen className="h-4 w-4" />
 					</Button>
-
 					<Separator orientation="vertical" className="h-5 mx-1" />
-
-					<SettingsPanel />
 				</div>
 			</div>
 		</div>

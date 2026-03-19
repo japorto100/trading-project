@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
     turbopackFileSystemCacheForDev: false,
     
     // Aggressive import optimization for heavy SOTA suites
-    optimizePackageImports: ['lucide-react', 'framer-motion', 'otplib', '@simplewebauthn/client'],
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'otplib', '@simplewebauthn/browser'],
   },
 
   // 4. Turbopack Domain-Specific Routing (SOTA 2026)

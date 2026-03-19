@@ -19,8 +19,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { useGlobalChat } from "@/features/agent-chat/context/GlobalChatContext";
 import { EventInspector } from "@/features/geopolitical/EventInspector";
 import { FlatViewScaffold } from "@/features/geopolitical/FlatViewScaffold";
+import { buildGeoFlatViewBoundsFromCoordinates } from "@/features/geopolitical/flat-view-handoff";
 import type { GeoFilterStateSnapshot } from "@/features/geopolitical/geo-filter-contract";
 import { buildGeoEventStoryFocusState } from "@/features/geopolitical/geo-story-focus";
 import { getBodyPointLayerDefaultVisibilityMap } from "@/features/geopolitical/layers/bodyPointLayerCatalog";
@@ -28,6 +30,7 @@ import { SymbolToolbar } from "@/features/geopolitical/SymbolToolbar";
 import { CreateMarkerPanel } from "@/features/geopolitical/shell/CreateMarkerPanel";
 import { DrawModePanel } from "@/features/geopolitical/shell/DrawModePanel";
 import { EditMarkerPanel } from "@/features/geopolitical/shell/EditMarkerPanel";
+import { GeoBulkSelectionBar } from "@/features/geopolitical/shell/GeoBulkSelectionBar";
 import { useGeoFlatViewEntry } from "@/features/geopolitical/shell/hooks/useGeoFlatViewEntry";
 import { useGeoMapDerivedUiState } from "@/features/geopolitical/shell/hooks/useGeoMapDerivedUiState";
 import { useGeoMapKeyboardShortcuts } from "@/features/geopolitical/shell/hooks/useGeoMapKeyboardShortcuts";
@@ -46,6 +49,7 @@ import { MarkerListModal } from "@/features/geopolitical/shell/MarkerListModal";
 import { DEFAULT_EDIT_FORM } from "@/features/geopolitical/shell/types";
 import { useGeoMapWorkspaceStore } from "@/features/geopolitical/store";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { buildGeoContext } from "@/lib/chat-context-builders";
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -57,6 +61,9 @@ function isSameRange(left: [number, number] | null, right: [number, number] | nu
 
 export function GeopoliticalMapShell() {
 	const workspaceRef = useRef<HTMLDivElement | null>(null);
+	// FC3: Chat context injection
+	const { open: chatOpen, setChatContext } = useGlobalChat();
+	const prevChatOpenRef = useRef(false);
 	const isMobile = useIsMobile();
 	const [leftPanelWidth, setLeftPanelWidth] = useState(340);
 	const [rightPanelWidth, setRightPanelWidth] = useState(460);
@@ -72,7 +79,9 @@ export function GeopoliticalMapShell() {
 		selectedSymbol,
 		setSelectedSymbol,
 		selectedEventId,
+		selectedEventIds,
 		setSelectedEventId,
+		selectEvents,
 		selectedDrawingId,
 		setSelectedDrawingId,
 		selectedTimelineId,
@@ -147,7 +156,9 @@ export function GeopoliticalMapShell() {
 			selectedSymbol: state.selectedSymbol,
 			setSelectedSymbol: state.setSelectedSymbol,
 			selectedEventId: state.selectedEventId,
+			selectedEventIds: state.selectedEventIds,
 			setSelectedEventId: state.setSelectedEventId,
+			selectEvents: state.selectEvents,
 			selectedDrawingId: state.selectedDrawingId,
 			setSelectedDrawingId: state.setSelectedDrawingId,
 			selectedTimelineId: state.selectedTimelineId,
@@ -424,6 +435,13 @@ export function GeopoliticalMapShell() {
 				: null,
 		[activeStoryFocusPresetId, storyFocusPresets],
 	);
+	const selectedEvents = useMemo(
+		() =>
+			selectedEventIds
+				.map((eventId) => visibleEvents.find((event) => event.id === eventId) ?? null)
+				.filter((event): event is NonNullable<typeof event> => event !== null),
+		[selectedEventIds, visibleEvents],
+	);
 
 	const applyMapFilters = useCallback(() => {
 		void fetchAll();
@@ -458,6 +476,23 @@ export function GeopoliticalMapShell() {
 		applyPendingFlatViewHandoff,
 		setMapViewMode: (next) => setMapViewMode(next),
 	});
+	const handleOpenFlatViewForSelectedEvents = useCallback(() => {
+		if (selectedEvents.length === 0) return;
+		const bounds = buildGeoFlatViewBoundsFromCoordinates(
+			selectedEvents.flatMap((event) => event.coordinates ?? []),
+		);
+		if (!bounds) return;
+		openFlatViewForClusterBounds(bounds);
+	}, [openFlatViewForClusterBounds, selectedEvents]);
+	const handleKeepPrimarySelectedEvent = useCallback(() => {
+		if (selectedEventId) {
+			selectEvents([selectedEventId], "replace");
+			return;
+		}
+		if (selectedEventIds.length > 0) {
+			selectEvents([selectedEventIds[0]], "replace");
+		}
+	}, [selectEvents, selectedEventId, selectedEventIds]);
 
 	useEffect(() => {
 		if (!selectedEvent) {
@@ -715,6 +750,17 @@ export function GeopoliticalMapShell() {
 		timelineViewRangeMs,
 	]);
 
+	// FC3: inject GeoMap context when chat panel opens
+	useEffect(() => {
+		if (chatOpen && !prevChatOpenRef.current) {
+			const selectedTitle = selectedEvent?.title;
+			setChatContext(
+				buildGeoContext(activeRegionId ?? "global", visibleEvents.length, selectedTitle),
+			);
+		}
+		prevChatOpenRef.current = chatOpen;
+	}, [chatOpen, activeRegionId, visibleEvents.length, selectedEvent, setChatContext]);
+
 	const beginResize = useCallback(
 		(panel: "left" | "right") => (event: ReactMouseEvent<HTMLDivElement>) => {
 			event.preventDefault();
@@ -774,7 +820,11 @@ export function GeopoliticalMapShell() {
 						<FlatViewScaffold
 							state={flatViewState}
 							events={overlayEvents}
+							showFiltersToolbar={showFiltersToolbar}
+							showBodyLayerLegend={showBodyLayerLegend}
+							showTimelinePanel={showTimelinePanel}
 							selectedEventId={overlaySelectedEventId}
+							onSelectEvent={selectEvent}
 							onBackToGlobe={backToGlobe}
 						/>
 					) : (
@@ -792,11 +842,13 @@ export function GeopoliticalMapShell() {
 							bodyPointLayerVisibility={bodyPointLayerVisibility}
 							earthChoroplethMode={earthChoroplethMode}
 							selectedEventId={overlaySelectedEventId}
+							selectedEventIds={selectedEventIds}
 							selectedDrawingId={selectedDrawingId}
 							markerPlacementArmed={markerPlacementArmed}
 							canUndoDrawings={canUndoDrawings}
 							canRedoDrawings={canRedoDrawings}
 							onSelectEvent={selectEvent}
+							onSelectEvents={selectEvents}
 							onSelectDrawing={selectDrawing}
 							onToggleBodyPointLayerVisibility={toggleBodyPointLayerVisibility}
 							onResetBodyPointLayerVisibility={handleResetBodyPointLayerVisibility}
@@ -850,6 +902,16 @@ export function GeopoliticalMapShell() {
 									acledSubEventSuggestions={acledSubEventSuggestions}
 									statsSummary={statsSummary}
 									onApply={applyMapFilters}
+								/>
+							</div>
+						) : null}
+						{selectedEventIds.length > 1 ? (
+							<div className="pointer-events-auto absolute left-3 top-[6.75rem]">
+								<GeoBulkSelectionBar
+									count={selectedEventIds.length}
+									onClear={clearSelection}
+									onKeepPrimary={handleKeepPrimarySelectedEvent}
+									onOpenFlatView={handleOpenFlatViewForSelectedEvents}
 								/>
 							</div>
 						) : null}

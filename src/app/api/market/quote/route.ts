@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
 import { fetchQuoteViaGateway } from "@/lib/server/market-gateway-quotes";
@@ -14,6 +15,20 @@ import {
 } from "@/lib/server/provider-credentials";
 import { getErrorMessage } from "@/lib/utils";
 
+const quoteQuerySchema = z
+	.object({
+		symbol: z.string().trim().min(1).optional(),
+		symbols: z.string().trim().min(1).optional(),
+	})
+	.refine((value) => value.symbol || value.symbols, {
+		message: "Either symbol or symbols is required",
+		path: ["symbol"],
+	})
+	.refine((value) => !(value.symbol && value.symbols), {
+		message: "Provide either symbol or symbols, not both",
+		path: ["symbols"],
+	});
+
 function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {
 	response.headers.set("X-Request-ID", requestId);
 	return response;
@@ -27,9 +42,24 @@ export async function GET(request: NextRequest) {
 		cookieValue: request.cookies.get(PROVIDER_CREDENTIALS_COOKIE)?.value,
 	});
 	try {
-		const searchParams = request.nextUrl.searchParams;
-		const symbol = searchParams.get("symbol");
-		const symbols = searchParams.get("symbols");
+		const parsedQuery = quoteQuerySchema.safeParse({
+			symbol: request.nextUrl.searchParams.get("symbol") ?? undefined,
+			symbols: request.nextUrl.searchParams.get("symbols") ?? undefined,
+		});
+		if (!parsedQuery.success) {
+			return withRequestIdHeader(
+				NextResponse.json(
+					{
+						error: parsedQuery.error.issues[0]?.message ?? "Invalid quote query",
+						reason: "INVALID_QUERY",
+					},
+					{ status: 400 },
+				),
+				requestId,
+			);
+		}
+
+		const { symbol, symbols } = parsedQuery.data;
 
 		// Multiple quotes
 		if (symbols) {
@@ -47,7 +77,7 @@ export async function GET(request: NextRequest) {
 						userRole,
 						providerCredentialsHeader,
 					);
-					if (!gatewayQuote) {
+					if (!gatewayQuote.ok) {
 						return;
 					}
 					results[sym] = gatewayQuote.data;
@@ -92,9 +122,12 @@ export async function GET(request: NextRequest) {
 			userRole,
 			providerCredentialsHeader,
 		);
-		if (!gatewayQuote) {
+		if (!gatewayQuote.ok) {
 			return withRequestIdHeader(
-				NextResponse.json({ error: "Gateway quote request failed" }, { status: 502 }),
+				NextResponse.json(
+					{ error: gatewayQuote.message, reason: gatewayQuote.reason },
+					{ status: 502 },
+				),
 				requestId,
 			);
 		}

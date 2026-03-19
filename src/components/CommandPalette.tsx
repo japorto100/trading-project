@@ -10,6 +10,7 @@ import {
 	Check,
 	Globe,
 	Moon,
+	Newspaper,
 	Palette,
 	Search,
 	SlidersHorizontal,
@@ -85,6 +86,11 @@ export function CommandPalette({ onSymbolChange, onTimeframeChange }: CommandPal
 						<TrendingUp className="mr-2 h-4 w-4" />
 						<span>Trading</span>
 						<CommandShortcut>⌘T</CommandShortcut>
+					</CommandItem>
+					<CommandItem onSelect={() => runCommand(() => router.push("/research"))}>
+						<Newspaper className="mr-2 h-4 w-4" />
+						<span>Research</span>
+						<CommandShortcut>⌥⌘R</CommandShortcut>
 					</CommandItem>
 					<CommandItem onSelect={() => runCommand(() => router.push("/geopolitical-map"))}>
 						<Globe className="mr-2 h-4 w-4" />

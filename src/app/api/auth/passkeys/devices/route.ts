@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getAuthBypassRole, isAuthStackBypassEnabled } from "@/lib/auth/runtime-flags";
-import { getPrismaClient } from "@/lib/server/prisma";
 
 interface JsonError {
 	error: string;
@@ -27,14 +26,6 @@ async function resolveCurrentUser() {
 	}
 
 	const session = await auth();
-	const prisma = getPrismaClient();
-	if (!prisma) {
-		return {
-			errorResponse: noStoreJson({ error: "database unavailable" } satisfies JsonError, {
-				status: 503,
-			}),
-		};
-	}
 	if (!session?.user) {
 		return {
 			errorResponse: noStoreJson({ error: "unauthorized" } satisfies JsonError, { status: 401 }),
@@ -51,18 +42,31 @@ async function resolveCurrentUser() {
 			}),
 		};
 	}
+	return { user: { id: userId, email, role: session.user.role ?? null } };
+}
 
-	const user = userId
-		? await prisma.user.findUnique({ where: { id: userId } })
-		: await prisma.user.findUnique({ where: { email } });
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
+}
 
-	if (!user) {
-		return {
-			errorResponse: noStoreJson({ error: "user not found" } satisfies JsonError, { status: 404 }),
-		};
-	}
-
-	return { prisma, user };
+async function proxyGoPasskeyDevices(
+	method: "GET" | "DELETE",
+	user: { id: string; email: string; role: string | null | undefined },
+	body?: Record<string, unknown>,
+) {
+	const response = await fetch(`${getGoGatewayUrl()}/api/v1/auth/passkeys/devices`, {
+		method,
+		headers: {
+			"Content-Type": "application/json",
+			"X-Auth-User-Id": user.id,
+			"X-Auth-User-Email": user.email,
+			"X-Auth-User-Role": typeof user.role === "string" ? user.role : "",
+		},
+		body: body ? JSON.stringify(body) : undefined,
+		cache: "no-store",
+	});
+	const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+	return noStoreJson(payload, { status: response.status });
 }
 
 export async function GET() {
@@ -77,32 +81,7 @@ export async function GET() {
 		});
 	}
 
-	const authenticators = await resolved.prisma.authenticator.findMany({
-		where: { userId: resolved.user.id },
-		orderBy: [{ lastUsedAt: "desc" }, { createdAt: "desc" }],
-	});
-
-	return noStoreJson({
-		user: {
-			id: resolved.user.id,
-			email: resolved.user.email,
-			role: resolved.user.role,
-		},
-		items: authenticators.map((authenticator) => ({
-			id: authenticator.id,
-			name: authenticator.name,
-			credentialId: authenticator.credentialID,
-			deviceType: authenticator.credentialDeviceType,
-			backedUp: authenticator.credentialBackedUp,
-			counter: authenticator.counter,
-			transports: authenticator.transports
-				? authenticator.transports.split(",").filter(Boolean)
-				: [],
-			createdAt: authenticator.createdAt.toISOString(),
-			lastUsedAt: authenticator.lastUsedAt?.toISOString() ?? null,
-		})),
-		total: authenticators.length,
-	});
+	return proxyGoPasskeyDevices("GET", resolved.user);
 }
 
 export async function DELETE(request: Request) {
@@ -137,36 +116,5 @@ export async function DELETE(request: Request) {
 		});
 	}
 
-	const target = await resolved.prisma.authenticator.findFirst({
-		where: {
-			id: authenticatorId,
-			userId: resolved.user.id,
-		},
-	});
-	if (!target) {
-		return noStoreJson({ error: "authenticator not found" } satisfies JsonError, { status: 404 });
-	}
-
-	const count = await resolved.prisma.authenticator.count({
-		where: { userId: resolved.user.id },
-	});
-	if (count <= 1) {
-		return noStoreJson(
-			{
-				error: "cannot remove last passkey",
-				details: "Register another passkey before removing the final device.",
-			} satisfies JsonError,
-			{ status: 409 },
-		);
-	}
-
-	await resolved.prisma.authenticator.delete({
-		where: { id: target.id },
-	});
-
-	return noStoreJson({
-		deleted: true,
-		authenticatorId: target.id,
-		remaining: count - 1,
-	});
+	return proxyGoPasskeyDevices("DELETE", resolved.user, { authenticatorId });
 }

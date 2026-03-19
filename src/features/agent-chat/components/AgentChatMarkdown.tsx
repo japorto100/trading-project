@@ -1,14 +1,15 @@
 "use client";
 
-// Markdown renderer for agent chat messages — Phase 22a
+// Markdown renderer for agent chat messages — Phase 22a / 22f
 // AC34: react-markdown + remark-gfm
 // AC35: syntax highlighting via react-syntax-highlighter
 // AC36: code-block copy button (1.5s feedback)
 // AC37: table rendering (GFM)
 // AC38: <think> tag collapsible box
+// AC39: inline citation rendering [1], [2] → superscript badges
 
 import { Check, ChevronDown, ChevronRight, Copy } from "lucide-react";
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -39,6 +40,114 @@ function ThinkBlock({ content }: { content: string }) {
 			)}
 		</div>
 	);
+}
+
+// ---- AC63: JSON structured-output renderer ----
+// Arrays of objects → table; plain objects → key-value card; fallback → CodeBlock.
+
+function JsonRenderer({ value }: { value: string }) {
+	const [collapsed, setCollapsed] = useState(false);
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(value);
+	} catch {
+		return <CodeBlock language="json" value={value} />;
+	}
+
+	// Array of objects → table
+	if (
+		Array.isArray(parsed) &&
+		parsed.length > 0 &&
+		typeof parsed[0] === "object" &&
+		parsed[0] !== null &&
+		!Array.isArray(parsed[0])
+	) {
+		const headers = Object.keys(parsed[0] as Record<string, unknown>);
+		return (
+			<div className="my-2 rounded border border-border/50 overflow-hidden">
+				<div className="flex items-center justify-between px-3 py-1 bg-muted/60 border-b border-border/40">
+					<span className="text-[10px] font-mono text-muted-foreground">
+						json · {parsed.length} item{parsed.length !== 1 ? "s" : ""}
+					</span>
+					<button
+						type="button"
+						onClick={() => setCollapsed((v) => !v)}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+						title={collapsed ? "Expand" : "Collapse"}
+					>
+						{collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+					</button>
+				</div>
+				{!collapsed && (
+					<div className="overflow-x-auto">
+						<table className="w-full text-xs border-collapse">
+							<thead>
+								<tr className="bg-muted/40">
+									{headers.map((h) => (
+										<th
+											key={h}
+											className="border border-border/30 px-2 py-1 text-left font-semibold text-muted-foreground font-mono"
+										>
+											{h}
+										</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{(parsed as Record<string, unknown>[]).map((row, i) => (
+									// biome-ignore lint/suspicious/noArrayIndexKey: stable row index
+									<tr key={i} className="even:bg-muted/20">
+										{headers.map((h) => (
+											<td
+												key={h}
+												className="border border-border/30 px-2 py-1 text-foreground/80 whitespace-nowrap max-w-[200px] truncate"
+											>
+												{JSON.stringify(row[h] ?? "")}
+											</td>
+										))}
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
+			</div>
+		);
+	}
+
+	// Plain object → key-value card
+	if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+		const entries = Object.entries(parsed as Record<string, unknown>);
+		return (
+			<div className="my-2 rounded border border-border/50 overflow-hidden">
+				<div className="flex items-center justify-between px-3 py-1 bg-muted/60 border-b border-border/40">
+					<span className="text-[10px] font-mono text-muted-foreground">
+						json object · {entries.length} key{entries.length !== 1 ? "s" : ""}
+					</span>
+					<button
+						type="button"
+						onClick={() => setCollapsed((v) => !v)}
+						className="text-muted-foreground hover:text-foreground transition-colors"
+					>
+						{collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+					</button>
+				</div>
+				{!collapsed && (
+					<div className="divide-y divide-border/30">
+						{entries.map(([k, v]) => (
+							<div key={k} className="flex gap-2 px-3 py-1 text-xs">
+								<span className="text-muted-foreground font-mono shrink-0 min-w-[80px]">{k}</span>
+								<span className="text-foreground/80 break-all">{JSON.stringify(v)}</span>
+							</div>
+						))}
+					</div>
+				)}
+			</div>
+		);
+	}
+
+	// Fallback (primitive, empty array, etc.)
+	return <CodeBlock language="json" value={value} />;
 }
 
 // ---- Code-block with copy ----
@@ -93,12 +202,52 @@ function CodeBlock({ language, value }: { language: string; value: string }) {
 	);
 }
 
+// ---- AC39: Citation badge renderer ----
+// Transforms [N] text fragments (e.g. [1], [2]) into superscript citation badges.
+
+const CITE_RE = /(\[\d+\])/g;
+
+function renderWithCitations(children: React.ReactNode): React.ReactNode {
+	if (typeof children === "string") {
+		const parts = children.split(CITE_RE);
+		if (parts.length === 1) return children;
+		return parts.map((part, i) =>
+			CITE_RE.test(part) ? (
+				<sup
+					// biome-ignore lint/suspicious/noArrayIndexKey: stable citation index
+					key={i}
+					className="ml-0.5 mr-0.5 inline-flex items-center rounded bg-primary/15 px-0.5 text-[9px] font-mono text-primary/80 leading-tight"
+				>
+					{part}
+				</sup>
+			) : (
+				part
+			),
+		);
+	}
+	if (Array.isArray(children)) {
+		return children.map((child, i) =>
+			typeof child === "string" ? (
+				renderWithCitations(child)
+			) : (
+				// biome-ignore lint/suspicious/noArrayIndexKey: no stable key available
+				<span key={i}>{child}</span>
+			),
+		);
+	}
+	return children;
+}
+
 // ---- Shared ReactMarkdown components config ----
 
 const markdownComponents: React.ComponentProps<typeof ReactMarkdown>["components"] = {
 	code({ className, children, ...props }) {
 		const match = /language-(\w+)/.exec(className ?? "");
 		const value = String(children).replace(/\n$/, "");
+		// AC63: JSON structured renderer for explicit ```json blocks with multi-line content
+		if (match?.[1] === "json" && value.includes("\n")) {
+			return <JsonRenderer value={value} />;
+		}
 		if (!match && !value.includes("\n")) {
 			return (
 				<code
@@ -113,6 +262,10 @@ const markdownComponents: React.ComponentProps<typeof ReactMarkdown>["components
 	},
 	pre({ children }) {
 		return <>{children}</>;
+	},
+	// AC39: apply citation rendering to paragraph text
+	p({ children }) {
+		return <p className="mb-1 last:mb-0">{renderWithCitations(children)}</p>;
 	},
 	table({ children }) {
 		return (
@@ -186,8 +339,6 @@ function splitThinkBlocks(raw: string): Segment[] {
 interface AgentChatMarkdownProps {
 	content: string;
 }
-
-import { memo } from "react";
 
 function AgentChatMarkdownInner({ content }: AgentChatMarkdownProps) {
 	const segments = splitThinkBlocks(content);

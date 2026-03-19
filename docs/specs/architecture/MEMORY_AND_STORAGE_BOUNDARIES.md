@@ -1,6 +1,6 @@
 # MEMORY AND STORAGE BOUNDARIES
 
-> **Stand:** 16. Maerz 2026  
+> **Stand:** 17. Maerz 2026  
 > **Zweck:** Owner-Spec fuer Memory-Schicht-Trennung, Storage-Ownership, KG-Tech-Entscheidungen
 > und epistemische Trennprinzipien.
 > **Source-of-Truth-Rolle:** Autoritativ fuer Memory-Layer-Ownership und Storage-Regeln;
@@ -15,7 +15,7 @@
 | Working Memory (M1) | Sekunden-Minuten | schnell, fluechtig | Valkey/Redis (shared); in-process Fallback nur Dev |
 | Episodic Memory (M3) | Stunden-Monate | gezielt abrufbar | Postgres (Ziel); SQLite lokal Bootstrap |
 | Semantic Memory (M2) | Permanent | strukturiert querybar | FalkorDB (Backend); KuzuDB WASM (Frontend) |
-| Vector Index | | semantisch | FalkorDB built-in (Ziel); ChromaDB Prototyp-Uebergang |
+| Vector Index (document-centric) | | semantisch | pgvector (Baseline); FalkorDB selektiv fuer graphnahe Vektoren |
 
 ---
 
@@ -36,7 +36,8 @@ Diese Ebenen duerfen **nie still vermischt** werden in Memory, Agentik, GeoMap o
 | **Postgres** | System of Record: persistente Domaindaten + episodic memory | kein hot-cache Ersatz |
 | **Valkey/Redis** | shared hot cache / working memory mit TTL | kein langfristiger SoR |
 | **redb (Rust)** | spezialisierter OHLCV/read-through cache im Python-Rust Pfad | kein allgemeiner Domain-Store |
-| **FalkorDB** | Backend Domain-KG + Vector Index | kein persoenlicher User-Store |
+| **FalkorDB** | Backend Domain-KG + graphnahe/selektive Vektoren | kein persoenlicher User-Store und kein relationaler SoR |
+| **pgvector** | baseline semantic retrieval fuer dokument-/chunk-nahe Embeddings | kein Graph-Ersatz |
 | **KuzuDB WASM** | Frontend User-KG (per-User im Browser) | kein zentraler Fact-Owner |
 
 ### Cache Provider Strategie (verbindlich)
@@ -57,7 +58,7 @@ Backend Domain-KG (FalkorDB)        Frontend User-KG (KuzuDB WASM)
   - Strategeme, BTE-Marker           - Portfolio, Watchlists, Alerts
   - Krisenphasen, Akteur-Typen       - Journal, Drawings, Overrides
   - Live Event-Entity Graph          - Subset aus Backend (read-only)
-  - Embeddings (Vector Index)
+  - selektive graphnahe Embeddings
 ```
 
 ### KG-Technologieentscheidung
@@ -97,6 +98,8 @@ Memory baut nicht direkt auf ungefilterten Quellen-Rohdaten auf:
 - API-hot caches sind Working-Memory-Layer, kein Source of Truth.
 - Vector Ingestion ist downstream consumer normalisierter Artefakte.
 - Semantic Memory konsumiert strukturierte, normalisierte Fakten oder provenance-markierte Textsegmente.
+- Dokument-/Chunk-Embeddings landen baseline-first in `pgvector`; `FalkorDB`
+  speichert nur graphnahe oder bewusst selektierte Vektoren.
 
 ---
 
@@ -110,6 +113,7 @@ Memory baut nicht direkt auf ungefilterten Quellen-Rohdaten auf:
 | OHLCV cache artifacts | Python-Rust bridge | Python-Rust bridge | redb (cache only) |
 | Agent episodes / workflow logs | Agent services | Agent services | Postgres |
 | KG domain facts | Memory services | Memory services | FalkorDB (target) |
+| document/chunk embeddings | Agent/Indexing services | Agent/Indexing services | pgvector (baseline target) |
 | User KG local graph | Frontend (per user) | Frontend (per user) | IndexedDB (encrypted) |
 
 ---

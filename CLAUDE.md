@@ -21,6 +21,7 @@
 ## Recommended Workflow
 ```bash
 cd tradeview-fusion
+git submodule update --init --recursive   # GCT + _tmp_ref_review (required after fresh clone)
 bun install
 bun run db:generate   # required after fresh install
 bun run lint          # Biome check (0 errors expected)
@@ -43,6 +44,12 @@ bun run build
 - Use `bun run lint:fix` to auto-fix safe issues (import sorting, formatting, unused imports).
 - For error handling in API routes: `catch (error: unknown)` + `getErrorMessage()` from `@/lib/utils`. Never introduce `catch (error: any)`.
 - When updating spec documents: update `Stand` date, add `Aenderungshistorie` entry, update cross-references in related docs.
+
+## Git Submodules
+- **GCT** (`go-backend/go-crypto-trader`) ist ein Submodule auf Upstream `thrasher-corp/gocryptotrader`. Wird via `go.mod replace ./go-crypto-trader` eingebunden — ohne initialisiertes Submodule schlägt `go build` fehl.
+- **`_tmp_ref_review/`** enthält 22 Referenz-Repos (agents/geo/graph/security) als Submodules — nur zum Lesen, kein Build-Einfluss.
+- Update GCT: `git submodule update --remote go-backend/go-crypto-trader && cd go-backend && go mod tidy`
+- Update alle `_tmp_ref_review`-Clones: `git submodule update --remote --merge` (nur auf die Subpfade anwenden)
 
 ## Pitfalls
 - After `bun install`, always run `bun run db:generate` before dev or build. Without it, Prisma client is missing and build fails with `Cannot find module '.prisma/client/default'`.
@@ -84,16 +91,28 @@ Key Prisma models in `prisma/schema.prisma` (all use String instead of enums for
 - `GeoTimelineRecord` — audit trail for every event mutation.
 - `GeoDrawingRecord` — map drawings (line, polygon, text).
 
+## Go Backend — Commands Reference
+See `go-backend/DEVELOPMENT.md` for the full reference. Key gates:
+```bash
+cd go-backend
+go build ./...
+go vet ./...
+golangci-lint run ./...
+go test -race -shuffle=on -count=1 ./...
+govulncheck ./...
+```
+
 ## Completion Checklist
 1. Requirements satisfied.
 2. Minimum gate: `bun run lint && bun run build` passes.
-3. Any risk or follow-up item clearly stated.
-4. If spec docs were touched: `Stand` date updated, `Aenderungshistorie` entry added.
+3. Go changes: `go build ./... && golangci-lint run ./...` must pass.
+4. Any risk or follow-up item clearly stated.
+5. If spec docs were touched: `Stand` date updated, `Aenderungshistorie` entry added.
 
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (35590 symbols, 106436 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (36017 symbols, 107371 relationships, 300 execution flows).
 
 ## Always Start Here
 

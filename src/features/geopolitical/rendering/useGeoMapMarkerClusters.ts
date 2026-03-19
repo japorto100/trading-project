@@ -28,6 +28,7 @@ export interface GeoMapMarkerCluster {
 	x: number;
 	y: number;
 	count: number;
+	markerIds: string[];
 	bounds: GeoFlatViewBounds | null;
 }
 
@@ -113,6 +114,9 @@ export function useGeoMapMarkerClusters({
 					x: projected[0],
 					y: projected[1],
 					count: props.point_count,
+					markerIds: leaves
+						.map((leaf) => leaf.properties?.markerId)
+						.filter((markerId): markerId is string => typeof markerId === "string"),
 					bounds,
 				});
 				continue;

@@ -1,0 +1,26 @@
+Metadata-Version: 2.4
+Name: tradeview-fusion-python-agent
+Version: 0.2.0
+Summary: Agent services (agent-service port 8094, memory-service port 8093) — standalone isolated venv
+Requires-Python: >=3.11
+Requires-Dist: fastapi==0.116.1
+Requires-Dist: pydantic>=2.0
+Requires-Dist: uvicorn==0.35.0
+Requires-Dist: granian>=2.0.0
+Requires-Dist: httpx==0.28.1
+Requires-Dist: python-dotenv==1.0.1
+Requires-Dist: anthropic>=0.40.0
+Requires-Dist: openai>=1.50.0
+Requires-Dist: redis>=5.0.0
+Requires-Dist: cachetools>=5.3.0
+Requires-Dist: kuzu>=0.7.0
+Requires-Dist: chromadb>=0.5.0
+Requires-Dist: sentence-transformers>=3.0.0
+Requires-Dist: lancedb>=0.6.0
+Requires-Dist: psycopg[binary]>=3.2.0
+Requires-Dist: opentelemetry-sdk>=1.29.0
+Requires-Dist: opentelemetry-instrumentation-fastapi>=0.50b0
+Requires-Dist: opentelemetry-exporter-otlp-proto-grpc>=1.29.0
+Requires-Dist: opentelemetry-instrumentation-httpx>=0.50b0
+Requires-Dist: opentelemetry-instrumentation-anthropic>=0.51.0
+Requires-Dist: tradeview-fusion-python-backend

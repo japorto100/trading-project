@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
-import type { AlertCondition, PriceAlert } from "@/lib/alerts";
+import type { AlertCondition, PriceAlert } from "@/features/alerts/types";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
 import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
 import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";

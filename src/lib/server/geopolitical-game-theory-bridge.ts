@@ -1,4 +1,5 @@
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
+
 const DEFAULT_CACHE_MS = 120_000;
 
 interface GatewayGameTheoryItem {
@@ -137,7 +138,7 @@ function cacheKey(input: {
 export async function fetchGeopoliticalGameTheoryViaGateway(
 	filters: GameTheoryBridgeFilters,
 ): Promise<GameTheoryBridgeResult> {
-	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBaseURL = getGatewayBaseURL();
 	const country = normalizeText(filters.country);
 	const region = normalizeText(filters.region);
 	const eventType = normalizeText(filters.eventType);

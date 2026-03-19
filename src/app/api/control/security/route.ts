@@ -3,13 +3,8 @@
 
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { getErrorMessage } from "@/lib/utils";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
-
-function buildGatewayURL(): string {
-	return (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
-}
 
 function degradedResponse(requestId: string, reasons: string[]) {
 	return new Response(
@@ -46,7 +41,7 @@ export async function GET(request: NextRequest) {
 	if (userRole) headers["X-User-Role"] = userRole;
 
 	try {
-		const res = await fetch(new URL("/api/v1/control/security", buildGatewayURL()).toString(), {
+		const res = await fetch(new URL("/api/v1/control/security", getGatewayBaseURL()).toString(), {
 			headers,
 			cache: "no-store",
 			signal: AbortSignal.timeout(5000),

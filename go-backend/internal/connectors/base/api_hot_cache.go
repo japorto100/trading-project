@@ -25,7 +25,7 @@ func NewJSONHotCache(prefix string, ttl time.Duration) *JSONHotCache {
 		ttl = DefaultAPIHotCacheTTL
 	}
 	return &JSONHotCache{
-		adapter: cache.NewAdapter(false, nil),
+		adapter: cache.NewAdapterFromEnv(),
 		ttl:     ttl,
 		prefix:  strings.TrimSpace(prefix),
 	}

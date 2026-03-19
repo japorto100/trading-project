@@ -1,11 +1,28 @@
 "use client";
 
+import type {
+	GeoFlatViewConflictAssetPoint,
+	GeoFlatViewConflictHeatCell,
+	GeoFlatViewConflictStrikePoint,
+	GeoFlatViewConflictTargetPoint,
+	GeoFlatViewConflictZoneFeature,
+} from "@/features/geopolitical/flat-view-conflict-layers";
 import type { GeoContextItem } from "@/features/geopolitical/shell/types";
 import type { GeoCandidate, GeoEvent, GeoTimelineEntry } from "@/lib/geopolitical/types";
 import type { MarketNewsArticle } from "@/lib/news/types";
 
 export interface GeoSelectionDetail {
-	kind: "event" | "timeline" | "candidate" | "context" | "news";
+	kind:
+		| "event"
+		| "timeline"
+		| "candidate"
+		| "context"
+		| "news"
+		| "strike"
+		| "target"
+		| "asset"
+		| "zone"
+		| "heat";
 	id: string;
 	linkedEventId?: string;
 	title: string;
@@ -123,5 +140,85 @@ export function buildGeoNewsSelectionDetail(article: MarketNewsArticle): GeoSele
 			(value): value is string => Boolean(value),
 		),
 		secondaryMeta: [article.sentiment].filter((value): value is string => Boolean(value)),
+	};
+}
+
+export function buildGeoConflictStrikeSelectionDetail(
+	strike: GeoFlatViewConflictStrikePoint,
+): GeoSelectionDetail {
+	return {
+		kind: "strike",
+		id: strike.id,
+		linkedEventId: strike.eventId,
+		title: strike.title,
+		subtitle: "Conflict strike",
+		summary: strike.selected ? "Selected strike in the current flat workspace." : undefined,
+		primaryMeta: [`S${strike.severity}`, strike.selected ? "selected" : "visible"],
+		secondaryMeta: [`${strike.coordinates[1].toFixed(2)}, ${strike.coordinates[0].toFixed(2)}`],
+	};
+}
+
+export function buildGeoConflictTargetSelectionDetail(
+	target: GeoFlatViewConflictTargetPoint,
+): GeoSelectionDetail {
+	return {
+		kind: "target",
+		id: target.id,
+		linkedEventId: target.eventId,
+		title: target.title,
+		subtitle: `Target ${target.index}`,
+		summary: "Derived target point from a multi-point conflict event.",
+		primaryMeta: [`S${target.severity}`, `idx ${target.index}`],
+		secondaryMeta: [`${target.coordinates[1].toFixed(2)}, ${target.coordinates[0].toFixed(2)}`],
+	};
+}
+
+export function buildGeoConflictAssetSelectionDetail(
+	asset: GeoFlatViewConflictAssetPoint,
+): GeoSelectionDetail {
+	return {
+		kind: "asset",
+		id: asset.id,
+		linkedEventId: asset.eventId,
+		title: asset.symbol,
+		subtitle: `${asset.assetClass} / ${asset.relation}`,
+		summary:
+			asset.weight !== null
+				? `Weighted exposure ${asset.weight.toFixed(2)} in current event.`
+				: undefined,
+		primaryMeta: [asset.assetClass, asset.relation],
+		secondaryMeta: [
+			asset.weight !== null ? `weight ${asset.weight.toFixed(2)}` : "weight n/a",
+			`${asset.coordinates[1].toFixed(2)}, ${asset.coordinates[0].toFixed(2)}`,
+		],
+	};
+}
+
+export function buildGeoConflictZoneSelectionDetail(
+	zone: GeoFlatViewConflictZoneFeature,
+): GeoSelectionDetail {
+	return {
+		kind: "zone",
+		id: zone.properties.id,
+		linkedEventId: zone.properties.eventId,
+		title: zone.properties.title,
+		subtitle: "Conflict zone",
+		summary: `Derived from ${zone.properties.pointCount} conflict coordinates.`,
+		primaryMeta: [`S${zone.properties.severity}`, `${zone.properties.pointCount} points`],
+		secondaryMeta: [zone.properties.eventId],
+	};
+}
+
+export function buildGeoConflictHeatSelectionDetail(
+	heat: GeoFlatViewConflictHeatCell,
+): GeoSelectionDetail {
+	return {
+		kind: "heat",
+		id: heat.id,
+		title: "Conflict heat cell",
+		subtitle: `${heat.eventIds.length} events`,
+		summary: `Aggregated severity intensity ${heat.intensity} with max severity ${heat.maxSeverity}.`,
+		primaryMeta: [`intensity ${heat.intensity}`, `max S${heat.maxSeverity}`],
+		secondaryMeta: [`${heat.coordinates[1].toFixed(2)}, ${heat.coordinates[0].toFixed(2)}`],
 	};
 }

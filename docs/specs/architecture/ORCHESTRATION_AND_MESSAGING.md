@@ -1,6 +1,6 @@
 # ORCHESTRATION AND MESSAGING
 
-> **Stand:** 16. Maerz 2026  
+> **Stand:** 17. Maerz 2026  
 > **Zweck:** Klare Trennlinie zwischen Event/Messaging und durable
 > Prozessorchestrierung fuer langlaufende Flows.
 > **Source-of-Truth-Rolle:** Autoritativ fuer die Auswahlregeln NATS vs.
@@ -12,6 +12,7 @@
 
 - `NATS JetStream` bleibt Event-Backbone und Worker-Entkopplung.
 - `NATS` ersetzt keine vollwertige Workflow-Semantik.
+- Leichte Jobsysteme werden vor `Temporal` bevorzugt evaluiert.
 - Workflow-Engine wird nur dort eingefuehrt, wo Durable-State und Resume
   betriebsrelevant sind.
 
@@ -65,10 +66,17 @@ Wenn Neustart ausreicht, bleibt NATS-first der Default.
 
 ## 6. Toolklassen (orientierend)
 
-- **Task Queue:** Asynq, BullMQ, Celery, Oban
+- **Task Queue / lightweight jobs:** Asynq, ARQ, BullMQ, Celery, Oban
 - **Lightweight Durable:** Hatchet, River
 - **Heavy Durable:** Temporal (nur bei klarer Notwendigkeit)
 - **Managed Workflows:** z. B. Cloud-Workflow-Dienste bei Ops-Fokus
+
+### Arbeitsdefault
+
+- `NATS/JetStream` zuerst fuer Eventing, Replay und worker-nahe Entkopplung
+- `Asynq`, `ARQ`, `River`, `Hatchet` vorziehen, wenn Queue-/Retry-/Scheduling-
+  Semantik reicht
+- `Temporal` erst, wenn ein Flow durable execution auf Workflow-Ebene braucht
 
 ---
 
@@ -84,4 +92,4 @@ Wenn Neustart ausreicht, bleibt NATS-first der Default.
 
 - `docs/specs/architecture/ARCHITECTURE_BASELINE.md`
 - `docs/specs/SYSTEM_STATE.md`
-- `docs/ARCHITECTURE_NEW_EXTENSION.md` (Bridge/Archiv)
+- `docs/ARCHITECTURE_NEW_EXTENSION.md`

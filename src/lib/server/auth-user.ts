@@ -1,5 +1,4 @@
 import { auth } from "@/lib/auth";
-import { getPrismaClient } from "@/lib/server/prisma";
 
 export interface AuthSessionUser {
 	id: string;
@@ -8,18 +7,17 @@ export interface AuthSessionUser {
 }
 
 export type AuthUserResolution =
-	| { ok: true; prisma: NonNullable<ReturnType<typeof getPrismaClient>>; user: AuthSessionUser }
+	| { ok: true; user: AuthSessionUser }
 	| { ok: false; status: number; error: string };
+
+function gatewayBaseUrl() {
+	return process.env.GO_GATEWAY_BASE_URL?.trim() || null;
+}
 
 export async function resolveAuthenticatedUserFromSession(): Promise<AuthUserResolution> {
 	const session = await auth();
 	if (!session?.user) {
 		return { ok: false, status: 401, error: "unauthorized" };
-	}
-
-	const prisma = getPrismaClient();
-	if (!prisma) {
-		return { ok: false, status: 503, error: "database unavailable" };
 	}
 
 	const userId = typeof session.user.id === "string" ? session.user.id.trim() : "";
@@ -29,21 +27,29 @@ export async function resolveAuthenticatedUserFromSession(): Promise<AuthUserRes
 		return { ok: false, status: 401, error: "session missing user identity" };
 	}
 
-	const user = userId
-		? await prisma.user.findUnique({ where: { id: userId } })
-		: await prisma.user.findUnique({ where: { email } });
-
-	if (!user) {
-		return { ok: false, status: 404, error: "user not found" };
+	const gatewayUrl = gatewayBaseUrl();
+	if (!gatewayUrl) {
+		return { ok: false, status: 503, error: "gateway unavailable" };
 	}
 
-	return {
-		ok: true,
-		prisma,
-		user: {
-			id: user.id,
-			email: user.email,
-			role: user.role,
-		},
-	};
+	try {
+		const response = await fetch(`${gatewayUrl}/api/v1/auth/current-user`, {
+			cache: "no-store",
+			headers: {
+				"x-auth-user-id": userId,
+				"x-auth-user-email": email,
+				"x-auth-user-role": typeof session.user.role === "string" ? session.user.role : "viewer",
+			},
+		});
+		const payload = (await response.json()) as {
+			error?: string;
+			user?: { id: string; email: string | null; role: string };
+		};
+		if (!response.ok || !payload.user) {
+			return { ok: false, status: response.status, error: payload.error ?? "user lookup failed" };
+		}
+		return { ok: true, user: payload.user };
+	} catch {
+		return { ok: false, status: 502, error: "gateway lookup failed" };
+	}
 }

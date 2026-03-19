@@ -86,7 +86,7 @@
 **Architektur-Schulden:**
 - `GeopoliticalMapShell.tsx` braucht weitere Entkopplung fuer den spaeteren Flat-/Conflict-Renderer und Collaboration-Workflows
 - Live-/Browser-Verify fuer Temporal/Story/Selection/Overlay-Chrome fehlt trotz geschlossenem v2-Core weiter
-- Dual-View-Boundary und Flat-Handoff existieren bereits typisiert; ein erster sichtbarer Flat-Renderer ist vorhanden und zeigt Bounds plus erste sichtbare Event-Punkte aus dem gemeinsamen Workspace-Vertrag. Offen bleiben reichhaltigere Flat-Layer, weitere kontextuelle Einstiege, Conflict-Overlays, PMTiles-Basemap und der strategisch-stabile Rueckweg-Verify
+- Dual-View-Boundary und Flat-Handoff existieren bereits typisiert; der sichtbare Flat-Renderer zeigt inzwischen Bounds, erste sichtbare Event-Punkte, lokale Search, aktive Event-Liste, Selection-Detail, ersten Conflict-Timeline-Snapshot sowie expliziten Handoff-/Filter-Kontext aus demselben Workspace-Vertrag. Der Current-Context-Einstieg resolve't Story-, Event-, Drawing- und Region-Handoffs jetzt ueber einen gemeinsamen testbaren Resolver statt ueber implizite Hook-Abzweige, inklusive Story-Fallback wenn das linked event gerade nicht im sichtbaren Satz liegt. Viewport und Overlay lesen dabei nun auch denselben typed Renderer-Contract statt getrennte lokale Ableitungen. Offen bleiben reichhaltigere Flat-Layer, weitere kontextuelle Einstiege, Conflict-Overlays, PMTiles-Basemap und der strategisch-stabile Rueckweg-Verify
 
 ### Backend Ist-Zustand
 
@@ -203,14 +203,14 @@
 
 ### Danach (v2):
 
-- erste reale `deck.gl`-/MapLibre-Renderer-Integration auf Basis des vorhandenen `flat-view-state`-Scaffolds weiter verdichten (sichtbarer MapLibre-Viewport plus erste deck.gl-Overlay-Boundary stehen, echte Event-/Conflict-Layer folgen)
-- globaler Flat/Regional Analyst View als operativer Second-Mode (nicht Middle-East-spezifisch)
-- weitere kontextuelle View-Handoffs Globe -> Flat (Region / Cluster / Draw-Area); Header-Button bleibt nur Fallback
+- erste reale `deck.gl`-/MapLibre-Renderer-Integration auf Basis des vorhandenen `flat-view-state`-Scaffolds weiter verdichten (sichtbarer MapLibre-Viewport plus deck.gl-Overlay-Boundary mit pickbaren Event-Punkten, Search und active-list/selection sync stehen; Bounds- und Event-Payloads sind jetzt als reine Overlay-Transform-Schicht extrahiert und non-live getestet, ein erster Flat-Timeline-Bucket-/Focus-Model-Layer existiert ebenfalls, echte Conflict-Layer folgen)
+- globaler Flat/Regional Analyst View als operativer Second-Mode (nicht Middle-East-spezifisch) mit modularem Search-/Selection-/Timeline-/active-list-Orchestrator aus `worldwideview`- und GeoSentinel-nahen Referenzmustern
+- weitere kontextuelle View-Handoffs Globe -> Flat (Region / Cluster / Draw-Area); Header-Button bleibt nur Fallback, faellt aber bei aktivem Story-/Region-/Drawing-Kontext nicht mehr leer aus und laeuft fuer Current-Context-Einstiege bereits ueber einen gemeinsamen Resolver
 - Search-Around Runtime-Contract produktiv ziehen (typisierte `nodes/edges/time_window/metrics` Ergebnisse fuer Globe/Flat/Panel)
 - GeoTrack-Contract produktiv ziehen (Series + explizite Interpolation `LINEAR|NEAREST|PREVIOUS|NEXT|NONE`)
 - Writeback-Action-Pfad produktiv ziehen (`validated intent -> mutation -> audit append`) inkl. Pflichtfeldern
 - Dynamic-Tile-Server-Evaluierung (Martin/pg_tileserv) nur gate-gesteuert fuer echte dynamische Overlay-/Filter-Lastfaelle
-- generischer Selection-/Detail-Contract fuer Conflict- und spaetere Flat-Spezialobjekte
+- generischer Selection-/Detail-Contract fuer Conflict- und spaetere Flat-Spezialobjekte; Runtime-Hardening dafuer bevorzugt ueber `shadowbroker`-/`sovereign_watch`-nahe Freshness-, Replay- und History-Pfade
 - Globe-/Flat-View-Consistency- und Flat-Handoff-Live-Gates schliessen
 - PMTiles-/Basemap-Hosting, Attribution und Browser-Verify fuer den Flat-Mode fertigziehen
 - Multi-Select + Bulk-Updates
@@ -229,6 +229,7 @@
 - Transformer Severity-Klassifikation (Rust, tch-rs)
 - Calibrated Confidence + Active Learning
 - petgraph Entity Graph (Rust, >10k Nodes)
+- globale Relationship-/Arc-/Path-/Ring-/Heat-Overlays aus `conflict_globe_gl` nur als spaeterer global-view-/v3-Track; kein v2-Closeout-Blocker und kein Globe-Rewrite
 - Optional: Automerge-rs fuer Backend-State
 
 ---

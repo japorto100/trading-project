@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { buildDrawingWorkflowHint } from "@/features/geopolitical/drawing-workflow";
+import {
+	buildDrawingWorkflowHint,
+	buildGeoDrawingActionState,
+} from "@/features/geopolitical/drawing-workflow";
 import type { DrawingMode } from "@/features/geopolitical/shell/types";
 
 interface DrawModePanelProps {
@@ -72,6 +75,15 @@ export function DrawModePanel({
 		lineStartSet,
 		pendingPolygonPointsCount,
 		selectedDrawingId,
+		canUndoDrawings,
+		canRedoDrawings,
+	});
+	const actionState = buildGeoDrawingActionState({
+		drawingMode,
+		pendingPolygonPointsCount,
+		busy,
+		selectedDrawingId,
+		canOpenSelectedDrawingInFlatView,
 		canUndoDrawings,
 		canRedoDrawings,
 	});
@@ -154,7 +166,7 @@ export function DrawModePanel({
 						<Button
 							size="sm"
 							onClick={onCompletePolygon}
-							disabled={busy || pendingPolygonPointsCount < 3}
+							disabled={!actionState.canCompletePolygon}
 							aria-label="Complete polygon drawing"
 						>
 							Complete
@@ -163,7 +175,7 @@ export function DrawModePanel({
 							size="sm"
 							variant="outline"
 							onClick={onClearPolygon}
-							disabled={busy}
+							disabled={!actionState.canClearPolygon}
 							aria-label="Clear polygon points"
 						>
 							Clear
@@ -178,7 +190,7 @@ export function DrawModePanel({
 				<Button
 					size="sm"
 					variant="outline"
-					disabled={!canOpenSelectedDrawingInFlatView}
+					disabled={!actionState.canOpenSelectedDrawingInFlatView}
 					onClick={onOpenSelectedDrawingInFlatView}
 					aria-label="Open selected drawing in flat view"
 				>
@@ -187,7 +199,7 @@ export function DrawModePanel({
 				<Button
 					size="sm"
 					variant="outline"
-					disabled={busy || !selectedDrawingId}
+					disabled={!actionState.canDeleteSelectedDrawing}
 					onClick={onDeleteSelectedDrawing}
 					aria-label="Delete selected drawing"
 				>
@@ -198,7 +210,7 @@ export function DrawModePanel({
 				<Button
 					size="sm"
 					variant="outline"
-					disabled={busy || !canUndoDrawings}
+					disabled={!actionState.canUndo}
 					onClick={onUndo}
 					aria-label="Undo last drawing change"
 				>
@@ -207,7 +219,7 @@ export function DrawModePanel({
 				<Button
 					size="sm"
 					variant="outline"
-					disabled={busy || !canRedoDrawings}
+					disabled={!actionState.canRedo}
 					onClick={onRedo}
 					aria-label="Redo last drawing change"
 				>

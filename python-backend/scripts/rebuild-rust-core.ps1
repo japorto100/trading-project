@@ -15,6 +15,10 @@ $wheelhouse = Join-Path $rustCoreRoot "target-local\\wheels"
 # Avoid hardlink fallback warnings on Windows when cache and venv are on different filesystems.
 $env:UV_LINK_MODE = "copy"
 
+# ── Cache dirs (override via env if C: is low on space) ──────────────────────
+# UV_CACHE_DIR, CARGO_HOME, CARGO_TARGET_DIR can be set externally.
+# If UV_CACHE_DIR is set we respect it; otherwise uv uses its own default.
+
 if (-not (Test-Path $venvPython)) {
     throw "Python virtual environment missing: $venvPython"
 }
@@ -41,6 +45,13 @@ for ($attempt = 1; $attempt -le [Math]::Max(1, $RetryCount); $attempt++) {
         if (-not (Test-Path $wheelhouse)) {
             New-Item -ItemType Directory -Path $wheelhouse | Out-Null
         }
+        # Remove stale uv package cache entry — prevents uv from reinstalling
+        # an old cached wheel instead of the freshly built one (Windows .pyd locking quirk).
+        # ErrorActionPreference = SilentlyContinue: uv exits 1 when nothing to clean — not a real error.
+        $prevEA = $ErrorActionPreference; $ErrorActionPreference = "SilentlyContinue"
+        & uv cache clean tradeviewfusion-rust-core 2>&1 | Out-Null
+        $ErrorActionPreference = $prevEA; $LASTEXITCODE = 0
+
         # Remove stale wheels so uv always installs the freshly built version
         Get-ChildItem $wheelhouse -Filter "tradeviewfusion_rust_core-*.whl" -ErrorAction SilentlyContinue | Remove-Item -Force
 
@@ -66,7 +77,11 @@ for ($attempt = 1; $attempt -le [Math]::Max(1, $RetryCount); $attempt++) {
             $smokeFile = [System.IO.Path]::GetTempFileName() + ".py"
             Set-Content -Path $smokeFile -Encoding UTF8 -Value @'
 import sys, tradeviewfusion_rust_core as m
-required = ("composite_sma50_slope_norm","calculate_heartbeat","calculate_indicators_batch","redb_cache_set","redb_cache_get")
+required = (
+    "composite_sma50_slope_norm","calculate_heartbeat","calculate_indicators_batch",
+    "redb_cache_set","redb_cache_get",
+    "extract_entities_from_text","dedup_context_fragments","score_tools_for_query",
+)
 missing = [n for n in required if not hasattr(m, n)]
 if missing: sys.exit(f"rust_core_missing: {missing}")
 closes = [100.0 + i*0.5 for i in range(60)]

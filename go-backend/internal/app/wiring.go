@@ -12,6 +12,7 @@ import (
 
 	otelhttp "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"tradeviewfusion/go-backend/internal/appstate"
 	"tradeviewfusion/go-backend/internal/auditjsonl"
 	"tradeviewfusion/go-backend/internal/cache"
 	"tradeviewfusion/go-backend/internal/capability"
@@ -242,7 +243,7 @@ func NewServerFromEnv() (*Server, error) {
 		BaseURL:        envOr("GEOPOLITICAL_GAMETHEORY_URL", gametheory.DefaultBaseURL),
 		RequestTimeout: durationMsOr("GEOPOLITICAL_GAMETHEORY_TIMEOUT_MS", 5000),
 	})
-	memCache := cache.NewAdapter(boolOr("MEMORY_REDIS_ENABLED", false), nil)
+	memCache := cache.NewAdapterFromEnv()
 
 	// NATS Publisher (P3.1–P3.7) — opt-in via NATS_ENABLED=true
 	var natsPub messaging.Publisher = messaging.NoopPublisher{}
@@ -363,7 +364,15 @@ func NewServerFromEnv() (*Server, error) {
 		}
 	}
 
-	artifactStore, err := storage.NewSQLiteMetadataStore(envOr("ARTIFACT_STORAGE_METADATA_DB_PATH", "data/storage/artifacts.db"))
+	artifactMetadataProvider := envOr("ARTIFACT_STORAGE_METADATA_PROVIDER", "")
+	if artifactMetadataProvider == "" && boolOr("POSTGRES_ENABLED", false) {
+		artifactMetadataProvider = "postgres"
+	}
+	artifactStore, err := storage.NewArtifactMetadataStore(
+		artifactMetadataProvider,
+		envOr("ARTIFACT_STORAGE_METADATA_DB_PATH", "data/storage/artifacts.db"),
+		envOr("POSTGRES_DSN", ""),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("init artifact metadata store: %w", err)
 	}
@@ -388,6 +397,11 @@ func NewServerFromEnv() (*Server, error) {
 		return nil, fmt.Errorf("init artifact storage service: %w", err)
 	}
 	artifactGatewayBaseURL := artifactGatewayBaseURLFromEnv(host, port)
+	appStateStore, err := appstate.NewSQLiteStore(backendAppDBPathFromEnv())
+	if err != nil {
+		_ = artifactStore.Close()
+		return nil, fmt.Errorf("init app state store: %w", err)
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", httpHandlers.HealthHandler(gctClient))
@@ -395,6 +409,19 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/storage/artifacts/upload-url", httpHandlers.ArtifactUploadURLHandler(artifactService, artifactGatewayBaseURL))
 	mux.HandleFunc("/api/v1/storage/artifacts/upload/", httpHandlers.ArtifactUploadHandler(artifactService))
 	mux.HandleFunc("/api/v1/storage/artifacts/", httpHandlers.ArtifactMetadataHandler(artifactService))
+	mux.HandleFunc("/api/v1/fusion/preferences", httpHandlers.FusionPreferencesHandler(appStateStore))
+	mux.HandleFunc("/api/v1/fusion/orders", httpHandlers.FusionOrdersHandler(appStateStore))
+	mux.HandleFunc("/api/v1/fusion/orders/", httpHandlers.FusionOrderDetailHandler(appStateStore))
+	mux.HandleFunc("/api/v1/fusion/alerts", httpHandlers.FusionAlertsHandler(appStateStore))
+	mux.HandleFunc("/api/v1/fusion/alerts/", httpHandlers.FusionAlertDetailHandler(appStateStore))
+	mux.HandleFunc("/api/v1/fusion/trade-journal", httpHandlers.FusionTradeJournalHandler(appStateStore))
+	mux.HandleFunc("/api/v1/fusion/trade-journal/", httpHandlers.FusionTradeJournalDetailHandler(appStateStore))
+	mux.HandleFunc("/api/v1/admin/users", httpHandlers.AdminUsersHandler(appStateStore))
+	mux.HandleFunc("/api/v1/auth/current-user", httpHandlers.CurrentUserHandler(appStateStore))
+	mux.HandleFunc("/api/v1/auth/consent", httpHandlers.AuthConsentHandler(appStateStore))
+	mux.HandleFunc("/api/v1/auth/actions/", httpHandlers.AuthActionsHandler(appStateStore))
+	mux.HandleFunc("/api/v1/auth/owner/", httpHandlers.AuthOwnerHandler(appStateStore))
+	mux.HandleFunc("/api/v1/auth/passkeys/", httpHandlers.AuthPasskeysHandler(appStateStore))
 	if muxRouterSnapshotter != nil {
 		mux.HandleFunc("/api/v1/router/providers", httpHandlers.RouterProvidersHandler(muxRouterSnapshotter))
 	}
@@ -563,6 +590,15 @@ func NewServerFromEnv() (*Server, error) {
 	// Phase 10.v3: Mutation tool — POST only, requires confirm in frontend
 	agentSetChartHandler := capability.CheckMiddleware(capRegistry, "tool.set_chart_state")(httpHandlers.AgentMutationProxyHandler(agentServiceClient, "/api/v1/agent/tools/set_chart_state"))
 	mux.Handle("/api/v1/agent/tools/set_chart_state", agentSetChartHandler)
+	// Phase 22d: Agent Chat SSE proxy — Vercel AI Data Stream Protocol (AC6/AC79)
+	mux.HandleFunc("/api/v1/agent/chat", httpHandlers.AgentChatHandler(envOr("AGENT_SERVICE_URL", agentservice.DefaultBaseURL)))
+	// Phase 22f/ACR-G6: Tool Approval endpoint
+	mux.HandleFunc("/api/v1/agent/approve", httpHandlers.AgentApproveHandler())
+
+	// Phase 22f: Audio STT + TTS proxy (ACR-A2, ACR-A6)
+	agentAudioBaseURL := envOr("AGENT_SERVICE_URL", agentservice.DefaultBaseURL)
+	mux.HandleFunc("/api/v1/audio/transcribe", httpHandlers.AgentAudioTranscribeHandler(agentAudioBaseURL))
+	mux.HandleFunc("/api/v1/audio/synthesize", httpHandlers.AgentAudioSynthesizeHandler(agentAudioBaseURL))
 
 	// Phase 5a: GCT Portfolio Bridge
 	gctPortfolioHandler := httpHandlers.GCTPortfolioHandler(gctClient)
@@ -733,7 +769,13 @@ func NewServerFromEnv() (*Server, error) {
 		handler = otelhttp.NewHandler(handler, "go-gateway")
 	}
 	server := NewServer(host, port, handler)
-	server.closeFn = artifactStore.Close
+	server.closeFn = func() error {
+		if err := appStateStore.Close(); err != nil {
+			_ = artifactStore.Close()
+			return err
+		}
+		return artifactStore.Close()
+	}
 	return server, nil
 }
 
@@ -952,4 +994,14 @@ func artifactSigningSecretFromEnv() string {
 		return "local-dev-artifact-signing-secret"
 	}
 	return ""
+}
+
+func backendAppDBPathFromEnv() string {
+	if configured := strings.TrimSpace(envOr("BACKEND_APP_DB_PATH", "")); configured != "" {
+		return configured
+	}
+	if configured := strings.TrimSpace(envOr("ARTIFACT_STORAGE_METADATA_DB_PATH", "")); configured != "" {
+		return configured
+	}
+	return "data/backend.db"
 }

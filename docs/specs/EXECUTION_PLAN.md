@@ -56,6 +56,8 @@ Dafuer gelten:
 | Compute-Split Go/Python/Rust | `execution/compute_delta.md` | aktiver Delta-Plan |
 | Infra / Provider / Messaging | `execution/infra_provider_delta.md` | aktiver Delta-Plan |
 | Storage Layer (SeaweedFS/Garage) | `execution/storage_layer_delta.md` | aktiver Delta-Plan |
+| Architecture Target State | `execution/architecture_target_state_delta.md` | aktiver Delta-Plan fuer Plane-/Store-/Orchestrierungs-Zielbild und Trigger-Regeln |
+| Data Aggregation Target State | `execution/a_data_aggregation_target_state_delta.md` | aktiver Delta-Plan fuer Data-Plane-Zielbild, Formate, Retrieval- und Search-Rollen |
 | Source Selection / Tiering | `execution/source_selection_delta.md` | aktiver Entscheidungs-Slice fuer Baseline-/Tier-1-/Deferred-Quellenwahl |
 | Quellen / Keys / Env-Onboarding | `execution/source_onboarding_and_keys.md` | operative Onboarding-Checkliste |
 | Source Persistence / Snapshots | `execution/source_persistence_snapshot_delta.md` | aktiver Delta-Plan fuer Raw-Snapshots, Cadence, Retention und Cache-Abgrenzung |
@@ -119,7 +121,7 @@ Dafuer gelten:
 | 22b Formal Planning (PDDL / ADL) | **PLANNED, gated pilot open** | PDDL/ADL als formales Constraint-Layer fuer temporale/numerische Workflows; Fokus auf Pilot "Morning Research Run"; JSON Tool Schemas bleiben primaer, PDDL nur bei nachgewiesenem Mehrwert | `AGENT_TOOLS.md` Sek. 15, `execution/pddl_phase22b_delta.md` |
 | 22c Agent Harness / Sandbox Runtime | **PLANNED** | Konsolidierter Harness-Layer (Constrain/Inform/Verify/Correct), OpenSandbox als verpflichtende Agent-Execution-Boundary, Guardrail-Runtime und eval-getriebene Regression-Gates | `AGENT_HARNESS.md`, `execution/agent_harness_runtime_delta.md`, `execution/agent_security_runtime_delta.md` |
 | 23 Platform Readiness | **CODE COMPLETE, promotion-governance verify open** | Capability Registry / Governance / readiness basis vorhanden; UIL-/Promotion-Governance ueber `execution/uil_candidate_promotion_delta.md` | `execution/uil_candidate_promotion_delta.md`, `execution/root_geo_references_coverage.md` |
-| 23a Platform DX / Quality Hardening | **PLANNED** | Reproduzierbares Setup, Hook-/Test-/Security-Gates und Supply-Chain-Hygiene operationalisieren | `execution/platform_dx_quality_delta.md`, `execution/frontend_refinement_perf_delta.md` |
+| 23a Platform DX / Quality Hardening | **PLANNED** | Reproduzierbares Setup, Hook-/Test-/Security-Gates und Supply-Chain-Hygiene operationalisieren; beinhaltet **Service-Config-Konsolidierung** (hardcodierte Ports/URLs → Env-Vars, Single-Source-of-Truth per Layer) | `execution/platform_dx_quality_delta.md`, `execution/frontend_refinement_perf_delta.md`, `execution/service_config_consolidation_delta.md` |
 | 24 Ecosystem Optionality | **CODE COMPLETE, hardening verify open** | Plugin/Partner/Payment/Rollout-Spezifikationen vorhanden; Runtime-Hardening und reversible Rollout-Gates ueber dedizierten Owner offen | `execution/ecosystem_optionality_delta.md`, `execution/references_projects_evaluate_delta.md`, `execution/infra_provider_delta.md`, `execution/source_onboarding_and_keys.md` |
 | 25 Future Quant Expansion | **PLANNED** | Trigger-basierte Uebernahme aus `Future-Quant-trading.md` (AFML/QT/PfF) nur mit Evidence und Owner-Routing | `execution/future_quant_advanced_architecture_delta.md`, `execution/compute_delta.md`, `execution/domain_intelligence_delta.md` |
 | 26 Advanced Architecture Adoption | **PLANNED** | Uebertragbare GenAI/LLM-Architekturmuster aus `Advanced-architecture-for-the-future.md` in konkrete, gate-faehige Slices ueberfuehren | `execution/future_quant_advanced_architecture_delta.md`, `execution/agent_memory_context_delta.md`, `execution/claim_verification_delta.md` |
@@ -144,7 +146,9 @@ Die Zuordnung erfolgt verbindlich in vier Schritten:
 | Execution-Slice | Primaere Einordnung | Operativer Sichtbarkeitsanker |
 |:----------------|:--------------------|:-------------------------------|
 | `execution/agent_backend_program_delta.md` | Agent Backend Program (10p) | Phase Board 10p, Execution-Spec-Strategie |
+| `execution/architecture_target_state_delta.md` | Architecture Target State (cross-cutting) | Fuehrende Detaildokumente, Verify-Gates, Execution-Spec-Strategie |
 | `execution/agent_chat_ui_delta.md` | Agent Chat UI (22a) | Phase Board 22a, Execution-Spec-Strategie |
+| `execution/a_data_aggregation_target_state_delta.md` | Data Aggregation Target State (cross-cutting) | Fuehrende Detaildokumente, Verify-Gates, Execution-Spec-Strategie |
 | `execution/agent_geomap_bridge_delta.md` | Agent-GeoMap Bridge (10a) | Phase Board 10a, Execution-Spec-Strategie |
 | `execution/agent_harness_runtime_delta.md` | Agent Harness Runtime (22c) | Phase Board 22c, Verify-Gates, Execution-Spec-Strategie |
 | `execution/agent_memory_context_delta.md` | Agent Runtime / Memory / Context (6/10/12a/20) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
@@ -161,6 +165,7 @@ Die Zuordnung erfolgt verbindlich in vier Schritten:
 | `execution/frontend_context_delta.md` | Frontend Context Assembly (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
 | `execution/frontend_enhancement_delta.md` | Frontend Enhancement (21) | Phase Board 21, Execution-Spec-Strategie |
 | `execution/frontend_intelligence_calendar_delta.md` | Frontend Intelligence Calendar (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
+| `execution/frontend_portfolio_alerts_shell_delta.md` | Frontend Portfolio/Alerts Shell (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
 | `execution/frontend_refinement_perf_delta.md` | Frontend Refinement/Perf (21/22/23a) | Phase Board, Verify-Gates, Execution-Spec-Strategie |
 | `execution/frontend_research_home_delta.md` | Frontend Research Home (21/22) | Execution-Spec-Strategie (Frontend-Cluster) |
 | `execution/future_quant_advanced_architecture_delta.md` | Future Quant/Advanced Architecture (25/26) | Phase Board 25/26, Verify-Gates, Execution-Spec-Strategie |
@@ -278,6 +283,8 @@ Arbeits-Checkliste: `execution/geomap_closeout.md` (Doc-Abarbeitung Sek. 0).
 | Source-/Key-Onboarding | `execution/source_onboarding_and_keys.md` | Env-/Doku-Pflichten fuer neue Quellen |
 | Source Selection / Tiering | `execution/source_selection_delta.md` | `SS1-SS7`, `SS.V1-SS.V3` |
 | Source Persistence / Snapshot Policy | `execution/source_persistence_snapshot_delta.md` | `SPS1-SPS8`, `SPS.V1-SPS.V4` |
+| Architecture Target State | `execution/architecture_target_state_delta.md` | `ATS1-ATS14`, `ATS.V1-ATS.V6` |
+| Data Aggregation Target State | `execution/a_data_aggregation_target_state_delta.md` | `DAT1-DAT18`, `DAT.V1-DAT.V7` |
 | Vector Ingestion / Provenance | `execution/vector_ingestion_delta.md` | `VI1-VI7`, `VI.V1-VI.V4` |
 | References-Katalog-Pflege | `references/status.md`, `references/sources/*`, `references/projects/*` | neue Quellen/Kandidaten muessen parallel zur Umsetzung nachgezogen werden |
 | Compute split / Rust boundary | `execution/compute_delta.md`, `execution/rust_kand_evaluation_delta.md` | `G1-G8`, `RK1-RK6` |
@@ -305,6 +312,8 @@ Die Execution-Specs leben unter `docs/specs/execution/`:
 - `compute_delta.md` — Compute-/Indicator-/Go-Python-Rust-Delta-Plan
 - `infra_provider_delta.md` — Infra-, Messaging-, Provider- und Rollout-Delta-Plan
 - `storage_layer_delta.md` — Storage-/Object-Layer-Auswahl und Integrationscheckliste (SeaweedFS/Garage)
+- `architecture_target_state_delta.md` — Zielbild-Delta fuer Planes, Store-Rollen, Orchestrierungsstufen und Trigger-Regeln
+- `a_data_aggregation_target_state_delta.md` — Zielbild-Delta fuer Data-Plane, Formate, Retrieval-Rollen und optionale Search-/Governance-Erweiterungen
 - `source_selection_delta.md` — Quellenauswahl und Tiering vor technischem Onboarding
 - `source_onboarding_and_keys.md` — Quellen-/Key-/Env-Onboarding-Checkliste
 - `geomap_closeout.md` — GeoMap-spezifischer Arbeitsplan mit Checkliste, Verify-Gates, SOTA-Backlog

@@ -32,6 +32,122 @@ interface UseGeoFlatViewEntryParams {
 	setMapViewMode: (next: "globe" | "flat") => void;
 }
 
+interface ResolveGeoFlatViewHandoffFromCurrentContextParams {
+	events: GeoEvent[];
+	visibleEvents: GeoEvent[];
+	drawings: GeoDrawing[];
+	selectedEvent: GeoEvent | null;
+	selectedDrawingId: string | null;
+	activeStoryFocusPreset: GeoStoryFocusPreset | null;
+	activeRegionId: string;
+	filterSnapshot: GeoFilterStateSnapshot;
+	timelineViewRangeMs: GeoReplayRangeMs | null;
+	activeReplayRangeMs: GeoReplayRangeMs | null;
+	timelineSelectedTimeMs: number | null;
+	mapBody: GeoMapBody;
+}
+
+export type GeoFlatViewEntryAction =
+	| {
+			type: "handoff";
+			handoff: ReturnType<typeof buildGeoFlatViewHandoffFromEvent>;
+	  }
+	| {
+			type: "reuse_existing_flat_state";
+	  }
+	| {
+			type: "none";
+	  };
+
+export function resolveGeoFlatViewHandoffFromCurrentContext({
+	events,
+	visibleEvents,
+	drawings,
+	selectedEvent,
+	selectedDrawingId,
+	activeStoryFocusPreset,
+	activeRegionId,
+	filterSnapshot,
+	timelineViewRangeMs,
+	activeReplayRangeMs,
+	timelineSelectedTimeMs,
+	mapBody,
+}: ResolveGeoFlatViewHandoffFromCurrentContextParams) {
+	if (activeStoryFocusPreset) {
+		const storyEvent =
+			activeStoryFocusPreset.linkedEventId !== null
+				? (events.find((event) => event.id === activeStoryFocusPreset.linkedEventId) ?? null)
+				: null;
+		return buildGeoFlatViewHandoffFromStoryPreset({
+			preset: activeStoryFocusPreset,
+			filterSnapshot,
+			event: storyEvent,
+			mapBody,
+		});
+	}
+
+	if (selectedEvent) {
+		return buildGeoFlatViewHandoffFromEvent({
+			event: selectedEvent,
+			filterSnapshot,
+			viewRangeMs: timelineViewRangeMs,
+			filterRangeMs: activeReplayRangeMs,
+			selectedTimeMs: timelineSelectedTimeMs,
+			mapBody,
+		});
+	}
+
+	if (selectedDrawingId) {
+		const selectedDrawing = drawings.find((drawing) => drawing.id === selectedDrawingId) ?? null;
+		if (selectedDrawing) {
+			return buildGeoFlatViewHandoffFromDrawing({
+				drawing: selectedDrawing,
+				filterSnapshot,
+				viewRangeMs: timelineViewRangeMs,
+				filterRangeMs: activeReplayRangeMs,
+				selectedTimeMs: timelineSelectedTimeMs,
+				mapBody,
+			});
+		}
+	}
+
+	if (activeRegionId) {
+		return buildGeoFlatViewHandoffFromRegionEvents({
+			regionId: activeRegionId,
+			events: visibleEvents,
+			filterSnapshot,
+			viewRangeMs: timelineViewRangeMs,
+			filterRangeMs: activeReplayRangeMs,
+			selectedTimeMs: timelineSelectedTimeMs,
+			mapBody,
+		});
+	}
+
+	return null;
+}
+
+export function resolveGeoFlatViewEntryActionFromCurrentContext(
+	params: ResolveGeoFlatViewHandoffFromCurrentContextParams & {
+		flatViewState: GeoFlatViewState | null;
+	},
+): GeoFlatViewEntryAction {
+	const handoff = resolveGeoFlatViewHandoffFromCurrentContext(params);
+	if (handoff) {
+		return {
+			type: "handoff",
+			handoff,
+		};
+	}
+	if (params.flatViewState) {
+		return {
+			type: "reuse_existing_flat_state",
+		};
+	}
+	return {
+		type: "none",
+	};
+}
+
 export function useGeoFlatViewEntry({
 	events,
 	visibleEvents,
@@ -75,40 +191,46 @@ export function useGeoFlatViewEntry({
 	);
 
 	const openFlatViewFromCurrentContext = useCallback(() => {
-		const storyEvent =
-			activeStoryFocusPreset?.linkedEventId !== null && activeStoryFocusPreset?.linkedEventId
-				? (events.find((event) => event.id === activeStoryFocusPreset.linkedEventId) ?? null)
-				: null;
-		const focusEvent = selectedEvent ?? storyEvent;
-		if (!focusEvent) {
-			if (flatViewState) {
-				setMapViewMode("flat");
-			}
-			return;
-		}
-		if (activeStoryFocusPreset && focusEvent.id === activeStoryFocusPreset.linkedEventId) {
-			const handoff = buildGeoFlatViewHandoffFromStoryPreset({
-				preset: activeStoryFocusPreset,
-				filterSnapshot,
-				event: focusEvent,
-				mapBody,
-			});
-			setPendingFlatViewHandoff(handoff);
+		const action = resolveGeoFlatViewEntryActionFromCurrentContext({
+			events,
+			visibleEvents,
+			drawings,
+			selectedEvent,
+			selectedDrawingId,
+			activeStoryFocusPreset,
+			activeRegionId,
+			filterSnapshot,
+			timelineViewRangeMs,
+			activeReplayRangeMs,
+			timelineSelectedTimeMs,
+			mapBody,
+			flatViewState,
+		});
+		if (action.type === "handoff") {
+			setPendingFlatViewHandoff(action.handoff);
 			applyPendingFlatViewHandoff();
 			return;
 		}
-		openFlatViewForEvent(focusEvent);
+		if (action.type === "reuse_existing_flat_state") {
+			setMapViewMode("flat");
+		}
 	}, [
+		activeRegionId,
+		activeReplayRangeMs,
 		activeStoryFocusPreset,
 		applyPendingFlatViewHandoff,
+		drawings,
 		events,
 		filterSnapshot,
 		flatViewState,
 		mapBody,
-		openFlatViewForEvent,
 		selectedEvent,
+		selectedDrawingId,
 		setMapViewMode,
 		setPendingFlatViewHandoff,
+		timelineSelectedTimeMs,
+		timelineViewRangeMs,
+		visibleEvents,
 	]);
 
 	const openFlatViewForEventId = useCallback(

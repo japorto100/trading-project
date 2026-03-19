@@ -1,6 +1,6 @@
 # SYSTEM STATE (IST / SOLL)
 
-> **Stand:** 16. Maerz 2026
+> **Stand:** 17. Maerz 2026
 > **Zweck:** Kompakte Wahrheit ueber aktuellen Runtime-Stand, Schichten,
 > Transportpfade und offene Zielbilder. Dieses Dokument ist **kein** Changelog und
 > **keine** Roadmap.
@@ -16,10 +16,10 @@
 |:--------|:----|:-----|
 | Frontend / BFF | Next.js 16 App Router mit Thin-Proxy-/BFF-Routen | nur noch kontrollierte BFF-Flaechen, keine versteckte Business-Logik |
 | Go Gateway | zentrale Frontdoor fuer Market, Geo, Memory, Portfolio-nahe und interne Service-Routen | klare Control Plane fuer Auth, Policy, Audit, Routing, Streaming und spaeter async orchestration |
-| Python Services | interne Compute-/ML-/Agent-/Memory-Services hinter Go | Python bleibt Modellierungs-, Agentik- und Retrieval-Schicht |
+| Python Services | interne Compute-/ML-/Agent-/Memory-Services hinter Go | Python wird logisch in `compute`, `agent` und `indexing` getrennt |
 | Rust | lokaler Compute-Layer, aktuell vor allem via `python-backend/rust_core` | staerkere Produktionsgrenze fuer Hot Paths, selektiv auch direkter Go↔Rust-Pfad |
 | GCT / go-crypto-trader | externer Read-/Execution-nahe Crypto-Upstream hinter dem Gateway | read-only Slices selektiv absorbieren, keine blinde Volluebernahme |
-| Stores | SQLite/Prisma lokal, JSON-Fallbacks an einzelnen Stellen, Redis/DB/NATS optional oder vorbereitend | Gateway-owned Persistenz dort aufbauen, wo Broker-/execution-/idempotency-Truth wirklich entsteht |
+| Stores | SQLite/Prisma lokal, JSON-Fallbacks an einzelnen Stellen, Redis/DB/NATS optional oder vorbereitend | `Postgres` als SoR, `SeaweedFS` fuer Artefakte, `Valkey` fuer Cache/Locks, `pgvector` fuer document-centric retrieval, `FalkorDB` fuer graph-centric retrieval, `DuckDB` fuer Analytics-/Replay-Pfade |
 
 ### Wichtigste offene Runtime-Drifts (kompakt)
 
@@ -79,6 +79,12 @@
 NATS/JetStream, Connect-/service-boundaries und laengere Workflow-Themen sind
 vorbereitet, aber noch nicht die dominante Alltags-Laufzeit des Systems.
 
+### Zielbild fuer Python-Domains
+
+- `compute` — Indicators, Aggregation, Feature Engineering, Backtesting-nahe Analytics
+- `agent` — Retrieval, Context, Verification, Tooling, Simulation
+- `indexing` — Parse, Normalize, Chunk, Embed, Graph-Extract, Reindex
+
 ---
 
 ## 4. Ownership pro Schicht
@@ -87,7 +93,7 @@ vorbereitet, aber noch nicht die dominante Alltags-Laufzeit des Systems.
 |:--------|:------|:-------------------|
 | Next.js | UX, BFF, Session-Kontext, server/client composition | Provider-Routing, Domain-Truth, direkte Python- oder GCT-Aufrufe |
 | Go Gateway | Policy, AuthZ/AuthN-Enforcement, Request-Korrelation, provider routing, streaming, audit, thin orchestration | grosse ML-/LLM- oder Research-Logik |
-| Python | ML, agent runtime, retrieval/context assembly, soft-signals, reference implementations, simulation logic | Browser-frontdoor, offene externe Fetch-Wildwest-Logik |
+| Python | logisch getrennt in `compute`, `agent`, `indexing`; ML, retrieval/context assembly, soft-signals, simulation und indexing workers | Browser-frontdoor, offene externe Fetch-Wildwest-Logik |
 | Rust | numerische Hot Paths, Indikator-Kerne, Batch-/Monte-Carlo-/Signal-Kernels | Policy, BFF, breit volatile Research-Logik |
 | GCT | crypto-specific read/order infrastructure hinter Gateway | allgemeine Makro-/Geo-/Agent-Plattformlogik |
 
@@ -151,8 +157,11 @@ vorbereitet, aber noch nicht die dominante Alltags-Laufzeit des Systems.
 | Memory | memory-service aktiv; KG/vector/episodic Infrastruktur existiert | weiter haerten statt neu erfinden |
 | Source Persistence | Rohdownloads und source-spezifische Snapshot-Klassen jetzt als eigene Architekturfrage erkannt, aber noch nicht vollstaendig als produktive Storage-Pipeline umgesetzt | klare Trennung `cache` vs. `raw snapshot` vs. `normalized snapshot` ueber Object Storage + relationalen Snapshot-Index |
 | GCT / Audit | JSONL + SQLite-nahe Audit-Bausteine vorhanden | spaeter Gateway-owned Domain-Audit / execution-state |
-| Redis | als Working-Memory-/cache-Baustein vorgesehen, teils bereits genutzt oder vorbereitet | zentraler Hot-Path Cache / working memory |
+| Valkey / Redis-kompatibel | als Working-Memory-/cache-Baustein vorgesehen, teils bereits genutzt oder vorbereitet | zentraler Hot-Path Cache / working memory; `Valkey` ist Zieldefault |
 | NATS JetStream | vorbereitet / teilweise implementiert | spaeter async backbone fuer Replay / fanout / compute lanes |
+| DuckDB | noch nicht produktive Default-Schicht | spaetere lokale/serverseitige Analytics-, Replay- und Worker-SQL-Engine |
+| MotherDuck | nicht aktiv | nur spaetere DuckDB-Concurrency-/Cloud-Stufe |
+| Druid | nicht aktiv | nur spaetere verteilte Realtime-Analytics-Sonderklasse |
 
 ### Klare Zielregel
 

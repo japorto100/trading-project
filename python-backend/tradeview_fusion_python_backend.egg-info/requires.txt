@@ -1,0 +1,17 @@
+fastapi==0.116.1
+uvicorn==0.35.0
+granian>=2.0.0
+python-dotenv==1.0.1
+httpx==0.28.1
+redis>=5.0.0
+grpcio>=1.68.0
+grpcio-tools>=1.68.0
+protobuf>=5.28.0
+tradeviewfusion-rust-core
+opentelemetry-sdk>=1.29.0
+opentelemetry-instrumentation-fastapi>=0.50b0
+opentelemetry-exporter-otlp-proto-grpc>=1.29.0
+opentelemetry-instrumentation-httpx>=0.50b0
+
+[eval]
+locust>=2.24.0

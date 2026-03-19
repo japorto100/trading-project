@@ -34,7 +34,7 @@ export function MapShellHeader({
 			<div className="flex items-center gap-4">
 				<Link
 					href="/"
-					className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-success"
+					className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-status-success"
 				>
 					<ArrowLeft className="h-3.5 w-3.5" />
 					Workspace
@@ -44,7 +44,7 @@ export function MapShellHeader({
 					<h1 className="text-xs font-black uppercase tracking-widest text-foreground">
 						Geopolitical Map
 					</h1>
-					<span className="text-[9px] font-bold uppercase tracking-tight text-muted-foreground/50">
+					<span className="text-[11px] font-bold uppercase tracking-tight text-muted-foreground">
 						Milestone A-E System
 					</span>
 				</div>
@@ -78,7 +78,7 @@ export function MapShellHeader({
 				<Button
 					variant="secondary"
 					size="sm"
-					className="h-8 border-none bg-sky-500/10 px-3 text-[10px] font-bold uppercase tracking-wider text-sky-400 shadow-none hover:bg-sky-500/20"
+					className="h-8 border-none bg-status-info/10 px-3 text-[11px] font-bold uppercase tracking-wider text-status-info shadow-none hover:bg-status-info/20"
 					onClick={onRunSoftIngest}
 					disabled={busy}
 				>
@@ -88,7 +88,7 @@ export function MapShellHeader({
 				<Button
 					variant="secondary"
 					size="sm"
-					className="h-8 border-none bg-amber-500/10 px-3 text-[10px] font-bold uppercase tracking-wider text-amber-400 shadow-none hover:bg-amber-500/20"
+					className="h-8 border-none bg-status-warning/10 px-3 text-[11px] font-bold uppercase tracking-wider text-status-warning shadow-none hover:bg-status-warning/20"
 					onClick={onRunHardIngest}
 					disabled={busy}
 				>
@@ -96,7 +96,7 @@ export function MapShellHeader({
 					Hard Ingest
 				</Button>
 
-				<div className="ml-2 rounded-md border border-border/50 bg-accent/20 px-2 py-1 text-[10px] font-bold uppercase text-muted-foreground">
+				<div className="ml-2 rounded-md border border-border/50 bg-accent/20 px-2 py-1 text-[11px] font-bold uppercase text-muted-foreground">
 					{eventsCount} Events
 				</div>
 			</div>

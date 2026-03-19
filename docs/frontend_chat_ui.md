@@ -836,3 +836,174 @@ Warum: verbessert Betriebssicherheit ohne Informationsleck im Frontend.
 - **VG.R3** `GET /chat/{id}/stream` ohne aktiven Stream liefert `204`.
 - **VG.R4** Approval/Tool-Output fuehrt deterministisch zur naechsten Iteration (kein Hanger).
 - **VG.R5** Doppeltes terminal event erzeugt keine doppelte Persistenz/keine Doppel-UI.
+
+---
+
+## 18) Reasoning Effort / "Interruptible Reasoning" — Constraint-Vermerk
+
+### Was es ist (Stand Maerz 2026)
+
+"Interruptible Reasoning" ist **kein API-Feature** bei OpenAI oder Anthropic. Was gemeint ist:
+
+1. **`reasoning.effort: low|medium|high|xhigh`** (OpenAI o3/o4-mini/GPT-5.x) — Pre-Request Budget-Knob, nicht in-flight steuerbar.
+2. **Stream-Abort** (`AbortController.abort()`) — einzige echte Unterbrechung; State geht verloren, kein Resume.
+
+### Provider-agnostische Umsetzung
+
+| Provider | Reasoning-Kontrolle | Abort-Support |
+|---|---|---|
+| Anthropic Claude 4.x | `thinking: { type: 'adaptive' }` (Modell entscheidet) | `abortSignal` forwarding via AI SDK |
+| OpenAI o3/o4/GPT-5.x | `reasoning.effort: low\|medium\|high\|xhigh` | `abortSignal` forwarding |
+| Ollama/lokal | modellabhaengig | `abortSignal` forwarding |
+
+### Bekannter Bug (GitHub #12427)
+
+`streamObject` + Anthropic extended thinking buffert komplett statt inkrementell zu streamen.
+**Workaround**: `streamText` + `experimental_output` benutzen.
+
+### Fazit fuer TradeView
+
+- Kein "pause + resume reasoning" in Production APIs verfuegbar (nur Research-Kontext, Stand 2026).
+- Frontend-seitig: `stop()` via `useChat()` + `abortSignal` auf Server-Seite ist der korrekte Pfad.
+- OpenAI Responses API erlaubt *reasoning items persistent* ueber Multi-Step-Calls — approximiert "session-level resume", nicht token-level.
+- **Im Slice als Constraint vermerkt, nicht als Feature.**
+
+---
+
+## 19) Audio / Speech Modalitaet
+
+### 19.1 Vercel AI SDK v6 — Built-in (provider-agnostisch)
+
+- `transcribe(model, audio)` — unified STT: OpenAI Whisper, Deepgram, AssemblyAI, ElevenLabs u.a.
+- `generateSpeech(model, text)` — unified TTS: gleiche Provider-Abstraktion.
+- `<SpeechInput />` — AI Voice Elements (`elements.ai-sdk.dev`): Web Speech API (Chrome/Edge) + MediaRecorder Fallback (Firefox/Safari).
+- `<MicSelector />` — Device-Selection UI mit Permissions-Handling.
+- Provider-Switch: ein env var, kein Code-Change.
+
+### 19.2 "Sandwich-Architektur" (empfohlen)
+
+```
+Mic (MediaRecorder)
+  → transcribe(model, audio)          # STT — provider-agnostisch
+  → useChat({ sendMessage })          # LLM — bestehender Pfad
+  → generateSpeech(model, text)       # TTS — provider-agnostisch
+  → AudioContext (Playback)
+```
+
+Env-Vars: `AGENT_STT_PROVIDER`, `AGENT_TTS_PROVIDER` → Provider-agnostisch ohne Code-Aenderung.
+
+### 19.3 OpenAI Realtime API (bidirektionaler Audio-WebSocket)
+
+- **Status:** nicht first-class in AI SDK (Issue #3176 offen, Stand Maerz 2026).
+- Vercel Labs Demo: `github.com/vercel-labs/ai-sdk-openai-websocket` — WebSocket-Fetch fuer Responses API.
+- Fuer volle bidirektionale Audio-Streams (WebRTC): LiveKit Agents (siehe 19.4).
+
+### 19.4 Self-Hosted / Vendor-agnostisch — SOTA Stack
+
+| Rolle | Empfehlung | Alternativ | Lizenz |
+|---|---|---|---|
+| STT Streaming | **WhisperLiveKit** (Faster-Whisper + Silero VAD) | NVIDIA Parakeet 1.1B (EN-only, schneller) | MIT/Apache |
+| VAD | **Silero VAD v6** (CPU-only) | WebRTC VAD | MIT |
+| TTS Streaming | **Kokoro** (82M, 96x realtime, OAI-API-kompatibel) | Piper (edge/leicht) | Apache 2.0 / MIT |
+| Pipeline-Orchestrierung | **LiveKit Agents** (Python) — STT+LLM+TTS any combo | Direkt via python-agent | Apache 2.0 |
+
+**Full local reference**: `github.com/ShayneP/local-voice-ai` (Nemotron STT + llama.cpp + Kokoro + LiveKit Agents).
+
+WhisperLiveKit Details:
+- SimulStreaming + AlignAtt (SOTA, schneller als altes WhisperStreaming)
+- Backend-Auswahl: MLX (macOS) → Faster-Whisper → vanilla Whisper
+- Exposes: OpenAI-kompatibles REST + Deepgram WebSocket + native WebSocket
+- `github.com/QuentinFuxa/WhisperLiveKit` v0.1.13 (unstable, monitor)
+
+### 19.5 Paid Provider Optionen (STT)
+
+| Provider | SDK | Feature |
+|---|---|---|
+| OpenAI Whisper API | `@ai-sdk/openai` | Batch + near-realtime |
+| Deepgram | `@ai-sdk/deepgram` | Streaming + Speaker Diarization |
+| AssemblyAI | `@ai-sdk/assemblyai` | Streaming + Diarization (Earnings-Call Use Case) |
+| ElevenLabs | `@ai-sdk/elevenlabs` | Auch TTS (beste Qualitaet paid) |
+
+### 19.6 Paid Provider Optionen (TTS)
+
+| Provider | Qualitaet | Streaming | Bemerkung |
+|---|---|---|---|
+| ElevenLabs | Beste | Ja | Teuerste Option |
+| OpenAI TTS | Sehr gut | Ja | `tts-1` / `tts-1-hd` |
+| Cartesia | Gut | Ja | Low-latency fokussiert |
+| Deepgram Aura | Gut | Ja | Guenstigste paid Option |
+
+---
+
+## 20) Image / Vision Input
+
+### 20.1 Vercel AI SDK v6 — `experimental_attachments`
+
+```ts
+// In useChat() — unveraendert seit v4, kein breaking change in v6
+const { handleSubmit } = useChat();
+handleSubmit(e, {
+  experimental_attachments: fileList, // FileList von <input type="file">
+});
+```
+
+- Files werden automatisch base64-encoded als multimodale Message-Parts gesendet.
+- `@ai-sdk/anthropic`: konvertiert automatisch zu Anthropic `image` content blocks.
+- `@ai-sdk/openai`: konvertiert zu OpenAI vision format.
+- Akzeptiert: base64 data URL, HTTPS URL, `Uint8Array`.
+- Referenz-Impl: `github.com/vercel-labs/ai-sdk-preview-attachments`.
+
+### 20.2 Evaluation — Eigenbau vs experimental_attachments vs andere Lib
+
+**→ Evaluation ausstehend vor Implementierung:**
+- Option A: `experimental_attachments` direkt nutzen (minimal, aber `experimental_` prefix bleibt)
+- Option B: Eigenbau mit `FormData` / base64-Encoding (volle Kontrolle, kein experimental)
+- Option C: Andere Lib (z.B. `@assistant-ui/react` hat eigene Attachment-Primitives)
+
+Entscheidungskriterium: Funktionsumfang (Preview, Drag/Drop, Clipboard-Paste, Multi-File), Bundle-Overhead, Stabilitat.
+
+### 20.3 Unterstuetzte Formate (alle Vision-faehigen Modelle)
+
+- Bilder: `image/jpeg`, `image/png`, `image/webp`, `image/gif`
+- PDF: via provider (Anthropic Claude 3/4 unterstuetzt PDF nativ)
+- Claude 3/4 alle Vision-faehig; GPT-4o/4.1/5; Gemini 1.5+
+
+---
+
+## 21) Video Input — Future / Backend-Processing
+
+> **Status:** Deferred — kein Frontend-Impl jetzt.
+> **Verweis:** Planung in `agent_chat_runtime_delta.md` (Video-Backend-Processing-Slot).
+
+- Kein LLM-Provider unterstuetzt echten Video-Stream nativ (Stand Maerz 2026).
+- Frontend-Pfad wenn benoetigt: Frame-Extraction client-seitig → Frames als Image-Array → Vision-Pipeline (Sektion 20).
+- Backend-Processing (Transcription, Frame-Extraction, Chunking) → separater Backend-Slice.
+
+---
+
+## 22) Package-Strategie Update (Maerz 2026)
+
+### 22.1 Neue Additions
+
+| Package | Version | Zweck | Prioritaet |
+|---|---|---|---|
+| `@assistant-ui/react` | 0.12.17 | Chat UI Primitives: Message Branching, Tool Approval UI, Generative UI | **Installieren** |
+| `@assistant-ui/react-ai-sdk` | latest | Adapter — wraps `useChat()` direkt | **Installieren** |
+| `nuqs` | latest | Type-safe URL params Next.js → shareable Thread-URLs (threadId, model) | **Installieren** |
+| `@ai-sdk/assemblyai` | latest | Streaming STT mit Diarization (Earnings-Call) | Evaluate Phase |
+
+### 22.2 `@assistant-ui/react` — Was es ergaenzt (nicht ersetzt)
+
+Ersetzt **nicht** `useChat()`. Wraps es mit production-grade UI-Layer:
+- Message Branching (Edit → neuer Branch) — fehlt sonst komplett
+- Tool-Call Approval UI inline im Thread
+- Generative UI: Custom React Components aus Tool-Results rendern
+- Auto-scroll mit lock, accessible keyboard shortcuts
+- `@assistant-ui/react-ai-sdk` Adapter: minimale Integration ueber bestehenden `useChat()` Hook
+
+### 22.3 Nicht hinzufuegen (evaluiert, abgelehnt)
+
+- `ai-sdk-openai-websocket-fetch` (Vercel Labs) — experimental, nur relevant bei OpenAI Responses API Multi-Step Agents, kein akuter Bedarf
+- `vaul` — als unmaintained erklaert; shadcn Sheet bleibt (bereits genutzt)
+- `@tanstack/react-ai` — Alpha 0.3.x, nicht stabil (Stand Maerz 2026)
+

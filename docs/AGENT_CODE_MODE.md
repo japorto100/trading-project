@@ -112,7 +112,29 @@ Alle Punkte muessen fuer "Go" erfuellt sein:
 
 ---
 
-## 8. Frontend vs Backend
+## 8. Security-Mindestregeln fuer Code-Mode
+
+Code-Mode darf keine Sicherheitsgrenzen umgehen, sondern muss dieselben
+Boundaries strikter einhalten als Standard-Tooling.
+
+Pflicht:
+
+- **taint-aware execution:** untrusted Payloads bleiben bis zum finalen Output markiert
+- **secret-safe processing:** keine Klartext-Secrets im Code, Output, Logs oder Artifacts
+- **sink control:** Ergebnisse duerfen nicht ungeprueft in `execute/write/delete`-Pfade laufen
+- **approval escalation:** high-risk Folgeaktionen bleiben HITL-pflichtig
+
+Minimaler Runtime-Contract je Code-Mode-Run:
+
+- `input_labels` (`trusted|untrusted|sensitive`)
+- `sandbox_id`
+- `policy_decision_id`
+- `output_schema_id`
+- `redaction_report`
+
+---
+
+## 9. Frontend vs Backend
 
 Kurz: **20% Frontend, 80% Backend/Runtime**.
 
@@ -122,11 +144,12 @@ Kurz: **20% Frontend, 80% Backend/Runtime**.
 
 ---
 
-## 9. Propagation Targets
+## 10. Propagation Targets
 
 - `docs/AGENT_TOOLS.md`
 - `docs/AGENT_HARNESS.md`
 - `docs/AGENT_SECURITY.md`
+- `docs/AGENT_MODEL_TOKEN_TUNING.md`
 - `docs/CONTEXT_ENGINEERING.md`
 - `docs/specs/EXECUTION_PLAN.md`
 - `docs/specs/execution/agent_harness_runtime_delta.md`

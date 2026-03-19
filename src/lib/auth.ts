@@ -10,7 +10,6 @@ import type { Adapter } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import PasskeyProvider from "next-auth/providers/passkey";
 import { isAuthEnabled, isPasskeyProviderEnabled } from "@/lib/auth/runtime-flags";
-import { verifyPassword } from "@/lib/server/auth-password";
 import { consumePasskeySessionBootstrap } from "@/lib/server/passkey-session-bootstrap";
 import { getPrismaClient } from "@/lib/server/prisma";
 
@@ -19,6 +18,30 @@ type AppRole = "viewer" | "analyst" | "trader" | "admin";
 const DEFAULT_ADMIN_USER = "admin";
 const DEFAULT_ADMIN_PASSWORD = "change-me";
 const DEFAULT_ADMIN_ROLE: AppRole = "trader";
+
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
+}
+
+async function postGoAuthOwner<T>(path: string, body: Record<string, unknown>): Promise<T> {
+	const response = await fetch(`${getGoGatewayUrl()}${path}`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(body),
+		cache: "no-store",
+	});
+	const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+	if (!response.ok) {
+		throw new Error(
+			typeof payload.error === "string" && payload.error.trim() !== ""
+				? payload.error
+				: `Go auth owner action failed with ${response.status}`,
+		);
+	}
+	return payload as T;
+}
 
 function normalizeAppRole(value: unknown): AppRole {
 	if (typeof value !== "string") return "viewer";
@@ -155,63 +178,24 @@ const providers: NextAuthConfig["providers"] = [
 
 			if (!username || !password) return null;
 
-			const prisma = getPrismaClient();
-			if (prisma) {
-				try {
-					const normalized = username.toLowerCase();
-					console.log("DEBUG_AUTH_DB_LOOKUP_START", { normalized });
-
-					const dbUser =
-						(await prisma.user.findUnique({
-							where: { email: normalized },
-							select: {
-								id: true,
-								name: true,
-								email: true,
-								username: true,
-								role: true,
-								passwordHash: true,
-							},
-						})) ??
-						(await prisma.user.findUnique({
-							where: { username: normalized },
-							select: {
-								id: true,
-								name: true,
-								email: true,
-								username: true,
-								role: true,
-								passwordHash: true,
-							},
-						})) ??
-						(await prisma.user.findFirst({
-							where: { name: username },
-							select: {
-								id: true,
-								name: true,
-								email: true,
-								username: true,
-								role: true,
-								passwordHash: true,
-							},
-						}));
-
-					console.log("DEBUG_AUTH_DB_LOOKUP_RESULT", { found: !!dbUser });
-
-					if (dbUser?.passwordHash && verifyPassword(password, dbUser.passwordHash)) {
-						return {
-							id: dbUser.id,
-							name: dbUser.name ?? dbUser.email ?? username,
-							email: dbUser.email ?? `${dbUser.id}@local`,
-							role: normalizeAppRole(dbUser.role),
-						};
-					}
-				} catch (err) {
-					console.error("CRITICAL_AUTH_DB_ERROR", {
-						error: err instanceof Error ? err.message : String(err),
-						stack: err instanceof Error ? err.stack : undefined,
-					});
-				}
+			try {
+				const payload = await postGoAuthOwner<{
+					user: { id: string; name?: string | null; email?: string | null; role?: string | null };
+				}>("/api/v1/auth/owner/authorize", {
+					identifier: username,
+					password,
+				});
+				return {
+					id: payload.user.id,
+					name: payload.user.name ?? payload.user.email ?? username,
+					email: payload.user.email ?? `${payload.user.id}@local`,
+					role: normalizeAppRole(payload.user.role),
+				};
+			} catch (err) {
+				console.error("CRITICAL_AUTH_DB_ERROR", {
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined,
+				});
 			}
 
 			// SOTA 2026: Environment Fallback (Admin-Bypass)
@@ -315,10 +299,16 @@ export const authOptions: NextAuthConfig = {
 					if (!amr.includes("pwd")) amr.push("pwd");
 
 					// Check for active MFA in DB (SOTA 2026: Hybrid token enrichment)
-					const prisma = getPrismaClient();
-					if (prisma) {
-						const totp = await prisma.totpDevice.findFirst({ where: { userId: user.id } });
-						if (totp && !amr.includes("mfa")) amr.push("mfa");
+					try {
+						const security = await postGoAuthOwner<{ hasTOTP: boolean }>(
+							"/api/v1/auth/owner/user-security",
+							{
+								userId: user.id,
+							},
+						);
+						if (security.hasTOTP && !amr.includes("mfa")) amr.push("mfa");
+					} catch (error) {
+						console.warn("AUTH_OWNER_SECURITY_LOOKUP_FAILED", { error: String(error) });
 					}
 
 					token.amr = amr;

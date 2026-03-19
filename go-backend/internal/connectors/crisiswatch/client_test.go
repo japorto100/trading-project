@@ -256,7 +256,7 @@ func TestClientList_RecordsSnapshotMetadataAndRawPayload(t *testing.T) {
 
 	snapshotID := filepath.Base(rawFiles[0])
 	snapshotID = snapshotID[:len(snapshotID)-len(filepath.Ext(snapshotID))]
-	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(tempDir, "state", "source-snapshots", "source_snapshots.db"))
+	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(tempDir, "state", "source-snapshots", "crisiswatch_meta.db"))
 	if err != nil {
 		t.Fatalf("open metadata store: %v", err)
 	}

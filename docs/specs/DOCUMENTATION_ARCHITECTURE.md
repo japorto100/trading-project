@@ -28,7 +28,7 @@
 1. **AGENTS.md** (oder model-spezifisch: CLAUDE.md, GEMINI.md, CODEX.md) — Einstieg, Verweis auf Specs
 2. **EXECUTION_PLAN.md** — Highest-Level Working Plan, Phasenstatus, offene Gates
 3. **SYSTEM_STATE.md** — kompakter Runtime-IST/SOLL-Snapshot
-4. **Spec fuer den Arbeitsbereich** — z.B. API_CONTRACTS, AUTH_SECURITY, architecture/FRONTEND_ARCHITECTURE, data/DATA_ARCHITECTURE
+4. **Spec fuer den Arbeitsbereich** - z.B. API_CONTRACTS, AUTH_SECURITY, `architecture/FRONTEND_ARCHITECTURE` + `architecture/FRONTEND_QUALITY_RULES`, data/DATA_ARCHITECTURE
 5. **Execution-Spec bei Bedarf** — z.B. `execution/geomap_closeout.md` fuer GeoMap-Arbeit oder `execution/source_onboarding_and_keys.md` fuer neue Quellen/Keys
 6. **Root-Domain-Docs bei Bedarf** — z.B. Deep-Reference zu Geo-Themen; normative Geo-Owner liegen in `docs/geo/*.md`
 7. **Books/Research nur bei explizitem Bedarf** — nicht als Standard-Lesepfad
@@ -44,7 +44,7 @@
 | IST/SOLL pro Schicht? | `SYSTEM_STATE.md` |
 | API-/Transport-Contracts? | `docs/specs/api/*.md` |
 | Auth / Policy / Secrets? | `docs/specs/security/*.md` |
-| Frontend-Regeln? | `docs/specs/architecture/FRONTEND_ARCHITECTURE.md` |
+| Frontend-Regeln? | `docs/specs/architecture/FRONTEND_ARCHITECTURE.md` + `docs/specs/architecture/FRONTEND_QUALITY_RULES.md` |
 | Architektur-Leitplanken? | `ARCHITECTURE.md` + `docs/specs/architecture/*.md` |
 | Daten-/Aggregationsregeln? | `docs/specs/data/DATA_ARCHITECTURE.md` |
 | Tiefer Domain-Kontext? | Root-Docs (Deep-Reference) + `docs/geo/*.md` als normative Geo-Owner |
@@ -134,3 +134,4 @@ Minimaler Audit-Eintrag vor Archivierung:
 - Ziel-Dokument(e)
 - transferierte Themenbloecke
 - verbleibender Rest (falls bewusst historisch)
+

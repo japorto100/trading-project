@@ -4,6 +4,7 @@
 // ⌘K           → CommandPalette global (Navigation + Agent + Theme; Symbols/TF nur auf /trading)
 // ⌘L / Ctrl+L  → Chat overlay öffnen/schließen
 // ⌘T / Ctrl+T  → /trading navigieren (AC76)
+// ⌥⌘R / Ctrl+Alt+R → /research
 // ⌘⇧M          → /geopolitical-map
 // ⌘⇧C          → /control/overview
 
@@ -41,6 +42,13 @@ export function GlobalKeyboardProvider() {
 			if (e.key === "t" && !e.shiftKey) {
 				e.preventDefault();
 				router.push("/trading");
+				return;
+			}
+
+			// ⌥⌘R → /research
+			if (e.key === "r" && !e.shiftKey && e.altKey) {
+				e.preventDefault();
+				router.push("/research");
 				return;
 			}
 

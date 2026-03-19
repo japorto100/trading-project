@@ -1,7 +1,6 @@
 import { resolveFusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 interface GatewayQuoteContract {
 	success: boolean;
@@ -20,6 +19,23 @@ interface GatewayQuoteContract {
 		source: string;
 	};
 }
+
+export type GatewayQuoteFailureReason =
+	| "UNRESOLVED_SYMBOL"
+	| "DOWNSTREAM_UNAVAILABLE"
+	| "GATEWAY_REJECTED";
+
+export type GatewayQuoteResult =
+	| {
+			ok: true;
+			provider: string;
+			data: QuoteData;
+	  }
+	| {
+			ok: false;
+			reason: GatewayQuoteFailureReason;
+			message: string;
+	  };
 
 function inferGoQuoteRoute(
 	symbol: string,
@@ -67,7 +83,7 @@ async function fetchQuoteFromEndpoint(
 	requestId: string,
 	userRole?: string,
 	providerCredentialsHeader?: string,
-): Promise<{ provider: string; data: QuoteData } | null> {
+): Promise<GatewayQuoteResult> {
 	const headers: Record<string, string> = {
 		Accept: "application/json",
 		"X-Request-ID": requestId,
@@ -84,10 +100,25 @@ async function fetchQuoteFromEndpoint(
 		headers,
 		cache: "no-store",
 	});
-	if (!response.ok) return null;
+	if (!response.ok) {
+		return {
+			ok: false,
+			reason: "DOWNSTREAM_UNAVAILABLE",
+			message:
+				response.status >= 500
+					? "Gateway quote endpoint is unavailable"
+					: `Gateway quote endpoint rejected with status ${response.status}`,
+		};
+	}
 
 	const payload = (await response.json()) as GatewayQuoteContract;
-	if (!payload.success || !payload.data) return null;
+	if (!payload.success || !payload.data) {
+		return {
+			ok: false,
+			reason: "GATEWAY_REJECTED",
+			message: payload.error?.trim() || "Gateway rejected quote request",
+		};
+	}
 
 	const quote: QuoteData = {
 		symbol,
@@ -102,6 +133,7 @@ async function fetchQuoteFromEndpoint(
 	};
 
 	return {
+		ok: true,
 		provider: payload.data.source || payload.data.exchange || "go-gateway",
 		data: quote,
 	};
@@ -112,8 +144,8 @@ export async function fetchQuoteViaGateway(
 	requestId: string,
 	userRole?: string,
 	providerCredentialsHeader?: string,
-): Promise<{ provider: string; data: QuoteData } | null> {
-	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+): Promise<GatewayQuoteResult> {
+	const gatewayBaseURL = getGatewayBaseURL();
 	const route = inferGoQuoteRoute(symbol);
 	if (route) {
 		const endpoint = new URL("/api/v1/quote", gatewayBaseURL);
@@ -124,7 +156,13 @@ export async function fetchQuoteViaGateway(
 	}
 
 	const fallback = inferFinanceBridgeFallback(symbol);
-	if (!fallback) return null;
+	if (!fallback) {
+		return {
+			ok: false,
+			reason: "UNRESOLVED_SYMBOL",
+			message: `No gateway route for symbol '${symbol}'`,
+		};
+	}
 
 	const endpoint = new URL("/api/v1/quote/fallback", gatewayBaseURL);
 	endpoint.searchParams.set("symbol", fallback.symbol);

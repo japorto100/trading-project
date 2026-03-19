@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { createNotification } from "@/lib/alerts";
+import { createNotification } from "@/features/alerts/storage";
 import type { OHLCVData } from "@/lib/providers/types";
 import { getClientProfileKey } from "@/lib/storage/profile-key";
 

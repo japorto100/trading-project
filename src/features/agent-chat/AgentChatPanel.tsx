@@ -1,8 +1,8 @@
 "use client";
 
-// Agent Chat Panel — Phase 22a
-// Thin orchestrator: wires session hook + sub-components.
-// Architecture: AgentChatPanel → /api/agent/chat (SSE BFF) → Go Gateway → Python/Anthropic
+// Agent Chat Panel — Phase 22d / 22f
+// Thin orchestrator: wires useChat session hook + sub-components.
+// Architecture: AgentChatPanel → /api/agent/chat (BFF) → Go Gateway → Python/Anthropic
 
 import { useRef } from "react";
 import { AgentChatComposer, type AgentChatComposerRef } from "./components/AgentChatComposer";
@@ -29,6 +29,7 @@ export function AgentChatPanel({ config: _config, onMounted }: AgentChatPanelPro
 		(composerRef as React.MutableRefObject<AgentChatComposerRef | null>).current = el;
 		if (el && onMounted) onMounted(() => el.focus());
 	};
+
 	const {
 		messages,
 		isStreaming,
@@ -38,9 +39,22 @@ export function AgentChatPanel({ config: _config, onMounted }: AgentChatPanelPro
 		send,
 		abort,
 		retry,
-		toggleBlockCollapse,
+		toggleToolCollapse,
 		clearError,
 		lastUserContent,
+		collapsedTools,
+		selectedModel,
+		setModel,
+		usageMap,
+		sentAttachments,
+		contextPressure,
+		reasoningEffort,
+		setReasoningEffort,
+		autoplayTts,
+		toggleAutoplayTts,
+		editAndResend,
+		approveToolCall,
+		denyToolCall,
 	} = useChatSession();
 
 	const railStatus = isConnecting ? "reconnecting" : isStreaming ? "live" : "idle";
@@ -49,18 +63,38 @@ export function AgentChatPanel({ config: _config, onMounted }: AgentChatPanelPro
 		<div className="flex h-full flex-col bg-background overflow-hidden">
 			<AgentChatHeader />
 
-			{/* AC71: Model selector + thread controls */}
-			<AgentChatToolbar />
+			{/* AC71/AC107/AC108: Model selector + reasoning effort + thread controls */}
+			<AgentChatToolbar
+				selectedModel={selectedModel}
+				onModelChange={setModel}
+				reasoningEffort={reasoningEffort}
+				onReasoningEffortChange={setReasoningEffort}
+				autoplayTts={autoplayTts}
+				onAutoplayToggle={toggleAutoplayTts}
+			/>
 
-			{/* AC70: Stream status rail */}
-			<AgentChatEventRail status={railStatus} isStreaming={isStreaming} />
+			{/* AC70/AC64: Stream status rail + context pressure bar */}
+			<AgentChatEventRail
+				status={railStatus}
+				isStreaming={isStreaming}
+				contextPressure={contextPressure}
+			/>
 
+			{/* AC54/AC103: Thread with usage badges + attachment display */}
 			<AgentChatThread
 				messages={messages}
 				isConnecting={isConnecting}
 				isStreaming={isStreaming}
-				onToggleBlock={toggleBlockCollapse}
+				collapsedTools={collapsedTools}
+				onToggleBlock={toggleToolCollapse}
 				onSuggestion={(text) => void send(text)}
+				usageMap={usageMap}
+				sentAttachments={sentAttachments}
+				autoplayTts={autoplayTts}
+				onEditMessage={editAndResend}
+				onRegenerate={retry}
+				onApproveToolCall={approveToolCall}
+				onDenyToolCall={denyToolCall}
 			/>
 
 			{/* AC72: Reconnect/degraded banner (separate from error) */}
@@ -68,6 +102,7 @@ export function AgentChatPanel({ config: _config, onMounted }: AgentChatPanelPro
 
 			{error && <AgentChatErrorBanner message={error} onDismiss={clearError} />}
 
+			{/* AC51c/AC53/AC56: Composer with attach + drag+drop + clipboard paste */}
 			<AgentChatComposer
 				ref={handleComposerRef}
 				isStreaming={isStreaming}

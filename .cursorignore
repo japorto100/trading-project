@@ -36,7 +36,6 @@ go.work.sum
 # Logs and local temp outputs
 *.log
 tmp/
-docs/tmp/
 screenshots/
 test-results/
 trace_geomap.json

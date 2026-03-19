@@ -27,6 +27,14 @@ Frontend extraction status (16 Mar 2026):
 - This benchmark remains the cross-domain transfer reference.
 - Backend dependencies required by those frontend docs are explicitly listed there as contract-level needs.
 
+Additional frontend transfer note (16 Mar 2026):
+
+- The strongest transferable MRKT pattern is not visual chrome but product sequencing:
+  - `ResearchHome` is the context-first entry
+  - `Calendar` is the operational event entry
+  - both feed the same event-detail and execution drilldowns
+- For `tradeview-fusion`, that means `Research` and `Calendar` should remain two entry surfaces into one decision model, not become isolated mini-products.
+
 ---
 
 ## 2. Evidence Refresh and Confidence Model
@@ -127,6 +135,7 @@ Design principle:
 
 - research and execution are separate surfaces sharing the same context model
 - no duplicate logic/state between home and workspace
+- calendar should be treated as an event-operations surface inside that same model, not as a disconnected date-list feature
 
 ```mermaid
 flowchart LR
@@ -172,6 +181,23 @@ Required properties:
 - explicit scenario playbook
 - affected assets and confidence fields
 - source links for explainability
+- pre-event and post-event rendering states should remain visibly distinct
+- event detail should be the canonical bridge between research context and workspace actions
+
+## 5.2a Frontend UI Transfer Addendum (Research + Calendar)
+
+Directly transferable MRKT product patterns:
+
+- `why this matters now` must be explicit on research cards
+- event cards should privilege `range / surprise / impact / next action` over generic prose
+- calendar and research should share the same event-detail route and return-context model
+- local or fallback data modes should remain visible until product-grade live coverage exists
+
+Do not over-transfer:
+
+- do not copy visual style blindly if it breaks existing shell/navigation patterns
+- do not make the calendar a standalone destination that duplicates research context
+- do not hide uncertainty behind polished card language
 
 ## 5.3 Event Decision Engine (not just calendar rendering)
 

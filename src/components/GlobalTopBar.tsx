@@ -13,6 +13,7 @@ import {
 	Globe,
 	LogOut,
 	Moon,
+	Newspaper,
 	Palette,
 	SlidersHorizontal,
 	Sun,
@@ -25,7 +26,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { AlertPanel } from "@/components/AlertPanel";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useGlobalChat } from "@/features/agent-chat/context/GlobalChatContext";
+import { AlertPanel } from "@/features/alerts/AlertPanel";
 import { isAuthEnabled, isAuthStackBypassEnabled } from "@/lib/auth/runtime-flags";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +54,12 @@ const SURFACES: SurfaceLink[] = [
 		label: "Trading",
 		icon: <TrendingUp className="h-3.5 w-3.5" />,
 		match: (p) => p === "/trading" || p === "/",
+	},
+	{
+		href: "/research",
+		label: "Research",
+		icon: <Newspaper className="h-3.5 w-3.5" />,
+		match: (p) => p.startsWith("/research"),
 	},
 	{
 		href: "/geopolitical-map",
@@ -77,7 +85,7 @@ export function GlobalTopBar() {
 	const pathname = usePathname();
 	const { resolvedTheme, setTheme } = useTheme();
 	const { data: session } = useSession();
-	const { open: chatOpen, toggleChat } = useGlobalChat();
+	const { open: chatOpen, badgeCount, toggleChat } = useGlobalChat();
 	const [clockTime, setClockTime] = useState("");
 	const [isSigningOut, setIsSigningOut] = useState(false);
 	const authEnabled = isAuthEnabled();
@@ -95,10 +103,11 @@ export function GlobalTopBar() {
 	return (
 		<header className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-card px-3 gap-4">
 			{/* Left: logo + surface switcher */}
-			<div className="flex items-center gap-1">
+			<nav aria-label="Primary surfaces" className="flex items-center gap-1">
 				<Link
 					href="/trading"
 					className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-md px-2 py-1 hover:opacity-90 transition-opacity mr-2"
+					aria-label="Open trading workspace"
 				>
 					<BarChart3 className="h-4 w-4 text-white" />
 					<span className="font-bold text-white text-sm hidden sm:inline">TradeView</span>
@@ -115,6 +124,7 @@ export function GlobalTopBar() {
 							<Button
 								variant="ghost"
 								size="sm"
+								aria-current={isActive ? "page" : undefined}
 								className={cn(
 									"h-7 gap-1.5 px-2.5 text-xs font-medium",
 									isActive
@@ -128,13 +138,13 @@ export function GlobalTopBar() {
 						</Link>
 					);
 				})}
-			</div>
+			</nav>
 
 			{/* Right: clock + alerts + AI chat + auth + theme */}
 			<div className="flex items-center gap-1">
 				<Badge
 					variant="outline"
-					className="h-6 gap-1 font-mono text-[10px] bg-background/50 hidden md:flex"
+					className="h-6 gap-1 font-mono text-[11px] bg-background/50 hidden md:flex"
 				>
 					<Clock className="h-3 w-3" />
 					{clockTime}
@@ -143,23 +153,31 @@ export function GlobalTopBar() {
 				<Separator orientation="vertical" className="h-5 mx-1" />
 
 				<AlertPanel />
+				<SettingsPanel />
 
-				{/* AC75/AC77: AI Chat toggle — ⌘L */}
-				<Button
-					variant="ghost"
-					size="icon"
-					className={cn(
-						"h-7 w-7 transition-colors",
-						chatOpen
-							? "text-emerald-500 bg-emerald-500/10 hover:text-emerald-400"
-							: "text-muted-foreground hover:text-foreground",
+				{/* AC75/AC77/AC88: AI Chat toggle — ⌘L + proactive badge */}
+				<div className="relative">
+					<Button
+						variant="ghost"
+						size="icon"
+						className={cn(
+							"h-7 w-7 transition-colors",
+							chatOpen
+								? "text-emerald-500 bg-emerald-500/10 hover:text-emerald-400"
+								: "text-muted-foreground hover:text-foreground",
+						)}
+						onClick={toggleChat}
+						title="AI Agent Chat (⌘L)"
+						aria-label="Toggle AI chat"
+					>
+						<Bot className="h-3.5 w-3.5" />
+					</Button>
+					{badgeCount > 0 && !chatOpen && (
+						<span className="pointer-events-none absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-[8px] font-bold text-white animate-pulse">
+							{badgeCount > 9 ? "9+" : badgeCount}
+						</span>
 					)}
-					onClick={toggleChat}
-					title="AI Agent Chat (⌘L)"
-					aria-label="Toggle AI chat"
-				>
-					<Bot className="h-3.5 w-3.5" />
-				</Button>
+				</div>
 
 				{canShowAuthControls ? (
 					session?.user ? (
@@ -182,7 +200,7 @@ export function GlobalTopBar() {
 											<p className="font-medium text-xs">{session.user.name}</p>
 										)}
 										{session.user.email && (
-											<p className="w-[200px] truncate text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+											<p className="w-[200px] truncate text-[11px] text-muted-foreground uppercase tracking-wider font-bold">
 												{session.user.email}
 											</p>
 										)}
@@ -225,7 +243,7 @@ export function GlobalTopBar() {
 						<Button
 							variant="outline"
 							size="sm"
-							className="h-7 text-[10px] uppercase font-black tracking-widest gap-1.5"
+							className="h-7 text-[11px] uppercase font-black tracking-widest gap-1.5"
 							asChild
 						>
 							<Link href="/auth/sign-in">

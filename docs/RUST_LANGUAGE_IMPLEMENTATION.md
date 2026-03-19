@@ -192,36 +192,57 @@ rust-core/
 
 ---
 
-## 3. Stark empfohlen: Kand als Basis evaluieren
+## 3. ADOPT (Fork-Strategie): Kand als Basis — Entscheid 18.03.2026
+
+> **Status: ADOPT** — Evaluierung abgeschlossen per `rust_kand_evaluation_delta.md` Rev. 3
 
 ### Was ist Kand
 
-[Kand](https://github.com/kand-ta/kand) ist eine Rust Technical Analysis Library (Dezember 2025, aktiv maintained) mit:
+[Kand](https://github.com/kand-ta/kand) ist eine Rust Technical Analysis Library mit:
 
-- SMA, EMA, WMA, RSI, MACD, OBV, VWAP, Supertrend und mehr
-- PyO3 Python-Bindings mit ~7ns Overhead und Zero-Copy NumPy Integration
-- WASM-Bindings fuer Browser
-- O(1) Incremental Updates fuer Real-time (kein Re-Calc der ganzen Serie)
-- Result-Types mit NaN-Detection und Error Handling
+- SMA, EMA, WMA, HMA, RSI, MACD, OBV, VWAP, ADX/DI+/DI-, Stochastic, Keltner, BB und mehr
+- `kand-py`: native PyO3-Bindings mit ~7ns Overhead und Zero-Copy NumPy Integration
+- `kand-wasm`: WASM-Bindings fuer Browser
+- `*_inc()` API: O(1) Incremental Updates fuer Real-time (kein Re-Calc der ganzen Serie)
 - GIL-free fuer thread-safe parallele Ausfuehrung
-- Feature-Flags fuer Precision-Modi (32-bit/64-bit)
+- Git-Submodul eingebunden: `_tmp_ref_review/math/kand`
 
-### Empfehlung
+### Entschied-Zusammenfassung (18.03.2026)
 
-Kand als Basis fuer den Rust Indicator Core evaluieren statt alles von Null zu bauen. Die Grundlagen-Indikatoren (SMA, EMA, RSI, MACD, VWAP, OBV) sind abgedeckt. Schwere Patterns (Elliott Wave, Harmonic, Candlestick) muessten trotzdem selbst implementiert oder aus anderen Quellen portiert werden.
+Kand wird in Phase 20 als Fork-Dependency in `rust_core` integriert:
 
-### Evaluierungs-Checkliste
+```toml
+# rust_core/Cargo.toml
+[dependencies]
+kand = { path = "../../_tmp_ref_review/math/kand" }
+```
 
-- [ ] Kand lokal bauen und testen (`cargo test`)
-- [ ] PyO3-Bindings gegen unseren indicator-service testen
-- [ ] WASM-Build gegen unsere Frontend-Indikatoren benchmarken
-- [ ] API-Kompatibilitaet mit unserem OHLCV-Format pruefen
-- [ ] Fehlende Indikatoren identifizieren (ADX, Ichimoku, Keltner, HMA, etc.)
-- [ ] Lizenz pruefen (MIT/Apache erwartet)
+**Vorgehen:**
+1. `kand` als Cargo path-dep — Upstream selektiv cherry-picken (wie GCT-Fork)
+2. NaN-Strip-Utility (`src/nan_strip.rs`) — generischer 0.0-Fallback
+3. EMA/SMA/RSI/ATR/MACD/ADX durch kand-Calls ersetzen
+4. Ichimoku nativ implementieren (einzige relevante Kand-Luecke)
+5. Kand als Reference Oracle in Correctness-Tests
+
+**Verbleibende Eigenimplementierungen:**
+- Ichimoku (Cloud) — kein Kand-Aequivalent
+- Composite-SMA50-Slope (proprietaer)
+- Heartbeat (proprietaer)
+- K's Collection / Rainbow / R-Pattern / Gap-Pattern (Kaabar-proprietaer, Python-only)
+
+### Python Buch-Audit Ergebnis (18.03.2026, Kaabar 2026)
+
+Alle Python-Indikatoren gegen Buchformeln verifiziert und korrigiert.
+Details in `rust_kand_evaluation_delta.md` RK4a.
+
+**Rust Blueprint-Notizen:**
+- RSI: Wilder-Warmup korrekt implementieren (first block SMA, dann `prev*(n-1)/n + cur/n`)
+- ATR: EWM span=2n-1 auf True Range (= Wilder's ATR) — Kand impl. dies korrekt
+- BB: sample std (pandas-kompatibel) bevorzugen
 
 ### Alternative: VectorTA
 
-[VectorTA](https://vectoralpha.dev/projects/ta/) implementiert 194+ Indikatoren in Rust mit CUDA und SIMD (AVX2/AVX-512). Deutlich umfangreicher als Kand, aber komplexer. Evaluieren falls Kand nicht ausreicht.
+[VectorTA](https://vectoralpha.dev/projects/ta/) implementiert 194+ Indikatoren in Rust mit CUDA und SIMD. Evaluieren falls Kand-Abdeckung nicht ausreicht.
 
 ---
 

@@ -8,8 +8,7 @@
 import { revalidatePath } from "next/cache";
 import { authenticator } from "otplib";
 import { auth } from "@/lib/auth";
-import { hashPassword, validateNewPassword, verifyPassword } from "@/lib/server/auth-password";
-import { getPrismaClient } from "@/lib/server/prisma";
+import { hashPassword, validateNewPassword } from "@/lib/server/auth-password";
 
 export interface MFAData {
 	secret?: string;
@@ -20,6 +19,35 @@ export interface MFAData {
 export type ChangePasswordResult =
 	| { success: true; data?: MFAData }
 	| { success: false; error: string; code?: string };
+
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
+}
+
+async function postGoAuthAction<T>(
+	path: string,
+	body: Record<string, unknown>,
+	headers?: Record<string, string>,
+): Promise<T> {
+	const response = await fetch(`${getGoGatewayUrl()}${path}`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			...headers,
+		},
+		body: JSON.stringify(body),
+		cache: "no-store",
+	});
+	const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+	if (!response.ok) {
+		const message =
+			typeof payload.error === "string" && payload.error.trim() !== ""
+				? payload.error
+				: `Go auth action failed with ${response.status}`;
+		throw new Error(message);
+	}
+	return payload as T;
+}
 
 /**
  * Notify Go Gateway about a user-level revocation event (1.f2)
@@ -78,29 +106,20 @@ export async function enableTOTP(formData: FormData): Promise<ChangePasswordResu
 	const isValid = authenticator.verify({ token: code, secret });
 	if (!isValid) return { success: false, error: "Invalid verification code." };
 
-	const prisma = getPrismaClient();
-	if (!prisma) return { success: false, error: "DB unavailable" };
-
 	const userId = session.user.id;
 
 	try {
-		await prisma.totpDevice.create({
-			data: {
-				userId,
-				label: "Primary Authenticator",
-				secretEnc: secret, // SOTA 2026: In prod, encrypt this with a KMS/MasterKey
-				isPrimary: true,
-			},
-		});
-
-		// Generate Recovery Codes (1.v12)
 		const codes = Array.from({ length: 8 }, () => crypto.randomUUID().split("-")[0].toUpperCase());
-		await prisma.recoveryCode.createMany({
-			data: codes.map((c) => ({
-				userId,
-				codeHash: c, // Hash these in real prod
-			})),
-		});
+		await postGoAuthAction<{ success: true }>(
+			"/api/v1/auth/actions/totp-enable",
+			{
+				secret,
+				recoveryCodes: codes,
+			},
+			{
+				"X-Auth-User-Id": userId,
+			},
+		);
 
 		console.info("SECURITY_EVENT_MFA_ENABLED", { userId, severity: "CRITICAL" });
 
@@ -145,36 +164,23 @@ export async function changePassword(
 		return { success: false, error: validation.error };
 	}
 
-	const prisma = getPrismaClient();
-	if (!prisma) {
-		return { success: false, error: "Database interface unavailable." };
-	}
-
 	try {
-		const user = await prisma.user.findUnique({
-			where: { id: session.user.id },
-			select: { passwordHash: true },
-		});
-
-		if (!user || !user.passwordHash) {
-			return { success: false, error: "Primary authentication method is not password-based." };
-		}
-
-		const isCurrentValid = verifyPassword(currentPassword, user.passwordHash);
-		if (!isCurrentValid) {
-			return { success: false, error: "Invalid current password.", code: "INVALID_CREDENTIALS" };
-		}
-
 		// Security 2026: Prevent reuse of current password
 		if (currentPassword === newPassword) {
 			return { success: false, error: "New password must be different from the current one." };
 		}
 
 		const newHash = hashPassword(newPassword);
-		await prisma.user.update({
-			where: { id: session.user.id },
-			data: { passwordHash: newHash },
-		});
+		await postGoAuthAction<{ success: true }>(
+			"/api/v1/auth/actions/password-change",
+			{
+				currentPassword,
+				newHash,
+			},
+			{
+				"X-Auth-User-Id": session.user.id,
+			},
+		);
 
 		// SOTA 2026: Elite Cross-Stack Revocation Signal (1.f2)
 		await notifyGoUserRevocation(session.user.id);
@@ -208,36 +214,27 @@ export async function requestPasswordReset(
 	const email = formData.get("email") as string;
 	if (!email) return { success: false, error: "Email is required." };
 
-	const prisma = getPrismaClient();
-	if (!prisma) return { success: false, error: "Database interface unavailable." };
-
 	try {
-		const user = await prisma.user.findUnique({
-			where: { email: email.toLowerCase() },
-			select: { id: true },
-		});
-
-		if (!user) {
+		const token = crypto.randomUUID();
+		const expires = new Date(Date.now() + 3600 * 1000);
+		const payload = await postGoAuthAction<{ success: true; userId?: string }>(
+			"/api/v1/auth/actions/password-recovery-request",
+			{
+				identifier: email.toLowerCase(),
+				token,
+				expiresAt: expires.toISOString(),
+			},
+		);
+		if (!payload.userId) {
 			console.warn("RECOVERY_REQUEST_NON_EXISTENT_USER", { email });
 			return { success: true };
 		}
-
-		const token = crypto.randomUUID();
-		const expires = new Date(Date.now() + 3600 * 1000);
-
-		await prisma.verificationToken.create({
-			data: {
-				identifier: email.toLowerCase(),
-				token,
-				expires,
-			},
-		});
 
 		const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
 
 		console.info("SECURITY_RECOVERY_TOKEN_GENERATED", {
 			severity: "CRITICAL",
-			userId: user.id,
+			userId: payload.userId,
 			resetUrl,
 			message: "Password reset link generated.",
 		});
@@ -265,33 +262,18 @@ export async function resetPassword(
 	const validation = validateNewPassword(newPassword);
 	if (!validation.ok) return { success: false, error: validation.error };
 
-	const prisma = getPrismaClient();
-	if (!prisma) return { success: false, error: "Database unavailable." };
-
 	try {
-		const verifiedToken = await prisma.verificationToken.findFirst({
-			where: {
-				identifier: email.toLowerCase(),
-				token,
-				expires: { gt: new Date() },
-			},
-		});
-
-		if (!verifiedToken) {
-			return { success: false, error: "Expired or invalid token." };
-		}
-
 		const newHash = hashPassword(newPassword);
-		await prisma.user.update({
-			where: { email: email.toLowerCase() },
-			data: { passwordHash: newHash },
-		});
+		const payload = await postGoAuthAction<{ success: true; userId: string }>(
+			"/api/v1/auth/actions/password-recovery-reset",
+			{
+				email: email.toLowerCase(),
+				token,
+				newHash,
+			},
+		);
 
-		await notifyGoUserRevocation(email); // In reset, email is often identifier
-
-		await prisma.verificationToken.delete({
-			where: { identifier_token: { identifier: email.toLowerCase(), token } },
-		});
+		await notifyGoUserRevocation(payload.userId);
 
 		console.info("SECURITY_EVENT_PASSWORD_RESET_SUCCESS", {
 			email,
@@ -325,39 +307,21 @@ export async function recoverWithCode(
 	const validation = validateNewPassword(newPassword);
 	if (!validation.ok) return { success: false, error: validation.error };
 
-	const prisma = getPrismaClient();
-	if (!prisma) return { success: false, error: "DB unavailable" };
-
 	try {
-		const user = await prisma.user.findUnique({
-			where: { email: email.toLowerCase() },
-			include: { recoveryCodes: true },
-		});
-
-		if (!user) return { success: false, error: "Invalid recovery attempt." };
-
-		// Find and use the recovery code
-		const codeRecord = user.recoveryCodes.find((c) => c.codeHash === recoveryCode.toUpperCase());
-		if (!codeRecord) {
-			return { success: false, error: "Invalid or already used recovery code." };
-		}
-
 		const newHash = hashPassword(newPassword);
-		await prisma.user.update({
-			where: { id: user.id },
-			data: { passwordHash: newHash },
-		});
+		const payload = await postGoAuthAction<{ success: true; userId: string }>(
+			"/api/v1/auth/actions/password-recovery-code",
+			{
+				email: email.toLowerCase(),
+				recoveryCode: recoveryCode.toUpperCase(),
+				newHash,
+			},
+		);
 
-		// Burn the code after usage (One-time use)
-		await prisma.recoveryCode.delete({
-			where: { id: codeRecord.id },
-		});
-
-		// Notify Go
-		await notifyGoUserRevocation(user.id);
+		await notifyGoUserRevocation(payload.userId);
 
 		console.info("SECURITY_EVENT_RECOVERY_CODE_USED", {
-			userId: user.id,
+			userId: payload.userId,
 			severity: "CRITICAL",
 			timestamp: new Date().toISOString(),
 		});

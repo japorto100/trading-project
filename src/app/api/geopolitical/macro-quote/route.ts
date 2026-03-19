@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { isMacroSymbol } from "@/lib/macro-symbols";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 function inferMacroExchange(symbol: string): string {
 	const upper = symbol.toUpperCase();
@@ -31,7 +30,7 @@ export async function GET(request: NextRequest) {
 		);
 	}
 	const exchange = inferMacroExchange(symbol);
-	const gatewayBase = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBase = getGatewayBaseURL();
 	const url = `${gatewayBase}/api/v1/quote?symbol=${encodeURIComponent(symbol)}&exchange=${exchange}&assetType=macro`;
 	try {
 		const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(10000) });

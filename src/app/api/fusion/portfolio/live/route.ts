@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { getErrorMessage } from "@/lib/utils";
-
-const GO_GATEWAY_BASE = process.env.GO_GATEWAY_BASE_URL ?? "http://127.0.0.1:9060";
 
 /**
  * GET /api/fusion/portfolio/live
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 
 	try {
-		const url = `${GO_GATEWAY_BASE}/api/v1/gct/portfolio/summary`;
+		const url = `${getGatewayBaseURL()}/api/v1/gct/portfolio/summary`;
 		const headers: HeadersInit = {
 			Accept: "application/json",
 			"X-Request-ID": requestId,

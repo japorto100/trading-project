@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
-import type { PriceAlert } from "@/lib/alerts";
+import type { PriceAlert } from "@/features/alerts/types";
 import { canonicalizeFusionSymbol, resolveFusionSymbol } from "@/lib/fusion-symbols";
 import type { OHLCVData, TimeframeValue } from "@/lib/providers/types";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { evaluateTriggeredOrdersForSymbol } from "@/lib/server/orders-store";
 import { listPriceAlerts, updatePriceAlert } from "@/lib/server/price-alerts-store";
 import {
@@ -14,7 +15,6 @@ import { isLegacyCandleStreamFallbackEnabled } from "@/lib/server/stream-runtime
 
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 const SUPPORTED_SERVER_ALERT_CONDITIONS = new Set(["above", "below", "crosses_up", "crosses_down"]);
 
 const TIMEFRAME_SECONDS: Record<TimeframeValue, number> = {
@@ -166,10 +166,6 @@ async function markAlertTriggered(
 	});
 }
 
-function buildGatewayBaseURL(): string {
-	return (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
-}
-
 async function createGoBackedMarketStreamResponse(
 	request: NextRequest,
 	requestId: string,
@@ -179,7 +175,7 @@ async function createGoBackedMarketStreamResponse(
 	streamRoute: GoStreamRoute,
 	profileKey: string | null,
 ): Promise<Response | null> {
-	const gatewayURL = new URL("/api/v1/stream/market", buildGatewayBaseURL());
+	const gatewayURL = new URL("/api/v1/stream/market", getGatewayBaseURL());
 	gatewayURL.searchParams.set("symbol", streamRoute.symbol);
 	gatewayURL.searchParams.set("exchange", streamRoute.exchange);
 	gatewayURL.searchParams.set("assetType", streamRoute.assetType);

@@ -10,6 +10,11 @@ import { Minus, Plus, RotateCcw } from "lucide-react";
 import { type MouseEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getGeoMapBodyVisualConfig } from "@/features/geopolitical/bodies";
+import {
+	type GeoViewportSelectionBox,
+	getGeoBoxSelectedMarkerIds,
+	normalizeGeoViewportSelectionBox,
+} from "@/features/geopolitical/box-selection";
 import { buildGeoMapStatsSummary } from "@/features/geopolitical/d3/geoMapStats";
 import {
 	createCountryStyleResolver,
@@ -47,8 +52,10 @@ interface MapCanvasProps {
 	earthChoroplethMode?: GeoEarthChoroplethMode;
 	onChangeEarthChoroplethMode?: (mode: GeoEarthChoroplethMode) => void;
 	selectedEventId: string | null;
+	selectedEventIds?: string[];
 	selectedDrawingId: string | null;
 	onSelectEvent: (eventId: string) => void;
+	onSelectEvents?: (eventIds: string[], mode?: "replace" | "append" | "toggle" | "clear") => void;
 	onSelectDrawing: (drawingId: string) => void;
 	onMapClick: (coords: { lat: number; lng: number }) => void;
 	onCountryClick?: (countryId: string) => void;
@@ -72,8 +79,10 @@ export const MapCanvas = memo(function MapCanvas({
 	earthChoroplethMode = "severity",
 	onChangeEarthChoroplethMode,
 	selectedEventId,
+	selectedEventIds = [],
 	selectedDrawingId,
 	onSelectEvent,
+	onSelectEvents,
 	onSelectDrawing,
 	onMapClick,
 	onCountryClick,
@@ -99,6 +108,7 @@ export const MapCanvas = memo(function MapCanvas({
 	const [hoverEventId, setHoverEventId] = useState<string | null>(null);
 	const [isAutoRotating, setIsAutoRotating] = useState(true);
 	const [previewPoint, setPreviewPoint] = useState<{ lat: number; lng: number } | null>(null);
+	const [selectionBox, setSelectionBox] = useState<GeoViewportSelectionBox | null>(null);
 	const bodyVisualConfig = useMemo(() => getGeoMapBodyVisualConfig(mapBody), [mapBody]);
 	const maxCountryIntensity = useMemo(() => {
 		const intensityMap = new Map<string, number>();
@@ -193,14 +203,16 @@ export const MapCanvas = memo(function MapCanvas({
 			drawingModeRef.current === "text";
 
 		if (!shouldDisableInertiaDrag) {
-			const dragBehavior = drag<SVGSVGElement, unknown>().on("drag", (event) => {
-				setIsAutoRotating(false);
-				setRotation((previous) => {
-					const nextLng = previous[0] + event.dx * 0.35;
-					const nextLat = Math.max(-85, Math.min(85, previous[1] - event.dy * 0.35));
-					return [nextLng, nextLat, previous[2] ?? 0];
+			const dragBehavior = drag<SVGSVGElement, unknown>()
+				.filter((event) => !event.shiftKey)
+				.on("drag", (event) => {
+					setIsAutoRotating(false);
+					setRotation((previous) => {
+						const nextLng = previous[0] + event.dx * 0.35;
+						const nextLat = Math.max(-85, Math.min(85, previous[1] - event.dy * 0.35));
+						return [nextLng, nextLat, previous[2] ?? 0];
+					});
 				});
-			});
 			svg.call(dragBehavior);
 		}
 
@@ -227,6 +239,69 @@ export const MapCanvas = memo(function MapCanvas({
 			svg.on(".drag", null).on(".zoom", null);
 		};
 	}, [drawingMode]);
+
+	const selectedEventIdSet = useMemo(() => new Set(selectedEventIds), [selectedEventIds]);
+
+	const resolvePointerCoordinates = useCallback((event: MouseEvent<SVGSVGElement>) => {
+		const svg = svgRef.current;
+		if (!svg) return null;
+		const rect = svg.getBoundingClientRect();
+		return {
+			x: (event.clientX - rect.left) * (MAP_WIDTH / rect.width),
+			y: (event.clientY - rect.top) * (MAP_HEIGHT / rect.height),
+		};
+	}, []);
+
+	const handleSelectionBoxStart = useCallback(
+		(event: MouseEvent<SVGSVGElement>) => {
+			if (!event.shiftKey || isDrawingInteractionActive) return;
+			const point = resolvePointerCoordinates(event);
+			if (!point) return;
+			event.preventDefault();
+			event.stopPropagation();
+			setIsAutoRotating(false);
+			setSelectionBox({
+				startX: point.x,
+				startY: point.y,
+				endX: point.x,
+				endY: point.y,
+			});
+		},
+		[isDrawingInteractionActive, resolvePointerCoordinates],
+	);
+
+	const handleSelectionBoxMove = useCallback(
+		(event: MouseEvent<SVGSVGElement>) => {
+			if (!selectionBox) return;
+			const point = resolvePointerCoordinates(event);
+			if (!point) return;
+			event.preventDefault();
+			setSelectionBox((current) =>
+				current
+					? {
+							...current,
+							endX: point.x,
+							endY: point.y,
+						}
+					: current,
+			);
+		},
+		[resolvePointerCoordinates, selectionBox],
+	);
+
+	const handleSelectionBoxEnd = useCallback(
+		(event: MouseEvent<SVGSVGElement>) => {
+			if (!selectionBox) return;
+			const markerIds = getGeoBoxSelectedMarkerIds({
+				box: selectionBox,
+				markers: mapModel.markers,
+			});
+			setSelectionBox(null);
+			if (markerIds.length === 0) return;
+			onSelectEvents?.(markerIds, event.metaKey || event.ctrlKey ? "append" : "replace");
+		},
+		[mapModel.markers, onSelectEvents, selectionBox],
+	);
 
 	const handleZoomIn = () => {
 		setIsAutoRotating(false);
@@ -337,6 +412,7 @@ export const MapCanvas = memo(function MapCanvas({
 	const handleBackgroundClick = useCallback(
 		(event: MouseEvent<SVGSVGElement>) => {
 			if (!svgRef.current) return;
+			if (event.shiftKey || selectionBox) return;
 			setIsAutoRotating(false);
 
 			const rect = event.currentTarget.getBoundingClientRect();
@@ -378,7 +454,14 @@ export const MapCanvas = memo(function MapCanvas({
 				lng: Number(lng.toFixed(6)),
 			});
 		},
-		[isDrawingInteractionActive, mapModel.projection, markerVoronoi, onMapClick, onSelectEvent],
+		[
+			isDrawingInteractionActive,
+			mapModel.projection,
+			markerVoronoi,
+			onMapClick,
+			onSelectEvent,
+			selectionBox,
+		],
 	);
 
 	const handleSvgMouseMove = (event: MouseEvent<SVGSVGElement>) => {
@@ -415,6 +498,7 @@ export const MapCanvas = memo(function MapCanvas({
 	const handleSvgMouseLeave = () => {
 		setHoverEventId(null);
 		setPreviewPoint(null);
+		setSelectionBox(null);
 	};
 
 	const activePopupMarker = useMemo(() => {
@@ -727,8 +811,13 @@ export const MapCanvas = memo(function MapCanvas({
 				role="img"
 				aria-label="Geopolitical map canvas"
 				onClick={handleBackgroundClick}
-				onMouseDown={() => setIsAutoRotating(false)}
+				onMouseDown={(event) => {
+					setIsAutoRotating(false);
+					handleSelectionBoxStart(event);
+				}}
 				onMouseMove={handleSvgMouseMove}
+				onMouseMoveCapture={handleSelectionBoxMove}
+				onMouseUp={handleSelectionBoxEnd}
 				onMouseLeave={handleSvgMouseLeave}
 			>
 				<defs>
@@ -917,6 +1006,25 @@ export const MapCanvas = memo(function MapCanvas({
 					})}
 				</g>
 
+				{selectionBox
+					? (() => {
+							const normalizedSelectionBox = normalizeGeoViewportSelectionBox(selectionBox);
+							return (
+								<rect
+									x={normalizedSelectionBox.startX}
+									y={normalizedSelectionBox.startY}
+									width={normalizedSelectionBox.endX - normalizedSelectionBox.startX}
+									height={normalizedSelectionBox.endY - normalizedSelectionBox.startY}
+									fill="rgba(56, 189, 248, 0.12)"
+									stroke="#38bdf8"
+									strokeDasharray="6 4"
+									strokeWidth={1.5}
+									pointerEvents="none"
+								/>
+							);
+						})()
+					: null}
+
 				{/* Line drawing preview: dashed line from pendingLineStart to current mouse position */}
 				{drawingMode === "line" &&
 					pendingLineStart &&
@@ -1059,6 +1167,13 @@ export const MapCanvas = memo(function MapCanvas({
 								}}
 								onClick={(event) => {
 									event.stopPropagation();
+									if (event.shiftKey) {
+										onSelectEvents?.(
+											cluster.markerIds,
+											event.metaKey || event.ctrlKey ? "append" : "replace",
+										);
+										return;
+									}
 									handleClusterFocus(cluster);
 								}}
 								onKeyDown={(event) => {
@@ -1097,6 +1212,7 @@ export const MapCanvas = memo(function MapCanvas({
 							return null;
 						}
 						const selected = marker.id === selectedEventId;
+						const multiSelected = selectedEventIdSet.has(marker.id);
 						const hovered = marker.id === hoverEventId;
 						const markerColor = getMarkerSeverityColor(marker.severity);
 						return (
@@ -1114,17 +1230,17 @@ export const MapCanvas = memo(function MapCanvas({
 								pointerEvents={isDrawingInteractionActive ? "none" : "all"}
 								className="cursor-pointer outline-none focus-visible:outline-none"
 							>
-								{(selected || hovered) && (
+								{(selected || hovered || multiSelected) && (
 									<g>
 										<circle
-											r={selected ? 25 : 20}
+											r={selected ? 25 : multiSelected ? 22 : 20}
 											fill="url(#halo-gradient)"
-											opacity={selected ? 1 : 0.6}
+											opacity={selected ? 1 : multiSelected ? 0.8 : 0.6}
 										/>
 										<circle
-											r={selected ? 20 : 17}
+											r={selected ? 20 : multiSelected ? 18 : 17}
 											fill="none"
-											stroke={selected ? "#10b981" : "#7dd3fc"}
+											stroke={selected ? "#10b981" : multiSelected ? "#f59e0b" : "#7dd3fc"}
 											strokeWidth={selected ? 2 : 1.25}
 											opacity={selected ? 0.8 : 0.65}
 										>

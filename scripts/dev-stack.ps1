@@ -1,7 +1,7 @@
-# Start full stack: Go Gateway + GCT + Python (Rust-powered) services + Next.js + SeaweedFS + NATS + Observability
+# Start full stack: Go Gateway + GCT + Python (Rust-powered) services + Next.js + SeaweedFS + NATS + local Redis shim + Observability
 # Usage: from repo root: bun run dev:full:gct:python
 # All services run by default. Pass -Skip* flags to disable individual services.
-# Optional: -SkipGo, -SkipGCT, -SkipPython, -SkipNext, -SkipSeaweedfs, -SkipNats, -SkipObservability, -InstallMl
+# Optional: -SkipGo, -SkipGCT, -SkipPython, -SkipNext, -SkipSeaweedfs, -SkipNats, -SkipRedis (alias: -SkipValkey), -SkipObservability, -InstallMl
 
 param(
     [switch]$SkipGo,
@@ -10,7 +10,13 @@ param(
     [switch]$SkipNext,
     [switch]$SkipSeaweedfs,
     [switch]$SkipNats,
+    [Alias("SkipValkey")]
+    [switch]$SkipRedis,
     [switch]$SkipObservability,    # Skip OpenObserve OTel tracing (normally on :5080/5081)
+    # Mock-LLM is OFF by default — only for agent verify without real API keys.
+    # Enable with -MockLlm. Sets AGENT_PROVIDER=openai-compatible + OPENAI_BASE_URL=http://127.0.0.1:11500/v1.
+    # tools/mock-llm/server.py — OpenAI-compatible streaming stub at :11500.
+    [switch]$MockLlm,
     [switch]$InstallMl,
     [int]$WaitSeconds = 0,
     [bool]$Watch = $true,
@@ -22,6 +28,12 @@ $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $goBackendDir = Join-Path $repoRoot "go-backend"
 $pythonBackendRoot = Join-Path $repoRoot "python-backend"
 $venvPython = Join-Path $pythonBackendRoot ".venv\Scripts\python.exe"
+# uv Workspace: python-agent + python-compute are workspace members of python-backend.
+# All services share python-backend/.venv — no standalone venvs needed.
+# ml_ai/ + services/_shared/ are installed as editable root into the workspace venv.
+$agentRoot = Join-Path $pythonBackendRoot "python-agent"
+$agentVenvPython = $venvPython  # workspace venv — same as compute and root
+$computeRoot = Join-Path $pythonBackendRoot "python-compute"
 $preferredCargoHome = if (-not [string]::IsNullOrWhiteSpace($env:CARGO_HOME)) { $env:CARGO_HOME } else { "D:\DevCache\cargo\.cargo" }
 $preferredRustupHome = if (-not [string]::IsNullOrWhiteSpace($env:RUSTUP_HOME)) { $env:RUSTUP_HOME } else { "D:\DevCache\rustup" }
 $cargoBin = Join-Path $preferredCargoHome "bin"
@@ -34,6 +46,13 @@ $seaweedDir = Join-Path $repoRoot "tools\seaweedfs"
 $seaweedExe = Join-Path $seaweedDir "weed.exe"
 $seaweedDataDir = Join-Path $seaweedDir "data"
 $seaweedS3Config = Join-Path $seaweedDir "s3.json"
+$redisDir = Join-Path $repoRoot "tools\redis"
+$redisExe = Join-Path $redisDir "redis-server.exe"
+$redisConfig = Join-Path $redisDir "redis.conf"
+$redisPythonConfig = Join-Path $redisDir "redis-python.conf"
+$redisDownloadScript = Join-Path $redisDir "download.ps1"
+$redisDataDir = Join-Path $redisDir "data"
+$redisPythonDataDir = Join-Path $redisDir "data-python"
 
 function Ensure-SeaweedFSAvailable {
     if (Test-Path $seaweedExe) {
@@ -55,6 +74,28 @@ function Ensure-SeaweedFSAvailable {
         Move-Item $extracted.FullName $seaweedExe -Force
     }
     return $seaweedExe
+}
+
+function Ensure-RedisAvailable {
+    if (Test-Path $redisExe) {
+        return $redisExe
+    }
+
+    if (Test-Path $redisDownloadScript) {
+        try {
+            Write-Host "[redis] Attempting download/install..." -ForegroundColor Cyan
+            & powershell -ExecutionPolicy Bypass -File $redisDownloadScript
+        } catch {
+            Write-Host "[redis] Download/install helper failed: $($_.Exception.Message)" -ForegroundColor DarkYellow
+        }
+    }
+
+    if (Test-Path $redisExe) {
+        return $redisExe
+    }
+
+    Write-Host "[redis] No native Windows compatibility binary available at $redisExe. Continuing without local Redis shim." -ForegroundColor DarkYellow
+    return $null
 }
 
 function Ensure-AirAvailable {
@@ -224,9 +265,10 @@ function Start-ManagedService {
 }
 
 function Start-ServiceProcess {
-    param([string]$WorkingDir, [string]$Name, [string]$App, [int]$Port)
+    param([string]$WorkingDir, [string]$Name, [string]$App, [int]$Port, [string]$PythonExe = "")
     # SERVER=granian uses Granian (Rust/Tokio ASGI) instead of uvicorn.
     # Eval: python_runtime_eval_delta.md GRN.V1-V4. Default: uvicorn.
+    $resolvedPython = if ($PythonExe -and (Test-Path $PythonExe)) { $PythonExe } else { $venvPython }
     $serverChoice = if ($env:SERVER) { $env:SERVER.ToLower() } else { "uvicorn" }
     if ($serverChoice -eq "granian") {
         $args = @("-m", "granian", "--interface", "asgi", "--host", "127.0.0.1", "--port", "$Port", "--reload", $App)
@@ -235,7 +277,7 @@ function Start-ServiceProcess {
         $args = @("-m", "uvicorn", $App, "--host", "127.0.0.1", "--port", "$Port", "--reload")
         Write-Host "[$Name] Starting on port $Port (uvicorn + auto-reload)"
     }
-    $proc = Start-LoggedProcess -Name $Name -FilePath $venvPython -ArgumentList $args -WorkingDirectory $WorkingDir
+    $proc = Start-LoggedProcess -Name $Name -FilePath $resolvedPython -ArgumentList $args -WorkingDirectory $WorkingDir
     return $proc
 }
 
@@ -307,6 +349,7 @@ try {
     Import-EnvFile -Path (Join-Path $repoRoot ".env.development")
     Import-EnvFile -Path (Join-Path $goBackendDir ".env.development")
     Import-EnvFile -Path (Join-Path $pythonBackendRoot ".env.development")
+    Import-EnvFile -Path (Join-Path $agentRoot ".env.development")  # python-agent env (LLM keys, OTEL)
 
     # 0b) OpenObserve (Default ON, skip via -SkipObservability flag)
     if (-not $SkipObservability) {
@@ -355,7 +398,48 @@ try {
         }
     }
 
-    # 0c) NATS JetStream (Default ON, skip via -SkipNats flag)
+    # 0c) Redis — two instances (Default ON, skip via -SkipRedis / -SkipValkey)
+    #   :6379 — Go Gateway cache (market data, geo, hot-path)
+    #   :6380 — Python Backend cache (agent working memory, KG/vector TTL)
+    if (-not $SkipRedis) {
+        $resolvedRedisExe = Ensure-RedisAvailable
+        if ($null -ne $resolvedRedisExe) {
+            if (-not (Test-Path $redisDir)) { New-Item -ItemType Directory -Path $redisDir -Force | Out-Null }
+            if (-not (Test-Path $redisDataDir)) { New-Item -ItemType Directory -Path $redisDataDir -Force | Out-Null }
+            if (-not (Test-Path $redisPythonDataDir)) { New-Item -ItemType Directory -Path $redisPythonDataDir -Force | Out-Null }
+            if (-not (Test-Path $redisConfig)) { throw "[redis] Missing config at $redisConfig" }
+            if (-not (Test-Path $redisPythonConfig)) { throw "[redis-python] Missing config at $redisPythonConfig" }
+
+            Stop-ListenerOnPort -Port 6379 -Name "redis"
+            Stop-ListenerOnPort -Port 6380 -Name "redis-python"
+
+            # Go Gateway reads MEMORY_REDIS_URL → :6379
+            [Environment]::SetEnvironmentVariable("MEMORY_CACHE_PROVIDER", "redis", "Process")
+            [Environment]::SetEnvironmentVariable("CACHE_PROVIDER", "redis", "Process")
+            [Environment]::SetEnvironmentVariable("MEMORY_REDIS_ENABLED", "true", "Process")
+            [Environment]::SetEnvironmentVariable("MEMORY_REDIS_URL", "redis://127.0.0.1:6379/0", "Process")
+            [Environment]::SetEnvironmentVariable("MEMORY_VALKEY_URL", "redis://127.0.0.1:6379/0", "Process")
+            [Environment]::SetEnvironmentVariable("NEXT_RUNTIME_CACHE_PROVIDER", "redis", "Process")
+            [Environment]::SetEnvironmentVariable("NEXT_VALKEY_URL", "redis://127.0.0.1:6379/0", "Process")
+            # Python Backend reads PYTHON_REDIS_URL → :6380 (cache_adapter.py priority override)
+            [Environment]::SetEnvironmentVariable("PYTHON_REDIS_URL", "redis://127.0.0.1:6380/0", "Process")
+
+            Register-ManagedService -Name "redis" -Port 6379 -StartAction {
+                Write-Host "[redis] Starting Go-Gateway cache on :6379..." -ForegroundColor Cyan
+                Start-LoggedProcess -Name "redis" -FilePath $resolvedRedisExe -ArgumentList @($redisConfig) -WorkingDirectory $redisDir
+            }
+            Register-ManagedService -Name "redis-python" -Port 6380 -StartAction {
+                Write-Host "[redis-python] Starting Python-Backend cache on :6380..." -ForegroundColor Cyan
+                Start-LoggedProcess -Name "redis-python" -FilePath $resolvedRedisExe -ArgumentList @($redisPythonConfig) -WorkingDirectory $redisDir
+            }
+            Start-ManagedService -Name "redis" | Out-Null
+            Start-ManagedService -Name "redis-python" | Out-Null
+            Ensure-PortReady -Port 6379 -Name "redis" -TimeoutSecs 20
+            Ensure-PortReady -Port 6380 -Name "redis-python" -TimeoutSecs 20
+        }
+    }
+
+    # 0d) NATS JetStream (Default ON, skip via -SkipNats flag)
     # Alternative: docker compose -f docker-compose.nats.yml up -d
     if (-not $SkipNats) {
         $natsDir = Join-Path $repoRoot "tools\nats"
@@ -389,7 +473,7 @@ try {
         }
     }
 
-    # 0d) SeaweedFS object storage (Default ON, skip via -SkipSeaweedfs flag)
+    # 0e) SeaweedFS object storage (Default ON, skip via -SkipSeaweedfs flag)
     # Alternative: docker compose -f docker-compose.seaweedfs.yml up -d
     if (-not $SkipSeaweedfs) {
         $resolvedSeaweedExe = Ensure-SeaweedFSAvailable
@@ -509,14 +593,15 @@ try {
 
     # 3) Prepare + register Python/Rust services
     if (-not $SkipPython) {
+        # 3a) python-backend shared venv (compute services + Rust extension)
         if (-not (Test-Path $venvPython)) {
-            Write-Host "[python] Creating shared .venv..."
+            Write-Host "[python] Creating shared .venv in python-backend..."
             Push-Location $pythonBackendRoot
             & $uvCmd venv .venv
             Pop-Location
         }
 
-        Write-Host "[python] Syncing dependencies..."
+        Write-Host "[python] Syncing python-backend dependencies..."
         Push-Location $pythonBackendRoot
         if ($InstallMl) { & $uvCmd sync --python `"$venvPython`" --extra ml }
         else { & $uvCmd sync --python `"$venvPython`" --inexact }
@@ -537,23 +622,44 @@ try {
         }
         Pop-Location
 
-        # Map ports per API_CONTRACTS/SYSTEM_STATE: indicator 8092, finance-bridge 8081, soft-signals 8091
+        # 3b) Workspace sync picks up python-agent + python-compute deps automatically.
+        # (uv workspace: python-backend/ is root, members share python-backend/.venv)
+
+        # Map ports per API_CONTRACTS/SYSTEM_STATE:
+        # Compute plane (python-compute/): indicator 8092, finance-bridge 8081, soft-signals 8091
         Register-ManagedService -Name "indicator" -Port 8092 -StartAction {
-            Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\indicator-service") -Name "indicator" -App "app:app" -Port 8092
+            Start-ServiceProcess -WorkingDir (Join-Path $computeRoot "indicator-service") -Name "indicator" -App "app:app" -Port 8092
         }
         Register-ManagedService -Name "soft-signals" -Port 8091 -StartAction {
-            Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\geopolitical-soft-signals") -Name "soft-signals" -App "app:app" -Port 8091
+            Start-ServiceProcess -WorkingDir (Join-Path $computeRoot "geopolitical-soft-signals") -Name "soft-signals" -App "app:app" -Port 8091
         }
         Register-ManagedService -Name "finance-bridge" -Port 8081 -StartAction {
-            Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\finance-bridge") -Name "finance-bridge" -App "app:app" -Port 8081
+            Start-ServiceProcess -WorkingDir (Join-Path $computeRoot "finance-bridge") -Name "finance-bridge" -App "app:app" -Port 8081
         }
-        # Phase 6: Memory Service
+        # Agent plane (python-agent/): memory-service 8093, agent-service 8094
+        # Both use the standalone python-agent/.venv
         Register-ManagedService -Name "memory-service" -Port 8093 -StartAction {
-            Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\memory-service") -Name "memory-service" -App "app:app" -Port 8093
+            Start-ServiceProcess -WorkingDir (Join-Path $agentRoot "memory") -Name "memory-service" -App "app:app" -Port 8093 -PythonExe $agentVenvPython
         }
-        # Phase 10: Agent Service
         Register-ManagedService -Name "agent-service" -Port 8094 -StartAction {
-            Start-ServiceProcess -WorkingDir (Join-Path $pythonBackendRoot "services\agent-service") -Name "agent-service" -App "app:app" -Port 8094
+            Start-ServiceProcess -WorkingDir (Join-Path $agentRoot "agent") -Name "agent-service" -App "app:app" -Port 8094 -PythonExe $agentVenvPython
+        }
+    }
+
+    # 3c) Mock LLM (opt-in via -MockLlm flag — for agent verify without real API keys)
+    # tools/mock-llm/server.py is OpenAI-compatible, listens on :11500.
+    # python-agent reads AGENT_PROVIDER=openai-compatible + OPENAI_BASE_URL from env.
+    if ($MockLlm) {
+        $mockLlmDir = Join-Path $repoRoot "tools\mock-llm"
+        $mockPython = if (Test-Path $agentVenvPython) { $agentVenvPython } else { $venvPython }
+        [Environment]::SetEnvironmentVariable("AGENT_PROVIDER", "openai-compatible", "Process")
+        [Environment]::SetEnvironmentVariable("OPENAI_BASE_URL", "http://127.0.0.1:11500/v1", "Process")
+        [Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "mock-key-not-checked", "Process")
+        Register-ManagedService -Name "mock-llm" -Port 11500 -StartAction {
+            Write-Host "[mock-llm] Starting OpenAI-compatible stub on :11500 (agent verify mode)..." -ForegroundColor Magenta
+            Start-LoggedProcess -Name "mock-llm" -FilePath $mockPython `
+                -ArgumentList @("-m", "uvicorn", "server:app", "--host", "127.0.0.1", "--port", "11500") `
+                -WorkingDirectory $mockLlmDir
         }
     }
 
@@ -574,6 +680,7 @@ try {
         Start-ManagedService -Name "memory-service" | Out-Null
         Start-ManagedService -Name "agent-service" | Out-Null
     }
+    if ($MockLlm) { Start-ManagedService -Name "mock-llm" | Out-Null }
     if (-not $SkipNext) { Start-ManagedService -Name "nextjs" | Out-Null }
 
     # 6) Wait for all background services to be ready
@@ -582,6 +689,9 @@ try {
     }
     if (-not $SkipSeaweedfs) {
         Ensure-PortReady -Port 8333 -Name "seaweedfs" -TimeoutSecs 45
+    }
+    if (-not $SkipRedis -and $null -ne $managedServices["redis"]) {
+        Ensure-PortReady -Port 6379 -Name "redis" -TimeoutSecs 20
     }
     if (-not $SkipGo) {
         Ensure-PortReady -Port 9060 -Name "go-gateway" -TimeoutSecs 180
@@ -593,10 +703,17 @@ try {
         Ensure-PortReady -Port 8093 -Name "memory-service" -TimeoutSecs 90
         Ensure-PortReady -Port 8094 -Name "agent-service" -TimeoutSecs 90
     }
+    if ($MockLlm) {
+        Ensure-PortReady -Port 11500 -Name "mock-llm" -TimeoutSecs 30
+    }
 
     Write-Host "`n--- Stack Ready ---" -ForegroundColor Green
     Write-Host "Next.js UI:   http://localhost:3000"
     Write-Host "Go Gateway:   http://127.0.0.1:9060"
+    if (-not $SkipRedis -and $null -ne $managedServices["redis"]) {
+        Write-Host "Redis Go:     redis://127.0.0.1:6379/0  (Go Gateway cache)"
+        Write-Host "Redis Python: redis://127.0.0.1:6380/0  (Python agent/memory cache)"
+    }
     if (-not $SkipSeaweedfs) {
         Write-Host "SeaweedFS S3:  http://127.0.0.1:8333"
         Write-Host "SeaweedFS UI:  http://127.0.0.1:9333  | Filer: http://127.0.0.1:8888"
@@ -604,6 +721,7 @@ try {
     Write-Host "Python API:   8081, 8091, 8092, 8093, 8094 (agent)"
     if (-not $SkipGCT) { Write-Host "GCT gRPC:     127.0.0.1:9052" }
     if (-not $SkipObservability) { Write-Host "OpenObserve:  http://localhost:5080  (Traces/Logs/Metrics)" -ForegroundColor Cyan }
+    if ($MockLlm) { Write-Host "Mock LLM:     http://127.0.0.1:11500  (agent verify — AGENT_PROVIDER=openai-compatible)" -ForegroundColor Magenta }
 
     if ($Watch) {
         if ($WaitSeconds -gt 0) {

@@ -13,6 +13,15 @@ export interface GeoInteractionStatusItem {
 	tone: "neutral" | "active" | "warning";
 }
 
+export interface GeoDrawingActionState {
+	canCompletePolygon: boolean;
+	canClearPolygon: boolean;
+	canOpenSelectedDrawingInFlatView: boolean;
+	canDeleteSelectedDrawing: boolean;
+	canUndo: boolean;
+	canRedo: boolean;
+}
+
 export function parseLatitudeInput(raw: string): ParsedGeoCoordinateInput {
 	const value = Number(raw);
 	if (!Number.isFinite(value)) {
@@ -150,4 +159,33 @@ export function buildGeoInteractionStatus(params: {
 	}
 
 	return items;
+}
+
+export function buildGeoDrawingActionState(params: {
+	drawingMode: DrawingMode;
+	pendingPolygonPointsCount: number;
+	busy: boolean;
+	selectedDrawingId: string | null;
+	canOpenSelectedDrawingInFlatView: boolean;
+	canUndoDrawings: boolean;
+	canRedoDrawings: boolean;
+}): GeoDrawingActionState {
+	const {
+		drawingMode,
+		pendingPolygonPointsCount,
+		busy,
+		selectedDrawingId,
+		canOpenSelectedDrawingInFlatView,
+		canUndoDrawings,
+		canRedoDrawings,
+	} = params;
+
+	return {
+		canCompletePolygon: !busy && drawingMode === "polygon" && pendingPolygonPointsCount >= 3,
+		canClearPolygon: !busy && drawingMode === "polygon" && pendingPolygonPointsCount > 0,
+		canOpenSelectedDrawingInFlatView: !busy && canOpenSelectedDrawingInFlatView,
+		canDeleteSelectedDrawing: !busy && selectedDrawingId !== null,
+		canUndo: !busy && canUndoDrawings,
+		canRedo: !busy && canRedoDrawings,
+	};
 }

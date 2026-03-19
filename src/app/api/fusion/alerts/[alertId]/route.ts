@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { deletePriceAlert, updatePriceAlert } from "@/lib/server/price-alerts-store";
+
+type AlertDetailRouteReason =
+	| "MISSING_ALERT_ID"
+	| "MISSING_PROFILE_KEY"
+	| "INVALID_JSON_BODY"
+	| "INVALID_UPDATE_PAYLOAD"
+	| "ALERT_NOT_FOUND"
+	| "PERSISTENCE_UNAVAILABLE"
+	| "INTERNAL_ERROR";
 
 const updateAlertSchema = z.object({
 	profileKey: z.string().min(1),
@@ -16,24 +24,36 @@ function withRequestId(response: NextResponse, requestId: string): NextResponse 
 	return response;
 }
 
+function inferServerReason(
+	message: string,
+): Extract<AlertDetailRouteReason, "PERSISTENCE_UNAVAILABLE" | "INTERNAL_ERROR"> {
+	return message.includes("fallback is disabled") ||
+		message.toLowerCase().includes("db client unavailable")
+		? "PERSISTENCE_UNAVAILABLE"
+		: "INTERNAL_ERROR";
+}
+
 function errorResponse(requestId: string, error: unknown): NextResponse {
 	const message = error instanceof Error ? error.message : "alert mutation failed";
-	const persistenceError =
-		message.includes("fallback is disabled") ||
-		message.toLowerCase().includes("db client unavailable");
+	const reason = inferServerReason(message);
 	return withRequestId(
 		NextResponse.json(
 			{
 				success: false,
 				error: message,
+				reason,
 				requestId,
 				degraded: true,
-				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
+				degraded_reasons: [reason],
 			},
-			{ status: persistenceError ? 503 : 500 },
+			{ status: reason === "PERSISTENCE_UNAVAILABLE" ? 503 : 500 },
 		),
 		requestId,
 	);
+}
+
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
 }
 
 export async function PATCH(
@@ -48,6 +68,7 @@ export async function PATCH(
 				{
 					success: false,
 					error: "alertId is required",
+					reason: "MISSING_ALERT_ID",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -67,6 +88,7 @@ export async function PATCH(
 				{
 					success: false,
 					error: "invalid JSON body",
+					reason: "INVALID_JSON_BODY",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -84,6 +106,7 @@ export async function PATCH(
 				{
 					success: false,
 					error: "invalid update payload",
+					reason: "INVALID_UPDATE_PAYLOAD",
 					details: parsed.error.flatten(),
 					requestId,
 					degraded: false,
@@ -95,37 +118,29 @@ export async function PATCH(
 		);
 	}
 	try {
-		const updated = await updatePriceAlert(parsed.data.profileKey, alertId, {
-			enabled: parsed.data.enabled,
-			triggered: parsed.data.triggered,
-			triggeredAt:
-				parsed.data.triggeredAt === null ? undefined : (parsed.data.triggeredAt ?? undefined),
-			message: parsed.data.message === null ? undefined : parsed.data.message?.trim() || undefined,
-		});
-		if (!updated) {
-			return withRequestId(
-				NextResponse.json(
-					{
-						success: false,
-						error: "alert not found",
-						requestId,
-						degraded: false,
-						degraded_reasons: [],
-					},
-					{ status: 404 },
-				),
-				requestId,
-			);
-		}
-
+		const response = await fetch(
+			`${getGoGatewayUrl()}/api/v1/fusion/alerts/${encodeURIComponent(alertId)}`,
+			{
+				method: "PATCH",
+				headers: {
+					"Content-Type": "application/json",
+					"X-Request-ID": requestId,
+				},
+				body: JSON.stringify({
+					profileKey: parsed.data.profileKey,
+					enabled: parsed.data.enabled,
+					triggered: parsed.data.triggered,
+					triggeredAt:
+						parsed.data.triggeredAt === null ? undefined : (parsed.data.triggeredAt ?? undefined),
+					message:
+						parsed.data.message === null ? undefined : parsed.data.message?.trim() || undefined,
+				}),
+				cache: "no-store",
+			},
+		);
+		const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 		return withRequestId(
-			NextResponse.json({
-				success: true,
-				alert: updated,
-				requestId,
-				degraded: false,
-				degraded_reasons: [],
-			}),
+			NextResponse.json({ ...payload, requestId }, { status: response.status }),
 			requestId,
 		);
 	} catch (error: unknown) {
@@ -145,6 +160,7 @@ export async function DELETE(
 				{
 					success: false,
 					error: "alertId is required",
+					reason: "MISSING_ALERT_ID",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -161,6 +177,7 @@ export async function DELETE(
 				{
 					success: false,
 					error: "profileKey is required",
+					reason: "MISSING_PROFILE_KEY",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -171,24 +188,17 @@ export async function DELETE(
 		);
 	}
 	try {
-		const deleted = await deletePriceAlert(profileKey, alertId);
-		if (!deleted) {
-			return withRequestId(
-				NextResponse.json(
-					{
-						success: false,
-						error: "alert not found",
-						requestId,
-						degraded: false,
-						degraded_reasons: [],
-					},
-					{ status: 404 },
-				),
-				requestId,
-			);
-		}
+		const response = await fetch(
+			`${getGoGatewayUrl()}/api/v1/fusion/alerts/${encodeURIComponent(alertId)}?profileKey=${encodeURIComponent(profileKey)}`,
+			{
+				method: "DELETE",
+				headers: { "X-Request-ID": requestId },
+				cache: "no-store",
+			},
+		);
+		const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 		return withRequestId(
-			NextResponse.json({ success: true, requestId, degraded: false, degraded_reasons: [] }),
+			NextResponse.json({ ...payload, requestId }, { status: response.status }),
 			requestId,
 		);
 	} catch (error: unknown) {

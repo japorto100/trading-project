@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import {
 	Suspense,
 	useCallback,
@@ -39,8 +40,10 @@ import { getDefaultStartYear } from "@/lib/fusion-symbols";
 import type { HistoryRangePreset } from "@/lib/history-range";
 import { clampStartYearForSymbol } from "@/lib/history-range";
 import type { TimeframeValue } from "@/lib/providers/types";
+import { parseTradingWorkspaceFocus } from "@/lib/trading-entry";
 
 function TradingDashboard() {
+	const searchParams = useSearchParams();
 	// ─── Client-side guard ────────────────────────────────────────────────────
 	const mounted = useSyncExternalStore(
 		() => () => {},
@@ -73,9 +76,17 @@ function TradingDashboard() {
 		rightSidebarOpen,
 		activeSidebarPanel,
 		setActiveSidebarPanel,
+		setRightSidebarOpen,
 		toggleLeft,
 		toggleRight,
 	} = useWorkspaceLayout(currentSymbol.symbol);
+	const focusPanel = parseTradingWorkspaceFocus(searchParams.get("focus"));
+
+	useEffect(() => {
+		if (!focusPanel) return;
+		setActiveSidebarPanel(focusPanel);
+		setRightSidebarOpen(true);
+	}, [focusPanel, setActiveSidebarPanel, setRightSidebarOpen]);
 
 	// ─── Chart data (TanStack Query) ──────────────────────────────────────────
 	const {
@@ -317,6 +328,8 @@ function TradingDashboard() {
 								effectiveStartYear={historyWindow.effectiveStartYear}
 								onHistoryRangeChange={setHistoryRangePreset}
 								onCustomStartYearChange={handleCustomStartYearChange}
+								symbol={currentSymbol.symbol}
+								timeframe={currentTimeframe}
 							/>
 							<BottomStats stats={stats} />
 						</div>

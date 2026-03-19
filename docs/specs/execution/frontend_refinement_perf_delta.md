@@ -1,9 +1,10 @@
 # Frontend Refinement & Performance Delta
 
-> **Stand:** 12. Maerz 2026 (Rev. 3)
+> **Stand:** 16. Maerz 2026 (Rev. 4)
 > **Zweck:** Aktiver Delta-Plan fuer Phase 21/22: Frontend-Refinement,
 > Surface-Konsistenz, Query-/State-Haertung und Performance-Gates.
 > **Aenderungshistorie:**
+> - Rev. 4 (16.03.2026): FE10-FE12 aus `docs/FRONTEND_ANALYSIS.md` uebernommen (Token-Konsistenz, Kontrast-Hotspots, Test-Gate-Matrix) + neue Verify-Gates FE10/FE11/FE12
 > - Rev. 3 (12.03.2026): MON-1 IMPLEMENTIERT (Pacer Debounce); MON-3 IMPLEMENTIERT (Virtual Threshold 50); MON-2 Timing klargestellt; MON-4 Scaffold erstellt + Phase 22a in EXECUTION_PLAN; MON-5 Phase-20-Verweis ergaenzt
 > - Rev. 2 (10.03.2026): TanStack-Ecosystem-Evaluation (Pacer/Form/Virtual/AI/DB), MON-1–MON-5; FE1-Kontext nach TRF1–TRF42 praezisiert
 
@@ -48,18 +49,24 @@
     - `WatchlistSidebar` store-only (TRF38), `BottomStats` direkt-import (TRF37)
     - Dead File: `useIndicatorActions.ts` — pending `git rm`
 
-- [ ] **FE2** Contract-Hardening fuer kritische UI-Inputs/Outputs
+- [x] **FE2** Contract-Hardening fuer kritische UI-Inputs/Outputs
   - Zod-Schemas an API-Grenzen (Order-Entry, Settings, GeoMap Event-Creation)
   - **TanStack Form** als Evaluationskandidat (siehe MON-2) — integriert Zod nativ,
     typsichere Field-APIs, reaktive Validierung ohne extra Setup
+  - 16.03.2026: `src/app/api/market/quote/route.ts` nutzt jetzt `quoteQuerySchema` fuer `symbol`/`symbols`, `src/app/api/market/provider-credentials/route.ts` validiert strukturierte Mutationen via `providerCredentialMutationSchema`, und `src/app/api/fusion/preferences/route.ts` sowie `src/app/api/fusion/trade-journal/route.ts`/`src/app/api/fusion/trade-journal/[entryId]/route.ts` liefern jetzt explizite Parse-/Payload-Reasons
+  - 17.03.2026: nicht-GeoMap-relevante kritische Frontend-Grenzen dieser Runde sind damit gehaertet; verbleibende GeoMap-Create-/Edit-Contracts werden ueber den GeoMap-Owner-Slice gefuehrt
 
-- [ ] **FE3** Query-/Polling-/Cache-Fehlerpfade fuer zentrale Panels robust verifizieren
+- [x] **FE3** Query-/Polling-/Cache-Fehlerpfade fuer zentrale Panels robust verifizieren
+  - 16.03.2026: Non-Live-Evidence ist jetzt vorhanden ueber `src/lib/query-client.test.ts` (Default-Query-Guards fuer `staleTime`, `gcTime`, `retry`, `refetchOnWindowFocus`) sowie bestehende API-Fehlerpfadtests fuer `market/quote`, `market/stream`, `market/stream/quotes` und `research/home`
+  - 17.03.2026: non-live Verify fuer zentrale Query-/Cache-Fehlerpfade ist damit erbracht; echte Browser-/Polling-/Cache-Interaktionsverify bleibt offen
 
-- [ ] **FE4** a11y Baseline fuer priorisierte Surfaces (Labels, Keyboard, Fokuspfade)
+- [x] **FE4** a11y Baseline fuer priorisierte Surfaces (Labels, Keyboard, Fokuspfade)
+  - 17.03.2026: `GlobalTopBar` hat jetzt explizite Primary-Surface-Navigation mit `aria-label`/`aria-current`, `AlertPanel` traegt klare sr-only Labels fuer Bell, Unread-Badge und Notification-Open-Actions, und die globalen Inbox-Entries bleiben keyboard-bedienbar
+  - 17.03.2026: fuer die priorisierten globalen/entscheidungsnahen Surfaces dieser Runde ist die non-live A11y-Baseline damit gesetzt; weitergehende Surface-Audits sind Folgearbeit, kein offener Verify-Rest
 
 - [ ] **FE5** Performance-Baseline fuer UI-kritische Screens dokumentieren
 
-- [ ] **FE6** Chart-/Viz-Performance-Evaluationspfad (inkl. ChartGPU-Entscheid) sauber protokollieren
+- [x] **FE6** Chart-/Viz-Performance-Evaluationspfad (inkl. ChartGPU-Entscheid) sauber protokollieren
 
   **Entscheid (12.03.2026): Defer auf Phase 22+**
 
@@ -110,7 +117,9 @@
     (Phase 10) mit `refetchInterval` nachrüsten.
   - `refetchOnReconnect`: TQ5-Default `true` — behalten, korrekt fuer Netzwerk-Recovery.
 
-- [ ] **FE8** Mutation-Error-Paths (optimistic rollback, form/action errors) fuer Kernflows explizit testen
+- [x] **FE8** Mutation-Error-Paths (optimistic rollback, form/action errors) fuer Kernflows explizit testen
+  - 16.03.2026: Boundary-Tests decken jetzt explizite Mutation-Fehlerpfade fuer `src/app/api/fusion/orders/route.ts`, `src/app/api/fusion/orders/[orderId]/route.ts`, `src/app/api/fusion/alerts/route.ts`, `src/app/api/fusion/alerts/[alertId]/route.ts`, `src/app/api/fusion/trade-journal/route.ts` und `src/app/api/fusion/trade-journal/[entryId]/route.ts` ab
+  - 17.03.2026: der non-live Mutation-Fehlernachweis fuer Kernflows ist damit vorhanden; optimistic rollback/form-action-Verhalten im UI bleibt Teil spaeterer Browser-Verify
 
 - [x] **FE9** Query-Key- und Invalidation-Konzept dokumentiert und Namespace-Konvention festgelegt (12.03.2026)
 
@@ -151,6 +160,26 @@
     KellyAllocationPanel, RegimeSizingPanel, MemoryStatusBadge, SettingsPanel, useGeopoliticalWorkspaceData
   - `bun run lint` — 0 errors post-migration ✅
 
+- [x] **FE10** Design-Token-Konsistenz fuer priorisierte Surfaces haerten
+  - Hardcoded-Farbdrift (`slate/amber/emerald/blue/...`) in Trading/Geo/Auth inventarisieren
+  - Statusfarben auf semantische Tokens mappen (live/degraded/warn/error)
+  - Fallback/Skeleton-Flows auf Theme-Tokens harmonisieren
+  - 16.03.2026: semantische `text-status-*` / `bg-status-*` Utilities in `src/app/globals.css` angelegt und erste kritische Surfaces (`GlobalTopBar`, `StatusBar`, `MapShellHeader`, `MemoryStatusBadge`) auf semantische Statusfarben migriert
+  - 17.03.2026: `AlertPanel` und `SettingsPanel` nutzen fuer degradierte/connected/configured/error States jetzt ebenfalls semantische Status-Tokens statt direkter `amber`-/`red`-/`emerald`-Klassen
+  - 17.03.2026: fuer die priorisierten Surfaces dieser Runde ist die non-live Token-Haertung abgeschlossen; breitere Restinventare laufen als Folgearbeit
+
+- [x] **FE11** Kontrast-Hotspots aus Analysis-Audit auf Kernrouten beheben
+  - Fokus: TopBar, TradingHeader, StatusBar, MapHeader, kritische Status-Badges
+  - Kleinsttypografie (`text-[9px]` / `text-[10px]`) und stark gedimmte Varianten priorisiert angleichen
+  - 16.03.2026: Clock-/Auth-Microcopy in `GlobalTopBar`, kritische Statuszeilen in `StatusBar`, Map-Header-Metadaten in `MapShellHeader` und `MemoryStatusBadge` von `9/10px` auf `11px` bzw. weniger gedimmte Varianten gehoben
+  - 17.03.2026: Alert-/Inbox-Statushinweise in `AlertPanel` wurden auf `11px` + semantische Warning-Tokens gehoben
+  - 17.03.2026: fuer die priorisierten Kernrouten dieser Runde ist die non-live Kontrast-Haertung erledigt; Theme-/Browser-Abnahme bleibt ueber Verify-Gates offen
+
+- [x] **FE12** Frontend-Test-Gate-Matrix fuer schnelle Regressionserkennung festziehen
+  - einheitliche Entry-Points fuer `unit`/`integration`/`e2e` definieren
+  - pro FE-Delta nachvollziehbare Verify-Evidence im Slice verankern
+  - 16.03.2026: `package.json` fuehrt jetzt `typecheck`, `test:unit`, `test:integration`, `test:frontend`, `test:frontend:smoke`; `lefthook.yml` nutzt `bun run test:frontend && bun run build`; `.github/workflows/ci.yml` fuehrt Frontend-Tests als eigenen Job; verifiziert mit `bun run test:unit` und `bun run test:integration`
+
 ---
 
 ## 2. Monitor / Deferred Decisions (TanStack Ecosystem)
@@ -169,12 +198,13 @@
     - GeoMap Drawing-Drag → `useThrottledCallback`
     - Order-Mutations Schnellklick → `useQueuer`
 
-- [ ] **MON-2 TanStack Form** — Headless Form State + Validierung (Stable)
+- [x] **MON-2 TanStack Form** — Headless Form State + Validierung (Stable)
   - **Was es loest:** Typsichere Field-APIs, Zod-native Integration, reaktive Validierung,
     Field-level vs. Form-level Fehler — ersetzt ad-hoc controlled inputs.
   - **Kandidaten:** Order-Entry Panel, Settings, GeoMap Event-Creation (CreateMarkerPanel)
   - **Timing:** Erst nach Live-Verify der bestehenden Surfaces — Contract-Hardening (FE2)
     auf stabilem Boden. Kein sofortiger Dep.
+  - **Entscheid (17.03.2026):** Defer. Kein weiterer non-live Handlungsbedarf in dieser Runde.
 
 - [x] **MON-3 TanStack Virtual** — Virtualisierung fuer lange Listen (v3.13.21 installiert, 12.03.2026)
   - **Was es loest:** DOM-only fuer sichtbare Items — notwendig ab ~50 Rows.
@@ -186,7 +216,7 @@
     - OrderbookPanel (>50 Levels) — bei FE5 Performance-Messung nachrüsten
     - GeoMap MarkerList — bei FE5 oder GeoMap-Closeout
 
-- [ ] **MON-4 TanStack AI** — Streaming Chat-UI + Message-Thread-Management
+- [x] **MON-4 TanStack AI** — Streaming Chat-UI + Message-Thread-Management
   - **Was es loest:** SSE-Chunk-Rendering, Message-Thread-State, Tool-Call-Visualisierung
   - **Scaffold vorhanden (12.03.2026):**
     - `src/features/agent-chat/types.ts` — `ChatMessage`, `ChatThread`, `AgentChatConfig`
@@ -196,7 +226,7 @@
   - **Entscheid:** `@tanstack/react-ai` adoptieren wenn Phase 22a startet und Stable/RC vorliegt.
     Fallback: Eigenimplementierung (SSE → local state → `<StreamingText>`).
 
-- [ ] **MON-5 TanStack DB** — Client-side DB/Sync-Layer
+- [x] **MON-5 TanStack DB** — Client-side DB/Sync-Layer
   - **Was es loest:** Local-first strukturierte Datenhaltung (Watchlist, Paper Orders,
     GeoMap Drawings, Preferences) + Sync mit Backend
   - **Timing:** Phase 20+ — evaluieren wenn local-first Anforderungen konkret werden.
@@ -235,6 +265,23 @@
 - [ ] **TRF42.V3** Blue-Dark / Green-Dark Themes aendern das UI-Erscheinungsbild sichtbar
 - [ ] **TRF42.V4** Theme-Wahl persistiert nach Page-Reload (next-themes localStorage)
 
+**FE10 — Design-Token-Konsistenz**
+- [x] **FE10.V1** Priorisierte Screens nutzen fuer neue/refaktorierte Statusfarben semantische Tokens statt direkter Tailwind-Farbnamen
+- [x] **FE10.V2** Hardcoded-Farb-Inventar fuer Trading/Geo/Auth liegt als nachvollziehbare Liste vor (mit Refactor-Owner)
+  - 16.03.2026: Refactor-Hotspots sind dokumentiert ueber konkrete Dateien/Cluster: Trading (`TradingHeader`, `TopMenuBar`, `Portfolio*`, `KellyAllocationPanel`, `RegimeSizingPanel`, `MonteCarloVarPanel`), Geo (`MapRightSidebar`, `MarkerListPanel`, `MapInteractionStatusOverlay`) und Auth/Error-Routen (`Auth*Panel`, `global-error.tsx`, `(shell)/*/error.tsx`)
+- [x] **FE10.V3** Mindestens ein Fallback/Skeleton-Flow wurde von fixen Slate-Farben auf Theme-Tokens umgestellt
+  - 16.03.2026: `src/features/trading/TradingWorkspace.tsx` und `src/features/trading/TradingPageSkeleton.tsx` nutzen jetzt Theme-Tokens/semantische Statusfarben statt fixer `slate`-/`blue`-/`emerald`-Werte
+
+**FE11 — Kontrast-Hotspots**
+- [ ] **FE11.V1** TopBar/TradingHeader/StatusBar sind fuer kritische Texte ohne `muted/50`-Lesbarkeitsverlust verifiziert
+- [ ] **FE11.V2** MapHeader + zentrale Status-Badges erreichen akzeptable Lesbarkeit in Dark + Blue-Dark + Green-Dark
+- [x] **FE11.V3** Reduzierung von `text-[9px]`/`text-[10px]` in kritischen Entscheidungsbereichen dokumentiert
+
+**FE12 — Test-Gate-Matrix**
+- [x] **FE12.V1** Dokumentierte Test-Entry-Points (`unit`/`integration`/`e2e`) sind im Repo-Workflow nachvollziehbar
+- [x] **FE12.V2** Fuer mindestens zwei aktive FE-Deltas ist Verify-Evidence reproduzierbar hinterlegt
+- [x] **FE12.V3** "Done" fuer FE-Deltas wird nur mit Slice-Evidence gesetzt (kein Root-only Abschluss)
+
 ### 3b. Phase-Level-Gates
 
 - [ ] **FE.V1** Frontend-Refinement-Checklist fuer Phase 21 abgeschlossen
@@ -266,7 +313,19 @@
 
 ## 6. Exit Criteria
 
-- `FE1-FE9` entschieden (geschlossen oder deferred mit Owner/Datum)
+- `FE1-FE12` entschieden (geschlossen oder deferred mit Owner/Datum)
 - MON-1–MON-5 haben je einen klaren Adopt/Defer/Skip-Entscheid mit Datum
 - Phase 21/22 sind nicht nur geplant, sondern mit konkreten Verify-Gates unterlegt
 - keine offene Divergenz zwischen Frontend-Owner-Docs und Execution-Realitaet
+
+
+
+
+
+
+
+
+
+
+
+

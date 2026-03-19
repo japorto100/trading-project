@@ -7,9 +7,8 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { CONTROL_ACTION_CLASSES } from "@/features/control/lib/action-classes";
 import { writeControlAudit } from "@/lib/server/control-audit";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { getErrorMessage } from "@/lib/utils";
-
-const GATEWAY_BASE = (process.env.GO_GATEWAY_BASE_URL ?? "http://127.0.0.1:9060").trim();
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 	try {
 		const res = await fetch(
-			`${GATEWAY_BASE}/api/v1/control/sessions/${encodeURIComponent(id)}/kill`,
+			`${getGatewayBaseURL()}/api/v1/control/sessions/${encodeURIComponent(id)}/kill`,
 			{
 				method: "POST",
 				headers: {

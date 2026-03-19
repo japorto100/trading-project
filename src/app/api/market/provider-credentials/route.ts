@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import {
 	normalizeProviderCredentialsInput,
 	PROVIDER_CREDENTIALS_COOKIE,
@@ -15,6 +16,26 @@ interface ProviderCredentialMutation {
 	removeProviders: string[];
 	replaceAll: boolean;
 }
+
+type ProviderCredentialsRouteErrorReason = "INVALID_JSON_BODY" | "INVALID_MUTATION_PAYLOAD";
+
+class ProviderCredentialsRouteError extends Error {
+	constructor(
+		message: string,
+		readonly reason: ProviderCredentialsRouteErrorReason,
+	) {
+		super(message);
+		this.name = "ProviderCredentialsRouteError";
+	}
+}
+
+const providerCredentialMutationSchema = z
+	.object({
+		credentials: z.record(z.string(), z.unknown()).optional(),
+		removeProviders: z.array(z.string()).optional(),
+		replaceAll: z.boolean().optional(),
+	})
+	.passthrough();
 
 function resolveCookieMaxAgeSeconds(): number {
 	const rawValue = Number(process.env.PROVIDER_CREDENTIALS_COOKIE_MAX_AGE_SECONDS ?? "");
@@ -32,7 +53,10 @@ function withRequestIdHeader(response: NextResponse, requestId: string): NextRes
 
 function parseMutationBody(body: unknown): ProviderCredentialMutation {
 	if (!body || typeof body !== "object" || Array.isArray(body)) {
-		throw new Error("Provider credential payload must be an object");
+		throw new ProviderCredentialsRouteError(
+			"Provider credential payload must be an object",
+			"INVALID_MUTATION_PAYLOAD",
+		);
 	}
 
 	const rawBody = body as Record<string, unknown>;
@@ -47,16 +71,20 @@ function parseMutationBody(body: unknown): ProviderCredentialMutation {
 		};
 	}
 
-	const credentials =
-		rawBody.credentials &&
-		typeof rawBody.credentials === "object" &&
-		!Array.isArray(rawBody.credentials)
-			? normalizeProviderCredentialsInput(rawBody.credentials as Record<string, unknown>)
-			: {};
+	const parsedBody = providerCredentialMutationSchema.safeParse(rawBody);
+	if (!parsedBody.success) {
+		throw new ProviderCredentialsRouteError(
+			"Provider credential payload has invalid structured fields",
+			"INVALID_MUTATION_PAYLOAD",
+		);
+	}
 
-	const removeProviders = Array.isArray(rawBody.removeProviders)
-		? rawBody.removeProviders
-				.filter((provider): provider is string => typeof provider === "string")
+	const credentials = parsedBody.data.credentials
+		? normalizeProviderCredentialsInput(parsedBody.data.credentials)
+		: {};
+
+	const removeProviders = parsedBody.data.removeProviders
+		? parsedBody.data.removeProviders
 				.map((provider) => provider.trim().toLowerCase())
 				.filter(Boolean)
 		: [];
@@ -64,7 +92,7 @@ function parseMutationBody(body: unknown): ProviderCredentialMutation {
 	return {
 		credentials,
 		removeProviders: [...new Set(removeProviders)],
-		replaceAll: rawBody.replaceAll === true,
+		replaceAll: parsedBody.data.replaceAll === true,
 	};
 }
 
@@ -83,8 +111,23 @@ function mergeProviderCredentials(
 
 export async function POST(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
+	let body: unknown;
 	try {
-		const body = await request.json();
+		body = await request.json();
+	} catch {
+		return withRequestIdHeader(
+			NextResponse.json(
+				{
+					error: "Request body must be valid JSON",
+					reason: "INVALID_JSON_BODY",
+				},
+				{ status: 400 },
+			),
+			requestId,
+		);
+	}
+
+	try {
 		const mutation = parseMutationBody(body);
 		const existing = parseProviderCredentialsCookie(
 			request.cookies.get(PROVIDER_CREDENTIALS_COOKIE)?.value,
@@ -119,10 +162,24 @@ export async function POST(request: NextRequest) {
 		});
 		return response;
 	} catch (error: unknown) {
+		if (error instanceof ProviderCredentialsRouteError) {
+			return withRequestIdHeader(
+				NextResponse.json(
+					{
+						error: error.message,
+						reason: error.reason,
+					},
+					{ status: 400 },
+				),
+				requestId,
+			);
+		}
+
 		return withRequestIdHeader(
 			NextResponse.json(
 				{
 					error: error instanceof Error ? error.message : "Failed to store provider credentials",
+					reason: "INVALID_MUTATION_PAYLOAD",
 				},
 				{ status: 400 },
 			),

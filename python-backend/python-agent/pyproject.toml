@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+namespaces = true
+include = ["agent*", "memory_engine*", "context*"]
+
+# Dev tools (ruff, ty, basedpyright, pytest) kommen aus Root-Workspace via shared venv.
+# Nicht hier duplizieren.
+
+[project]
+name = "tradeview-fusion-python-agent"
+version = "0.2.0"
+description = "Agent services (agent-service port 8094, memory-service port 8093) — standalone isolated venv"
+requires-python = ">=3.11"
+dependencies = [
+    # ── HTTP framework ──────────────────────────────────────────────────────
+    "fastapi==0.116.1",
+    "pydantic>=2.0",
+    "uvicorn==0.35.0",
+    "granian>=2.0.0",          # Rust/Tokio ASGI server — drop-in for uvicorn
+    "httpx==0.28.1",
+    "python-dotenv==1.0.1",
+
+    # ── LLM SDKs — provider-agnostic loop (Phase 22g) ──────────────────────
+    # AGENT_PROVIDER=anthropic (default) | openai | openai-compatible
+    #   openai-compatible covers: OpenRouter, Ollama, vLLM, LM Studio, Azure
+    #   set OPENAI_BASE_URL (e.g. http://localhost:11434/v1 for Ollama)
+    "anthropic>=0.40.0",
+    "openai>=1.50.0",
+
+    # ── Cache / state ───────────────────────────────────────────────────────
+    "redis>=5.0.0",
+    "cachetools>=5.3.0",
+
+    # ── Memory service (port 8093) ──────────────────────────────────────────
+    # KG store: KuzuDB primary, SQLite fallback
+    "kuzu>=0.7.0",
+    # Vector store: ChromaDB (lightweight local) + sentence-transformers for embeddings
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0.0",
+    # LanceDB (Arrow-based, hybrid search vector+BM25, preferred for production)
+    "lancedb>=0.6.0",
+    # pgvector provider (Docker/Postgres alternative)
+    "psycopg[binary]>=3.2.0",
+
+    # ── OpenTelemetry (opt-in via OTEL_ENABLED=true) ────────────────────────
+    "opentelemetry-sdk>=1.29.0",
+    "opentelemetry-instrumentation-fastapi>=0.50b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.29.0",
+    # Traces all outbound httpx calls (LLM APIs, internal services)
+    "opentelemetry-instrumentation-httpx>=0.50b0",
+    # Anthropic gen_ai.* spans (OpenLLMetry / Traceloop SOTA 2026)
+    # Adds token counts, model, finish_reason ON TOP of httpx span
+    "opentelemetry-instrumentation-anthropic>=0.51.0",
+
+    # ── Shared workspace packages ────────────────────────────────────────────
+    # services/_shared/ is exposed by the workspace root via editable install.
+    # agent.*, memory_engine.*, context.* are in this package (python-agent/).
+    # No sys.path manipulation needed in application code.
+    "tradeview-fusion-python-backend",
+]
+
+[tool.uv.sources]
+tradeview-fusion-python-backend = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]  # makes agent.*, memory_engine.*, context.* importable
+
+[tool.ruff]
+exclude = [".venv", ".venv/**"]
+
+# Environment variables (agent-service):
+#   AGENT_PROVIDER      = anthropic | openai | openai-compatible  (default: anthropic)
+#   AGENT_MODEL         = model id override
+#   ANTHROPIC_API_KEY   — required for AGENT_PROVIDER=anthropic
+#   OPENAI_API_KEY      — required for AGENT_PROVIDER=openai/openai-compatible
+#   OPENAI_BASE_URL     — e.g. http://localhost:11434/v1 (Ollama), https://openrouter.ai/api/v1
+#   AGENT_STT_PROVIDER  = openai | whisper-local  (default: openai)
+#   AGENT_TTS_PROVIDER  = openai | kokoro         (default: openai)
+#   OTEL_ENABLED        = true | false             (default: false)
+#
+# Start agent-service:
+#   cd python-backend/python-agent && uv run uvicorn agent.app:app --port 8094
+# Start memory-service:
+#   cd python-backend/python-agent && uv run uvicorn memory.app:app --port 8093

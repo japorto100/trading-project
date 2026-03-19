@@ -2,10 +2,11 @@
 
 import { BarChart3, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ChartType, DrawingType } from "@/chart/types";
 import { DrawingToolbar, type PatternOverlayState } from "@/components/DrawingToolbar";
 import type { IndicatorSettings } from "@/components/IndicatorPanel";
+import { AskAiContextMenu } from "@/features/agent-chat/components/AskAiContextMenu";
 import { SignalInsightsBar } from "@/features/trading/SignalInsightsBar";
 import type { CompositeSignalInsights, LayoutMode, SignalSnapshot } from "@/features/trading/types";
 import type { HistoryRangePreset } from "@/lib/history-range";
@@ -42,6 +43,9 @@ interface TradingWorkspaceProps {
 	effectiveStartYear: number;
 	onHistoryRangeChange: (preset: HistoryRangePreset) => void;
 	onCustomStartYearChange: (year: number) => void;
+	/** AC90: for "Ask AI about this" context string */
+	symbol?: string;
+	timeframe?: string;
 }
 
 type DrawingCommand = {
@@ -65,6 +69,8 @@ export function TradingWorkspace({
 	effectiveStartYear,
 	onHistoryRangeChange,
 	onCustomStartYearChange,
+	symbol,
+	timeframe,
 }: TradingWorkspaceProps) {
 	const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingType | null>(null);
 	const [drawingsLocked, setDrawingsLocked] = useState(false);
@@ -78,6 +84,23 @@ export function TradingWorkspace({
 		harmonic: false,
 		pricePatterns: false,
 	});
+
+	// AC90: build context string for "Ask AI about this" from latest candle + signal
+	const askAiContext = useMemo(() => {
+		const last = candleData.at(-1);
+		const parts: string[] = [];
+		if (symbol) parts.push(`Symbol: ${symbol}`);
+		if (timeframe) parts.push(`Timeframe: ${timeframe}`);
+		if (last) {
+			parts.push(
+				`Last candle: O=${last.open.toFixed(2)} H=${last.high.toFixed(2)} L=${last.low.toFixed(2)} C=${last.close.toFixed(2)} V=${Math.round(last.volume)}`,
+			);
+		}
+		if (signalSnapshot.lineState) parts.push(`Signal: ${signalSnapshot.lineState}`);
+		if (signalSnapshot.lastCrossLabel) parts.push(`Cross: ${signalSnapshot.lastCrossLabel}`);
+		if (signalSnapshot.rvol != null) parts.push(`RVOL: ${signalSnapshot.rvol.toFixed(2)}`);
+		return parts.join(" · ");
+	}, [candleData, symbol, timeframe, signalSnapshot]);
 
 	return (
 		<main className="flex-1 flex flex-col overflow-hidden bg-background" data-layout={layout}>
@@ -124,39 +147,42 @@ export function TradingWorkspace({
 					/>
 				)}
 
-				<div className="flex-1 min-h-0 relative">
-					{loading ? (
-						<div className="flex items-center justify-center h-full">
-							<RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
-						</div>
-					) : candleData.length > 0 ? (
-						<TradingChart
-							candleData={candleData}
-							indicators={indicators}
-							chartType={chartType}
-							activeDrawingTool={activeDrawingTool}
-							drawingsLocked={drawingsLocked}
-							drawingsVisible={drawingsVisible}
-							magnetMode={magnetMode}
-							drawingCommand={drawingCommand}
-							onDrawingHistoryChange={(state) => {
-								setCanUndoDrawings(state.canUndo);
-								setCanRedoDrawings(state.canRedo);
-							}}
-							historyRangePreset={historyRangePreset}
-							customStartYear={customStartYear}
-							minimumStartYear={minimumStartYear}
-							effectiveStartYear={effectiveStartYear}
-							onHistoryRangeChange={onHistoryRangeChange}
-							onCustomStartYearChange={onCustomStartYearChange}
-							patternOverlay={patternOverlay}
-						/>
-					) : (
-						<div className="flex items-center justify-center h-full">
-							<p className="text-muted-foreground">No data available</p>
-						</div>
-					)}
-				</div>
+				{/* AC90: right-click anywhere on chart → "Ask AI about this" */}
+				<AskAiContextMenu context={askAiContext}>
+					<div className="flex-1 min-h-0 relative">
+						{loading ? (
+							<div className="flex items-center justify-center h-full">
+								<RefreshCw className="h-8 w-8 animate-spin text-status-info" />
+							</div>
+						) : candleData.length > 0 ? (
+							<TradingChart
+								candleData={candleData}
+								indicators={indicators}
+								chartType={chartType}
+								activeDrawingTool={activeDrawingTool}
+								drawingsLocked={drawingsLocked}
+								drawingsVisible={drawingsVisible}
+								magnetMode={magnetMode}
+								drawingCommand={drawingCommand}
+								onDrawingHistoryChange={(state) => {
+									setCanUndoDrawings(state.canUndo);
+									setCanRedoDrawings(state.canRedo);
+								}}
+								historyRangePreset={historyRangePreset}
+								customStartYear={customStartYear}
+								minimumStartYear={minimumStartYear}
+								effectiveStartYear={effectiveStartYear}
+								onHistoryRangeChange={onHistoryRangeChange}
+								onCustomStartYearChange={onCustomStartYearChange}
+								patternOverlay={patternOverlay}
+							/>
+						) : (
+							<div className="flex items-center justify-center h-full">
+								<p className="text-muted-foreground">No data available</p>
+							</div>
+						)}
+					</div>
+				</AskAiContextMenu>
 			</div>
 		</main>
 	);

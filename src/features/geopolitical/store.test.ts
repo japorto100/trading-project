@@ -150,9 +150,151 @@ describe("geo map workspace store", () => {
 		expect(nextState.pendingFlatViewHandoff).toBeNull();
 		expect(nextState.flatViewState).not.toBeNull();
 		expect(nextState.flatViewState?.renderer).toBe("deckgl-maplibre");
+		expect(nextState.flatViewState?.reason).toBe("story");
 		expect(nextState.flatViewState?.layerFamilies).toEqual(["geo-core", "conflict", "context"]);
 
 		nextState.setMapViewMode("globe");
 		nextState.setFlatViewState(null);
+	});
+
+	it("keeps flat focus in sync when selecting and clearing events in flat mode", () => {
+		const state = useGeoMapWorkspaceStore.getState();
+		state.setEvents([
+			{
+				id: "evt-flat",
+				title: "Regional escalation",
+				category: "conflict",
+				status: "confirmed",
+				severity: 4,
+				confidence: 3,
+				countryCodes: ["IR"],
+				regionIds: ["middle-east"],
+				coordinates: [{ lat: 35.69, lng: 51.39 }],
+				sources: [],
+				assets: [],
+				createdAt: "2026-03-12T07:00:00.000Z",
+				updatedAt: "2026-03-12T07:00:00.000Z",
+				createdBy: "system",
+				updatedBy: "system",
+				symbol: "missile",
+			},
+		]);
+		state.setFlatViewState({
+			viewMode: "flat",
+			renderer: "deckgl-maplibre",
+			mapBody: "earth",
+			reason: "event",
+			bounds: { south: 10, west: 20, north: 30, east: 40 },
+			focus: null,
+			filterSnapshot: {
+				activeRegionId: "",
+				searchQuery: "",
+				minSeverityFilter: 1,
+				eventsSource: "local",
+				acledCountryFilter: "",
+				acledRegionFilter: "",
+				acledEventTypeFilter: "",
+				acledSubEventTypeFilter: "",
+			},
+			layerFamilies: ["geo-core", "conflict"],
+			layerHints: ["geo-core", "conflict"],
+			temporal: { viewRangeMs: null, filterRangeMs: null, selectedTimeMs: null },
+			basemapPolicy: {
+				richness: "strategic",
+				mapLibreAllowed: true,
+				pmtilesAllowed: true,
+				minimumFeatures: ["place", "water", "waterway"],
+				optionalFeatures: [],
+			},
+			pmtilesPreferred: true,
+		});
+		state.setMapViewMode("flat");
+
+		state.selectEvent("evt-flat");
+		expect(useGeoMapWorkspaceStore.getState().flatViewState?.focus).toEqual({
+			kind: "event",
+			id: "evt-flat",
+			regionId: "middle-east",
+		});
+
+		state.clearSelection();
+		expect(useGeoMapWorkspaceStore.getState().flatViewState?.focus).toBeNull();
+
+		state.setMapViewMode("globe");
+		state.setFlatViewState(null);
+		state.setEvents([]);
+	});
+
+	it("preserves the flat workspace state when returning to globe mode", () => {
+		const handoff = {
+			reason: "event" as const,
+			mapBody: "earth" as const,
+			bounds: { south: 10, west: 20, north: 30, east: 40 },
+			viewRangeMs: [100, 200] as [number, number],
+			filterRangeMs: [120, 180] as [number, number],
+			selectedTimeMs: 150,
+			filterSnapshot: {
+				activeRegionId: "middle-east",
+				searchQuery: "tehran",
+				minSeverityFilter: 3,
+				eventsSource: "acled" as const,
+				acledCountryFilter: "IR",
+				acledRegionFilter: "middle-east",
+				acledEventTypeFilter: "",
+				acledSubEventTypeFilter: "",
+			},
+			focus: { kind: "event" as const, id: "evt-1", regionId: "middle-east" },
+			layerHints: ["geo-core", "conflict"] as const,
+		};
+
+		const state = useGeoMapWorkspaceStore.getState();
+		state.setPendingFlatViewHandoff(handoff);
+		state.applyPendingFlatViewHandoff();
+
+		const flatState = useGeoMapWorkspaceStore.getState().flatViewState;
+		expect(useGeoMapWorkspaceStore.getState().mapViewMode).toBe("flat");
+		expect(flatState).not.toBeNull();
+
+		state.setMapViewMode("globe");
+
+		const globeState = useGeoMapWorkspaceStore.getState();
+		expect(globeState.mapViewMode).toBe("globe");
+		expect(globeState.flatViewState).toEqual(flatState);
+		expect(globeState.pendingFlatViewHandoff).toBeNull();
+
+		state.setFlatViewState(null);
+	});
+
+	it("keeps drawing selection authoritative over event and timeline focus", () => {
+		const state = useGeoMapWorkspaceStore.getState();
+
+		state.setSelectedEventId("event-1");
+		state.setSelectedTimelineId("timeline-1");
+		state.setActiveStoryFocusPresetId("story-1");
+
+		state.selectDrawing("drawing-1");
+
+		const nextState = useGeoMapWorkspaceStore.getState();
+		expect(nextState.selectedDrawingId).toBe("drawing-1");
+		expect(nextState.selectedEventId).toBeNull();
+		expect(nextState.selectedTimelineId).toBeNull();
+		expect(nextState.activeStoryFocusPresetId).toBeNull();
+
+		state.clearSelection();
+	});
+
+	it("tracks multi-event selection in shared workspace state", () => {
+		const state = useGeoMapWorkspaceStore.getState();
+
+		state.selectEvents(["evt-1", "evt-2"]);
+		expect(useGeoMapWorkspaceStore.getState().selectedEventIds).toEqual(["evt-1", "evt-2"]);
+		expect(useGeoMapWorkspaceStore.getState().selectedEventId).toBe("evt-1");
+
+		state.selectEvents(["evt-2", "evt-3"], "toggle");
+		expect(useGeoMapWorkspaceStore.getState().selectedEventIds).toEqual(["evt-1", "evt-3"]);
+		expect(useGeoMapWorkspaceStore.getState().selectedEventId).toBe("evt-1");
+
+		state.clearSelection();
+		expect(useGeoMapWorkspaceStore.getState().selectedEventIds).toEqual([]);
 	});
 });

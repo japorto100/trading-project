@@ -31,7 +31,7 @@ def _make_app(otel_enabled: bool = False, extra_env: dict | None = None):
         # Re-import inside the patched env so OTEL_ENABLED is read fresh.
         import importlib
 
-        import services._shared.app_factory as factory_mod
+        import shared.app_factory as factory_mod
 
         importlib.reload(factory_mod)
         app = factory_mod.create_service_app("test-service", version="0.0.1")

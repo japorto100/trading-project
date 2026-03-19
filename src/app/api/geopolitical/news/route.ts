@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { listGeoCandidates } from "@/lib/server/geopolitical-candidates-store";
 import { listGeoRegions } from "@/lib/server/geopolitical-regions-store";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 
 interface GatewayHeadline {
 	title: string;
@@ -48,7 +47,7 @@ async function fetchGeoNewsViaGateway(input: {
 		summary?: string;
 	}>;
 } | null> {
-	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBaseURL = getGatewayBaseURL();
 	const endpoint = new URL("/api/v1/news/headlines", gatewayBaseURL);
 	endpoint.searchParams.set("q", input.q);
 	endpoint.searchParams.set("limit", String(input.limit));

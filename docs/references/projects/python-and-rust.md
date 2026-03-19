@@ -21,7 +21,7 @@
 | Referenz | Typ | Rolle fuer uns |
 |----------|-----|----------------|
 | `PyO3` | Library / Runtime-Baustein | Kern-Technologie fuer Rust-Python-Bridge |
-| `Kand` | GitHub-Projekt / Library | **DEFER (12.03.2026)** — Evaluation abgeschlossen; kein Drop-in (kein PyO3, NaN-Mismatch, Ichimoku/HMA/VWAP fehlen); als Reference-Oracle nutzen; Details: `../../specs/execution/rust_kand_evaluation_delta.md` |
+| `Kand` | GitHub-Projekt / Library | **ADOPT Fork-Strategie (18.03.2026)** — kand-py PyO3 + `*_inc()` bestaetigt; HMA/ADX/VWAP/Keltner vorhanden (~75%); Phase-20 Cargo path-dep + NaN-Strip; Ichimoku nativ; Git-Submodul: `_tmp_ref_review/math/kand`; Details: `../../specs/execution/rust_kand_evaluation_delta.md` |
 | `VectorTA` | Library / Projekt | Fallback bei groesserer Indicator-Tiefe |
 | `ChartGPU` | GitHub-Projekt | Alternativer Chart-Performance-Pfad |
 | `Tauri v2` | Plattform | Nur spaeter bei echtem Desktop-Druck |

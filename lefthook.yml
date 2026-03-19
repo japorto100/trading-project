@@ -1,21 +1,80 @@
+# Lefthook — pre-commit: fast, scoped checks (< 10s target)
+#             pre-push:   full quality gate (can be slow)
+#
+# Install: lefthook install   (after bun install, runs automatically via package.json prepare)
+# Skip:    LEFTHOOK=0 git commit   (emergency bypass)
+
 pre-commit:
   parallel: true
   commands:
+    # --- Next.js ---
     frontend-lint:
       glob: "src/**/*.{ts,tsx}"
       run: bun run lint
-    gofmt:
+
+    frontend-typecheck:
+      glob: "src/**/*.{ts,tsx}"
+      run: bunx tsc --noEmit --incremental false
+
+    # --- Go ---
+    go-fmt:
       glob: "go-backend/**/*.go"
-      run: git diff --cached --name-only --diff-filter=ACMR | grep '^go-backend/.*\.go$' | sed 's#^go-backend/##' | xargs -r gofmt -w
+      # Check only — fail fast if files need formatting. Fix with: cd go-backend && gofmt -w ./...
+      run: >
+        files=$(git diff --cached --name-only --diff-filter=ACMR | grep '^go-backend/.*\.go$' | sed 's#^go-backend/##');
+        if [ -n "$files" ]; then
+          cd go-backend && echo "$files" | xargs gofmt -l | grep . && exit 1 || true;
+        fi
+
+    go-vet:
+      glob: "go-backend/**/*.go"
+      run: cd go-backend && go vet ./...
+
+    # New-issues-only lint (fast): checks only diff vs HEAD, not full codebase
+    # ./... covers cmd/, internal/, pkg/ — go-crypto-trader excluded via own go.mod + .golangci.yml
+    go-lint-new:
+      glob: "go-backend/**/*.go"
+      run: cd go-backend && golangci-lint run --new-from-rev=HEAD ./...
+
+    # --- Python ---
     python-ruff:
       glob: "python-backend/**/*.py"
       run: cd python-backend && uv run ruff check .
 
+    python-typecheck:
+      glob: "python-backend/**/*.py"
+      run: cd python-backend && uv run basedpyright
+
 pre-push:
+  parallel: false
   commands:
-    frontend-quality:
-      run: bunx tsc --noEmit && bun run lint && bun run build
-    go-quality:
-      run: cd go-backend && go test ./internal/app ./internal/handlers/http ./internal/handlers/sse ./internal/storage
+    # --- Next.js: build disabled — too slow for routine pushes. Run manually: bun run build ---
+    # frontend-build:
+    #   run: bun run build
+
+    # --- Go: compile → full test suite with race detector ---
+    go-build:
+      glob: "go-backend/**/*.go"
+      run: cd go-backend && go build ./...
+
+    go-test:
+      glob: "go-backend/**/*.go"
+      run: cd go-backend && go test -race -shuffle=on -count=1 -timeout 120s ./...
+
+    go-lint-full:
+      glob: "go-backend/**/*.go"
+      run: cd go-backend && golangci-lint run ./...
+
+    go-vuln:
+      glob: "go-backend/**/*.go"
+      run: cd go-backend && govulncheck ./...
+
+    # --- Python: smoke tests only (no full suite in hooks) ---
     python-smoke:
+      glob: "python-backend/**/*.py"
       run: cd python-backend && uv run pytest tests/test_otel_factory.py tests/test_ipc_grpc.py -q
+
+    # Fuzz targets — uncomment once FuzzXxx functions exist:
+    # go-fuzz:
+    #   glob: "go-backend/**/*.go"
+    #   run: cd go-backend && go test -fuzz=Fuzz -fuzztime=30s ./internal/connectors/base/

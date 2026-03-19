@@ -5,14 +5,31 @@
   "venvPath": ".",
   "venv": ".venv",
   "stubPath": "typings",
+  "include": [
+    "services",
+    "python-agent/agent",
+    "python-agent/memory_engine",
+    "python-agent/context",
+    "python-agent/memory",
+    "python-compute/indicator_engine",
+    "python-compute/geopolitical_soft_signals",
+    "python-compute/indicator-service",
+    "python-compute/geopolitical-soft-signals",
+    "python-compute/finance-bridge"
+  ],
   "exclude": [
     "**/__pycache__",
     ".venv",
     ".venv/**",
     "**/.venv/**",
     "rust_core",
-    "tests",
-    "scripts"
+    "archive",
+    "archive/**"
   ],
-  "reportMissingTypeStubs": "warning"
+  "extraPaths": [
+    "proto"
+  ],
+  "reportMissingTypeStubs": "warning",
+  "reportMissingModuleSource": "warning",
+  "reportMissingImports": "warning"
 }

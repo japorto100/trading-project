@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	buildDrawingWorkflowHint,
+	buildGeoDrawingActionState,
 	buildGeoInteractionStatus,
 	parseLatitudeInput,
 	parseLongitudeInput,
@@ -66,5 +67,45 @@ describe("drawing workflow helpers", () => {
 			{ id: "polygon-points", label: "Polygon points 2", tone: "warning" },
 			{ id: "selection", label: "Drawing selected", tone: "active" },
 		]);
+	});
+
+	it("builds deterministic action availability for polygon and selection workflows", () => {
+		expect(
+			buildGeoDrawingActionState({
+				drawingMode: "polygon",
+				pendingPolygonPointsCount: 3,
+				busy: false,
+				selectedDrawingId: "drawing-1",
+				canOpenSelectedDrawingInFlatView: true,
+				canUndoDrawings: true,
+				canRedoDrawings: false,
+			}),
+		).toEqual({
+			canCompletePolygon: true,
+			canClearPolygon: true,
+			canOpenSelectedDrawingInFlatView: true,
+			canDeleteSelectedDrawing: true,
+			canUndo: true,
+			canRedo: false,
+		});
+
+		expect(
+			buildGeoDrawingActionState({
+				drawingMode: "cursor",
+				pendingPolygonPointsCount: 0,
+				busy: true,
+				selectedDrawingId: null,
+				canOpenSelectedDrawingInFlatView: false,
+				canUndoDrawings: true,
+				canRedoDrawings: true,
+			}),
+		).toEqual({
+			canCompletePolygon: false,
+			canClearPolygon: false,
+			canOpenSelectedDrawingInFlatView: false,
+			canDeleteSelectedDrawing: false,
+			canUndo: false,
+			canRedo: false,
+		});
 	});
 });

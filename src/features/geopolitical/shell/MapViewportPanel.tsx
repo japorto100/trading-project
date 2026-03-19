@@ -26,11 +26,13 @@ interface MapViewportPanelProps {
 	bodyPointLayerVisibility: Partial<Record<string, boolean>>;
 	earthChoroplethMode: GeoEarthChoroplethMode;
 	selectedEventId: string | null;
+	selectedEventIds: string[];
 	selectedDrawingId: string | null;
 	markerPlacementArmed: boolean;
 	canUndoDrawings: boolean;
 	canRedoDrawings: boolean;
 	onSelectEvent: (eventId: string) => void;
+	onSelectEvents: (eventIds: string[], mode?: "replace" | "append" | "toggle" | "clear") => void;
 	onSelectDrawing: (drawingId: string) => void;
 	onMapClick: (coords: { lat: number; lng: number }) => void;
 	onCountryClick: (countryId: string) => void;
@@ -58,11 +60,13 @@ export const MapViewportPanel = memo(function MapViewportPanel({
 	bodyPointLayerVisibility,
 	earthChoroplethMode,
 	selectedEventId,
+	selectedEventIds,
 	selectedDrawingId,
 	markerPlacementArmed,
 	canUndoDrawings,
 	canRedoDrawings,
 	onSelectEvent,
+	onSelectEvents,
 	onSelectDrawing,
 	onMapClick,
 	onCountryClick,
@@ -118,8 +122,10 @@ export const MapViewportPanel = memo(function MapViewportPanel({
 						earthChoroplethMode={earthChoroplethMode}
 						onChangeEarthChoroplethMode={onChangeEarthChoroplethMode}
 						selectedEventId={selectedEventId}
+						selectedEventIds={selectedEventIds}
 						selectedDrawingId={selectedDrawingId}
 						onSelectEvent={onSelectEvent}
+						onSelectEvents={onSelectEvents}
 						onSelectDrawing={onSelectDrawing}
 						onMapClick={onMapClick}
 						onCountryClick={onCountryClick}

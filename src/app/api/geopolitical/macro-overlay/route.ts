@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 /** Exchange -> GeoMap country name (world-atlas countries-110m properties.name) */
 const EXCHANGE_TO_COUNTRY: Record<string, string> = {
@@ -83,7 +82,7 @@ export async function GET(request: NextRequest) {
 		);
 	}
 
-	const gatewayBase = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBase = getGatewayBaseURL();
 	const results: Record<string, { value: number; label?: string }> = {};
 
 	const promises = POLICY_RATE_EXCHANGES.map(async (exchange) => {

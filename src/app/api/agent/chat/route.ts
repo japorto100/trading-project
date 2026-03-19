@@ -1,52 +1,87 @@
-// Agent Chat BFF — Phase 22a
-// SSE proxy: Next.js → Go Gateway /api/v1/agent/chat → Python memory-service → Anthropic
-// Security: no browser-direct tool path; Gateway enforces RBAC + audit.
+// Agent Chat BFF - Phase 22d
+// SSE proxy: Next.js → Go Gateway → Python/Anthropic.
+// Converts Python error format (error) → ai v6 format (errorText) for DefaultChatTransport.
+// Sets x-vercel-ai-ui-message-stream: v1 so DefaultChatTransport parses stream natively.
 
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
+import { z } from "zod";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { getErrorMessage } from "@/lib/utils";
 
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 
-function sseEvent(name: string, data: unknown): Uint8Array {
-	return ENCODER.encode(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`);
+const attachmentSchema = z.object({
+	base64: z.string().min(1),
+	mime_type: z.string().max(50),
+	name: z.string().max(255),
+});
+
+const chatRequestSchema = z
+	.object({
+		message: z.string().trim().min(1),
+		threadId: z.string().trim().min(1).optional(),
+		agentId: z.string().trim().min(1).optional(),
+		/** AC107: optional model override (e.g. claude-opus-4-6, claude-haiku-4-5) */
+		model: z.string().trim().min(1).optional(),
+		/** AC56: multimodal image attachments */
+		attachments: z.array(attachmentSchema).max(5).optional(),
+		/** AC108: reasoning effort — low/medium/high */
+		reasoningEffort: z.enum(["low", "medium", "high"]).optional(),
+	})
+	.strict();
+
+function jsonError(message: string, reason: string, requestId: string, status: number): Response {
+	return new Response(JSON.stringify({ error: message, reason }), {
+		status,
+		headers: { "Content-Type": "application/json", "X-Request-ID": requestId },
+	});
 }
 
-function buildGatewayURL(): string {
-	return (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+function sseErrorFrame(msg: string): Uint8Array {
+	return ENCODER.encode(`data: ${JSON.stringify({ type: "error", errorText: msg })}\n\n`);
 }
 
-interface ChatRequestBody {
-	message?: string;
-	threadId?: string;
-	agentId?: string;
+/**
+ * Fix Python error format: { type:"error", error:"msg" } → { type:"error", errorText:"msg" }
+ * ai v6 DefaultChatTransport expects errorText, not error.
+ */
+function rewriteFrame(rawFrame: string): string {
+	const dataLine = rawFrame.split("\n").find((l) => l.startsWith("data:"));
+	if (!dataLine) return rawFrame;
+	try {
+		const parsed = JSON.parse(dataLine.slice(5).trim()) as Record<string, unknown>;
+		if (parsed.type === "error" && "error" in parsed && !("errorText" in parsed)) {
+			const { error: errMsg, ...rest } = parsed;
+			const fixed = { ...rest, errorText: errMsg };
+			const fixedLine = `data: ${JSON.stringify(fixed)}`;
+			return rawFrame.replace(dataLine, fixedLine);
+		}
+	} catch {
+		// pass through unchanged
+	}
+	return rawFrame;
 }
 
 export async function POST(request: NextRequest) {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
 	const userRole = request.headers.get("x-user-role")?.trim() || "";
 
-	let body: ChatRequestBody;
+	let payload: unknown;
 	try {
-		body = (await request.json()) as ChatRequestBody;
+		payload = await request.json();
 	} catch {
-		return new Response(JSON.stringify({ error: "Invalid request body" }), {
-			status: 400,
-			headers: { "Content-Type": "application/json", "X-Request-ID": requestId },
-		});
+		return jsonError("Invalid request body", "INVALID_JSON_BODY", requestId, 400);
 	}
 
-	const message = body.message?.trim();
-	if (!message) {
-		return new Response(JSON.stringify({ error: "message is required" }), {
-			status: 400,
-			headers: { "Content-Type": "application/json", "X-Request-ID": requestId },
-		});
+	const parsed = chatRequestSchema.safeParse(payload);
+	if (!parsed.success) {
+		return jsonError("Invalid chat payload", "INVALID_CHAT_PAYLOAD", requestId, 400);
 	}
 
-	const gatewayURL = new URL("/api/v1/agent/chat", buildGatewayURL());
+	const body = parsed.data;
+	const gatewayURL = new URL("/api/v1/agent/chat", getGatewayBaseURL());
 	const headers: Record<string, string> = {
 		"Content-Type": "application/json",
 		Accept: "text/event-stream",
@@ -60,30 +95,27 @@ export async function POST(request: NextRequest) {
 			method: "POST",
 			headers,
 			body: JSON.stringify({
-				message,
+				message: body.message,
 				threadId: body.threadId,
 				agentId: body.agentId,
+				model: body.model,
+				attachments: body.attachments,
+				reasoningEffort: body.reasoningEffort,
 			}),
 			cache: "no-store",
 			signal: request.signal,
 		});
 	} catch (err) {
-		// Gateway unreachable — return degraded SSE stream
 		const stream = new ReadableStream<Uint8Array>({
 			start(controller) {
-				controller.enqueue(
-					sseEvent("error", {
-						message: `Agent gateway unreachable: ${getErrorMessage(err)}`,
-						code: "GATEWAY_UNAVAILABLE",
-						requestId,
-					}),
-				);
+				controller.enqueue(sseErrorFrame(`Agent gateway unreachable: ${getErrorMessage(err)}`));
 				controller.close();
 			},
 		});
 		return new Response(stream, {
 			headers: {
 				"Content-Type": "text/event-stream",
+				"x-vercel-ai-ui-message-stream": "v1",
 				"Cache-Control": "no-cache, no-transform",
 				"X-Request-ID": requestId,
 				"X-Stream-Backend": "unavailable",
@@ -94,26 +126,20 @@ export async function POST(request: NextRequest) {
 	if (!upstream.ok || !upstream.body) {
 		const stream = new ReadableStream<Uint8Array>({
 			start(controller) {
-				controller.enqueue(
-					sseEvent("error", {
-						message: `Agent gateway error: HTTP ${upstream.status}`,
-						code: "GATEWAY_ERROR",
-						requestId,
-					}),
-				);
+				controller.enqueue(sseErrorFrame(`Agent gateway error: HTTP ${upstream.status}`));
 				controller.close();
 			},
 		});
 		return new Response(stream, {
 			headers: {
 				"Content-Type": "text/event-stream",
+				"x-vercel-ai-ui-message-stream": "v1",
 				"Cache-Control": "no-cache, no-transform",
 				"X-Request-ID": requestId,
 			},
 		});
 	}
 
-	// Proxy upstream SSE stream to client
 	let cancelled = false;
 	const proxyStream = new ReadableStream<Uint8Array>({
 		start(controller) {
@@ -146,24 +172,19 @@ export async function POST(request: NextRequest) {
 							const rawFrame = buffer.slice(0, boundary);
 							buffer = buffer.slice(boundary + 2);
 							if (rawFrame.trim()) {
-								controller.enqueue(ENCODER.encode(`${rawFrame}\n\n`));
+								const frame = rewriteFrame(rawFrame);
+								controller.enqueue(ENCODER.encode(`${frame}\n\n`));
 							}
 							boundary = buffer.indexOf("\n\n");
 						}
 					}
-					// flush trailing
 					if (!cancelled && buffer.trim()) {
-						controller.enqueue(ENCODER.encode(`${buffer}\n\n`));
+						const frame = rewriteFrame(buffer);
+						controller.enqueue(ENCODER.encode(`${frame}\n\n`));
 					}
 				} catch (err) {
 					if (!cancelled) {
-						controller.enqueue(
-							sseEvent("error", {
-								message: `Stream interrupted: ${getErrorMessage(err)}`,
-								code: "STREAM_INTERRUPTED",
-								requestId,
-							}),
-						);
+						controller.enqueue(sseErrorFrame(`Stream interrupted: ${getErrorMessage(err)}`));
 					}
 				} finally {
 					if (!cancelled) {
@@ -180,6 +201,7 @@ export async function POST(request: NextRequest) {
 	return new Response(proxyStream, {
 		headers: {
 			"Content-Type": "text/event-stream",
+			"x-vercel-ai-ui-message-stream": "v1",
 			"Cache-Control": "no-cache, no-transform",
 			Connection: "keep-alive",
 			"X-Accel-Buffering": "no",

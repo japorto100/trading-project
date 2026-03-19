@@ -20,7 +20,7 @@ from fastapi import FastAPI  # noqa: E402
 from ipc import ipc_pb2  # noqa: E402
 from ipc.ipc_pb2_grpc import PythonIPCStub  # noqa: E402
 
-from services._shared.grpc_server import start_grpc_server  # noqa: E402
+from shared.grpc_server import start_grpc_server  # noqa: E402
 
 
 def _minimal_app() -> FastAPI:

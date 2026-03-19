@@ -1,6 +1,6 @@
 # STORAGE AND PERSISTENCE
 
-> **Stand:** 16. Maerz 2026  
+> **Stand:** 17. Maerz 2026  
 > **Zweck:** Owner-Spec fuer Object Storage, Source-Snapshot-Klassen, Cache-Abgrenzung
 > und Artefakt-Persistenz.
 > **Source-of-Truth-Rolle:** Autoritativ fuer Storage-Architekturregeln; vollstaendiger
@@ -18,6 +18,7 @@
 6. **Replay-safe ingestion** — async Pfade mit idempotency key, dedup hash, parser version.
 7. **Cache != Persistenz** — Hot cache und source snapshots sind getrennte Schichten.
 8. **Vectorization ist Downstream** — Embeddings entstehen aus normalisierten Outputs, nie aus ungoverned Raw-Downloads.
+9. **Parquet ist Baseline-Dateiformat fuer tabellarische Artefakte**; `Iceberg` wird nur bei echtem Tabellen-/Snapshot-Mehrwert eingezogen.
 
 ---
 
@@ -106,6 +107,12 @@ source selection
 
 Embeddings werden nicht direkt aus ungeprueften Rohdownloads produziert.
 Raw blobs landen zuerst im Object Store; Parser erzeugen normalisierte Records/Textsegmente.
+
+### Arbeitsdefault fuer tabellarische Artefakte
+
+- grosse tabellarische Exporte, Replay-Outputs und Batch-Artefakte gehen
+  bevorzugt als `Parquet` in den Object Store
+- `DuckDB` liest diese Artefakte fuer Analyse, Replay und Worker-SQL
 
 ---
 

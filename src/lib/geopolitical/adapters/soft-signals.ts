@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { scoreCandidateConfidence } from "@/lib/geopolitical/confidence";
 import { formatGeoAutoReviewNote } from "@/lib/geopolitical/ingestion-contracts";
 import type { GeoCandidate, GeoSourceRef } from "@/lib/geopolitical/types";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 export interface SoftSignalAdapter {
 	id: string;
@@ -56,7 +57,6 @@ interface GatewayNewsResponse {
 	};
 }
 
-const DEFAULT_GO_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 const DEFAULT_SOFT_SIGNAL_TIMEOUT_MS = 8000;
 const DEFAULT_NEWS_TIMEOUT_MS = 8000;
 
@@ -68,9 +68,7 @@ function isSoftSignalEnabled(): boolean {
 }
 
 function getSoftSignalBaseUrl(): string {
-	const gatewayBaseUrl = process.env.GO_GATEWAY_BASE_URL?.trim();
-	if (gatewayBaseUrl) return gatewayBaseUrl.replace(/\/$/, "");
-	return DEFAULT_GO_GATEWAY_BASE_URL;
+	return getGatewayBaseURL().replace(/\/$/, "");
 }
 
 function getSoftSignalTimeoutMs(): number {

@@ -112,7 +112,9 @@ func TestLocalSnapshotRecorderUsesConfiguredS3ObjectStore(t *testing.T) {
 		t.Fatalf("record snapshot: %v", err)
 	}
 
-	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(baseDir, "state", "source-snapshots", "source_snapshots.db"))
+	// Per-source DB file: baseName is derived from storePath ("seco.json" → "seco"), so
+	// the recorder writes to "seco_meta.db" (not the old shared "source_snapshots.db").
+	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(baseDir, "state", "source-snapshots", "seco_meta.db"))
 	if err != nil {
 		t.Fatalf("open metadata store: %v", err)
 	}

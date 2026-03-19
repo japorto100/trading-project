@@ -99,7 +99,43 @@ describe("GET /api/market/quote", () => {
 		expect(response.status).toBe(502);
 		expect(response.headers.get("x-request-id")).toBe("req-quote-upstream-failure");
 
-		const payload = (await response.json()) as { error: string };
-		expect(payload.error).toBe("Gateway quote request failed");
+		const payload = (await response.json()) as { error: string; reason: string };
+		expect(payload.error).toBe("Gateway quote endpoint rejected with status 401");
+		expect(payload.reason).toBe("DOWNSTREAM_UNAVAILABLE");
+	});
+
+	it("rejects requests without symbol query parameters with an explicit reason", async () => {
+		const request = new NextRequest("http://localhost:3000/api/market/quote", {
+			headers: {
+				"x-request-id": "req-quote-missing-query",
+			},
+		});
+
+		const response = await GET(request);
+		expect(response.status).toBe(400);
+		expect(response.headers.get("x-request-id")).toBe("req-quote-missing-query");
+
+		const payload = (await response.json()) as { error: string; reason: string };
+		expect(payload.error).toBe("Either symbol or symbols is required");
+		expect(payload.reason).toBe("INVALID_QUERY");
+	});
+
+	it("rejects requests that provide both symbol and symbols", async () => {
+		const request = new NextRequest(
+			"http://localhost:3000/api/market/quote?symbol=AAPL&symbols=MSFT,NVDA",
+			{
+				headers: {
+					"x-request-id": "req-quote-conflicting-query",
+				},
+			},
+		);
+
+		const response = await GET(request);
+		expect(response.status).toBe(400);
+		expect(response.headers.get("x-request-id")).toBe("req-quote-conflicting-query");
+
+		const payload = (await response.json()) as { error: string; reason: string };
+		expect(payload.error).toBe("Provide either symbol or symbols, not both");
+		expect(payload.reason).toBe("INVALID_QUERY");
 	});
 });

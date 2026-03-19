@@ -15,6 +15,7 @@ Product intent:
 - users should understand market context before execution
 - users should move frictionlessly from context to action
 - `ResearchHome` and `Workspace` must behave as one connected system, not two products
+- `ResearchHome` and `Calendar` are two entry surfaces into the same decision system, not competing destinations
 
 ---
 
@@ -46,8 +47,10 @@ Recommended top-level layout:
   - current risk pulse
 - `WhatMattersNow`
   - ranked events/headlines by impact x confidence x user relevance
+  - explicit "why this matters now" explanation on every non-trivial card
 - `EventIntelligenceLane`
   - upcoming releases with playbook hints
+  - calendar-driven operational entry into event detail
 - `NarrativeAndVolatilityLane`
   - actor/narrative/event volatility cards
 - `CrossAssetContextLane`
@@ -111,6 +114,8 @@ Hard frontend requirements:
 - every ranked card must include reason + confidence
 - no opaque scoring labels without explanation text
 - stale payloads must show freshness warning state
+- event-oriented cards should prefer a canonical event-detail route, not ad hoc deep links
+- local/fallback/gateway source mode must remain visible in debug/degraded states until product data path is finalized
 
 ---
 
@@ -122,6 +127,7 @@ Decision quality rules:
 - do not phrase uncertainty as certainty
 - preserve path memory when user jumps to workspace and back
 - keep top-ranked cards explainable ("why this is ranked")
+- when an item is event-driven, users should understand both "what changed" and "how to investigate it next"
 
 Interaction rules:
 
@@ -143,6 +149,7 @@ Frontend responsibility:
 
 - present relevance-adapted order without hiding global critical items
 - visually mark why an item is personalized vs globally critical
+- never let personalization suppress globally important macro or geopolitical catalysts
 
 Ranking transparency:
 
@@ -151,6 +158,8 @@ Ranking transparency:
   - `watchlist overlap`
   - `fresh headline cluster`
   - `policy event incoming`
+  - `range break risk`
+  - `geo spillover`
 
 ---
 
@@ -208,6 +217,8 @@ Must pass:
 - deep links preserve context and route correctly
 - stale data indicators show correctly
 - keyboard navigation and reduced-motion behavior verified
+- local and fallback modes remain intelligible until gateway mode replaces them
+- research-to-event drilldowns must preserve a return path into the originating research context
 
 Global-context placement gate:
 
@@ -266,3 +277,5 @@ These benchmark-derived requirements must remain explicit:
 - ranking transparency survives personalization (global critical items stay visible)
 - context continuity is preserved (`ResearchHome -> Event -> Workspace -> back`)
 - no opaque score labels without short explainability text
+- event-driven cards explain both "why now" and "where next"
+- calendar and research remain one shared decision system with separate entry surfaces

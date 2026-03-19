@@ -13,6 +13,20 @@ interface ParamsShape {
 	}>;
 }
 
+export async function GET(_request: NextRequest, context: ParamsShape) {
+	const { eventId } = await context.params;
+	if (!eventId) {
+		return NextResponse.json({ error: "eventId is required" }, { status: 400 });
+	}
+
+	const event = await getGeoEvent(eventId);
+	if (!event) {
+		return NextResponse.json({ error: "event not found" }, { status: 404 });
+	}
+
+	return NextResponse.json({ success: true, event });
+}
+
 export async function PATCH(request: NextRequest, context: ParamsShape) {
 	const { eventId } = await context.params;
 	if (!eventId) {

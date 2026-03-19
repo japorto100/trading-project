@@ -14,6 +14,10 @@ export interface UserConsentSnapshot {
 	withdrawnAt: string | null;
 }
 
+function gatewayBaseUrl() {
+	return process.env.GO_GATEWAY_BASE_URL?.trim() || null;
+}
+
 function buildBypassConsentResult(input?: {
 	llmProcessing?: boolean;
 	analyticsEnabled?: boolean;
@@ -41,6 +45,48 @@ function buildBypassConsentResult(input?: {
 	};
 }
 
+async function requestConsent(
+	method: "GET" | "PATCH",
+	user: { id: string; email: string | null; role: string },
+	body?: Record<string, unknown>,
+) {
+	const gatewayUrl = gatewayBaseUrl();
+	if (!gatewayUrl) {
+		return { ok: false as const, status: 503, error: "gateway unavailable" };
+	}
+	try {
+		const response = await fetch(`${gatewayUrl}/api/v1/auth/consent`, {
+			method,
+			cache: "no-store",
+			headers: {
+				"x-auth-user-id": user.id,
+				"x-auth-user-email": user.email ?? "",
+				"x-auth-user-role": user.role,
+				...(body ? { "content-type": "application/json" } : {}),
+			},
+			...(body ? { body: JSON.stringify(body) } : {}),
+		});
+		const payload = (await response.json()) as {
+			error?: string;
+			consent?: UserConsentSnapshot;
+		};
+		if (!response.ok || !payload.consent) {
+			return {
+				ok: false as const,
+				status: response.status,
+				error: payload.error ?? "consent request failed",
+			};
+		}
+		return {
+			ok: true as const,
+			user,
+			consent: payload.consent,
+		};
+	} catch {
+		return { ok: false as const, status: 502, error: "gateway consent request failed" };
+	}
+}
+
 export async function getOrCreateUserConsentSnapshot(): Promise<
 	| {
 			ok: true;
@@ -56,30 +102,7 @@ export async function getOrCreateUserConsentSnapshot(): Promise<
 	const resolved = await resolveAuthenticatedUserFromSession();
 	if (!resolved.ok) return resolved;
 
-	const consent = await resolved.prisma.userConsent.upsert({
-		where: { userId: resolved.user.id },
-		create: {
-			userId: resolved.user.id,
-			llmProcessing: false,
-			analyticsEnabled: false,
-			marketingEnabled: false,
-			privacyVersion: "v1",
-		},
-		update: {},
-	});
-
-	return {
-		ok: true,
-		user: resolved.user,
-		consent: {
-			llmProcessing: consent.llmProcessing,
-			analyticsEnabled: consent.analyticsEnabled,
-			marketingEnabled: consent.marketingEnabled,
-			privacyVersion: consent.privacyVersion,
-			consentedAt: consent.consentedAt?.toISOString() ?? null,
-			withdrawnAt: consent.withdrawnAt?.toISOString() ?? null,
-		},
-	};
+	return requestConsent("GET", resolved.user);
 }
 
 export async function updateUserConsentSnapshot(input: {
@@ -101,60 +124,7 @@ export async function updateUserConsentSnapshot(input: {
 	const resolved = await resolveAuthenticatedUserFromSession();
 	if (!resolved.ok) return resolved;
 
-	const existing = await resolved.prisma.userConsent.findUnique({
-		where: { userId: resolved.user.id },
-	});
-	const nextLlm =
-		typeof input.llmProcessing === "boolean"
-			? input.llmProcessing
-			: (existing?.llmProcessing ?? false);
-	const nextAnalytics =
-		typeof input.analyticsEnabled === "boolean"
-			? input.analyticsEnabled
-			: (existing?.analyticsEnabled ?? false);
-	const nextMarketing =
-		typeof input.marketingEnabled === "boolean"
-			? input.marketingEnabled
-			: (existing?.marketingEnabled ?? false);
-
-	const consentedAt =
-		nextLlm || nextAnalytics || nextMarketing
-			? (existing?.consentedAt ?? new Date())
-			: existing?.consentedAt;
-	const withdrawnAt = nextLlm || nextAnalytics || nextMarketing ? null : new Date();
-
-	const consent = await resolved.prisma.userConsent.upsert({
-		where: { userId: resolved.user.id },
-		create: {
-			userId: resolved.user.id,
-			llmProcessing: nextLlm,
-			analyticsEnabled: nextAnalytics,
-			marketingEnabled: nextMarketing,
-			privacyVersion: "v1",
-			consentedAt,
-			withdrawnAt,
-		},
-		update: {
-			llmProcessing: nextLlm,
-			analyticsEnabled: nextAnalytics,
-			marketingEnabled: nextMarketing,
-			consentedAt,
-			withdrawnAt,
-		},
-	});
-
-	return {
-		ok: true,
-		user: resolved.user,
-		consent: {
-			llmProcessing: consent.llmProcessing,
-			analyticsEnabled: consent.analyticsEnabled,
-			marketingEnabled: consent.marketingEnabled,
-			privacyVersion: consent.privacyVersion,
-			consentedAt: consent.consentedAt?.toISOString() ?? null,
-			withdrawnAt: consent.withdrawnAt?.toISOString() ?? null,
-		},
-	};
+	return requestConsent("PATCH", resolved.user, input);
 }
 
 export async function hasLLMConsentForCurrentUser(): Promise<

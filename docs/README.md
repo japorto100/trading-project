@@ -99,6 +99,7 @@ sichtbar und sollen nicht mehr als aktive Architekturquelle gelesen werden.
 | `ALADDIN-INSIGHTS-FROM-GEMINI-RESEARCH.md` | Aladdin-Benchmark-Inhalte auf Root-MDs verteilt. Archiv: `docs/archive/ALADDIN-INSIGHTS-FROM-GEMINI-RESEARCH.md` |
 | `TOOL_SEARCH.md` | externe Tool-Feature-Notiz, keine Projektverfassung |
 | `archive/MRKTEDGE.AI-deep research chatgpt.md` | archivierte erste MRKTEDGE-Benchmarkfassung |
+| `Deep_research_addition_palantir.md` | nach Extraktion in `docs/archive/Deep_research_addition_palantir.md` archiviert |
 | `archive/webapp.md` | archivierte operative Frontend-Arbeitsnotiz |
 
 Historische und ausgezogene Inhalte liegen unter `docs/archive/`.
@@ -152,4 +153,3 @@ Historische und ausgezogene Inhalte liegen unter `docs/archive/`.
 3. Verwende `bridge / superseded-reference` Docs nur dann, wenn du fehlende
    Herleitung oder Kontext brauchst.
 4. Nutze `archived / operational note` Docs nicht als normative Quelle.
-

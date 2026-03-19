@@ -1,21 +1,23 @@
 # Indikator-Architektur Blueprint
 
-> **Stand:** 19. Februar 2026
+> **Stand:** 18. Maerz 2026
 > **Scope:** Funktionale Grenzen TS/Python/Rust/Go, Buch-Referenzen mit Zeilennummern (3+ Buecher), Composite Signal, Elliott Wave, Regime Detection, Walk-Forward, Position Sizing, Alternative Bars, Monte Carlo, HRP, VPIN, **Portfolio Analytics (Korrelation, Rolling Metriken, Drawdown, Regime-Sizing, Kelly Multi-Asset)**, ~57 Implementierungs-Todos
-> **Buch-Pfad:** `docs/books/mastering-finance-python.md` (6469 Zeilen)
+> **Buch-Pfad:** `docs/books/Mastering_Financial_Markets_with_Python_-_Sofien_Kaabar.md` (Kaabar 2026)
 > **Ergaenzende Quant-Buecher:** `advanced-in-financial-markets-ml.md` (AFML), `quantitative-trading.md` (QT), `python-for-finance-(quant-extension).md` (PfF)
-> **Primaere Indikator-Datei:** `src/lib/indicators/index.ts` (1121 Zeilen, 23 Funktionen)
+> **Primaere Indikator-Datei:** `python-backend/python-compute/indicator_engine/pipeline.py`
 > **Rust-Strategie:** [`docs/RUST_LANGUAGE_IMPLEMENTATION.md`](./RUST_LANGUAGE_IMPLEMENTATION.md) -- Rust als Acceleration Layer unter dem Python-Service via PyO3
 >
-> **Fortschritt (15. Februar 2026):**
+> **Update (18. Maerz 2026) — Buch-Audit + Kand ADOPT:**
+> - Python Buch-Audit Kaabar 2026 abgeschlossen: alle Formeln auf SOTA korrigiert.
+> - K's Collection (6x) komplett neu: BB+MACD, SMA-Count, RSI*ATR→RSI, RSI², MARSI, 15-Fib-EMA. 300/300 Tests gruen.
+> - Neu hinzugefuegt: Rainbow Collection (7x), R-Pattern, Gap-Pattern. Je mit eigenen Test-Suites.
+> - ATR fuer K's ATR-RSI korrigiert: SMA→Wilder EWM(span=2n-1).
+> - **Kand: ADOPT Fork-Strategie** — PyO3/`*_inc()`/HMA/ADX/VWAP/Keltner bestaetigt. Phase-20 Integration.
+> - Rust Blueprint: RSI Wilder-Warmup, ATR EWM Wilder, BB sample-std. Details in `rust_kand_evaluation_delta.md`.
+>
+> **Update (15. Februar 2026):**
 > - `python-backend/services/indicator-service/app.py` ist als baseline vertical slice umgesetzt.
 > - Baseline-Endpunkte fuer `signals/composite`, `patterns/*`, `indicators/exotic-ma`, `indicators/ks-collection`, `fibonacci/levels`, `charting/transform`, `evaluate/strategy` sind live.
-> - Smoke-Runner vorhanden: `bun run smoke:indicator-service`.
->
-> **Update (18. Februar 2026):**
-> - Rust-Evaluierung abgeschlossen: Rust/PyO3 ersetzt ta-lib + numba als Compute-Beschleuniger (siehe Sektion 0.8).
-> - [Kand](https://github.com/kand-ta/kand) als potentielle Basis-Library identifiziert (Rust TA-Lib mit PyO3 + WASM Bindings).
-> - Alle Endpoints, Phasen und Todos bleiben unveraendert -- Rust geht UNTER den Python-Service, nicht daneben.
 
 ---
 

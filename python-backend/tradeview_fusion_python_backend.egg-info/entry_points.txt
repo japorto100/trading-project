@@ -1,0 +1,2 @@
+[console_scripts]
+maturin-dev = scripts.maturin_rebuild:main

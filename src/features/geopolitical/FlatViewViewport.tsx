@@ -9,7 +9,7 @@ import type {
 } from "maplibre-gl";
 import { useEffect, useMemo, useRef } from "react";
 import type { GeoFlatViewBounds } from "@/features/geopolitical/flat-view-handoff";
-import type { GeoFlatViewState } from "@/features/geopolitical/flat-view-state";
+import type { GeoFlatViewRendererContract } from "@/features/geopolitical/flat-view-renderer-contract";
 
 const FLAT_VIEW_STYLE: StyleSpecification = {
 	version: 8,
@@ -58,10 +58,10 @@ function buildBoundsCollection(bounds: GeoFlatViewBounds | null): FeatureCollect
 	};
 }
 
-export function FlatViewViewport({ state }: { state: GeoFlatViewState }) {
+export function FlatViewViewport({ contract }: { contract: GeoFlatViewRendererContract }) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<MapLibreMap | null>(null);
-	const boundsGeoJson = useMemo(() => buildBoundsCollection(state.bounds), [state.bounds]);
+	const boundsGeoJson = useMemo(() => buildBoundsCollection(contract.bounds), [contract.bounds]);
 
 	useEffect(() => {
 		if (!containerRef.current || mapRef.current) return;
@@ -113,8 +113,8 @@ export function FlatViewViewport({ state }: { state: GeoFlatViewState }) {
 					},
 				});
 
-				if (state.bounds) {
-					map.fitBounds(toBoundsLike(state.bounds), {
+				if (contract.bounds) {
+					map.fitBounds(toBoundsLike(contract.bounds), {
 						padding: 48,
 						duration: 0,
 					});
@@ -127,7 +127,7 @@ export function FlatViewViewport({ state }: { state: GeoFlatViewState }) {
 			mapRef.current?.remove();
 			mapRef.current = null;
 		};
-	}, [boundsGeoJson, state.bounds]);
+	}, [boundsGeoJson, contract.bounds]);
 
 	useEffect(() => {
 		const map = mapRef.current;
@@ -135,21 +135,21 @@ export function FlatViewViewport({ state }: { state: GeoFlatViewState }) {
 		const source = map.getSource("handoff-bounds") as GeoJSONSource | undefined;
 		source?.setData(boundsGeoJson);
 
-		if (state.bounds) {
-			map.fitBounds(toBoundsLike(state.bounds), {
+		if (contract.bounds) {
+			map.fitBounds(toBoundsLike(contract.bounds), {
 				padding: 48,
 				duration: 700,
 			});
 		}
-	}, [boundsGeoJson, state.bounds]);
+	}, [boundsGeoJson, contract.bounds]);
 
 	return (
 		<div className="relative h-full min-h-[18rem] w-full overflow-hidden rounded-lg border border-border/60 bg-[#08111f]">
 			<div ref={containerRef} className="h-full w-full" data-testid="geomap-flat-view-viewport" />
 			<div className="pointer-events-none absolute left-3 top-3 rounded-md border border-border/60 bg-card/80 px-3 py-2 text-[11px] text-muted-foreground backdrop-blur">
-				<div>renderer: {state.renderer}</div>
-				<div>richness: {state.basemapPolicy.richness}</div>
-				<div>focus: {state.focus?.kind ?? "bounds"}</div>
+				<div>renderer: {contract.renderer}</div>
+				<div>richness: {contract.basemapPolicy.richness}</div>
+				<div>focus: {contract.focus?.kind ?? "bounds"}</div>
 			</div>
 		</div>
 	);

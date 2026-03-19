@@ -19,13 +19,14 @@
 5. [Orchestrierungs- und Framework-Positionierung](#5-orchestrierungs--und-framework-positionierung)
 6. [Guardrails als Runtime-Layer](#6-guardrails-als-runtime-layer)
 7. [Sandboxing-Strategie (OpenSandbox fix)](#7-sandboxing-strategie-opensandbox-fix)
-8. [Observability, Agentic Evals und Regression-Gates](#8-observability-agentic-evals-und-regression-gates)
-9. [Priorisierte Einfuehrungsreihenfolge](#9-priorisierte-einfuehrungsreihenfolge)
-10. [LLM Routing und FinOps (LiteLLM/RouteLLM)](#10-llm-routing-und-finops-litellmroutellm)
-11. [Token-/Semantic-Caching](#11-token-semantic-caching)
-12. [Querverweise](#12-querverweise)
-13. [Kernquellen (wichtigste URLs)](#13-kernquellen-wichtigste-urls)
-14. [Supervisor (Runtime-Hinweis)](#14-supervisor-kurzer-runtime-hinweis)
+8. [Complete Mediation und Kontextintegritaet](#8-complete-mediation-und-kontextintegritaet)
+9. [Observability, Agentic Evals und Regression-Gates](#9-observability-agentic-evals-und-regression-gates)
+10. [Priorisierte Einfuehrungsreihenfolge](#10-priorisierte-einfuehrungsreihenfolge)
+11. [LLM Routing und FinOps (LiteLLM/RouteLLM)](#11-llm-routing-und-finops-litellmroutellm)
+12. [Token-/Semantic-Caching](#12-token-semantic-caching)
+13. [Querverweise](#13-querverweise)
+14. [Kernquellen (wichtigste URLs)](#14-kernquellen-wichtigste-urls)
+15. [Supervisor (Runtime-Hinweis)](#15-supervisor-kurzer-runtime-hinweis)
 
 ---
 
@@ -179,7 +180,29 @@ Reproduzierbarkeits-Basis fuer Agent-Execution.
 
 ---
 
-## 8. Observability, Agentic Evals und Regression-Gates
+## 8. Complete Mediation und Kontextintegritaet
+
+Der Harness erzwingt "complete mediation": jeder sicherheitsrelevante Zugriff
+geht durch denselben Entscheidpfad.
+
+Pflicht:
+
+- kein direkter Shortcut von Agent zu Tool/Storage/Netz
+- kein "trusted mode" ohne Policy-Pruefung
+- jeder Tool-Call braucht envelope + context-integrity-check
+
+Kontextintegritaet im Harness:
+
+- Kontextquellen sind klassifiziert (`policy`, `intent`, `data`, `tool_result`)
+- Prioritaetskette ist fix und nicht prompt-seitig ueberschreibbar
+- bei Konflikt zwischen Kontextquellen wird blockiert oder auf Human-Approval gehoben
+
+Damit verhindert der Harness riskante Kaskaden
+(`untrusted input -> tool hijack -> unauthorized action`).
+
+---
+
+## 9. Observability, Agentic Evals und Regression-Gates
 
 Harness-Qualitaet wird nicht ueber Einzelprompts bewertet, sondern ueber laufende
 Gates:
@@ -197,17 +220,18 @@ Minimum fuer produktionsnahe Freigabe:
 
 ---
 
-## 9. Priorisierte Einfuehrungsreihenfolge
+## 10. Priorisierte Einfuehrungsreihenfolge
 
 1. Harness-Execution-Contract und Boundary-Owner finalisieren
 2. OpenSandbox als verpflichtende Execution-Boundary aktivieren
 3. Guardrail-Runtime fuer Input/Retrieval/Execution/Output verdrahten
-4. Minimalistische Control-Flow-Standards fuer Agent-Loops durchsetzen
-5. Agentic-Evals + Security-Regression-Gates fest in Delivery-Rhythmus heben
+4. Complete-Mediation + Kontextintegritaets-Checks als Pflicht in kritischen Pfaden
+5. Minimalistische Control-Flow-Standards fuer Agent-Loops durchsetzen
+6. Agentic-Evals + Security-Regression-Gates fest in Delivery-Rhythmus heben
 
 ---
 
-## 10. LLM Routing und FinOps (LiteLLM/RouteLLM)
+## 11. LLM Routing und FinOps (LiteLLM/RouteLLM)
 
 Dieses Thema gehoert in den Harness-Layer, weil es Runtime-Entscheidungen ueber
 Kosten, Moduswahl und Fallback-Pfade betrifft.
@@ -229,7 +253,7 @@ Nicht-Ziel:
 
 ---
 
-## 11. Token-/Semantic-Caching
+## 12. Token-/Semantic-Caching
 
 Caching gehoert in den Harness-Layer, weil es Laufzeit-Kosten und Kontext-Freshness betrifft.
 
@@ -240,13 +264,36 @@ Arbeitsposition:
 
 Nicht-Ziel: Cache aktivieren ohne reproduzierbare Eval-Gates und ohne Nachweis gegen Qualitaets-/Policy-Regression.
 
+### 12.1 Sofort umsetzbare Baseline (14 Tage)
+
+1. **Prefix-Caching einschalten und messen**
+   - Serverseitig Prefix-/Prompt-Caching aktivieren, Hit-Rate und Token-Saved messen.
+   - Quelle: [vLLM Prefix Caching](https://docs.vllm.ai/en/stable/design/prefix_caching.html)
+
+2. **Paged-Attention-/KV-Layout als Standardpfad**
+   - Langen Kontext nur mit paged KV-Management freigeben; Fragmentierung und OOM-Risiko senken.
+   - Quelle: [vLLM Paged Attention](https://docs.vllm.ai/en/v0.11.2/design/paged_attention/)
+
+3. **Flash-Attention aktivieren (wo verfuegbar)**
+   - Bei kompatibler GPU/Backend als Default im Runtime-Profil fuehren.
+   - Quellen: [FlashAttention-3 (PyTorch)](https://pytorch.org/blog/flashattention-3/), [llama.cpp FlashAttention PR](https://github.com/ggerganov/llama.cpp/pull/5021)
+
+4. **KV-Cache-Quantisierung als evaluate-first**
+   - fuer lange Kontexte mit konservativem Startprofil (z. B. q8_0) testen, dann stufenweise.
+   - Quellen: [SGLang Quantized KV Cache](https://docs.sglang.io/advanced_features/quantized_kv_cache.html), [llama.cpp KV cache quantization](https://github.com/ggerganov/llama.cpp/issues/6863)
+
+5. **Hash-/Invalidation-Policy verbindlich machen**
+   - Cache-Key-Hashing, Tenant-Isolation, Invalidation bei Tool-/Prompt-/Policy-Aenderungen.
+   - Quelle: [vLLM Automatic Prefix Caching](https://docs.vllm.ai/en/v0.8.5/design/automatic_prefix_caching.html)
+
 ---
 
-## 12. Querverweise
+## 13. Querverweise
 
 - `AGENT_ARCHITECTURE.md`
 - `AGENT_TOOLS.md`
 - `AGENT_SECURITY.md`
+- `AGENT_MODEL_TOKEN_TUNING.md`
 - `RAG_GRAPHRAG_STRATEGY_2026.md`
 - `CONTEXT_ENGINEERING.md`
 - `MEMORY_ARCHITECTURE.md`
@@ -256,7 +303,7 @@ Nicht-Ziel: Cache aktivieren ohne reproduzierbare Eval-Gates und ohne Nachweis g
 
 ---
 
-## 13. Kernquellen (wichtigste URLs)
+## 14. Kernquellen (wichtigste URLs)
 
 - LIMI-Prinzip (Less Is More for Agency): [OpenReview](https://openreview.net/forum?id=Jee2Q7qK0s)
 - MCP (Model Context Protocol) Spezifikation: [modelcontextprotocol.io](https://modelcontextprotocol.io/)
@@ -273,6 +320,7 @@ Nicht-Ziel: Cache aktivieren ohne reproduzierbare Eval-Gates und ohne Nachweis g
 - NVIDIA NeMo Guardrails (Runtime-Rails): [GitHub](https://github.com/NVIDIA/NeMo-Guardrails)
 - Guardrails AI (Validator- und Policy-Layer): [GitHub](https://github.com/guardrails-ai/guardrails)
 - OWASP Top 10 for LLM Applications: [OWASP GenAI Project](https://genai.owasp.org/)
+- Agentic Security Survey (Design/Risk/Defense): [arXiv 2603.11088](https://arxiv.org/pdf/2603.11088)
 - E2B (Firecracker-basierte Agent-Sandbox): [GitHub](https://github.com/e2b-dev/E2B)
 - Northflank (isolierte Agent-Workloads, OCI-fokussiert): [Website](https://northflank.com/)
 - Daytona (schnelle Sandbox/Workspace-Laufzeiten): [GitHub](https://github.com/daytonaio/daytona)
@@ -280,7 +328,7 @@ Nicht-Ziel: Cache aktivieren ohne reproduzierbare Eval-Gates und ohne Nachweis g
 
 ---
 
-## 14. Supervisor (kurzer Runtime-Hinweis)
+## 15. Supervisor (kurzer Runtime-Hinweis)
 
 `supervisord` ist ein Prozess-Manager fuer Linux-Workloads (nicht neu), der mehrere
 Dienste in einer Runtime startet und ueberwacht. In containerisierten Agent-Setups

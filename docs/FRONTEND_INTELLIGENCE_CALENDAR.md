@@ -15,6 +15,7 @@ Core objective:
 - convert macro/event releases into decision-ready UI objects
 - show expectation range, surprise context, impact potential, and action drilldowns
 - keep one shared context model across `ResearchHome`, `Calendar`, and `Workspace`
+- make the calendar operational: pre-event preparation, post-event surprise interpretation, and one-click drilldown
 
 ---
 
@@ -51,6 +52,7 @@ Interaction model:
 - list/timeline view for scanning
 - detail drawer/panel for quick decision context
 - full detail page for evidence-rich investigation
+- calendar is an operational entry surface, while `ResearchHome` remains the broader context-first entry
 
 Placement note:
 
@@ -102,6 +104,8 @@ Frontend hard requirements:
 - never render impact/bias claims without confidence and source links
 - always show freshness/staleness state
 - mark unknowns explicitly (do not imply certainty)
+- if expectation data exists, render `min / consensus / max` before any editorial interpretation
+- if actual data arrives, render surprise context before generalized summary copy
 
 ---
 
@@ -121,6 +125,10 @@ Required components:
   - source links, confidence, data freshness
 - `EventDrilldownActions`
   - chart, geo, portfolio, alerts
+- `EventRangeRow`
+  - min, consensus, max, previous, actual where available
+- `EventSurpriseState`
+  - explain whether the result is in-range, above-range, or below-range
 
 Optional (phase 2+):
 
@@ -139,6 +147,8 @@ Mandatory UX rules:
 - visual separation of `fact`, `model output`, `editorial note`
 - "why this matters" copy block must map to evidence and scenario
 - one-click path to affected symbols/charts
+- pre-event and post-event states must look intentionally different
+- playbook hints should stay concise and action-oriented rather than editorially verbose
 
 Color semantics:
 
@@ -160,6 +170,7 @@ Caching guidance:
 - event list: short TTL (fast-changing)
 - event detail: moderate TTL + stale indicator
 - evidence links: long TTL unless source health changes
+- when the data path is still `local`/`fallback`, the UI should expose that mode rather than pretending full live coverage
 
 Realtime updates:
 
@@ -236,6 +247,8 @@ Must pass before rollout:
 - no uncategorized null-state rendering
 - notification deep-link opens matching event detail reliably
 - keyboard navigation and screen-reader basics validated
+- expectation ranges and surprise states remain readable at a glance
+- event detail stays useful in both pre-release and post-release modes
 
 Global-context placement gate:
 
@@ -289,3 +302,5 @@ These points are explicitly carried over from the benchmark and must remain in i
 - event-to-decision drilldown path remains one-click to chart/geo/portfolio/alerts
 - notification behavior includes deep-link correctness and stale-state handling
 - no "certainty wording" when confidence is low or source coverage is incomplete
+- expectation range (`min / consensus / max`) is first-class when available
+- calendar stays coupled to research context instead of becoming a standalone date grid product

@@ -26,7 +26,7 @@ Full index and read order: `docs/specs/DOCUMENTATION_ARCHITECTURE.md`.
 | API | `docs/specs/API_CONTRACTS.md` | Umbrella → `api/` subspecs (5 files) |
 | Security | `docs/specs/AUTH_SECURITY.md` | Umbrella → `security/` subspecs (6 files) |
 | Data | `docs/specs/data/DATA_ARCHITECTURE.md` | Data flow, zones, sources, IST |
-| Frontend | `docs/specs/architecture/FRONTEND_ARCHITECTURE.md` | Frontend/BFF authority, shell, routes |
+| Frontend | `docs/specs/architecture/FRONTEND_ARCHITECTURE.md` + `docs/specs/architecture/FRONTEND_QUALITY_RULES.md` | Frontend/BFF authority plus frontendweite Quality-/Boundary-Regeln |
 | Agent/Memory | `docs/specs/architecture/AGENT_RUNTIME_ARCHITECTURE.md` | Agent bounds, memory-write policy |
 | Governance | `docs/specs/GOVERNANCE.md` | Umbrella → `governance/` blueprints (Phase B/C) |
 | Errors/Obs | `docs/specs/ERRORS.md` + `docs/specs/OBSERVABILITY.md` | Error taxonomy, OTel, Correlation IDs |
@@ -52,7 +52,7 @@ Port source of truth: `scripts/dev-stack.ps1` (comment line: *"Map ports per API
 | **memory-service** | Python 3.12+ (FastAPI) | 8093 | `python-backend/services/memory-service/` | Aktiv |
 | **agent-service** | Python 3.12+ (FastAPI) | 8094 | `python-backend/services/agent-service/` | Aktiv (WS scaffold) |
 | **Rust Core** | Rust (PyO3) | — (lib) | `python-backend/rust_core/` | Aktiv |
-| **GCT** | Go | 9052 (gRPC), 9053 (proxy) | `go-backend/vendor-forks/gocryptotrader/` | Aktiv |
+| **GCT** | Go | 9052 (gRPC), 9053 (proxy) | `go-backend/go-crypto-trader/` | Aktiv |
 | **SeaweedFS** | — | 8333 (S3), 9333 (master), 8888 (filer) | `tools/seaweedfs/` | Aktiv (local dev) |
 | **NATS JetStream** | — | 4222, monitoring :8222 | `tools/nats/` | Aktiv |
 | **OpenObserve** | — | 5080 (UI), 5081 (gRPC) | `tools/openobserve/` | Aktiv (OTel) |
@@ -100,6 +100,30 @@ cd python-backend/rust_core && maturin develop --release
 
 # Database
 bun run db:push && bun run db:generate
+```
+
+## Git Submodules
+
+Nach einem frischen Clone alle Submodules initialisieren:
+```bash
+git submodule update --init --recursive
+```
+
+### GCT (`go-backend/go-crypto-trader`)
+- Upstream: `https://github.com/thrasher-corp/gocryptotrader`
+- Eingebunden via `go.mod replace ./go-crypto-trader` — **muss vorhanden sein**, sonst schlägt `go build` fehl.
+- Keine eigenen Patches — reiner Upstream-Clone. Remote bleibt auf `thrasher-corp` bis ein eigener GitHub-Fork angelegt wird (geplant pre-Phase 11).
+- Update auf neuesten Stand:
+```bash
+git submodule update --remote go-backend/go-crypto-trader
+cd go-backend && go mod tidy
+```
+
+### Referenz-Clones (`_tmp_ref_review/`)
+22 externe Repos (agents, geo, graph, security) — nur zum Lesen/Referenzieren, nicht im Build verwendet.
+```bash
+# Alle auf einmal updaten
+git submodule update --remote --merge -- $(git submodule | awk '{print $2}' | grep _tmp_ref_review)
 ```
 
 ## CLI Tooling Policy (Windows + Git Bash)
@@ -160,7 +184,7 @@ bun run db:push && bun run db:generate
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (35590 symbols, 106436 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (36017 symbols, 107371 relationships, 300 execution flows).
 
 ## Always Start Here
 

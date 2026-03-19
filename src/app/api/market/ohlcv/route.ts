@@ -2,8 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
 import type { OHLCVData, TimeframeValue } from "@/lib/providers/types";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 interface GatewayOhlcvPayload {
 	success?: boolean;
@@ -40,7 +39,7 @@ async function fetchOhlcvViaGateway(input: {
 	requestId: string;
 	userRole?: string;
 }): Promise<{ data: OHLCVData[]; provider: string } | null> {
-	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBaseURL = getGatewayBaseURL();
 	const endpoint = new URL("/api/v1/ohlcv", gatewayBaseURL);
 	endpoint.searchParams.set("symbol", input.symbol);
 	endpoint.searchParams.set("timeframe", input.timeframe);

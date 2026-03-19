@@ -7,6 +7,7 @@
 > **Abgrenzung:** `MEMORY_ARCHITECTURE.md` definiert Speicher-Schichten. Dieses Dokument definiert die Read/Write-Interfaces zu diesen Schichten.
 > **Ergaenzung Security-Layer:** [`AGENT_SECURITY.md`](./AGENT_SECURITY.md) definiert Capability Envelope, Retrieval Broker, Tool Proxy und Agentic-Storage-Write-Grenzen.
 > **Ergaenzung Harness-Layer:** [`AGENT_HARNESS.md`](./AGENT_HARNESS.md) buendelt Runtime-Harness-Prinzipien, OpenSandbox-Execution-Boundary und Guardrail-Governance.
+> **Ergaenzung Tuning-Layer:** [`AGENT_MODEL_TOKEN_TUNING.md`](./AGENT_MODEL_TOKEN_TUNING.md) definiert Token-/KV-/Prefix-Caching-, Flash- und Langkontext-Tuningpfade mit Go/No-Go-Gates.
 > **Referenz-Dokumente:** [`CONTEXT_ENGINEERING.md`](./CONTEXT_ENGINEERING.md), [`AGENT_ARCHITECTURE.md`](./AGENT_ARCHITECTURE.md), [`MEMORY_ARCHITECTURE.md`](./MEMORY_ARCHITECTURE.md), [`GAME_THEORY.md`](./GAME_THEORY.md), [`GEOMAP_OVERVIEW.md`](./specs/geo/GEOMAP_OVERVIEW.md)
 > **Externe Referenzen:**
 > - [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) -- Browser-Debugging und Automation
@@ -297,6 +298,35 @@ Arbeitsregeln fuer `tradeview-fusion`:
 Kandidaten-Referenz (evaluate-only):
 
 - [chenhunghan/code-mode-skill](https://github.com/chenhunghan/code-mode-skill)
+
+### 3.3 MCP Apps Extension (UI aus MCP-Servern) -- evaluate-first
+
+Neben klassischen MCP-Tools (text-/json-basierte Tool-Responses) soll auch
+MCP Apps als optionales UI-Layer eingeplant werden:
+
+- Tool deklariert `ui://...` Ressource (`_meta.ui.resourceUri`)
+- Host rendert UI in sandboxed iframe
+- UI-Kommunikation via JSON-RPC over `postMessage`
+
+Arbeitsregel fuer `tradeview-fusion`:
+
+- **MCP Apps als additive Surface**, nicht als Ersatz fuer klassische Tool-Pfade
+- **evaluate-first** hinter Feature-Flag; kein globaler Default ohne Evidence
+- **text-only Fallback bleibt Pflicht** fuer alle UI-faehigen Tools
+
+Security-/Trust-Policy (verbindlich):
+
+1. Nur **pre-declared templates** (`ui://`) und hostseitige Vorpruefung
+2. UI-initiierte Tool-Calls standardmaessig mit **explizitem User-Consent**
+3. Vollstaendige Auditierbarkeit aller UI-Nachrichten/Tool-Calls
+4. Start mit **curated external** Quellen (z. B. Mail/Calendar) und enger Allowlist
+5. Keine Trading-kritischen Mutationen aus App-UI ohne Human-Approval
+
+Initialer Rollout (empfohlen):
+
+- Phase A: interne read-only Dashboards/Analysen
+- Phase B: kuratierte Produktivitaets-Apps (z. B. Gmail/Outlook Kalender/Mail)
+- Phase C: breitere externe App-Klassen erst nach Security-/Eval-Nachweisen
 
 ---
 
@@ -833,6 +863,28 @@ Welche Rolle bekommt welche Tools? Principle of Least Privilege.
 | **Synthesizer** | Nein | Nein | Nein | Alle | Episodic (Write) | Nein | Ja (Output) | Nein |
 | **Research Agent** | Nein | Nein | Nein | KG + Vector | Episodic (Write) | Ja (Emergent Mind, arXiv, Web) | Nein | Ja |
 | **Monitor Agent** | Ja (DevTools) | Ja | Ja (Screenshots) | Redis + Episodic | Episodic (Alerts) | Nein | Ja (Alerts) | Nein |
+
+### 11.1 Security Contract fuer jede Tool-Familie (verbindlich)
+
+Jede neue Tool-Familie muss vor Aktivierung einen maschinenlesbaren
+Security-Contract mitbringen.
+
+Pflichtfelder:
+
+- `trust_class` (`internal`, `curated_external`, `untrusted_external`)
+- `data_class_in` / `data_class_out` (`public`, `internal`, `sensitive`)
+- `allowed_identities` (`user`, `agent`, `task`)
+- `capability_scope` (`read`, `write`, `delete`, `execute`, `network`)
+- `requires_human_approval` (bool + trigger conditions)
+- `egress_policy` (erlaubte Domains/targets)
+- `credential_mode` (`vault_ref`, `jit_token`, `none`)
+- `audit_schema` (Pflichtfelder fuer Trace)
+
+Hard Stops:
+
+- kein Tool ohne Security-Contract in produktiven Tool-Ring
+- kein Tool mit `untrusted_external` input ohne Guardrail + taint propagation
+- kein write-/execute-Tool ohne envelope + policy decision id
 
 ---
 

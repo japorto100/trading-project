@@ -1,6 +1,6 @@
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { getErrorMessage } from "@/lib/utils";
 
-const DEFAULT_GO_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 const DEFAULT_INDICATOR_SERVICE_TIMEOUT_MS = 8000;
 
 function isEnabled(): boolean {
@@ -11,9 +11,7 @@ function isEnabled(): boolean {
 }
 
 function baseUrl(): string {
-	const gatewayBaseUrl = process.env.GO_GATEWAY_BASE_URL?.trim();
-	if (gatewayBaseUrl) return gatewayBaseUrl.replace(/\/$/, "");
-	return DEFAULT_GO_GATEWAY_BASE_URL;
+	return getGatewayBaseURL().replace(/\/$/, "");
 }
 
 function timeoutMs(): number {

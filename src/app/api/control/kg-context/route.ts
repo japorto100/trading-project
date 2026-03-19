@@ -3,9 +3,8 @@
 
 import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { getErrorMessage } from "@/lib/utils";
-
-const GATEWAY_BASE = (process.env.GO_GATEWAY_BASE_URL ?? "http://127.0.0.1:9060").trim();
 
 const DEGRADED_FALLBACK = {
 	stats: { nodeCount: 0, edgeCount: 0, health: "unknown", lastSyncAt: null },
@@ -29,7 +28,7 @@ export async function GET(request: NextRequest) {
 	const userRole = request.headers.get("x-user-role")?.trim() ?? "";
 
 	try {
-		const res = await fetch(`${GATEWAY_BASE}/api/v1/control/kg-context`, {
+		const res = await fetch(`${getGatewayBaseURL()}/api/v1/control/kg-context`, {
 			headers: {
 				Accept: "application/json",
 				"X-Request-ID": requestId,

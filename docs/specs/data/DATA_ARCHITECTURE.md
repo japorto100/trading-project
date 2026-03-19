@@ -1,6 +1,6 @@
 # DATA ARCHITECTURE
 
-> **Stand:** 16. Maerz 2026  
+> **Stand:** 17. Maerz 2026  
 > **Zweck:** Verbindliche Data-/Aggregation-Spec fuer IST-Zustand, Datenzonen,
 > Contract-Drifts und Zielzustand. Kanonischer Owner.
 > Root-Datei `docs/specs/DATA_ARCHITECTURE.md` verweist hierher.
@@ -62,6 +62,8 @@ Quelle
 - `raw` -- append-only, object-first; kein direktes Consumer-Access
 - `normalized` -- kanonisch, versioniert, provenance-markiert
 - `derived/serving` -- Features/Signals/Views auf normalisierten Grundlagen
+- `semantic` -- document-/graph-nahe Retrieval-Schicht auf normalisierten Inputs
+- `episodic/operational` -- Job-, Audit- und Metadata-Kontext fuer Data-Plane-Arbeit
 
 **Regel:** Keine Vector-/Retrieval-Pfade direkt auf ungepruefte Rohdaten.
 
@@ -94,12 +96,21 @@ Jeder normalisierte Datensatz fuehrt mindestens:
 | Bereich | Technologie (Ziel) |
 |:--------|:-------------------|
 | Relationale Kernobjekte | Postgres |
-| Semantischer Vector-Layer | pgvector |
-| Graph-/Knowledge-Layer | FalkorDB |
+| Semantischer Vector-Layer (document-centric) | pgvector |
+| Graph-/Knowledge-Layer (entity-centric) | FalkorDB |
 | Raw Snapshots / Replay | SeaweedFS (lokal) / S3 |
 | Hot Cache / Locks | Valkey (Redis-kompatibel) |
 | OHLCV Compute Cache | redb |
+| Analytics / Replay SQL | DuckDB |
 | Frontend User-KG | KuzuDB WASM + IndexedDB |
+
+### Tabellarische Standardlinie (Ziel)
+
+- `DuckDB + Polars + Arrow/PyArrow + Parquet` ist die Default-Linie fuer neue
+  tabellarische Analyse-, Replay- und Worker-Pfade.
+- `Arrow Flight` bleibt nur spaeterer Transportpfad fuer echte grosse
+  tabellarische Service-Grenztransfers.
+- `Iceberg` bleibt spaeteres Tabellenformat ueber `Parquet`, nicht Baseline.
 
 ---
 

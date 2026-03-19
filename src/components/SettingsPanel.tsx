@@ -294,19 +294,19 @@ export function SettingsPanel() {
 												</Badge>
 											)}
 											{provider.available ? (
-												<Badge className="border-emerald-500/50 bg-emerald-500/20 text-emerald-500">
+												<Badge className="border-success/40 bg-success/10 text-status-success">
 													<Check className="mr-1 h-3 w-3" />
 													Connected
 												</Badge>
 											) : provider.requiresAuth && provider.configured ? (
-												<Badge variant="outline" className="border-amber-500/50 text-amber-500">
+												<Badge variant="outline" className="border-warning/40 text-status-warning">
 													<Key className="mr-1 h-3 w-3" />
 													Configured
 												</Badge>
 											) : (
 												<Badge
 													variant="destructive"
-													className="border-red-500/50 bg-red-500/20 text-red-500"
+													className="border-error/40 bg-error/10 text-status-error"
 												>
 													<X className="mr-1 h-3 w-3" />
 													{provider.requiresAuth ? "No API Key" : "Unavailable"}
@@ -346,13 +346,16 @@ export function SettingsPanel() {
 												{configured && !markedForRemoval ? (
 													<Badge
 														variant="outline"
-														className="border-emerald-500/50 text-emerald-600"
+														className="border-success/40 text-status-success"
 													>
 														Stored securely
 													</Badge>
 												) : null}
 												{markedForRemoval ? (
-													<Badge variant="outline" className="border-amber-500/50 text-amber-600">
+													<Badge
+														variant="outline"
+														className="border-warning/40 text-status-warning"
+													>
 														Will be removed
 													</Badge>
 												) : null}
@@ -379,7 +382,7 @@ export function SettingsPanel() {
 												href={field.linkUrl}
 												target="_blank"
 												rel="noopener noreferrer"
-												className="self-end whitespace-nowrap pb-2 text-xs text-blue-500 hover:underline"
+												className="self-end whitespace-nowrap pb-2 text-xs text-status-info hover:underline"
 											>
 												{field.linkLabel}
 											</a>
@@ -428,8 +431,8 @@ export function SettingsPanel() {
 						<div
 							className={
 								saveStatus.tone === "success"
-									? "rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700"
-									: "rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-700"
+									? "rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-status-success"
+									: "rounded-lg border border-error/30 bg-error/10 p-3 text-xs text-status-error"
 							}
 						>
 							{saveStatus.message}

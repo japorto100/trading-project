@@ -1,6 +1,15 @@
 import { describe, expect, it } from "bun:test";
+import type {
+	GeoFlatViewConflictHeatCell,
+	GeoFlatViewConflictZoneFeature,
+} from "@/features/geopolitical/flat-view-conflict-layers";
 import {
 	buildGeoCandidateSelectionDetail,
+	buildGeoConflictAssetSelectionDetail,
+	buildGeoConflictHeatSelectionDetail,
+	buildGeoConflictStrikeSelectionDetail,
+	buildGeoConflictTargetSelectionDetail,
+	buildGeoConflictZoneSelectionDetail,
 	buildGeoContextSelectionDetail,
 	buildGeoEventSelectionDetail,
 	buildGeoNewsSelectionDetail,
@@ -135,5 +144,73 @@ describe("geo selection detail helpers", () => {
 		expect(detail.subtitle).toBe("Example");
 		expect(detail.primaryMeta).toContain("gnews");
 		expect(detail.secondaryMeta).toEqual(["neutral"]);
+	});
+
+	it("builds shared conflict selection summaries", () => {
+		const strikeDetail = buildGeoConflictStrikeSelectionDetail({
+			id: "strike-1",
+			eventId: "event-1",
+			title: "Port disruption",
+			severity: 4,
+			coordinates: [31.24, 30.04],
+			selected: true,
+		});
+		const targetDetail = buildGeoConflictTargetSelectionDetail({
+			id: "target-1",
+			eventId: "event-1",
+			title: "Port disruption",
+			severity: 4,
+			coordinates: [31.5, 30.4],
+			index: 1,
+		});
+		const assetDetail = buildGeoConflictAssetSelectionDetail({
+			id: "event-1:asset-1",
+			eventId: "event-1",
+			symbol: "XAUUSD",
+			assetClass: "commodity",
+			relation: "hedge",
+			coordinates: [31.24, 30.04],
+			weight: 0.7,
+		});
+		const zoneDetail = buildGeoConflictZoneSelectionDetail({
+			type: "Feature",
+			properties: {
+				id: "zone-event-1",
+				eventId: "event-1",
+				title: "Port disruption",
+				severity: 4,
+				pointCount: 2,
+			},
+			geometry: {
+				type: "Polygon",
+				coordinates: [
+					[
+						[31, 30],
+						[32, 30],
+						[32, 31],
+						[31, 31],
+						[31, 30],
+					],
+				],
+			},
+		} satisfies GeoFlatViewConflictZoneFeature);
+		const heatDetail = buildGeoConflictHeatSelectionDetail({
+			id: "heat-30:31",
+			coordinates: [31.24, 30.04],
+			eventIds: ["event-1", "event-2"],
+			intensity: 9,
+			maxSeverity: 5,
+		} satisfies GeoFlatViewConflictHeatCell);
+
+		expect(strikeDetail.kind).toBe("strike");
+		expect(strikeDetail.linkedEventId).toBe("event-1");
+		expect(targetDetail.kind).toBe("target");
+		expect(targetDetail.subtitle).toBe("Target 1");
+		expect(assetDetail.kind).toBe("asset");
+		expect(assetDetail.secondaryMeta).toContain("weight 0.70");
+		expect(zoneDetail.kind).toBe("zone");
+		expect(zoneDetail.primaryMeta).toEqual(["S4", "2 points"]);
+		expect(heatDetail.kind).toBe("heat");
+		expect(heatDetail.primaryMeta).toEqual(["intensity 9", "max S5"]);
 	});
 });

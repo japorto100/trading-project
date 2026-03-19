@@ -39,6 +39,7 @@
 - [x] **PDQ4** Testmatrix fuer Frontend/Go/Python mit klaren Smoke- und Kern-Suiten definiert
 - [x] **PDQ5** Dependency-Update-Pfad (`Renovate`/`Dependabot`) inkl. Freigabeprozess dokumentiert
 - [x] **PDQ6** Security-Scans (`Trivy`/`Semgrep`) in verifizierbare Pipeline-Gates ueberfuehrt
+- [ ] **PDQ7** Go `internal/config/config.go` — alle `envOr()`-Aufrufe aus `wiring.go` in eine zentrale `Config`-Struct auslagern (Pre-P11, bevor Phase 11 weitere Config-Variablen hinzufuegt)
 
 ### Aktueller DX-Kontext
 

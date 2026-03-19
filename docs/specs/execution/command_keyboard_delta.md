@@ -1,11 +1,12 @@
 # Command & Keyboard Shortcut Delta
 
-> **Stand:** 14. März 2026 (Rev. 2)
+> **Stand:** 14. März 2026 (Rev. 3)
 > **Phase:** 22c - Command & Keyboard Surface
 > **Zweck:** Execution-Owner für globale Tastaturkürzel, Command Palette und Navigation-Shortcuts im TradeView-Frontend.
 > **Aenderungshistorie:**
 > - Rev. 1 (14.03.2026): Initialer Slice — IST-Analyse, Fehlerdiagnose, offene Deltas, Verify-Gates
 > - Rev. 2 (14.03.2026): Phase-1-Implementierung eingetragen — AC1/AC4/AC5/AC7/AC9/AC10/AC12/AC13 done; `CommandPalette.tsx` komplett überarbeitet
+> - Rev. 3 (14.03.2026): Phase-22c abgeschlossen — AC74/AC75/AC76/AC77 done; CommandPalette → `src/components/CommandPalette.tsx` (global); `GlobalKeyboardProvider` + `GlobalChatOverlay` + `GlobalChatContext` in `(shell)/layout.tsx`; AC2 automatisch geschlossen via Context
 
 ---
 
@@ -106,10 +107,7 @@ Kein Shortcut registriert für:
 - [x] **AC1** `⌘J` → `⌘L` umbenennen (Taste `l` statt `j`) — User-Erwartung: `⌘L` = Chat
   - `CommandPalette.tsx`: `e.key === "j"` → `e.key === "l"` ✓
   - `CommandShortcut`-Label: `⌘J` → `⌘L` ✓
-- [ ] **AC2** `onOpenChat` prop in `trading/page.tsx` verdrahten
-  - AgentChatPanel als Drawer/Overlay im Trading-Workspace einbinden
-  - `useState<boolean>(chatOpen)` + `setChatOpen` → übergeben an `<CommandPalette onOpenChat={() => setChatOpen(true)} />`
-  - Voraussetzung: Phase-22a Chat-Panel im Trading-Workspace gemountet (Drawer-Pattern oder Sidebar-Slot)
+- [x] **AC2** `onOpenChat` via `GlobalChatContext` geschlossen — `CommandPalette` nutzt `useGlobalChat().openChat()` intern; kein prop-drilling; `GlobalChatOverlay` in `(shell)/layout.tsx` als `Sheet modal=false`
 - [ ] **AC3** `⌘⇧A` an echten Speech-Button verdrahten
   - AgentChatComposer hat Speech-Button-Slot (Phase 22a AC-J-Gruppe)
   - Shortcut soll: Chat öffnen + Speech-Input aktivieren (`onOpenChat()` dann `triggerSpeech()`)
@@ -130,7 +128,7 @@ Kein Shortcut registriert für:
 - [ ] **AC8** Eintrag "Voice Input" — `onOpenChat?.()` Fallback aktiv; Speech-Wiring ausstehend (AC3 Dep)
 - [x] **AC9** Eintrag "Control Surface" mit `SlidersHorizontal`-Icon + `⌘⇧C` ✓
 - [x] **AC10** Eintrag "Geopolitical Map" shortcut label `⌘⇧M` ✓
-- [ ] **AC11** Optional: Eintrag "Toggle Left Sidebar" / "Toggle Right Sidebar" mit Shortcuts (`[` / `]` oder `⌘\`)
+- [ ] **AC11** Toggle-Panel Shortcuts (`[`/`]` oder `⌘\`) — ausstehend/evaluieren; Hinweis: nicht nur Trading-Sidebar sondern auch GeoMap-Panels (DrawMode, Selection, SourceHealth) beruecksichtigen — globale Loesung benoetigt page-agnostisches Panel-Konzept; vorerst zurueckgestellt
 
 ### D. Scope-Isolation und Konflikt-Prüfung
 
@@ -166,16 +164,11 @@ Kein Shortcut registriert für:
 
 ```
 AC1, AC4, AC5, AC6, AC7, AC9, AC10, AC12, AC13  ← DONE (Rev. 2, 14.03.2026)
+AC2, AC74, AC75, AC76, AC77                      ← DONE (Rev. 3, 14.03.2026)
 
-# Phase 22c — Global-Overlay (naechster Schritt)
-AC74  ← GlobalKeyboardProvider in (shell)/layout.tsx
-        CommandPalette aus trading/page.tsx entfernen
-AC75  ← GlobalChatOverlay (AgentChatPanel als Sheet) in (shell)/layout.tsx
-AC76  ← ⌘T → /trading in GlobalKeyboardProvider
-AC77  ← onOpenChat via Context (nicht prop-drilling)
-AC2   ← onOpenChat-Wiring folgt automatisch aus AC75/AC77
-AC3   ← Speech-Shortcut ⌘⇧A verdrahten (nach AC75)
-AC8   ← Voice Input Aktion (nach AC3)
+# Noch offen
+AC3   ← Speech-Shortcut ⌘⇧A → Chat + Speech aktivieren (nach Phase 22d AI SDK)
+AC8   ← Voice Input Aktion verdrahten (nach AC3)
 
 # Optional / nachgelagert
 AC11  ← Toggle-Sidebar Shortcuts

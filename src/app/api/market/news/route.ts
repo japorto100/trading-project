@@ -2,8 +2,7 @@ import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { NEWS_SOURCES } from "@/lib/news/sources";
 import type { MarketNewsResponse } from "@/lib/news/types";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 interface GatewayHeadline {
 	title: string;
@@ -35,7 +34,7 @@ async function fetchNewsViaGateway(
 	requestId: string,
 	userRole?: string,
 ): Promise<MarketNewsResponse | null> {
-	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBaseURL = getGatewayBaseURL();
 	const endpoint = new URL("/api/v1/news/headlines", gatewayBaseURL);
 	if (symbol) endpoint.searchParams.set("symbol", symbol);
 	if (q) endpoint.searchParams.set("q", q);

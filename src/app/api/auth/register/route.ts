@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthEnabled, isAuthStackBypassEnabled } from "@/lib/auth/runtime-flags";
 import { hashPassword, validateNewPassword } from "@/lib/server/auth-password";
-import { getPrismaClient } from "@/lib/server/prisma";
 
 type JsonError = { error: string; details?: string; bypass?: boolean };
 
@@ -32,6 +31,10 @@ function normalizeUsername(value: unknown): string | null {
 	return username.replace(/[^a-z0-9_-]/g, "").slice(0, 40);
 }
 
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
+}
+
 export async function POST(request: Request) {
 	if (!isAuthEnabled()) {
 		return noStoreJson(
@@ -43,11 +46,6 @@ export async function POST(request: Request) {
 			} satisfies JsonError,
 			{ status: 409 },
 		);
-	}
-
-	const prisma = getPrismaClient();
-	if (!prisma) {
-		return noStoreJson({ error: "database unavailable" } satisfies JsonError, { status: 503 });
 	}
 
 	let body: unknown;
@@ -77,77 +75,54 @@ export async function POST(request: Request) {
 		return noStoreJson({ error: passwordValidation.error } satisfies JsonError, { status: 400 });
 	}
 
-	let user: {
-		id: string;
-		email: string | null;
-		name: string | null;
-		role: string;
-		createdAt: Date;
-	} | null = null;
 	let recoveryCodes: string[] = [];
 
 	try {
-		const existingEmail = await prisma.user.findUnique({ where: { email } });
-		if (existingEmail) {
-			return noStoreJson({ error: "email already registered" } satisfies JsonError, {
-				status: 409,
-			});
-		}
-
-		const existingUser = await prisma.user.findUnique({ where: { username } });
-		if (existingUser) {
-			return noStoreJson({ error: "username already taken" } satisfies JsonError, {
-				status: 409,
-			});
-		}
-
-		// SOTA 2026: Generate initial recovery codes (Option 1)
 		recoveryCodes = Array.from({ length: 8 }, () =>
 			crypto.randomUUID().split("-")[0].toUpperCase(),
 		);
-
-		user = await prisma.user.create({
-			data: {
+		const response = await fetch(`${getGoGatewayUrl()}/api/v1/auth/owner/register`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
 				email,
 				username,
 				name: name ?? username,
 				role: (process.env.AUTH_DEFAULT_ROLE ?? "viewer").trim() || "viewer",
 				passwordHash: hashPassword(password),
-				recoveryCodes: {
-					create: recoveryCodes.map((code) => ({
-						codeHash: code, // SOTA: Simplified for dev, would be hashed in real prod
-					})),
-				},
-			},
-			select: {
-				id: true,
-				email: true,
-				username: true,
-				name: true,
-				role: true,
-				createdAt: true,
-			},
+				recoveryCodes,
+			}),
+			cache: "no-store",
 		});
+		const payload = (await response.json().catch(() => ({}))) as {
+			error?: string;
+			user?: {
+				id: string;
+				email: string | null;
+				name: string | null;
+				role: string;
+				createdAt: string;
+			};
+		};
+		if (!response.ok || !payload.user) {
+			return noStoreJson(
+				{ error: payload.error || `registration failed (${response.status})` } satisfies JsonError,
+				{ status: response.status >= 400 ? response.status : 500 },
+			);
+		}
+		return noStoreJson(
+			{
+				created: true,
+				user: payload.user,
+				recoveryCodes,
+				nextStep: "sign-in",
+			},
+			{ status: 201 },
+		);
 	} catch (error: unknown) {
 		const details = error instanceof Error ? error.message : "unknown registration error";
 		return noStoreJson({ error: "registration failed", details } satisfies JsonError, {
 			status: 500,
 		});
 	}
-
-	return noStoreJson(
-		{
-			created: true,
-			user: {
-				id: user.id,
-				email: user.email,
-				name: user.name,
-				role: user.role,
-				createdAt: user.createdAt.toISOString(),
-			},
-			recoveryCodes, // SOTA 2026: Return initial master keys
-			nextStep: "sign-in",
-		},
-		{ status: 201 },
-	);
 }

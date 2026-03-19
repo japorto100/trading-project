@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tradeview-fusion-python-ingest-workers"
+version = "0.1.0"
+description = "Python Ingest Workers — async ingest, chunking, embedding, indexing (placeholder)"
+requires-python = ">=3.11"
+dependencies = [
+    # Dev tools from root workspace dev-dependencies.
+    # Runtime deps added here when workers are implemented.
+    "tradeview-fusion-python-backend",
+]
+
+[tool.uv.sources]
+tradeview-fusion-python-backend = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

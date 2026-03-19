@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+
 import { auth } from "@/lib/auth";
 import { isAuthEnabled, isAuthStackBypassEnabled } from "@/lib/auth/runtime-flags";
-import { getPrismaClient } from "@/lib/server/prisma";
 
 type AppRole = "viewer" | "analyst" | "trader" | "admin";
 
@@ -40,13 +40,17 @@ async function requireAdminSession() {
 	return { ok: true as const, session };
 }
 
+function gatewayBaseUrl() {
+	return process.env.GO_GATEWAY_BASE_URL?.trim() || null;
+}
+
 export async function GET(request: Request) {
 	const gate = await requireAdminSession();
 	if (!gate.ok) return noStoreJson({ error: gate.error }, { status: gate.status });
 
-	const prisma = getPrismaClient();
-	if (!prisma) {
-		return noStoreJson({ error: "database unavailable" }, { status: 503 });
+	const gatewayUrl = gatewayBaseUrl();
+	if (!gatewayUrl) {
+		return noStoreJson({ error: "gateway unavailable" }, { status: 503 });
 	}
 
 	const url = new URL(request.url);
@@ -54,49 +58,28 @@ export async function GET(request: Request) {
 	const limitRaw = Number.parseInt(url.searchParams.get("limit") ?? "", 10);
 	const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 100;
 
-	const users = await prisma.user.findMany({
-		where: q
-			? {
-					OR: [{ email: { contains: q } }, { name: { contains: q } }],
-				}
-			: undefined,
-		orderBy: [{ createdAt: "desc" }],
-		take: limit,
-		select: {
-			id: true,
-			email: true,
-			name: true,
-			role: true,
-			createdAt: true,
-			updatedAt: true,
+	const response = await fetch(
+		`${gatewayUrl}/api/v1/admin/users?q=${encodeURIComponent(q)}&limit=${limit}`,
+		{
+			cache: "no-store",
+			headers: {
+				"x-auth-user-id": gate.session.user.id ?? "",
+				"x-auth-user-email": gate.session.user.email ?? "",
+				"x-auth-user-role": normalizeRole(gate.session.user.role) ?? "viewer",
+			},
 		},
-	});
-
-	return noStoreJson({
-		actor: {
-			id: gate.session.user.id,
-			email: gate.session.user.email ?? null,
-			role: normalizeRole(gate.session.user.role) ?? "viewer",
-		},
-		total: users.length,
-		items: users.map((user) => ({
-			id: user.id,
-			email: user.email,
-			name: user.name,
-			role: normalizeRole(user.role) ?? "viewer",
-			createdAt: user.createdAt.toISOString(),
-			updatedAt: user.updatedAt.toISOString(),
-		})),
-	});
+	);
+	const payload = await response.json();
+	return noStoreJson(payload, { status: response.status });
 }
 
 export async function PATCH(request: Request) {
 	const gate = await requireAdminSession();
 	if (!gate.ok) return noStoreJson({ error: gate.error }, { status: gate.status });
 
-	const prisma = getPrismaClient();
-	if (!prisma) {
-		return noStoreJson({ error: "database unavailable" }, { status: 503 });
+	const gatewayUrl = gatewayBaseUrl();
+	if (!gatewayUrl) {
+		return noStoreJson({ error: "gateway unavailable" }, { status: 503 });
 	}
 
 	let body: unknown;
@@ -112,61 +95,24 @@ export async function PATCH(request: Request) {
 	const userId = typeof payload.userId === "string" ? payload.userId.trim() : "";
 	const role = normalizeRole(payload.role);
 	if (!userId) return noStoreJson({ error: "userId is required" }, { status: 400 });
-	if (!role)
+	if (!role) {
 		return noStoreJson(
 			{ error: "role must be one of viewer|analyst|trader|admin" },
 			{ status: 400 },
 		);
-
-	const target = await prisma.user.findUnique({
-		where: { id: userId },
-		select: { id: true, email: true, name: true, role: true },
-	});
-	if (!target) return noStoreJson({ error: "user not found" }, { status: 404 });
-
-	const currentTargetRole = normalizeRole(target.role) ?? "viewer";
-	if (target.id === gate.session.user.id && currentTargetRole === "admin" && role !== "admin") {
-		const otherAdmins = await prisma.user.count({
-			where: {
-				role: "admin",
-				id: { not: target.id },
-			},
-		});
-		if (otherAdmins < 1) {
-			return noStoreJson(
-				{ error: "cannot remove the last admin role from your own account" },
-				{ status: 409 },
-			);
-		}
 	}
 
-	const updated = await prisma.user.update({
-		where: { id: target.id },
-		data: { role },
-		select: {
-			id: true,
-			email: true,
-			name: true,
-			role: true,
-			updatedAt: true,
+	const response = await fetch(`${gatewayUrl}/api/v1/admin/users`, {
+		method: "PATCH",
+		cache: "no-store",
+		headers: {
+			"content-type": "application/json",
+			"x-auth-user-id": gate.session.user.id ?? "",
+			"x-auth-user-email": gate.session.user.email ?? "",
+			"x-auth-user-role": normalizeRole(gate.session.user.role) ?? "viewer",
 		},
+		body: JSON.stringify({ userId, role }),
 	});
-
-	console.info("[auth-admin] role-updated", {
-		actorUserId: gate.session.user.id,
-		targetUserId: updated.id,
-		targetEmail: updated.email,
-		previousRole: currentTargetRole,
-		newRole: role,
-	});
-
-	return noStoreJson({
-		updated: {
-			id: updated.id,
-			email: updated.email,
-			name: updated.name,
-			role: normalizeRole(updated.role) ?? "viewer",
-			updatedAt: updated.updatedAt.toISOString(),
-		},
-	});
+	const responsePayload = await response.json();
+	return noStoreJson(responsePayload, { status: response.status });
 }

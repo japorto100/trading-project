@@ -1,4 +1,5 @@
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
+
 const DEFAULT_CACHE_MS = 300_000;
 
 export type GeopoliticalContextSource = "all" | "cfr" | "crisiswatch";
@@ -90,7 +91,7 @@ function buildCacheKey(input: {
 export async function fetchGeopoliticalContextViaGateway(
 	filters: ContextBridgeFilters,
 ): Promise<ContextBridgeResult> {
-	const gatewayBaseURL = (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
+	const gatewayBaseURL = getGatewayBaseURL();
 	const source = normalizeSource(filters.source);
 	const q = normalizeText(filters.q);
 	const region = normalizeText(filters.region);

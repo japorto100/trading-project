@@ -2,6 +2,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
+mod config; // Phase 20 stub — Rust Compute Service config
 mod ohlcv_cache;
 
 fn sma(values: &[f64], period: usize) -> Vec<f64> {
@@ -579,6 +580,212 @@ fn redb_cache_get(
         .map_err(|msg| PyValueError::new_err(msg.to_string()))
 }
 
+// ── Agent Hotpath Helpers (private, not exported) ─────────────────────────────
+
+/// Byte-level whole-word check — no regex, no allocation.
+fn contains_whole_word(haystack: &str, needle: &str) -> bool {
+    if needle.is_empty() {
+        return false;
+    }
+    let h = haystack.as_bytes();
+    let n = needle.as_bytes();
+    let nlen = n.len();
+    if h.len() < nlen {
+        return false;
+    }
+    for i in 0..=(h.len() - nlen) {
+        if &h[i..i + nlen] == n {
+            let before_ok = i == 0 || !h[i - 1].is_ascii_alphanumeric() && h[i - 1] != b'_';
+            let after_ok =
+                i + nlen >= h.len() || !h[i + nlen].is_ascii_alphanumeric() && h[i + nlen] != b'_';
+            if before_ok && after_ok {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// First 64 normalised chars (lowercase, collapsed whitespace) — used as dedup hash key.
+fn normalize_content_hash(content: &str) -> String {
+    let joined = content
+        .to_lowercase()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    joined.chars().take(64).collect()
+}
+
+/// Split text on non-alphanumeric boundaries → lowercase word tokens.
+fn tokenize_words(text: &str) -> Vec<String> {
+    text.to_lowercase()
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect()
+}
+
+// ── Agent Hotpath Impl Functions ───────────────────────────────────────────────
+
+fn extract_entities_from_text_impl(text: &str) -> String {
+    let mut entities: Vec<serde_json::Value> = Vec::new();
+
+    // Ticker patterns: $XXX (dollar-prefixed) or BASE/QUOTE (forex/crypto pairs)
+    for word in text.split_whitespace() {
+        let clean = word.trim_matches(|c: char| c == ',' || c == '.' || c == '!' || c == '?');
+        if let Some(ticker) = clean.strip_prefix('$') {
+            if ticker.len() >= 2
+                && ticker.len() <= 6
+                && ticker.chars().all(|c| c.is_ascii_uppercase())
+            {
+                entities.push(serde_json::json!({"type": "ticker", "value": ticker}));
+            }
+        } else if clean.contains('/') {
+            let mut parts = clean.splitn(2, '/');
+            if let (Some(base), Some(quote)) = (parts.next(), parts.next()) {
+                if base.len() >= 2
+                    && base.len() <= 6
+                    && quote.len() >= 2
+                    && quote.len() <= 6
+                    && base.chars().all(|c| c.is_ascii_uppercase())
+                    && quote.chars().all(|c| c.is_ascii_uppercase())
+                {
+                    entities.push(serde_json::json!({"type": "ticker", "value": clean}));
+                }
+            }
+        }
+    }
+
+    let text_lower = text.to_lowercase();
+
+    // Static country list
+    const COUNTRIES: &[&str] = &[
+        "usa", "china", "europe", "germany", "france", "japan", "russia", "india",
+        "brazil", "canada", "australia", "switzerland", "israel", "iran", "ukraine",
+        "taiwan", "singapore",
+    ];
+    for country in COUNTRIES {
+        if contains_whole_word(&text_lower, country) {
+            entities.push(serde_json::json!({"type": "country", "value": *country}));
+        }
+    }
+
+    // Macro metrics and technical indicators
+    const METRICS: &[&str] = &[
+        "rsi", "macd", "atr", "ema", "sma", "vwap", "adx", "roc", "inflation", "gdp",
+        "cpi", "ppi", "pce", "unemployment", "nfp", "fomc", "yield", "spread",
+        "volatility", "correlation", "volume",
+    ];
+    for metric in METRICS {
+        if contains_whole_word(&text_lower, metric) {
+            entities.push(serde_json::json!({"type": "metric", "value": *metric}));
+        }
+    }
+
+    // Asset classes
+    const ASSET_CLASSES: &[&str] = &[
+        "crypto", "forex", "equities", "bonds", "commodities", "futures", "options",
+        "etf", "reit", "rates",
+    ];
+    for asset in ASSET_CLASSES {
+        if contains_whole_word(&text_lower, asset) {
+            entities.push(serde_json::json!({"type": "asset_class", "value": *asset}));
+        }
+    }
+
+    serde_json::to_string(&entities).unwrap_or_else(|_| "[]".to_string())
+}
+
+fn dedup_context_fragments_impl(fragments_json: &str, _threshold: f64) -> Result<String, String> {
+    let mut fragments: Vec<serde_json::Value> =
+        serde_json::from_str(fragments_json).map_err(|e| format!("invalid JSON: {e}"))?;
+
+    // Sort by relevance descending so we keep the highest-relevance duplicate.
+    fragments.sort_by(|a, b| {
+        let ra = a.get("relevance_f64").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        let rb = b.get("relevance_f64").and_then(|v| v.as_f64()).unwrap_or(0.0);
+        rb.partial_cmp(&ra).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let mut seen = std::collections::HashSet::<String>::new();
+    let mut result: Vec<serde_json::Value> = Vec::with_capacity(fragments.len());
+
+    for fragment in fragments {
+        let content_str = fragment
+            .get("content_str")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let hash = normalize_content_hash(content_str);
+        if seen.insert(hash) {
+            result.push(fragment);
+        }
+    }
+
+    serde_json::to_string(&result).map_err(|e| format!("serialization error: {e}"))
+}
+
+fn score_tools_for_query_impl(
+    query: &str,
+    tool_names: &[String],
+    tool_descriptions: &[String],
+) -> Vec<f64> {
+    let query_tokens = tokenize_words(query);
+    let total = query_tokens.len();
+    let query_lower = query.to_lowercase();
+
+    tool_names
+        .iter()
+        .zip(tool_descriptions.iter())
+        .map(|(name, desc)| {
+            if total == 0 {
+                return 0.0;
+            }
+            let desc_tokens = tokenize_words(desc);
+            let matched = query_tokens
+                .iter()
+                .filter(|qt| desc_tokens.contains(qt))
+                .count();
+            let mut score = matched as f64 / total as f64;
+
+            // Name boost: +0.25 when tool name appears as substring in query
+            let name_lower = name.to_lowercase();
+            if !name_lower.is_empty() && query_lower.contains(name_lower.as_str()) {
+                score += 0.25;
+            }
+            score.clamp(0.0, 1.0)
+        })
+        .collect()
+}
+
+// ── Agent Hotpath PyO3 Wrappers ────────────────────────────────────────────────
+
+#[pyfunction]
+fn extract_entities_from_text(py: Python<'_>, text: String) -> PyResult<String> {
+    Ok(py.detach(move || extract_entities_from_text_impl(&text)))
+}
+
+#[pyfunction]
+fn dedup_context_fragments(
+    py: Python<'_>,
+    fragments_json: String,
+    threshold: f64,
+) -> PyResult<String> {
+    py.detach(move || dedup_context_fragments_impl(&fragments_json, threshold))
+        .map_err(|msg| PyValueError::new_err(msg))
+}
+
+#[pyfunction]
+fn score_tools_for_query(
+    py: Python<'_>,
+    query: String,
+    tool_names: Vec<String>,
+    tool_descriptions: Vec<String>,
+) -> PyResult<Vec<f64>> {
+    Ok(py.detach(move || {
+        score_tools_for_query_impl(&query, &tool_names, &tool_descriptions)
+    }))
+}
+
 #[pymodule]
 fn tradeviewfusion_rust_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(composite_sma50_slope_norm, m)?)?;
@@ -586,6 +793,9 @@ fn tradeviewfusion_rust_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(calculate_indicators_batch, m)?)?;
     m.add_function(wrap_pyfunction!(redb_cache_set, m)?)?;
     m.add_function(wrap_pyfunction!(redb_cache_get, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_entities_from_text, m)?)?;
+    m.add_function(wrap_pyfunction!(dedup_context_fragments, m)?)?;
+    m.add_function(wrap_pyfunction!(score_tools_for_query, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())
 }
@@ -897,6 +1107,135 @@ mod tests {
         assert_eq!(out["di_minus_14"].len(), n);
         assert_eq!(out["wma_10"].len(), n);
         assert_eq!(out["hma_9"].len(), n);
+    }
+
+    #[test]
+    fn test_contains_whole_word_basic() {
+        // Caller is responsible for lowercasing both haystack and needle before calling.
+        assert!(contains_whole_word("rsi broke 70", "rsi"));
+        assert!(contains_whole_word("check the rsi-level", "rsi")); // dash = boundary
+        assert!(!contains_whole_word("rising", "rsi")); // substring, not whole word
+        assert!(contains_whole_word("gdp growth", "gdp"));
+        assert!(!contains_whole_word("", "rsi"));
+        assert!(!contains_whole_word("rsi", ""));
+    }
+
+    #[test]
+    fn test_normalize_content_hash_dedup() {
+        let a = normalize_content_hash("  Hello   World  ");
+        let b = normalize_content_hash("hello world");
+        assert_eq!(a, b);
+        // Truncated to 64 chars
+        let long = "a".repeat(200);
+        assert_eq!(normalize_content_hash(&long).len(), 64);
+    }
+
+    #[test]
+    fn test_tokenize_words_basic() {
+        let tokens = tokenize_words("BTC/USD broke RSI 70!");
+        assert!(tokens.contains(&"btc".to_string()));
+        assert!(tokens.contains(&"usd".to_string()));
+        assert!(tokens.contains(&"rsi".to_string()));
+        assert!(tokens.contains(&"70".to_string()));
+        assert!(!tokens.contains(&"btc/usd".to_string()));
+    }
+
+    #[test]
+    fn test_extract_entities_from_text_ticker_slash() {
+        let json = extract_entities_from_text_impl("BTC/USD broke RSI 70 today");
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid json");
+        let arr = parsed.as_array().expect("array");
+        let tickers: Vec<&str> = arr
+            .iter()
+            .filter(|e| e["type"] == "ticker")
+            .filter_map(|e| e["value"].as_str())
+            .collect();
+        assert!(tickers.contains(&"BTC/USD"), "BTC/USD should be detected as ticker");
+    }
+
+    #[test]
+    fn test_extract_entities_from_text_dollar_ticker() {
+        let json = extract_entities_from_text_impl("$AAPL earnings beat estimates");
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let arr = parsed.as_array().unwrap();
+        let tickers: Vec<&str> = arr
+            .iter()
+            .filter(|e| e["type"] == "ticker")
+            .filter_map(|e| e["value"].as_str())
+            .collect();
+        assert!(tickers.contains(&"AAPL"));
+    }
+
+    #[test]
+    fn test_extract_entities_from_text_metric() {
+        let json = extract_entities_from_text_impl("RSI above 70 signals overbought");
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let metrics: Vec<&str> = parsed.as_array().unwrap()
+            .iter()
+            .filter(|e| e["type"] == "metric")
+            .filter_map(|e| e["value"].as_str())
+            .collect();
+        assert!(metrics.contains(&"rsi"), "rsi metric not detected");
+    }
+
+    #[test]
+    fn test_dedup_context_fragments_removes_dupes() {
+        let input = serde_json::json!([
+            {"source": "a", "content_str": "hello world", "relevance_f64": 0.9},
+            {"source": "b", "content_str": "hello world", "relevance_f64": 0.5},
+            {"source": "c", "content_str": "different content", "relevance_f64": 0.7},
+        ]);
+        let result_json = dedup_context_fragments_impl(&input.to_string(), 0.0).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&result_json).unwrap();
+        let arr = result.as_array().unwrap();
+        assert_eq!(arr.len(), 2, "duplicate 'hello world' should be removed");
+    }
+
+    #[test]
+    fn test_dedup_context_fragments_sorted_by_relevance() {
+        let input = serde_json::json!([
+            {"source": "a", "content_str": "unique a", "relevance_f64": 0.3},
+            {"source": "b", "content_str": "unique b", "relevance_f64": 0.9},
+        ]);
+        let result_json = dedup_context_fragments_impl(&input.to_string(), 0.0).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&result_json).unwrap();
+        let arr = result.as_array().unwrap();
+        // highest relevance first
+        assert_eq!(arr[0]["relevance_f64"].as_f64().unwrap(), 0.9);
+    }
+
+    #[test]
+    fn test_dedup_context_fragments_invalid_json() {
+        let result = dedup_context_fragments_impl("not json", 0.0);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_score_tools_for_query_basic() {
+        let names = vec!["get_chart_state".to_string(), "get_portfolio_summary".to_string()];
+        let descs = vec!["chart state symbol timeframe".to_string(), "portfolio positions exposure".to_string()];
+        let scores = score_tools_for_query_impl("show chart", &names, &descs);
+        assert_eq!(scores.len(), 2);
+        // "chart" appears in first description → first score higher
+        assert!(scores[0] > scores[1], "chart tool should score higher for 'show chart' query");
+    }
+
+    #[test]
+    fn test_score_tools_for_query_name_boost() {
+        let names = vec!["get_chart_state".to_string()];
+        let descs = vec!["returns the current chart state".to_string()];
+        // Query contains tool name substring
+        let scores_with_name = score_tools_for_query_impl("get_chart_state for EURUSD", &names, &descs);
+        let scores_without = score_tools_for_query_impl("show something for EURUSD", &names, &descs);
+        assert!(scores_with_name[0] > scores_without[0], "name boost should apply");
+    }
+
+    #[test]
+    fn test_score_tools_clamped_0_1() {
+        let names = vec!["tool".to_string()];
+        let descs = vec!["tool chart portfolio positions state".to_string()];
+        let scores = score_tools_for_query_impl("tool chart portfolio positions state tool", &names, &descs);
+        assert!(scores[0] >= 0.0 && scores[0] <= 1.0);
     }
 
     #[test]

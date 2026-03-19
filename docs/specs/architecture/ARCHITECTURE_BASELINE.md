@@ -1,6 +1,6 @@
 # ARCHITECTURE BASELINE
 
-> **Stand:** 16. Maerz 2026  
+> **Stand:** 17. Maerz 2026  
 > **Zweck:** Aktueller Architektur-IST, verbindliche Prinzipien, Sync/Async-Pfade,
 > Operational Controls, Performance-Strategie, Service Blueprint und
 > Platform-Expansion-Prinzipien. Stack-spezifische Details leben in den Owner-Specs.
@@ -42,7 +42,7 @@ Leitprinzip Sprachschnitt:
 
 - **Next.js:** BFF/Thin-Proxy; keine Domain-Truth-Logik in UI-Routen.
 - **Go:** Control Plane — Policy, AuthZ, Rate-Limit, Audit, Routing.
-- **Python:** Agentik-, ML-, Modeling- und Simulationsschicht.
+- **Python:** logisch getrennt in `compute`, `agent` und `indexing`.
 - **Rust:** gezielter Hot-Path-Compute-Layer via PyO3; Einsatz nur mit Profiling-Nachweis.
 
 ---
@@ -59,7 +59,7 @@ flowchart LR
     P --> G
     G --> N
     N --> U
-    G --> C[(Redis / Hot Cache)]
+    G --> C[(Valkey / Hot Cache)]
     G --> D[(Primary DB)]
     G --> OS[(Object Storage S3 API)]
 ```
@@ -82,7 +82,7 @@ flowchart LR
     Q --> W[Python Workers]
     W --> X[Rust Accelerators via PyO3]
     X --> W
-    O --> RC[(Redis / Hot Cache)]
+    O --> RC[(Valkey / Hot Cache)]
     O --> SI[(Snapshot Metadata / Index DB)]
     W --> OS[(Object Storage S3 API)]
     W --> RS[(Result Store)]
@@ -109,9 +109,11 @@ flowchart LR
 |:------|:------|
 | Frontend Layer | Next.js UI/UX; begrenzte BFF-Aufgaben |
 | Control Plane | Go Gateway — Public Entry, Auth, Policy, Audit, Streaming |
-| Compute/Intelligence Plane | Python — Indicators, Agentik, Retrieval, Simulation |
+| Compute Plane | Python — Indicators, Aggregation, Feature Engineering, Backtesting-nahe Analytics |
+| Agent Plane | Python — Retrieval, Context Assembly, Verification, Tooling, Simulation |
+| Indexing Plane | Python — Parse/Normalize/Chunk/Embed/Graph-Extract/Reindex |
 | Data/Execution Plane (Go intern) | marketcore/execution/adapters getrennt vom Public Gateway |
-| Data/Knowledge Plane | Postgres + pgvector + FalkorDB + SeaweedFS + Valkey |
+| Data/Knowledge Plane | Postgres + pgvector + FalkorDB + SeaweedFS + Valkey + DuckDB |
 | Execution/Worker Plane | NATS JetStream + flow-spezifische Workflow-Orchestrierung |
 
 ---
@@ -120,12 +122,14 @@ flowchart LR
 
 1. **Go bleibt Control Plane.** Public Entry, AuthN/AuthZ, Policy, Audit, Streaming bleiben Go-owned.
 2. **BFF-Drift wird reduziert.** Next-BFF bleibt fuer frontend-nahe Aufgaben, nicht als zweite Domain-Truth.
-3. **Data/Knowledge Zielbild ist klar.** `Postgres` + `pgvector` + `FalkorDB` mittelfristig.
+3. **Data/Knowledge Zielbild ist klar.** `Postgres` bleibt SoR; `pgvector` ist baseline semantic retrieval fuer dokumentnahe Embeddings; `FalkorDB` ist graph-/entity-zentrierte Retrieval- und Memory-Schicht.
 4. **Kuzu bleibt Uebergang/Fastlane**, nicht Zielsystem.
 5. **Valkey ist Cache-Default.** Redis-Kompatibilitaet bleibt.
 6. **NATS ist Messaging**, nicht komplette Workflow-Semantik. Langlaufende Flows brauchen Workflow-Schicht.
 7. **Service Ownership bleibt strikt.** Kein unkontrolliertes Cross-Service-Schreiben in fremde Stores.
 8. **Large payloads object-first.** Grosse Ergebnisse als Artefaktpfad statt riesiger JSON-Responses.
+9. **Tabellarische Data Plane ist standardisiert.** `DuckDB + Polars + Arrow + Parquet` bilden die Default-Linie fuer Worker-, Replay- und Analysepfade.
+10. **Analytics-Stufen bleiben getrennt.** `DuckDB` zuerst, `MotherDuck` nur bei echter Concurrency-/Cloud-Stufe, `Druid` nur fuer spaetere verteilte Realtime-Analytics.
 
 ---
 
@@ -220,12 +224,23 @@ Zustand, Tailwind 4 + shadcn/ui. BFF-Schicht — keine Domain-Truth im Client.
 
 ### 11.3 Python Intelligence Plane
 
+#### Python Compute
+
+- `indicator-runtime` (indicators, aggregations, feature engineering)
+- `research-analytics` (batch analytics, replay, backtesting-nahe Forschung)
+
+#### Python Agent
+
 - `retrieval-orchestrator` (federated retrieval ueber APIs/graph/vector/web)
 - `verifier` (claim decomposition, evidence collection, stance/confidence)
 - `agent-runtime` (planner/executor/replanner, tool invocation, policy hooks)
 - `simulation-core` (rollouts, branch generation, scoring)
 - `context-assembler` (M1-M5 assembly, budgets, freshness/degradation flags)
+
+#### Python Indexing
+
 - `labeling-pipeline` (extract/classify/dedup/route fuer UIL)
+- `indexing-workers` (parse, normalize, chunk, embed, graph-extract, publish)
 
 ### 11.4 Rust Acceleration Plane
 
@@ -266,3 +281,4 @@ Alle via PyO3; Einsatz nur mit Profiling-Nachweis.
 - `docs/specs/architecture/DOMAIN_CONTRACTS.md`
 - `docs/specs/data/DATA_ARCHITECTURE.md`
 - `docs/specs/data/AGGREGATION_IST_AND_GAPS.md`
+- `docs/ARCHITECTURE_NEW_EXTENSION.md`

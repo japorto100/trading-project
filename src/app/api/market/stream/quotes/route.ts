@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { resolveFusionSymbol } from "@/lib/fusion-symbols";
 import type { QuoteData } from "@/lib/providers/types";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import {
 	PROVIDER_CREDENTIALS_COOKIE,
 	PROVIDER_CREDENTIALS_HEADER,
@@ -11,7 +12,6 @@ import { isLegacyQuotesStreamFallbackEnabled } from "@/lib/server/stream-runtime
 
 const ENCODER = new TextEncoder();
 const DECODER = new TextDecoder();
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
 
 interface GoStreamRoute {
 	requestedSymbol: string;
@@ -74,10 +74,6 @@ function parseSSEFrame(rawFrame: string): ParsedSSEFrame | null {
 	}
 	if (dataLines.length === 0) return null;
 	return { event, data: dataLines.join("\n") };
-}
-
-function buildGatewayBaseURL(): string {
-	return (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
 }
 
 function inferGoStreamRoute(symbol: string): GoStreamRoute | null {
@@ -370,7 +366,7 @@ function createGoMultiplexQuotesStreamResponse(
 			};
 
 			const startUpstream = async (route: GoStreamRoute) => {
-				const upstreamURL = new URL("/api/v1/stream/market", buildGatewayBaseURL());
+				const upstreamURL = new URL("/api/v1/stream/market", getGatewayBaseURL());
 				upstreamURL.searchParams.set("symbol", route.upstreamSymbol);
 				upstreamURL.searchParams.set("exchange", route.exchange);
 				upstreamURL.searchParams.set("assetType", route.assetType);

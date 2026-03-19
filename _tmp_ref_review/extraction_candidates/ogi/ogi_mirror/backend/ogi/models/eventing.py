@@ -1,0 +1,190 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any
+from uuid import UUID, uuid4
+
+from sqlmodel import Column, DateTime, Field, JSON, SQLModel
+
+
+class TemporalGeoConventions(SQLModel):
+    observed_at: str = "ISO-8601 timestamp when this observation was seen"
+    valid_from: str = "ISO-8601 timestamp when this information became valid"
+    valid_to: str = "ISO-8601 timestamp when this information stops being valid"
+    lat: str = "Latitude in decimal degrees"
+    lon: str = "Longitude in decimal degrees"
+    location_label: str = "Human-readable location label"
+    geo_confidence: str = "Confidence [0.0-1.0] for geospatial extraction"
+
+
+class ProjectEvent(SQLModel):
+    event_id: str
+    event_type: str
+    project_id: UUID
+    occurred_at: datetime
+    actor_user_id: UUID | None = None
+    title: str
+    entity_id: UUID | None = None
+    edge_id: UUID | None = None
+    transform_run_id: UUID | None = None
+    audit_log_id: UUID | None = None
+    observed_at: datetime | None = None
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
+    lat: float | None = None
+    lon: float | None = None
+    location_label: str | None = None
+    geo_confidence: float | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProjectEventsResponse(SQLModel):
+    conventions: TemporalGeoConventions
+    items: list[ProjectEvent]
+
+
+class LocationAggregate(SQLModel):
+    key: str
+    location_label: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    geo_confidence: float | None = None
+    entity_count: int = 0
+    entity_ids: list[UUID] = Field(default_factory=list)
+
+
+class AuditLog(SQLModel, table=True):
+    __tablename__ = "audit_logs"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    project_id: UUID = Field(foreign_key="projects.id", ondelete="CASCADE")
+    actor_user_id: UUID | None = None
+    action: str
+    resource_type: str
+    resource_id: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+
+
+class AuditLogCreate(SQLModel):
+    action: str
+    resource_type: str
+    resource_id: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class SystemAuditLog(SQLModel, table=True):
+    __tablename__ = "system_audit_logs"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    actor_user_id: UUID | None = None
+    action: str
+    resource_type: str
+    resource_id: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+
+
+class SystemAuditLogCreate(SQLModel):
+    action: str
+    resource_type: str
+    resource_id: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class TimelineBucket(SQLModel):
+    bucket_start: datetime
+    bucket_end: datetime
+    count: int = 0
+    event_types: dict[str, int] = Field(default_factory=dict)
+
+
+class TimelineResponse(SQLModel):
+    interval: str
+    window_start: datetime | None = None
+    window_end: datetime | None = None
+    total_events: int = 0
+    buckets: list[TimelineBucket] = Field(default_factory=list)
+
+
+class GeocodeCache(SQLModel, table=True):
+    __tablename__ = "geocode_cache"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    query: str = Field(index=True, unique=True)
+    lat: float
+    lon: float
+    display_name: str = ""
+    confidence: float = 0.7
+    source: str = "cache"
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True)),
+    )
+
+
+class MapPoint(SQLModel):
+    entity_id: UUID
+    entity_type: str
+    label: str
+    lat: float
+    lon: float
+    geo_confidence: float | None = None
+    location_label: str | None = None
+    source: str = "entity"
+
+
+class MapCluster(SQLModel):
+    cluster_id: str
+    lat: float
+    lon: float
+    count: int
+    entity_ids: list[UUID] = Field(default_factory=list)
+
+
+class MapPointsResponse(SQLModel):
+    points: list[MapPoint] = Field(default_factory=list)
+    clusters: list[MapCluster] = Field(default_factory=list)
+    unresolved_labels: list[str] = Field(default_factory=list)
+
+
+class MapRoute(SQLModel):
+    edge_id: UUID
+    source_entity_id: UUID
+    target_entity_id: UUID
+    source_lat: float
+    source_lon: float
+    target_lat: float
+    target_lon: float
+    label: str
+    weight: int
+
+
+class MapRoutesResponse(SQLModel):
+    routes: list[MapRoute] = Field(default_factory=list)
+
+
+class LocationSuggestion(SQLModel):
+    label: str
+    display_name: str
+    lat: float
+    lon: float
+    source: str = "cache"
+
+
+class LocationSuggestResponse(SQLModel):
+    query: str
+    suggestions: list[LocationSuggestion] = Field(default_factory=list)
+    source: str = "cache"
+    rate_limited: bool = False
+    retry_after_seconds: int | None = None

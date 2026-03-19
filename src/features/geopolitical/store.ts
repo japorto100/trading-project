@@ -8,6 +8,10 @@ import {
 } from "@/features/geopolitical/flat-view-state";
 import type { GeoStoryFocusPreset } from "@/features/geopolitical/geo-story-focus";
 import {
+	buildGeoMultiSelectionState,
+	type GeoMultiSelectionMode,
+} from "@/features/geopolitical/multi-selection-contract";
+import {
 	DEFAULT_EDIT_FORM,
 	type DrawingMode,
 	type EditFormState,
@@ -78,6 +82,7 @@ interface GeoMapWorkspaceState {
 	canRedoDrawings: boolean;
 	selectedSymbol: string;
 	selectedEventId: string | null;
+	selectedEventIds: string[];
 	selectedDrawingId: string | null;
 	selectedTimelineId: string | null;
 	storyFocusPresets: GeoStoryFocusPreset[];
@@ -148,6 +153,7 @@ interface GeoMapWorkspaceActions {
 	setCanRedoDrawings: (next: Updater<boolean>) => void;
 	setSelectedSymbol: (next: Updater<string>) => void;
 	setSelectedEventId: (next: Updater<string | null>) => void;
+	setSelectedEventIds: (next: Updater<string[]>) => void;
 	setSelectedDrawingId: (next: Updater<string | null>) => void;
 	setSelectedTimelineId: (next: Updater<string | null>) => void;
 	setStoryFocusPresets: (next: Updater<GeoStoryFocusPreset[]>) => void;
@@ -156,6 +162,7 @@ interface GeoMapWorkspaceActions {
 	setFlatViewState: (next: Updater<GeoFlatViewState | null>) => void;
 	applyPendingFlatViewHandoff: () => void;
 	selectEvent: (eventId: string) => void;
+	selectEvents: (eventIds: string[], mode?: GeoMultiSelectionMode) => void;
 	selectDrawing: (drawingId: string) => void;
 	clearSelection: () => void;
 	setActiveRegionId: (next: Updater<string>) => void;
@@ -228,6 +235,7 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 	canRedoDrawings: false,
 	selectedSymbol: "tank",
 	selectedEventId: null,
+	selectedEventIds: [],
 	selectedDrawingId: null,
 	selectedTimelineId: null,
 	storyFocusPresets: [],
@@ -317,6 +325,8 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 		set((state) => ({ selectedSymbol: resolveUpdater(state.selectedSymbol, next) })),
 	setSelectedEventId: (next) =>
 		set((state) => ({ selectedEventId: resolveUpdater(state.selectedEventId, next) })),
+	setSelectedEventIds: (next) =>
+		set((state) => ({ selectedEventIds: resolveUpdater(state.selectedEventIds, next) })),
 	setSelectedDrawingId: (next) =>
 		set((state) => ({ selectedDrawingId: resolveUpdater(state.selectedDrawingId, next) })),
 	setSelectedTimelineId: (next) =>
@@ -347,29 +357,66 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 			};
 		}),
 	selectEvent: (eventId) =>
-		set({
-			selectedEventId: eventId,
-			selectedDrawingId: null,
-			selectedTimelineId: null,
-			activeStoryFocusPresetId: null,
-			pendingFlatViewHandoff: null,
+		set((state) => {
+			const selectedEvent = state.events.find((event) => event.id === eventId) ?? null;
+			return {
+				selectedEventId: eventId,
+				selectedEventIds: [eventId],
+				selectedDrawingId: null,
+				selectedTimelineId: null,
+				activeStoryFocusPresetId: null,
+				pendingFlatViewHandoff: null,
+				flatViewState:
+					state.mapViewMode === "flat" && state.flatViewState
+						? {
+								...state.flatViewState,
+								focus: {
+									kind: "event",
+									id: eventId,
+									regionId: selectedEvent?.regionIds.find((value) => value.trim()) ?? null,
+								},
+							}
+						: state.flatViewState,
+			};
+		}),
+	selectEvents: (eventIds, mode = "replace") =>
+		set((state) => {
+			const nextSelection = buildGeoMultiSelectionState({
+				currentEventIds: state.selectedEventIds,
+				nextEventIds: eventIds,
+				mode,
+			});
+			return {
+				selectedEventIds: nextSelection.eventIds,
+				selectedEventId: nextSelection.eventIds[0] ?? null,
+				selectedDrawingId: null,
+				selectedTimelineId: null,
+				activeStoryFocusPresetId: null,
+				pendingFlatViewHandoff: null,
+			};
 		}),
 	selectDrawing: (drawingId) =>
 		set({
 			selectedDrawingId: drawingId,
 			selectedEventId: null,
+			selectedEventIds: [],
 			selectedTimelineId: null,
 			activeStoryFocusPresetId: null,
 			pendingFlatViewHandoff: null,
 		}),
 	clearSelection: () =>
-		set({
+		set((state) => ({
 			selectedEventId: null,
+			selectedEventIds: [],
 			selectedDrawingId: null,
 			selectedTimelineId: null,
 			activeStoryFocusPresetId: null,
 			pendingFlatViewHandoff: null,
-		}),
+			flatViewState:
+				state.mapViewMode === "flat" && state.flatViewState
+					? { ...state.flatViewState, focus: null }
+					: state.flatViewState,
+		})),
 
 	setActiveRegionId: (next) =>
 		set((state) => ({ activeRegionId: resolveUpdater(state.activeRegionId, next) })),

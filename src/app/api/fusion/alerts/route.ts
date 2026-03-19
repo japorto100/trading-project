@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import type { AlertCondition } from "@/lib/alerts";
+import type { AlertCondition } from "@/features/alerts/types";
 import { canonicalizeFusionSymbol } from "@/lib/fusion-symbols";
-import { createPriceAlert, listPriceAlerts } from "@/lib/server/price-alerts-store";
 
 const createAlertSchema = z.object({
 	profileKey: z.string().min(1),
@@ -36,6 +35,7 @@ function errorResponse(requestId: string, error: unknown): NextResponse {
 			{
 				success: false,
 				error: message,
+				reason: persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR",
 				requestId,
 				degraded: true,
 				degraded_reasons: [persistenceError ? "PERSISTENCE_UNAVAILABLE" : "INTERNAL_ERROR"],
@@ -44,6 +44,10 @@ function errorResponse(requestId: string, error: unknown): NextResponse {
 		),
 		requestId,
 	);
+}
+
+function getGoGatewayUrl(): string {
+	return process.env.GO_GATEWAY_INTERNAL_URL || "http://127.0.0.1:9060";
 }
 
 export async function GET(request: NextRequest) {
@@ -55,6 +59,7 @@ export async function GET(request: NextRequest) {
 				{
 					success: false,
 					error: "profileKey is required",
+					reason: "MISSING_PROFILE_KEY",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -66,15 +71,16 @@ export async function GET(request: NextRequest) {
 	}
 	try {
 		const symbolParam = request.nextUrl.searchParams.get("symbol");
-		const alerts = await listPriceAlerts(profileKey, symbolParam ?? undefined);
+		const params = new URLSearchParams({ profileKey });
+		if (symbolParam) params.set("symbol", symbolParam);
+		const response = await fetch(`${getGoGatewayUrl()}/api/v1/fusion/alerts?${params.toString()}`, {
+			method: "GET",
+			headers: { "X-Request-ID": requestId },
+			cache: "no-store",
+		});
+		const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 		return withRequestId(
-			NextResponse.json({
-				success: true,
-				alerts,
-				requestId,
-				degraded: false,
-				degraded_reasons: [],
-			}),
+			NextResponse.json({ ...payload, requestId }, { status: response.status }),
 			requestId,
 		);
 	} catch (error: unknown) {
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest) {
 				{
 					success: false,
 					error: "invalid JSON body",
+					reason: "INVALID_JSON_BODY",
 					requestId,
 					degraded: false,
 					degraded_reasons: [],
@@ -110,6 +117,7 @@ export async function POST(request: NextRequest) {
 				{
 					success: false,
 					error: "invalid alert payload",
+					reason: "INVALID_ALERT_PAYLOAD",
 					details: parsed.error.flatten(),
 					requestId,
 					degraded: false,
@@ -122,20 +130,25 @@ export async function POST(request: NextRequest) {
 	}
 
 	try {
-		const alert = await createPriceAlert({
-			profileKey: parsed.data.profileKey,
-			symbol: canonicalizeFusionSymbol(parsed.data.symbol),
-			condition: parsed.data.condition as AlertCondition,
-			targetValue: parsed.data.targetValue,
-			message: parsed.data.message?.trim() || undefined,
-			enabled: parsed.data.enabled,
+		const response = await fetch(`${getGoGatewayUrl()}/api/v1/fusion/alerts`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"X-Request-ID": requestId,
+			},
+			body: JSON.stringify({
+				profileKey: parsed.data.profileKey,
+				symbol: canonicalizeFusionSymbol(parsed.data.symbol),
+				condition: parsed.data.condition as AlertCondition,
+				targetValue: parsed.data.targetValue,
+				message: parsed.data.message?.trim() || undefined,
+				enabled: parsed.data.enabled,
+			}),
+			cache: "no-store",
 		});
-
+		const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 		return withRequestId(
-			NextResponse.json(
-				{ success: true, alert, requestId, degraded: false, degraded_reasons: [] },
-				{ status: 201 },
-			),
+			NextResponse.json({ ...payload, requestId }, { status: response.status }),
 			requestId,
 		);
 	} catch (error: unknown) {

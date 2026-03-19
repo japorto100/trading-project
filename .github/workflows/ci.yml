@@ -33,7 +33,22 @@ jobs:
       - name: Prisma generate
         run: bun run db:generate
       - name: Typecheck
-        run: bunx tsc --noEmit
+        run: bun run typecheck
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Prisma generate
+        run: bun run db:generate
+      - name: Frontend unit and integration tests
+        run: bun run test:unit && bun run test:integration
 
   build-frontend:
     name: Build Frontend

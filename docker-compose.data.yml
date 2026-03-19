@@ -1,0 +1,66 @@
+# Data infrastructure — optional local stack for prepared target-state services.
+# Default app runtime remains SQLite/Kuzu/Chroma unless env/provider switches are
+# set explicitly. This compose file is for local preparation and manual bring-up
+# of Postgres/pgvector and FalkorDB. Valkey is included as a secondary fallback,
+# but the preferred dev-stack path for Valkey is host-native.
+#
+# Usage:
+#   docker compose -f docker-compose.data.yml up -d postgres-pgvector falkordb
+#   docker compose -f docker-compose.data.yml up -d valkey   # optional fallback
+#
+# Ports:
+#   Postgres/pgvector: 5432
+#   FalkorDB:          6379 (RESP), 3000 (HTTP UI if enabled by image)
+#   Valkey:            6380 (compose fallback; host-native dev-stack uses 6379)
+
+version: "3.9"
+services:
+  postgres-pgvector:
+    image: pgvector/pgvector:pg17
+    container_name: tradeview-postgres-pgvector
+    environment:
+      POSTGRES_DB: tradeviewfusion
+      POSTGRES_USER: tradeview
+      POSTGRES_PASSWORD: tradeview-dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_pgvector_data:/var/lib/postgresql/data
+      - ./tools/postgres-pgvector/init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradeview -d tradeviewfusion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: tradeview-falkordb
+    ports:
+      - "6381:6379"
+      - "3001:3000"
+    volumes:
+      - falkordb_data:/var/lib/falkordb/data
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: tradeview-valkey-compose
+    command: ["valkey-server", "/usr/local/etc/valkey/valkey.conf"]
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./tools/valkey/valkey.conf:/usr/local/etc/valkey/valkey.conf:ro
+      - valkey_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_pgvector_data:
+  falkordb_data:
+  valkey_data:

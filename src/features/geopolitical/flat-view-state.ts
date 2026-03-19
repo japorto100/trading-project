@@ -6,6 +6,7 @@ import type {
 	GeoFlatViewBounds,
 	GeoFlatViewFocus,
 	GeoFlatViewHandoff,
+	GeoFlatViewHandoffReason,
 } from "@/features/geopolitical/flat-view-handoff";
 import type { GeoFilterStateSnapshot } from "@/features/geopolitical/geo-filter-contract";
 import {
@@ -29,6 +30,7 @@ export interface GeoFlatViewState {
 	viewMode: Extract<GeoMapViewMode, "flat">;
 	renderer: Extract<GeoMapRendererKind, "deckgl-maplibre">;
 	mapBody: GeoMapBody;
+	reason: GeoFlatViewHandoffReason;
 	bounds: GeoFlatViewBounds | null;
 	focus: GeoFlatViewFocus | null;
 	filterSnapshot: GeoFilterStateSnapshot;
@@ -58,6 +60,7 @@ export function buildGeoFlatViewStateFromHandoff(handoff: GeoFlatViewHandoff): G
 		viewMode: "flat",
 		renderer: "deckgl-maplibre",
 		mapBody: handoff.mapBody,
+		reason: handoff.reason,
 		bounds: handoff.bounds ? { ...handoff.bounds } : null,
 		focus: handoff.focus ? { ...handoff.focus } : null,
 		filterSnapshot: { ...handoff.filterSnapshot },

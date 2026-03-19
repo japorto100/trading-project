@@ -58,6 +58,7 @@ describe("flat-view-state", () => {
 
 		expect(state.viewMode).toBe("flat");
 		expect(state.renderer).toBe("deckgl-maplibre");
+		expect(state.reason).toBe("story");
 		expect(state.layerFamilies).toEqual(["geo-core", "conflict", "context"]);
 		expect(state.layerHints).toEqual(["geo-core", "conflict", "context", "story"]);
 		expect(state.pmtilesPreferred).toBeTrue();
@@ -79,6 +80,7 @@ describe("flat-view-state", () => {
 		});
 		const state = buildGeoFlatViewStateFromHandoff(handoff);
 
+		expect(state.reason).toBe("draw_area");
 		expect(state.bounds).toEqual({ south: 10, west: 20, north: 30, east: 40 });
 		expect(state.layerFamilies).toEqual(["geo-core", "macro-state"]);
 		expect(state.layerHints).toEqual(["geo-core", "macro-state", "geo-core"]);

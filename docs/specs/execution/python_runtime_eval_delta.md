@@ -1,6 +1,6 @@
 # Python Runtime Evaluation Delta
 
-> **Stand:** 13. Maerz 2026 (Rev. 6)
+> **Stand:** 18. Maerz 2026 (Rev. 7)
 > **Zweck:** Evaluation fuer Python-Runtime-Upgrades: Python 3.13t (nogil),
 > Granian vs. uvicorn, PyO3 allow_threads Generalisierung.
 > **Aenderungshistorie:**
@@ -10,6 +10,7 @@
 > - Rev. 4 (13.03.2026): Benchmark-Run Learnings dokumentiert; Concurrency-Modell-Analyse; Phase A/B Benchmark-Plan strukturiert; venv2-Setup-Plan (3.13t)
 > - Rev. 5 (13.03.2026): grpc_server.py GRPC_BACKEND-Flag (grpcio/grpclib); pyproject-313t.toml erstellt; pandas in pyproject.toml explizit; .venv (3.12) uv sync done; .venv-313t Install ausstehend; pandas→polars TODO; Ichimoku+yfinance TODO
 > - Rev. 6 (13.03.2026): .venv-313t Packages installiert (ohne hmmlearn+polars); Phase B Benchmark (PY3.V2) abgeschlossen; 3.12 vs 3.13t Direktvergleich dokumentiert; Entscheid GRN.V4+PY3.V4 eingetragen
+> - Rev. 7 (18.03.2026): Exit-Criteria stale Checkboxen korrigiert (TODO-1/2/3/Entscheid waren seit Rev.6 done); Pfad services/_shared → shared/ (Phase 22g Monorepo-Restructuring); offene Gates auf GRN.V3 + PY3.V3 reduziert (beide Eval-Backlog)
 
 ---
 
@@ -256,10 +257,10 @@ uvicorn. Ziele: hoeherer Throughput, geringere Latenz, geringerer Memory-Overhea
 - `--workers N` Flag (default 1 fuer fairen Baseline-Vergleich) steuert Server-Worker-Count
 - `--venv PATH` Flag (Phase B) waehlt Python-venv (3.12 vs 3.13t)
 - `dev-stack.ps1` Granian-Pfad hat `--reload`
-- `grpc_server.py`: `bound == 0` Check (grpcio gibt 0 zurueck, kein RuntimeError)
-- `grpc_server.py`: GRPC_BACKEND env-Flag — `"grpcio"` (default, 3.12) oder `"grpclib"` (3.13t, pure-Python asyncio)
+- `shared/grpc_server.py` (ex `services/_shared/`): `bound == 0` Check (grpcio gibt 0 zurueck, kein RuntimeError)
+- `shared/grpc_server.py`: GRPC_BACKEND env-Flag — `"grpcio"` (default, 3.12) oder `"grpclib"` (3.13t, pure-Python asyncio)
   - `_start_grpcio`: ImportError-safe (graceful skip wenn grpcio nicht installiert)
-  - `_start_grpclib`: asyncio-basiert, referenziert `ipc_servicer_async.py` (noch nicht erstellt — nur noetig bei GRPC_ENABLED=1 + GRPC_BACKEND=grpclib in Prod)
+  - `_start_grpclib`: asyncio-basiert, referenziert `shared/ipc_servicer_async.py` — **DONE** (13.03.2026)
   - Benchmark: `GRPC_ENABLED=0` in bench_env → grpc_server.py wird nie importiert (app_factory.py Guard)
 - `pyproject-313t.toml`: 3.13t-Variante von pyproject.toml
   - grpcio/grpcio-tools entfernt → grpclib>=0.4.4
@@ -416,7 +417,7 @@ Kombinierter Gain vor allem bei:
 | ipc_servicer_async.py (grpclib) | Pre-Phase-20 | **DONE** (13.03.2026) |
 | pandas→polars Migration eval | Pre-Phase-20 | → Eval-Backlog (TODO-4) |
 | Ichimoku + yfinance Review | Pre-Phase-20 | → Eval-Backlog (TODO-5); Ichimoku owner: indicator_delta.md |
-| Rollout-Entscheid (Granian + ggf. 3.13t) | Phase-20 | pending |
+| Rollout-Entscheid (Granian + ggf. 3.13t) | Phase-20 | **DEFER** — GRN.V4 + PY3.V4 (13.03.2026) |
 
 ---
 
@@ -433,6 +434,8 @@ Kombinierter Gain vor allem bei:
 
 ## 10. Exit Criteria
 
+### Abgeschlossen
+
 - [x] py.detach in allen bestehenden `calculate_*` und Cache-Funktionen (12.03.2026)
 - [x] grpc_server.py Bugfix: bound==0 statt RuntimeError (13.03.2026)
 - [x] bench_server.py: beide Server frisch, isolierte Bench-Ports, --workers, --venv (13.03.2026)
@@ -441,7 +444,15 @@ Kombinierter Gain vor allem bei:
 - [x] pyproject-313t.toml erstellt (13.03.2026)
 - [x] pyproject.toml: pandas explizit + .venv (3.12) uv sync (13.03.2026)
 - [x] .venv-313t: venv + rust_core cp313t-Wheel (GIL=False verifiziert) (13.03.2026)
-- [ ] .venv-313t: restliche Packages installieren (TODO-1)
-- [ ] Phase B abgeschlossen: PY3.V2 Ergebnisse dokumentiert
-- [ ] ipc_servicer_async.py (grpclib async Servicer) erstellen
-- [ ] Entscheid dokumentiert: Granian Rollout ja/nein + 3.13t Upgrade ja/nein mit Datum
+- [x] .venv-313t: restliche Packages installiert — pandas 3.0.1, scipy 1.17.1, sklearn 1.8.0, cachetools 7.0.5, grpclib 0.4.9, protobuf 7.34.0; hmmlearn+polars excluded (13.03.2026)
+- [x] Phase B abgeschlossen: PY3.V2 Ergebnisse dokumentiert (13.03.2026)
+- [x] shared/ipc_servicer_async.py (grpclib async Servicer) erstellt + smoke-test auf 3.13t OK (13.03.2026)
+- [x] Entscheid dokumentiert: Granian DEFER (GRN.V4) + 3.13t DEFER (PY3.V4) — beide mit Begruendung (13.03.2026)
+- [x] Pfad services/_shared/ → shared/ (Phase 22g Monorepo-Restructuring, 18.03.2026)
+
+### Echte offene Gates (Eval-Backlog — kein Blocker)
+
+- [ ] **GRN.V3** — SSE-Streaming-Kompatibilitaet pruefen: go-backend→indicator-service SSE via Granian
+  - _Re-evaluate wenn Granian-Rollout aktuell wird (> 200 concurrent connections)_
+- [ ] **PY3.V3** — ChromaDB + sentence-transformers auf 3.13t pruefen (memory-service)
+  - _Re-evaluate vor 3.13t Rollout-Entscheid; kein Blocker solange .venv (3.12) aktiv_

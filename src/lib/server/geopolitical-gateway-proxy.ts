@@ -1,16 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
-
-const DEFAULT_GATEWAY_BASE_URL = "http://127.0.0.1:9060";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 type ProxyOptions = {
 	method?: string;
 	copyQuery?: boolean;
 };
-
-function buildGatewayBaseURL(): string {
-	return (process.env.GO_GATEWAY_BASE_URL || DEFAULT_GATEWAY_BASE_URL).trim();
-}
 
 function withRequestIdHeader(response: NextResponse, requestId: string): NextResponse {
 	response.headers.set("X-Request-ID", requestId);
@@ -24,7 +19,7 @@ export async function proxyGeopoliticalGatewayRequest(
 	options: ProxyOptions = {},
 ): Promise<NextResponse> {
 	const requestId = request.headers.get("x-request-id")?.trim() || randomUUID();
-	const gatewayURL = new URL(upstreamPath, buildGatewayBaseURL());
+	const gatewayURL = new URL(upstreamPath, getGatewayBaseURL());
 	if (options.copyQuery !== false) {
 		for (const [key, value] of request.nextUrl.searchParams.entries()) {
 			gatewayURL.searchParams.append(key, value);

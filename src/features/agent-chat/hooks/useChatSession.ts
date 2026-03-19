@@ -1,333 +1,307 @@
 "use client";
 
-// Session-isolated SSE chat hook — Phase 22a
-// Manages in-flight state, stream assembly, abort, and thread lifecycle.
-// Security: all tool actions flow via BFF → Gateway (no browser-direct paths).
+// Agent Chat Session Hook — Phase 22d / 22f
+// Uses @ai-sdk/react v3 useChat with DefaultChatTransport.
+// prepareSendMessagesRequest maps SDK message array → our BFF { message, threadId, model, attachments, reasoningEffort } contract.
+// Exposes stable interface consumed by AgentChatPanel + sub-components.
+// AC107: model override per request (Toolbar → BFF → Go → Python).
+// AC103/AC106: per-message usage + finishReason tracking via onFinish.
+//   Usage tokens come from message.metadata (forwarded by Go Gateway as messageMetadata).
+// AC56: multimodal attachments forwarded in request body.
+// AC101: nuqs useQueryState for chat ID URL persistence.
+// AC104: cost-per-token estimate per message.
+// AC108: reasoningEffort state forwarded in request body.
+// AC64: contextPressure derived from latest promptTokens / model max context.
 
-import { useCallback, useReducer, useRef } from "react";
-import type {
-	ChatBlock,
-	ChatMessage,
-	SseChunkEvent,
-	SseDoneEvent,
-	SseErrorEvent,
-	SseToolEvent,
-} from "../types";
-
-// ---- helpers ----
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { useQueryState } from "nuqs";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReasoningEffort } from "../components/AgentChatToolbar";
+import type { RequestAttachment, StagedAttachment } from "./useAttachments";
 
 let idCounter = 0;
-function localId(prefix = "msg"): string {
+function localId(prefix = "chat"): string {
 	return `${prefix}-${Date.now()}-${(idCounter++).toString(36)}`;
 }
 
-function buildUserMessage(content: string): ChatMessage {
-	return {
-		id: localId("u"),
-		role: "user",
-		blocks: [{ id: localId("b"), type: "text", content }],
-		content,
-		createdAt: Date.now(),
-	};
+export interface MessageUsage {
+	promptTokens: number;
+	completionTokens: number;
+	finishReason: string;
+	/** AC104: estimated cost in USD */
+	costUsd?: number;
 }
 
-function buildAssistantPlaceholder(): ChatMessage {
-	return {
-		id: localId("ph"),
-		role: "assistant",
-		blocks: [{ id: localId("b"), type: "text", content: "" }],
-		content: "",
-		createdAt: Date.now(),
-		isStreaming: true,
-	};
-}
+// AC104: cost table (USD per token, approximate)
+const COST_PER_TOKEN: Record<string, { input: number; output: number }> = {
+	"claude-sonnet-4-6": { input: 3 / 1_000_000, output: 15 / 1_000_000 },
+	"claude-opus-4-6": { input: 15 / 1_000_000, output: 75 / 1_000_000 },
+	"claude-haiku-4-5": { input: 0.8 / 1_000_000, output: 4 / 1_000_000 },
+};
 
-// ---- reducer ----
-
-type Action =
-	| { type: "append_user"; message: ChatMessage }
-	| { type: "start_assistant"; message: ChatMessage }
-	| { type: "append_chunk"; delta: string }
-	| { type: "add_tool_block"; block: ChatBlock }
-	| { type: "seal_assistant"; messageId: string }
-	| { type: "error_assistant"; text: string }
-	| { type: "toggle_block_collapse"; blockId: string }
-	| { type: "clear_error" };
-
-interface ReducerState {
-	messages: ChatMessage[];
-	inFlightId: string | null;
-	error: string | null;
-}
-
-function chatReducer(state: ReducerState, action: Action): ReducerState {
-	switch (action.type) {
-		case "append_user":
-			return { ...state, messages: [...state.messages, action.message], error: null };
-
-		case "start_assistant":
-			return {
-				...state,
-				messages: [...state.messages, action.message],
-				inFlightId: action.message.id,
-			};
-
-		case "append_chunk": {
-			if (!state.inFlightId) return state;
-			const msgs = state.messages.map((m) => {
-				if (m.id !== state.inFlightId) return m;
-				const blocks = m.blocks.map((b, i) =>
-					i === 0 && b.type === "text" ? { ...b, content: b.content + action.delta } : b,
-				);
-				const content = blocks.find((b) => b.type === "text")?.content ?? "";
-				return { ...m, blocks, content };
-			});
-			return { ...state, messages: msgs };
-		}
-
-		case "add_tool_block": {
-			if (!state.inFlightId) return state;
-			const msgs = state.messages.map((m) =>
-				m.id === state.inFlightId ? { ...m, blocks: [...m.blocks, action.block] } : m,
-			);
-			return { ...state, messages: msgs };
-		}
-
-		case "seal_assistant": {
-			const msgs = state.messages.map((m) =>
-				m.id === state.inFlightId ? { ...m, id: action.messageId, isStreaming: false } : m,
-			);
-			return { ...state, messages: msgs, inFlightId: null };
-		}
-
-		case "error_assistant": {
-			const msgs = state.messages.map((m) =>
-				m.id === state.inFlightId ? { ...m, isStreaming: false, errorText: action.text } : m,
-			);
-			return { ...state, messages: msgs, inFlightId: null, error: action.text };
-		}
-
-		case "toggle_block_collapse": {
-			const msgs = state.messages.map((m) => ({
-				...m,
-				blocks: m.blocks.map((b) =>
-					b.id === action.blockId ? { ...b, isCollapsed: !b.isCollapsed } : b,
-				),
-			}));
-			return { ...state, messages: msgs };
-		}
-
-		case "clear_error":
-			return { ...state, error: null };
-
-		default:
-			return state;
-	}
-}
-
-// ---- SSE frame parser ----
-
-function parseSSEFrame(rawFrame: string): { event: string; data: string } | null {
-	const frame = rawFrame.replace(/\r/g, "").trim();
-	if (!frame) return null;
-	let event = "message";
-	const dataLines: string[] = [];
-	for (const line of frame.split("\n")) {
-		if (!line || line.startsWith(":")) continue;
-		if (line.startsWith("event:")) {
-			event = line.slice(6).trim();
-			continue;
-		}
-		if (line.startsWith("data:")) {
-			dataLines.push(line.slice(5).trimStart());
-		}
-	}
-	if (!dataLines.length) return null;
-	return { event, data: dataLines.join("\n") };
-}
-
-// ---- hook ----
+// AC64: model max context window (tokens)
+const MODEL_MAX_CONTEXT: Record<string, number> = {
+	"claude-sonnet-4-6": 200_000,
+	"claude-opus-4-6": 200_000,
+	"claude-haiku-4-5": 200_000,
+};
+const DEFAULT_MAX_CONTEXT = 200_000;
 
 export interface UseChatSessionReturn {
-	messages: ChatMessage[];
+	messages: UIMessage[];
 	isStreaming: boolean;
 	isConnecting: boolean;
 	error: string | null;
 	threadId: string | undefined;
-	send: (text: string) => Promise<void>;
+	send: (
+		text: string,
+		attachments?: RequestAttachment[],
+		staged?: StagedAttachment[],
+	) => Promise<void>;
 	abort: () => void;
 	retry: () => void;
-	toggleBlockCollapse: (blockId: string) => void;
+	toggleToolCollapse: (toolCallId: string) => void;
 	clearError: () => void;
 	lastUserContent: string | undefined;
+	collapsedTools: Set<string>;
+	/** AC107: currently selected model id */
+	selectedModel: string;
+	setModel: (model: string) => void;
+	/** AC103/AC106: usage + finishReason + cost per message id */
+	usageMap: Map<string, MessageUsage>;
+	/** AC54: staged attachments per user-message order (index = nth user message) */
+	sentAttachments: StagedAttachment[][];
+	/** AC64: context fill ratio 0-1 */
+	contextPressure: number;
+	/** AC108: reasoning effort */
+	reasoningEffort: ReasoningEffort;
+	setReasoningEffort: (effort: ReasoningEffort) => void;
+	/** AC50: TTS autoplay for new assistant messages */
+	autoplayTts: boolean;
+	toggleAutoplayTts: () => void;
+	/** AC105: edit a user message and resend from that point */
+	editAndResend: (messageId: string, newText: string) => Promise<void>;
+	/** AC66: approve a pending tool call */
+	approveToolCall: (toolCallId: string) => Promise<void>;
+	/** AC66: deny a pending tool call */
+	denyToolCall: (toolCallId: string) => Promise<void>;
 }
 
 export function useChatSession(): UseChatSessionReturn {
-	const [state, dispatch] = useReducer(chatReducer, {
-		messages: [],
-		inFlightId: null,
-		error: null,
-	});
-
-	const [isConnecting, setIsConnecting] = useStateRef(false);
-	const abortRef = useRef<AbortController | null>(null);
+	// AC101: URL-persistent chat ID via nuqs
+	const [urlChatId, setUrlChatId] = useQueryState("t");
+	const chatIdRef = useRef(urlChatId || localId("chat"));
 	const threadIdRef = useRef<string | undefined>(undefined);
-	const savedInputRef = useRef<string>("");
+	const [collapsedTools, setCollapsedTools] = useState<Set<string>>(new Set());
+	const [selectedModel, setSelectedModel] = useState("claude-sonnet-4-6");
+	const selectedModelRef = useRef(selectedModel);
 
-	const abort = useCallback(() => {
-		abortRef.current?.abort();
-		abortRef.current = null;
+	// Usage tracking
+	const usageMapRef = useRef<Map<string, MessageUsage>>(new Map());
+	const [usageVersion, setUsageVersion] = useState(0);
+
+	// AC56: pending attachments ref (populated before sendMessage, read in prepareSendMessagesRequest)
+	const pendingAttachmentsRef = useRef<RequestAttachment[] | undefined>(undefined);
+	const pendingReasoningEffortRef = useRef<ReasoningEffort>("medium");
+
+	// AC54: track sent staged attachments indexed by user message order
+	const sentAttachmentsRef = useRef<StagedAttachment[][]>([]);
+	const [sentAttachmentsVersion, setSentAttachmentsVersion] = useState(0);
+
+	// AC108: reasoning effort
+	const [reasoningEffort, setReasoningEffortState] = useState<ReasoningEffort>("medium");
+	const reasoningEffortRef = useRef<ReasoningEffort>("medium");
+
+	// Sync chatId to URL on mount if not already there
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional mount-only effect
+	useEffect(() => {
+		if (!urlChatId) {
+			void setUrlChatId(chatIdRef.current);
+		}
 	}, []);
+
+	const setModel = useCallback((model: string) => {
+		setSelectedModel(model);
+		selectedModelRef.current = model;
+	}, []);
+
+	const setReasoningEffort = useCallback((effort: ReasoningEffort) => {
+		setReasoningEffortState(effort);
+		reasoningEffortRef.current = effort;
+		pendingReasoningEffortRef.current = effort;
+	}, []);
+
+	// AC50: autoplay TTS toggle
+	const [autoplayTts, setAutoplayTts] = useState(false);
+	const toggleAutoplayTts = useCallback(() => setAutoplayTts((v) => !v), []);
+
+	const { messages, status, error, sendMessage, regenerate, stop, clearError, setMessages } =
+		useChat({
+			id: chatIdRef.current,
+			transport: new DefaultChatTransport({
+				api: "/api/agent/chat",
+				prepareSendMessagesRequest: ({ messages: msgs }) => {
+					const lastUser = msgs.filter((m) => m.role === "user").at(-1);
+					const text =
+						lastUser?.parts
+							.filter((p): p is { type: "text"; text: string } => p.type === "text")
+							.map((p) => p.text)
+							.join("") ?? "";
+					const body: Record<string, unknown> = {
+						message: text,
+						threadId: threadIdRef.current,
+					};
+					if (selectedModelRef.current !== "claude-sonnet-4-6") {
+						body.model = selectedModelRef.current;
+					}
+					if (pendingAttachmentsRef.current?.length) {
+						body.attachments = pendingAttachmentsRef.current;
+					}
+					const effort = pendingReasoningEffortRef.current;
+					if (effort !== "medium") {
+						body.reasoningEffort = effort;
+					}
+					return { body };
+				},
+			}),
+			onFinish: ({ message, finishReason }) => {
+				if (message.role === "assistant") {
+					// Usage tokens forwarded by Python via message-metadata SSE event (ACR-G5).
+					// threadId forwarded the same way (ACR-G7).
+					const meta = message.metadata as Record<string, unknown> | undefined;
+					const promptTokens = typeof meta?.promptTokens === "number" ? meta.promptTokens : 0;
+					const completionTokens =
+						typeof meta?.completionTokens === "number" ? meta.completionTokens : 0;
+					// ACR-G7: update threadId from server so follow-up requests use the same thread
+					if (typeof meta?.threadId === "string" && meta.threadId) {
+						threadIdRef.current = meta.threadId;
+					}
+					const costs = COST_PER_TOKEN[selectedModelRef.current];
+					const costUsd =
+						costs && (promptTokens || completionTokens)
+							? promptTokens * costs.input + completionTokens * costs.output
+							: undefined;
+					usageMapRef.current.set(message.id, {
+						promptTokens,
+						completionTokens,
+						finishReason: finishReason ?? "stop",
+						costUsd,
+					});
+					setUsageVersion((v) => v + 1);
+				}
+			},
+		});
 
 	const send = useCallback(
-		async (text: string) => {
-			if (!text.trim() || state.inFlightId) return;
-			savedInputRef.current = text;
-
-			dispatch({ type: "append_user", message: buildUserMessage(text) });
-			dispatch({ type: "start_assistant", message: buildAssistantPlaceholder() });
-			setIsConnecting(true);
-
-			const controller = new AbortController();
-			abortRef.current = controller;
-
-			try {
-				const res = await fetch("/api/agent/chat", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ message: text, threadId: threadIdRef.current }),
-					signal: controller.signal,
-				});
-
-				setIsConnecting(false);
-
-				if (!res.ok || !res.body) {
-					dispatch({ type: "error_assistant", text: `HTTP ${res.status}` });
-					return;
-				}
-
-				const reader = res.body.getReader();
-				const decoder = new TextDecoder();
-				let buffer = "";
-
-				const handle = (raw: string) => {
-					const parsed = parseSSEFrame(raw);
-					if (!parsed) return;
-					try {
-						const payload = JSON.parse(parsed.data);
-						switch (parsed.event) {
-							case "chunk": {
-								const e = payload as SseChunkEvent;
-								dispatch({ type: "append_chunk", delta: e.delta ?? "" });
-								break;
-							}
-							case "done": {
-								const e = payload as SseDoneEvent;
-								threadIdRef.current = e.threadId;
-								dispatch({ type: "seal_assistant", messageId: e.messageId });
-								break;
-							}
-							case "tool": {
-								const e = payload as SseToolEvent;
-								dispatch({
-									type: "add_tool_block",
-									block: {
-										id: localId("tc"),
-										type: "tool_call",
-										content: "",
-										toolName: e.name,
-										toolInput: e.input,
-										isCollapsed: true,
-									},
-								});
-								dispatch({
-									type: "add_tool_block",
-									block: {
-										id: localId("tr"),
-										type: "tool_result",
-										content: "",
-										toolName: e.name,
-										toolResult: e.result,
-										durationMs: e.durationMs,
-										isCollapsed: true,
-									},
-								});
-								break;
-							}
-							case "error": {
-								const e = payload as SseErrorEvent;
-								dispatch({ type: "error_assistant", text: e.message });
-								break;
-							}
-						}
-					} catch {
-						// malformed frame — skip, per AC28
-					}
-				};
-
-				while (true) {
-					const { done, value } = await reader.read();
-					if (done) break;
-					buffer += decoder.decode(value, { stream: true });
-					let boundary = buffer.indexOf("\n\n");
-					while (boundary >= 0) {
-						handle(buffer.slice(0, boundary));
-						buffer = buffer.slice(boundary + 2);
-						boundary = buffer.indexOf("\n\n");
-					}
-				}
-				if (buffer.trim()) handle(buffer);
-			} catch (err) {
-				setIsConnecting(false);
-				if (err instanceof Error && err.name === "AbortError") {
-					dispatch({ type: "error_assistant", text: "Stopped." });
-				} else {
-					dispatch({ type: "error_assistant", text: "Connection error. Please retry." });
-				}
-			} finally {
-				abortRef.current = null;
-			}
+		async (text: string, attachments?: RequestAttachment[], staged?: StagedAttachment[]) => {
+			if (!text.trim() || status === "streaming" || status === "submitted") return;
+			pendingAttachmentsRef.current = attachments;
+			pendingReasoningEffortRef.current = reasoningEffortRef.current;
+			// AC54: record staged attachments for display
+			sentAttachmentsRef.current = [...sentAttachmentsRef.current, staged ?? []];
+			setSentAttachmentsVersion((v) => v + 1);
+			await sendMessage({ text });
+			pendingAttachmentsRef.current = undefined;
 		},
-		// setIsConnecting is stable (useCallback from useStateRef) — safe to include
-		[state.inFlightId, setIsConnecting],
+		[status, sendMessage],
 	);
 
-	const retry = useCallback(() => {
-		dispatch({ type: "clear_error" });
+	const abort = useCallback(() => {
+		stop();
+	}, [stop]);
+
+	const retry = useCallback(async () => {
+		await regenerate();
+	}, [regenerate]);
+
+	// AC105: edit a previous user message, trim history, and resend
+	const editAndResend = useCallback(
+		async (messageId: string, newText: string) => {
+			if (!newText.trim() || status === "streaming" || status === "submitted") return;
+			const idx = messages.findIndex((m) => m.id === messageId);
+			if (idx === -1) return;
+			setMessages(messages.slice(0, idx));
+			pendingAttachmentsRef.current = undefined;
+			pendingReasoningEffortRef.current = reasoningEffortRef.current;
+			sentAttachmentsRef.current = sentAttachmentsRef.current.slice(0, Math.ceil(idx / 2));
+			setSentAttachmentsVersion((v) => v + 1);
+			await sendMessage({ text: newText });
+		},
+		[messages, status, setMessages, sendMessage],
+	);
+
+	// AC66: approve / deny a pending tool call (BFF → Go Gateway)
+	const approveToolCall = useCallback(async (toolCallId: string) => {
+		await fetch("/api/agent/approve", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ toolCallId, decision: "approve", threadId: threadIdRef.current }),
+		});
 	}, []);
 
-	const toggleBlockCollapse = useCallback((blockId: string) => {
-		dispatch({ type: "toggle_block_collapse", blockId });
+	const denyToolCall = useCallback(async (toolCallId: string) => {
+		await fetch("/api/agent/approve", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ toolCallId, decision: "deny", threadId: threadIdRef.current }),
+		});
 	}, []);
 
-	const clearError = useCallback(() => {
-		dispatch({ type: "clear_error" });
+	const toggleToolCollapse = useCallback((toolCallId: string) => {
+		setCollapsedTools((prev) => {
+			const next = new Set(prev);
+			if (next.has(toolCallId)) next.delete(toolCallId);
+			else next.add(toolCallId);
+			return next;
+		});
 	}, []);
 
-	const lastUserContent = [...state.messages].reverse().find((m) => m.role === "user")?.content;
+	const isStreaming = status === "streaming";
+	const isConnecting = status === "submitted";
+
+	const lastUserMsg = messages.filter((m) => m.role === "user").at(-1);
+	const lastUserContent = lastUserMsg?.parts
+		.filter((p): p is { type: "text"; text: string } => p.type === "text")
+		.map((p) => p.text)
+		.join("");
+
+	const usageMap = usageMapRef.current;
+	void usageVersion; // consumed to keep lint happy
+	void sentAttachmentsVersion;
+
+	// AC64: context pressure from latest assistant usage promptTokens
+	const latestAssistantMsg = [...messages].reverse().find((m) => m.role === "assistant");
+	const latestUsage = latestAssistantMsg
+		? usageMapRef.current.get(latestAssistantMsg.id)
+		: undefined;
+	const maxCtx = MODEL_MAX_CONTEXT[selectedModel] ?? DEFAULT_MAX_CONTEXT;
+	const contextPressure = latestUsage ? Math.min(latestUsage.promptTokens / maxCtx, 1) : 0;
 
 	return {
-		messages: state.messages,
-		isStreaming: state.inFlightId !== null,
-		isConnecting: isConnecting.current,
-		error: state.error,
+		messages,
+		isStreaming,
+		isConnecting,
+		error: error?.message ?? null,
 		threadId: threadIdRef.current,
 		send,
 		abort,
 		retry,
-		toggleBlockCollapse,
+		toggleToolCollapse,
 		clearError,
-		lastUserContent,
+		lastUserContent: lastUserContent || undefined,
+		collapsedTools,
+		selectedModel,
+		setModel,
+		usageMap,
+		sentAttachments: sentAttachmentsRef.current,
+		contextPressure,
+		reasoningEffort,
+		setReasoningEffort,
+		autoplayTts,
+		toggleAutoplayTts,
+		editAndResend,
+		approveToolCall,
+		denyToolCall,
 	};
-}
-
-// tiny helper — a ref-backed boolean that also forces re-render
-function useStateRef(initial: boolean) {
-	const ref = useRef(initial);
-	const [, setTick] = useReducer((n: number) => n + 1, 0);
-	const setter = useCallback((val: boolean) => {
-		ref.current = val;
-		setTick();
-	}, []);
-	return [ref, setter] as const;
 }
