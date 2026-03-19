@@ -4,9 +4,6 @@
 [submodule "_tmp_ref_review/agents/onyx"]
 	path = _tmp_ref_review/agents/onyx
 	url = https://github.com/onyx-dot-app/onyx.git
-[submodule "_tmp_ref_review/agents/openclaw"]
-	path = _tmp_ref_review/agents/openclaw
-	url = https://github.com/openclaw/openclaw
 [submodule "_tmp_ref_review/agents/perplexica"]
 	path = _tmp_ref_review/agents/perplexica
 	url = https://github.com/ItzCrazyKns/Perplexica

@@ -123,5 +123,6 @@ tools/garage/*.exe
 tools/garage/src-v2.2.0/
 tools/garage/garage-v2.2.0.tar.gz
 
-# _tmp_ref_review: ccxt entfernt (zu gross, GitNexus-Problem)
+# _tmp_ref_review: aus Submodul-Tracking entfernt (zu gross / GitNexus-Probleme)
 _tmp_ref_review/ccxt/
+_tmp_ref_review/agents/openclaw/
