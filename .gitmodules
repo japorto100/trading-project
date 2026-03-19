@@ -13,9 +13,6 @@
 [submodule "_tmp_ref_review/agents/tambo"]
 	path = _tmp_ref_review/agents/tambo
 	url = https://github.com/tambo-ai/tambo
-[submodule "_tmp_ref_review/ccxt"]
-	path = _tmp_ref_review/ccxt
-	url = https://github.com/ccxt/ccxt.git
 [submodule "_tmp_ref_review/geo/conflict-globe.gl"]
 	path = _tmp_ref_review/geo/conflict-globe.gl
 	url = https://github.com/r13xr13/conflict-globe.gl.git
