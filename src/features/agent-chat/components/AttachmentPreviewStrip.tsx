@@ -28,6 +28,7 @@ export function AttachmentPreviewStrip({
 						className="block h-14 w-14 rounded border border-border overflow-hidden hover:opacity-80 transition-opacity"
 						title={att.name}
 					>
+						{/* biome-ignore lint/performance/noImgElement: previewUrl is a blob: URL from URL.createObjectURL — Next.js <Image> cannot optimize blob: URLs */}
 						<img src={att.previewUrl} alt={att.name} className="h-full w-full object-cover" />
 					</button>
 					<button

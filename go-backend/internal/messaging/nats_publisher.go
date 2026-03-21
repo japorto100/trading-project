@@ -90,7 +90,10 @@ func (p *NATSPublisher) PublishTick(ctx context.Context, symbol string, payload 
 	if err == nil {
 		slog.Debug("published tick", "symbol", symbol, "bytes", len(payload))
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("publish tick for %s: %w", symbol, err)
+	}
+	return nil
 }
 
 func (p *NATSPublisher) PublishCandle(ctx context.Context, symbol, timeframe string, payload []byte) error {
@@ -98,7 +101,10 @@ func (p *NATSPublisher) PublishCandle(ctx context.Context, symbol, timeframe str
 	msg.Data = payload
 	otel.GetTextMapPropagator().Inject(ctx, natsMsgCarrier{msg})
 	_, err := p.js.PublishMsg(ctx, msg)
-	return err
+	if err != nil {
+		return fmt.Errorf("publish candle for %s %s: %w", symbol, timeframe, err)
+	}
+	return nil
 }
 
 func (p *NATSPublisher) Ping(_ context.Context) error {
@@ -112,5 +118,8 @@ func (p *NATSPublisher) BackendName() string { return "nats" }
 
 // Close drains pending publishes and closes the underlying NATS connection.
 func (p *NATSPublisher) Close() error {
-	return p.nc.Drain()
+	if err := p.nc.Drain(); err != nil {
+		return fmt.Errorf("drain nats publisher connection: %w", err)
+	}
+	return nil
 }

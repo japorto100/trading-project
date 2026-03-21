@@ -52,6 +52,39 @@ def calculate_heartbeat(
     return float(score)
 
 
+def portfolio_drawdown_series(equity: Sequence[float]) -> list[float] | None:
+    if _rust_core is None:
+        return None
+    values = [float(v) for v in equity]
+    if not values:
+        return None
+    result = _rust_core.portfolio_drawdown_series(values)
+    return [float(v) for v in result]
+
+
+def portfolio_rolling_sharpe(
+    returns: Sequence[float],
+    window: int,
+    rf_daily: float = 0.0,
+) -> list[float] | None:
+    if _rust_core is None:
+        return None
+    values = [float(v) for v in returns]
+    if len(values) < window:
+        return None
+    result = _rust_core.portfolio_rolling_sharpe(values, int(window), float(rf_daily))
+    return [float(v) for v in result]
+
+
+def portfolio_kelly_fraction(returns: Sequence[float]) -> float | None:
+    if _rust_core is None:
+        return None
+    values = [float(v) for v in returns]
+    if len(values) < 2:
+        return None
+    return float(_rust_core.portfolio_kelly_fraction(values))
+
+
 def calculate_indicators_batch(
     timestamps: Sequence[int],
     opens: Sequence[float],

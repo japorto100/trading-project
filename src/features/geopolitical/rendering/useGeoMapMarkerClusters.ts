@@ -3,7 +3,8 @@ import Supercluster from "supercluster";
 import {
 	buildGeoFlatViewBoundsFromCoordinates,
 	type GeoFlatViewBounds,
-} from "@/features/geopolitical/flat-view-handoff";
+} from "@/features/geopolitical/flat-view/flat-view-handoff";
+import { getMarkerSymbolShortCode } from "@/features/geopolitical/markerSymbols";
 import type { GeoMapMarkerPoint } from "@/features/geopolitical/rendering/useGeoMapProjectionModel";
 import {
 	GEO_MAP_INITIAL_SCALE,
@@ -28,6 +29,9 @@ export interface GeoMapMarkerCluster {
 	x: number;
 	y: number;
 	count: number;
+	maxSeverity: number;
+	highPriorityCount: number;
+	representativeShortCode: string;
 	markerIds: string[];
 	bounds: GeoFlatViewBounds | null;
 }
@@ -58,6 +62,7 @@ export function useGeoMapMarkerClusters({
 }: UseGeoMapMarkerClustersParams): GeoMapMarkerClustersResult {
 	return useMemo(() => {
 		const visibleMarkers = markers.filter((marker) => marker.visible);
+		const visibleMarkerById = new Map(visibleMarkers.map((marker) => [marker.id, marker] as const));
 		const shouldCluster = visibleMarkers.length >= 24;
 		if (!shouldCluster) {
 			return {
@@ -93,27 +98,62 @@ export function useGeoMapMarkerClusters({
 		const unclusteredMarkerIds = new Set<string>();
 
 		for (const feature of features) {
-			const [lng, lat] = feature.geometry.coordinates;
+			const lng = feature.geometry.coordinates[0];
+			const lat = feature.geometry.coordinates[1];
+			if (typeof lng !== "number" || typeof lat !== "number") continue;
 			const props = feature.properties;
 			if (!props) continue;
 
 			if ("cluster" in props && props.cluster) {
 				const projected = projection([lng, lat]);
 				if (!projected) continue;
+				const projectedX = projected[0];
+				const projectedY = projected[1];
+				if (typeof projectedX !== "number" || typeof projectedY !== "number") continue;
 				const leaves = index.getLeaves(props.cluster_id, props.point_count);
 				const bounds = buildGeoFlatViewBoundsFromCoordinates(
-					leaves.map((leaf) => ({
-						lat: leaf.geometry.coordinates[1],
-						lng: leaf.geometry.coordinates[0],
-					})),
+					leaves
+						.map((leaf) => {
+							const leafLng = leaf.geometry.coordinates[0];
+							const leafLat = leaf.geometry.coordinates[1];
+							if (typeof leafLat !== "number" || typeof leafLng !== "number") {
+								return null;
+							}
+							return {
+								lat: leafLat,
+								lng: leafLng,
+							};
+						})
+						.filter(
+							(coordinate): coordinate is { lat: number; lng: number } => coordinate !== null,
+						),
 				);
+				const clusterMarkers = leaves
+					.map((leaf) => {
+						const markerId = leaf.properties?.markerId;
+						return typeof markerId === "string" ? (visibleMarkerById.get(markerId) ?? null) : null;
+					})
+					.filter((marker): marker is GeoMapMarkerPoint => marker !== null);
+				const representativeMarker = [...clusterMarkers].sort(
+					(left, right) => right.severity - left.severity,
+				)[0];
+				const maxSeverity = clusterMarkers.reduce(
+					(maximum, marker) => Math.max(maximum, marker.severity),
+					0,
+				);
+				const highPriorityCount = clusterMarkers.filter((marker) => marker.severity >= 4).length;
 				clusters.push({
 					id: `cluster-${props.cluster_id}`,
 					lat,
 					lng,
-					x: projected[0],
-					y: projected[1],
+					x: projectedX,
+					y: projectedY,
 					count: props.point_count,
+					maxSeverity,
+					highPriorityCount,
+					representativeShortCode: representativeMarker
+						? getMarkerSymbolShortCode(representativeMarker.symbol)
+						: "EV",
 					markerIds: leaves
 						.map((leaf) => leaf.properties?.markerId)
 						.filter((markerId): markerId is string => typeof markerId === "string"),

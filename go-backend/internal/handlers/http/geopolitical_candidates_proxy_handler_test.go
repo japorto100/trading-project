@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"errors"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,9 +27,7 @@ func (f *fakeGeopoliticalCandidatesProxyClient) Do(_ context.Context, method, pa
 	f.lastPath = path
 	f.lastBody = append([]byte(nil), payload...)
 	f.lastHeaders = map[string]string{}
-	for k, v := range headers {
-		f.lastHeaders[k] = v
-	}
+	maps.Copy(f.lastHeaders, headers)
 	return f.status, f.body, f.err
 }
 
@@ -73,9 +72,7 @@ func (f *fakeGeopoliticalCandidateQueueStore) Get(id string) (map[string]any, er
 	for _, item := range f.items {
 		if item["id"] == id {
 			cloned := map[string]any{}
-			for k, v := range item {
-				cloned[k] = v
-			}
+			maps.Copy(cloned, item)
 			return cloned, nil
 		}
 	}
@@ -93,13 +90,9 @@ func (f *fakeGeopoliticalCandidateQueueStore) UpdateState(id string, patch geopo
 			continue
 		}
 		before := map[string]any{}
-		for k, v := range item {
-			before[k] = v
-		}
+		maps.Copy(before, item)
 		next := map[string]any{}
-		for k, v := range item {
-			next[k] = v
-		}
+		maps.Copy(next, item)
 		if patch.State != "" {
 			next["state"] = patch.State
 		}

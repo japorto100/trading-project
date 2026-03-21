@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -304,13 +305,13 @@ func listHardIngestEventsWithFallback(
 		return items, usedSource, nil
 	}
 	if !strings.EqualFold(strings.TrimSpace(query.Source), "acled") {
-		return nil, usedSource, err
+		return nil, usedSource, fmt.Errorf("list geopolitical events from %s: %w", usedSource, err)
 	}
 	fallbackQuery := query
 	fallbackQuery.Source = "gdelt"
 	fallbackItems, fallbackErr := events.ListEvents(ctx, fallbackQuery)
 	if fallbackErr != nil {
-		return nil, usedSource, err
+		return nil, usedSource, fmt.Errorf("list geopolitical events from %s failed: %w; gdelt fallback error: %s", usedSource, err, fallbackErr.Error())
 	}
 	return fallbackItems, "gdelt", nil
 }

@@ -3,31 +3,69 @@ package market
 import (
 	"context"
 	"errors"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
 
 type fakeCryptoTickerClient struct {
+	mu           sync.Mutex
 	lastExchange string
 	lastPair     gct.Pair
 	lastAsset    asset.Item
 	ticker       gct.Ticker
+	tickerByEx   map[string]gct.Ticker
 	errByEx      map[string]error
+	delayByEx    map[string]time.Duration
 	calls        []string
 }
 
-func (f *fakeCryptoTickerClient) GetTicker(_ context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
-	f.lastExchange = exchange
+func (f *fakeCryptoTickerClient) GetTicker(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
+	exactExchange := strings.TrimSpace(exchange)
+	normalizedExchange := strings.ToLower(exactExchange)
+	if delay := f.delayByEx[exactExchange]; delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return gct.Ticker{}, ctx.Err()
+		case <-timer.C:
+		}
+	} else if delay := f.delayByEx[normalizedExchange]; delay > 0 {
+		timer := time.NewTimer(delay)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return gct.Ticker{}, ctx.Err()
+		case <-timer.C:
+		}
+	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.lastExchange = exactExchange
 	f.lastPair = pair
 	f.lastAsset = assetType
-	f.calls = append(f.calls, exchange)
-	if err := f.errByEx[exchange]; err != nil {
+	f.calls = append(f.calls, exactExchange)
+	if err := f.errByEx[exactExchange]; err != nil {
 		return gct.Ticker{}, err
+	}
+	if err := f.errByEx[normalizedExchange]; err != nil {
+		return gct.Ticker{}, err
+	}
+	if ticker, ok := f.tickerByEx[exactExchange]; ok {
+		return ticker, nil
+	}
+	if ticker, ok := f.tickerByEx[normalizedExchange]; ok {
+		return ticker, nil
 	}
 	return f.ticker, nil
 }
@@ -143,6 +181,22 @@ func TestQuoteClient_RoutesFredToMacroClient(t *testing.T) {
 	}
 	if crypto.lastExchange != "" {
 		t.Fatalf("expected crypto client not called, got exchange %s", crypto.lastExchange)
+	}
+}
+
+func TestQuoteClient_RoutesNyfedToMacroClient(t *testing.T) {
+	crypto := &fakeCryptoTickerClient{}
+	stock := &fakeFinnhubTickerClient{}
+	macro := &fakeFredTickerClient{ticker: gct.Ticker{Last: 4.3}}
+	forex := &fakeForexTickerClient{}
+	client := NewQuoteClient(crypto, stock, macro, forex)
+
+	_, err := client.GetTicker(context.Background(), "NYFED", currency.NewPair(currency.NewCode("DEFAULT"), currency.NewCode("USD")), asset.Empty)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if macro.lastPair.Base.String() != "NYFED_SOFR" {
+		t.Fatalf("expected NYFED alias to NYFED_SOFR, got %s", macro.lastPair.Base)
 	}
 }
 
@@ -324,6 +378,73 @@ func TestQuoteClient_AutoFailoverRecordsClassifiedRouterFailures(t *testing.T) {
 	}
 	if got := binance.FailureClasses["timeout"]; got != 1 {
 		t.Fatalf("expected timeout failure count 1, got %d", got)
+	}
+}
+
+func TestQuoteClient_AutoFailoverLatencyFirstRunsProvidersConcurrently(t *testing.T) {
+	crypto := &fakeCryptoTickerClient{
+		tickerByEx: map[string]gct.Ticker{
+			"binance": {Last: 100},
+			"kraken":  {Last: 200},
+		},
+		delayByEx: map[string]time.Duration{
+			"binance": 60 * time.Millisecond,
+			"kraken":  5 * time.Millisecond,
+		},
+	}
+	client := NewQuoteClient(crypto, nil, nil, nil)
+	router := adaptive.New(adaptive.Config{
+		AssetClasses: map[string]adaptive.AssetClassConfig{
+			"crypto_spot": {Providers: []string{"binance", "kraken"}, Strategy: "latency_first"},
+		},
+		Providers: map[string]adaptive.ProviderConfig{
+			"binance": {Group: "ws"},
+			"kraken":  {Group: "ws"},
+		},
+	})
+	client.SetAdaptiveRouter(router)
+
+	ticker, err := client.GetTicker(context.Background(), "AUTO", currency.NewPair(currency.NewCode("BTC"), currency.NewCode("USD")), asset.Spot)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if ticker.Last != 200 {
+		t.Fatalf("expected faster provider result from Kraken, got %f", ticker.Last)
+	}
+}
+
+func TestQuoteClient_AutoFailoverLatencyFirstHonorsGroupConcurrencyBudget(t *testing.T) {
+	crypto := &fakeCryptoTickerClient{
+		tickerByEx: map[string]gct.Ticker{
+			"binance": {Last: 100},
+			"kraken":  {Last: 200},
+		},
+		delayByEx: map[string]time.Duration{
+			"binance": 60 * time.Millisecond,
+			"kraken":  5 * time.Millisecond,
+		},
+	}
+	client := NewQuoteClient(crypto, nil, nil, nil)
+	router := adaptive.New(adaptive.Config{
+		AssetClasses: map[string]adaptive.AssetClassConfig{
+			"crypto_spot": {Providers: []string{"binance", "kraken"}, Strategy: "latency_first"},
+		},
+		Groups: map[string]connectorregistry.GroupConfig{
+			"ws": {MaxConcurrency: 1},
+		},
+		Providers: map[string]adaptive.ProviderConfig{
+			"binance": {Group: "ws"},
+			"kraken":  {Group: "ws"},
+		},
+	})
+	client.SetAdaptiveRouter(router)
+
+	ticker, err := client.GetTicker(context.Background(), "AUTO", currency.NewPair(currency.NewCode("BTC"), currency.NewCode("USD")), asset.Spot)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if ticker.Last != 100 {
+		t.Fatalf("expected sequential budget to keep first provider result, got %f", ticker.Last)
 	}
 }
 

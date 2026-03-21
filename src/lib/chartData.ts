@@ -147,16 +147,25 @@ export function calculatePriceChange(
 	data: CandleData[],
 	periods: number = 24,
 ): { change: number; percent: string } {
+	if (data.length === 0) {
+		return { change: 0, percent: "0.00" };
+	}
 	if (data.length < periods + 1) {
-		const change = data[data.length - 1].close - data[0].open;
-		const percent = ((change / data[0].open) * 100).toFixed(2);
+		const first = data[0];
+		const last = data[data.length - 1];
+		if (!first || !last) return { change: 0, percent: "0.00" };
+		const change = last.close - first.open;
+		const percent = ((change / first.open) * 100).toFixed(2);
 		return { change, percent };
 	}
 
 	const lastIndex = data.length - 1;
 	const firstIndex = lastIndex - periods;
-	const change = data[lastIndex].close - data[firstIndex].open;
-	const percent = ((change / data[firstIndex].open) * 100).toFixed(2);
+	const first = data[firstIndex];
+	const last = data[lastIndex];
+	if (!first || !last) return { change: 0, percent: "0.00" };
+	const change = last.close - first.open;
+	const percent = ((change / first.open) * 100).toFixed(2);
 
 	return { change, percent };
 }

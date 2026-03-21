@@ -145,7 +145,7 @@ func (c *Client) GetSeries(ctx context.Context, pair currency.Pair, assetType as
 	query.Set("limit", fmt.Sprintf("%d", limit))
 	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, "/series/observations", query, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("build fred observations request for %s: %w", seriesID, err)
 	}
 
 	resp, err := c.baseClient.Do(req)

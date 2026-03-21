@@ -58,11 +58,11 @@ func TestCOTFetcherRecordsSnapshotMetadataAndRawPayload(t *testing.T) {
 		t.Fatalf("create zip entry: %v", err)
 	}
 	csvPayload := "market,position\nEURO FX,123\n"
-	if _, err := fileWriter.Write([]byte(csvPayload)); err != nil {
-		t.Fatalf("write zip payload: %v", err)
+	if _, writeErr := fileWriter.Write([]byte(csvPayload)); writeErr != nil {
+		t.Fatalf("write zip payload: %v", writeErr)
 	}
-	if err := zipWriter.Close(); err != nil {
-		t.Fatalf("close zip writer: %v", err)
+	if closeErr := zipWriter.Close(); closeErr != nil {
+		t.Fatalf("close zip writer: %v", closeErr)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -108,8 +108,8 @@ func TestCOTFetcherRecordsSnapshotMetadataAndRawPayload(t *testing.T) {
 		t.Fatalf("open snapshot metadata store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := metaStore.Close(); err != nil {
-			t.Fatalf("close snapshot metadata store: %v", err)
+		if closeErr := metaStore.Close(); closeErr != nil {
+			t.Fatalf("close snapshot metadata store: %v", closeErr)
 		}
 	})
 

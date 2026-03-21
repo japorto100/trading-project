@@ -80,7 +80,9 @@ export class GridLayer implements Layer {
 		const timeSteps = this.calculateTimeSteps(candles, viewport, width);
 
 		for (let i = 0; i < timeSteps.length; i++) {
-			const candle = candles[timeSteps[i]];
+			const timeStepIndex = timeSteps[i];
+			if (typeof timeStepIndex !== "number") continue;
+			const candle = candles[timeStepIndex];
 			if (!candle) continue;
 
 			const x = this.coordSystem.timeToX(candle.time, candles, viewport, width);
@@ -171,6 +173,7 @@ export class CandleLayer implements Layer {
 
 		for (let i = startIndex; i < endIndex; i++) {
 			const candle = candles[i];
+			if (!candle) continue;
 			const x = this.coordSystem.timeToX(candle.time, candles, viewport, width);
 
 			// Skip if outside visible area
@@ -238,6 +241,7 @@ export class VolumeLayer implements Layer {
 
 		for (let i = startIndex; i < endIndex; i++) {
 			const candle = candles[i];
+			if (!candle) continue;
 			const x = this.coordSystem.timeToX(candle.time, candles, viewport, width);
 
 			// Skip if outside visible area
@@ -288,7 +292,9 @@ export class IndicatorLayer implements Layer {
 			if (!data || data.length === 0) continue;
 
 			// Render each line in the indicator
-			const valueKeys = Object.keys(data[0].values);
+			const firstDataPoint = data[0];
+			if (!firstDataPoint) continue;
+			const valueKeys = Object.keys(firstDataPoint.values);
 
 			for (const key of valueKeys) {
 				const color = indicator.colors[key] || "#3b82f6";
@@ -301,6 +307,7 @@ export class IndicatorLayer implements Layer {
 
 				for (let i = 0; i < data.length; i++) {
 					const point = data[i];
+					if (!point) continue;
 					const value = point.values[key];
 
 					if (value === undefined || Number.isNaN(value)) continue;
@@ -471,6 +478,7 @@ export class DrawingLayer implements Layer {
 
 		const { candles, viewport, width, height } = state;
 		const [p1, p2] = drawing.points;
+		if (!p1 || !p2) return;
 
 		const x1 = this.coordSystem.timeToX(p1.time, candles, viewport, width);
 		const y1 = this.coordSystem.priceToY(p1.price, viewport, height, state.scaleType);
@@ -514,6 +522,7 @@ export class DrawingLayer implements Layer {
 		const { viewport, width, height } = state;
 		const mainBounds = this.coordSystem.getMainChartBounds(width, height);
 		const [p1] = drawing.points;
+		if (!p1) return;
 
 		const y = this.coordSystem.priceToY(p1.price, viewport, height, state.scaleType);
 
@@ -552,6 +561,7 @@ export class DrawingLayer implements Layer {
 		const mainBounds = this.coordSystem.getMainChartBounds(width, height);
 		const volumeBounds = this.coordSystem.getVolumeChartBounds(width, height);
 		const [p1] = drawing.points;
+		if (!p1) return;
 
 		const x = this.coordSystem.timeToX(p1.time, candles, viewport, width);
 
@@ -582,6 +592,7 @@ export class DrawingLayer implements Layer {
 
 		const { candles, viewport, width, height } = state;
 		const [p1, p2] = drawing.points;
+		if (!p1 || !p2) return;
 
 		const x1 = this.coordSystem.timeToX(p1.time, candles, viewport, width);
 		const y1 = this.coordSystem.priceToY(p1.price, viewport, height, state.scaleType);
@@ -613,6 +624,7 @@ export class DrawingLayer implements Layer {
 		const { candles, viewport, width, height } = state;
 		const mainBounds = this.coordSystem.getMainChartBounds(width, height);
 		const [p1, p2] = drawing.points;
+		if (!p1 || !p2) return;
 
 		const x1 = this.coordSystem.timeToX(p1.time, candles, viewport, width);
 		const y1 = this.coordSystem.priceToY(p1.price, viewport, height, state.scaleType);
@@ -661,6 +673,7 @@ export class DrawingLayer implements Layer {
 
 		const { candles, viewport, width, height } = state;
 		const [p1, p2] = drawing.points;
+		if (!p1 || !p2) return;
 
 		const x1 = this.coordSystem.timeToX(p1.time, candles, viewport, width);
 		const y1 = this.coordSystem.priceToY(p1.price, viewport, height, state.scaleType);
@@ -818,7 +831,9 @@ export class TimeScaleLayer implements Layer {
 		const timeframeMs = this.estimateTimeframe(candles, viewport);
 
 		for (let i = 0; i < timeSteps.length; i++) {
-			const candle = candles[timeSteps[i]];
+			const timeStepIndex = timeSteps[i];
+			if (typeof timeStepIndex !== "number") continue;
+			const candle = candles[timeStepIndex];
 			if (!candle) continue;
 
 			const x = this.coordSystem.timeToX(candle.time, candles, viewport, width);
@@ -832,7 +847,10 @@ export class TimeScaleLayer implements Layer {
 
 	private estimateTimeframe(candles: Candle[], _viewport: Viewport): number {
 		if (candles.length < 2) return 60000;
-		const timeDiff = candles[1].time - candles[0].time;
+		const firstCandle = candles[0];
+		const secondCandle = candles[1];
+		if (!firstCandle || !secondCandle) return 60000;
+		const timeDiff = secondCandle.time - firstCandle.time;
 		return timeDiff * 1000;
 	}
 

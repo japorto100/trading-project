@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { type NextRequest, NextResponse } from "next/server";
-import type { GeoAlertPolicyConfig } from "@/lib/geopolitical/phase12-types";
+import type { GeoAlertPolicyConfig } from "@/lib/geopolitical/operations-types";
 import {
 	getGeoAlertPolicyConfig,
 	updateGeoAlertPolicyConfig,
-} from "@/lib/server/geopolitical-phase12-alert-policy-store";
+} from "@/lib/server/geopolitical-alert-policy-store";
 
 async function getAlertPolicy() {
 	"use cache";
@@ -18,7 +18,7 @@ function getActor(request: NextRequest): string {
 	return (
 		request.headers.get("x-geo-actor")?.trim() ||
 		request.headers.get("x-auth-user")?.trim() ||
-		"phase12-ui"
+		"geo-operations-ui"
 	);
 }
 

@@ -310,11 +310,11 @@ func TestClientFetchEvents_RecordsSnapshotMetadataAndRawPayload(t *testing.T) {
 	if len(normalizedFiles) != 1 {
 		t.Fatalf("expected 1 normalized snapshot file, got %d", len(normalizedFiles))
 	}
-	if rawPayload, err := os.ReadFile(rawFiles[0]); err != nil || len(rawPayload) == 0 {
-		t.Fatalf("read raw payload: %v", err)
+	if rawPayload, readErr := os.ReadFile(rawFiles[0]); readErr != nil || len(rawPayload) == 0 {
+		t.Fatalf("read raw payload: %v", readErr)
 	}
-	if normalizedPayload, err := os.ReadFile(normalizedFiles[0]); err != nil || len(normalizedPayload) == 0 {
-		t.Fatalf("read normalized payload: %v", err)
+	if normalizedPayload, readErr := os.ReadFile(normalizedFiles[0]); readErr != nil || len(normalizedPayload) == 0 {
+		t.Fatalf("read normalized payload: %v", readErr)
 	}
 
 	snapshotID := filepath.Base(rawFiles[0])

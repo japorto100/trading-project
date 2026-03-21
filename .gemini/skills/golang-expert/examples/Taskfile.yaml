@@ -1,0 +1,50 @@
+# Taskfile.yml - SOTA 2026 Go Quality Workflow
+version: "3"
+
+vars:
+  BINARY_NAME: example-service
+
+tasks:
+  default:
+    cmds:
+      - task: quality
+
+  quality:
+    desc: "Run the full Go quality gate sequence"
+    cmds:
+      - task: lint
+      - task: build
+      - task: test
+      - task: race
+      - task: vuln
+
+  build:
+    desc: "Build the main binary"
+    cmds:
+      - go build -o bin/{{.BINARY_NAME}} ./cmd/server
+
+  lint:
+    desc: "Run golangci-lint across the repo"
+    cmds:
+      - golangci-lint run ./...
+
+  test:
+    desc: "Run standard tests"
+    cmds:
+      - go test ./...
+
+  race:
+    desc: "Run race detector; group package families if the repo is large"
+    cmds:
+      - go test -race ./internal/...
+      - go test -race ./pkg/...
+
+  vuln:
+    desc: "Run call-graph-aware vulnerability scan"
+    cmds:
+      - govulncheck ./...
+
+  tidy:
+    desc: "Tidy go modules"
+    cmds:
+      - go mod tidy

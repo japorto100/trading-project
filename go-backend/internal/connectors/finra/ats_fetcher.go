@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	DefaultATSURL        = "https://api.finra.org/data/group/otcMarket/name/weeklySummary"
+	DefaultATSURL = "https://api.finra.org/data/group/otcMarket/name/weeklySummary"
+	//nolint:gosec // OAuth token endpoint URL, not embedded credentials.
 	DefaultOAuthTokenURL = "https://ews.fip.finra.org/fip/rest/ews/oauth2/access_token?grant_type=client_credentials"
 )
 
@@ -208,7 +209,7 @@ func normalizeWeeklySummaryRequest(req WeeklySummaryRequest) (WeeklySummaryReque
 func decodeWeeklySummaryResponse(r io.Reader) ([]map[string]any, error) {
 	payload, err := io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read finra ats response body: %w", err)
 	}
 	trimmed := bytes.TrimSpace(payload)
 	if len(trimmed) == 0 {

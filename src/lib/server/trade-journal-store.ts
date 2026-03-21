@@ -270,6 +270,7 @@ async function updateTradeJournalEntryFile(
 		if (index < 0) return null;
 
 		const current = store.entries[index];
+		if (!current) return null;
 		const updated: TradeJournalEntry = {
 			...current,
 			...(typeof input.note === "string" ? { note: input.note } : {}),

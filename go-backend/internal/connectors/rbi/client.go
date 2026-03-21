@@ -21,6 +21,7 @@ import (
 const DefaultBaseURL = "https://data.rbi.org.in"
 
 const (
+	//nolint:gosec // RBI path name includes "security"/"token" but contains no secret material.
 	sessionTokenPath = "/CIMS_Gateway_DBIE/GATEWAY/SERVICES/security_generateSessionToken"
 	fxReservesPath   = "/CIMS_Gateway_DBIE/GATEWAY/SERVICES/dbie_foreignExchangeReserves"
 	seriesPrefix     = "RBI_DBIE_FXRES_"

@@ -1,4 +1,4 @@
-import type { GeoFlatViewHandoffReason } from "@/features/geopolitical/flat-view-handoff";
+import type { GeoFlatViewHandoffReason } from "@/features/geopolitical/flat-view/flat-view-handoff";
 
 export type GeoMapViewMode = "globe" | "flat";
 

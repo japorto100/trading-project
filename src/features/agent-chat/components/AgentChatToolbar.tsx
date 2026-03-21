@@ -67,12 +67,14 @@ export function AgentChatToolbar({
 }: AgentChatToolbarProps) {
 	const [pickerOpen, setPickerOpen] = useState(false);
 	const { mode, toggleMode } = useGlobalChat();
+	const activeReasoningEffort: ReasoningEffort = reasoningEffort ?? "medium";
 
 	const currentLabel = AGENT_MODELS.find((m) => m.id === selectedModel)?.label ?? selectedModel;
 
 	function cycleEffort() {
 		const order: ReasoningEffort[] = ["low", "medium", "high"];
-		const next = order[(order.indexOf(reasoningEffort) + 1) % order.length];
+		const next =
+			order[(order.indexOf(activeReasoningEffort) + 1) % order.length] ?? activeReasoningEffort;
 		onReasoningEffortChange?.(next);
 	}
 
@@ -113,11 +115,11 @@ export function AgentChatToolbar({
 			<button
 				type="button"
 				onClick={cycleEffort}
-				className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted/60 transition-colors ${EFFORT_COLORS[reasoningEffort]}`}
-				title={`Reasoning effort: ${reasoningEffort} (click to cycle)`}
+				className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] hover:bg-muted/60 transition-colors ${EFFORT_COLORS[activeReasoningEffort]}`}
+				title={`Reasoning effort: ${activeReasoningEffort} (click to cycle)`}
 			>
 				<BrainCircuit className="h-2.5 w-2.5" />
-				<span className="font-mono">{EFFORT_LABELS[reasoningEffort]}</span>
+				<span className="font-mono">{EFFORT_LABELS[activeReasoningEffort]}</span>
 			</button>
 
 			<div className="ml-auto flex items-center gap-0.5">

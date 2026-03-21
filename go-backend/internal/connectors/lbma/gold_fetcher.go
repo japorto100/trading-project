@@ -5,6 +5,7 @@ package lbma
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -34,7 +35,7 @@ func parseGoldCSV(r io.Reader) ([]any, error) {
 	reader := csv.NewReader(r)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read lbma gold csv: %w", err)
 	}
 	result := make([]any, 0, len(records))
 	for _, row := range records {

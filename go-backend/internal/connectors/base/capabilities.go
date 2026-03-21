@@ -76,8 +76,16 @@ func (c Capabilities) Account() AccountCapabilities {
 }
 
 type ProviderDescriptor struct {
-	Name         string       `json:"name"`
-	Group        string       `json:"group,omitempty"`
-	Kind         string       `json:"kind,omitempty"`
-	Capabilities Capabilities `json:"capabilities,omitempty"`
+	Name               string       `json:"name"`
+	Group              string       `json:"group,omitempty"`
+	Kind               string       `json:"kind,omitempty"`
+	AuthMode           string       `json:"authMode,omitempty"`
+	Bridge             string       `json:"bridge,omitempty"`
+	Notes              string       `json:"notes,omitempty"`
+	Enabled            bool         `json:"enabled"`
+	RateLimitPerSecond float64      `json:"rateLimitPerSecond,omitempty"`
+	RateLimitBurst     int          `json:"rateLimitBurst,omitempty"`
+	RetryProfile       string       `json:"retryProfile,omitempty"`
+	Fallbacks          []string     `json:"fallbacks,omitempty"`
+	Capabilities       Capabilities `json:"capabilities,omitzero"`
 }

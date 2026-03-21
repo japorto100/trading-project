@@ -471,7 +471,7 @@ func (s *TimelineStore) writeLocked(store timelineStoreFile) error {
 }
 
 func writeJSONFileAtomic(path string, value any) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return fmt.Errorf("mkdir store dir: %w", err)
 	}
 	encoded, err := json.MarshalIndent(value, "", "  ")
@@ -479,7 +479,7 @@ func writeJSONFileAtomic(path string, value any) error {
 		return fmt.Errorf("encode store: %w", err)
 	}
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, encoded, 0o644); err != nil {
+	if err := os.WriteFile(tmp, encoded, 0o600); err != nil {
 		return fmt.Errorf("write temp store: %w", err)
 	}
 	if err := os.Rename(tmp, path); err != nil {

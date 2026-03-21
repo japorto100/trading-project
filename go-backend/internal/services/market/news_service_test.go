@@ -4,6 +4,9 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
+	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
 
 type fakeHeadlineFetcher struct {
@@ -179,5 +182,53 @@ func TestNewsService_Headlines_LanguageFilterDisablesNonLanguageAwareFetchers(t 
 	}
 	if gdelt.lastTerm == "" {
 		t.Fatal("expected gdelt to be called with a language-constrained term")
+	}
+}
+
+func TestNewsService_Headlines_UsesRegistryCandidates(t *testing.T) {
+	rss := &fakeHeadlineFetcher{
+		items: []Headline{{Title: "rss", URL: "https://rss/1", Source: "rss", PublishedAt: time.Date(2026, 2, 16, 10, 0, 0, 0, time.UTC)}},
+	}
+	gdelt := &fakeHeadlineFetcher{
+		items: []Headline{{Title: "gdelt", URL: "https://gdelt/1", Source: "gdelt", PublishedAt: time.Date(2026, 2, 16, 9, 0, 0, 0, time.UTC)}},
+	}
+	finviz := &fakeHeadlineFetcher{
+		items: []Headline{{Title: "finviz", URL: "https://finviz/1", Source: "finviz", PublishedAt: time.Date(2026, 2, 16, 8, 0, 0, 0, time.UTC)}},
+	}
+
+	service := NewNewsService(rss, gdelt, finviz)
+	router := adaptive.New(adaptive.Config{
+		AssetClasses: map[string]adaptive.AssetClassConfig{
+			"news_headlines": {Providers: []string{"gdelt", "rss", "finviz"}, Strategy: "freshness_first"},
+		},
+		Groups: map[string]connectorregistry.GroupConfig{
+			"rest": {MaxConcurrency: 1},
+			"rss":  {MaxConcurrency: 1},
+		},
+		Providers: map[string]adaptive.ProviderConfig{
+			"gdelt":  {Group: "rest"},
+			"rss":    {Group: "rss"},
+			"finviz": {Group: "rest"},
+		},
+	})
+	service.SetAdaptiveRouter(router)
+
+	items, err := service.Headlines(context.Background(), "AAPL", "risk", "", 5)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(items) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(items))
+	}
+	if gdelt.lastLimit != 5 || rss.lastLimit != 5 || finviz.lastLimit != 5 {
+		t.Fatalf("expected all registry-selected fetchers to receive limit 5, got gdelt=%d rss=%d finviz=%d", gdelt.lastLimit, rss.lastLimit, finviz.lastLimit)
+	}
+	snapshot := router.Snapshot()
+	successes := map[string]int{}
+	for _, state := range snapshot {
+		successes[state.Name] = state.Successes
+	}
+	if successes["gdelt"] != 1 || successes["rss"] != 1 || successes["finviz"] != 1 {
+		t.Fatalf("expected router successes for all news providers, got %+v", successes)
 	}
 }

@@ -213,6 +213,9 @@ function TradingDashboard() {
 		if (viewCandleData.length === 0)
 			return { change: 0, percent: 0, high24h: 0, low24h: 0, volume24h: 0, lastPrice: 0 };
 		const last = viewCandleData[viewCandleData.length - 1];
+		if (!last) {
+			return { change: 0, percent: 0, high24h: 0, low24h: 0, volume24h: 0, lastPrice: 0 };
+		}
 		const prev = viewCandleData[viewCandleData.length - 2] ?? last;
 		const change = last.close - prev.close;
 		const percent = prev.close > 0 ? (change / prev.close) * 100 : 0;

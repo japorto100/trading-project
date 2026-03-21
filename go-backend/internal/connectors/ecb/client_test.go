@@ -2,6 +2,7 @@ package ecb
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -73,8 +74,8 @@ func TestGetTicker_UnsupportedPairReturnsBadRequest(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 
-	requestErr, ok := err.(*gct.RequestError)
-	if !ok {
+	var requestErr *gct.RequestError
+	if !errors.As(err, &requestErr) {
 		t.Fatalf("expected *gct.RequestError, got %T", err)
 	}
 	if requestErr.StatusCode != http.StatusBadRequest {

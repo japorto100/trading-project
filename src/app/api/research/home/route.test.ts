@@ -10,8 +10,13 @@ afterEach(() => {
 
 describe("GET /api/research/home", () => {
 	it("returns a degraded fallback payload when local research data is unavailable", async () => {
-		globalThis.fetch = (async () => {
-			throw new Error("unexpected fetch");
+		globalThis.fetch = (async (input) => {
+			const url = typeof input === "string" ? input : input.toString();
+			expect(url).toContain("/api/v1/geopolitical/local-events");
+			return new Response(JSON.stringify({ success: true, source: "local", events: [] }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			});
 		}) as typeof fetch;
 
 		const request = new NextRequest("http://localhost:3000/api/research/home", {
@@ -34,11 +39,16 @@ describe("GET /api/research/home", () => {
 		expect(Array.isArray(payload.payload.mattersNow)).toBe(true);
 	});
 
-	it("never depends on a gateway call for the research home route", async () => {
-		let called = false;
-		globalThis.fetch = (async () => {
-			called = true;
-			throw new Error("fetch should not be called");
+	it("uses the go-owned local events gateway route instead of external provider fetches", async () => {
+		let callCount = 0;
+		globalThis.fetch = (async (input) => {
+			const url = typeof input === "string" ? input : input.toString();
+			callCount += 1;
+			expect(url).toContain("/api/v1/geopolitical/local-events");
+			return new Response(JSON.stringify({ success: true, source: "local", events: [] }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			});
 		}) as typeof fetch;
 		const request = new NextRequest("http://localhost:3000/api/research/home", {
 			headers: { "x-request-id": "req-research-home-local-only" },
@@ -52,7 +62,7 @@ describe("GET /api/research/home", () => {
 			degradedReasons: string[];
 			source: string;
 		};
-		expect(called).toBe(false);
+		expect(callCount).toBe(1);
 		expect(payload.source).toBe("fallback");
 		expect(payload.degradedReasons).toContain("NO_LOCAL_EVENTS");
 	});

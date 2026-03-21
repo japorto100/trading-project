@@ -139,7 +139,7 @@ export function UploadDropzone({ onUploaded }: UploadDropzoneProps) {
 			{fileRejections.length > 0 && (
 				<p className="text-xs text-destructive flex items-center gap-1">
 					<AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-					{fileRejections[0].errors[0]?.message ?? "File rejected"}
+					{fileRejections[0]?.errors[0]?.message ?? "File rejected"}
 				</p>
 			)}
 

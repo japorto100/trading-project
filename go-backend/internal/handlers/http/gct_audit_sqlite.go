@@ -24,7 +24,7 @@ func NewGCTAuditSQLiteStore(path string) (*GCTAuditSQLiteStore, error) {
 		return nil, fmt.Errorf("gct audit sqlite: empty path")
 	}
 	if dir := filepath.Dir(trimmed); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			return nil, fmt.Errorf("gct audit sqlite: create dir: %w", err)
 		}
 	}
@@ -171,5 +171,8 @@ func (s *GCTAuditSQLiteStore) Close() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
-	return s.db.Close()
+	if err := s.db.Close(); err != nil {
+		return fmt.Errorf("gct audit sqlite: close db: %w", err)
+	}
+	return nil
 }

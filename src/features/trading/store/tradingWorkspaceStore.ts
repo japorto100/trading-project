@@ -15,9 +15,14 @@ interface TradingWorkspaceState {
 }
 
 const prefs = readFusionPreferences();
+const DEFAULT_TRADING_SYMBOL = WATCHLIST_CATEGORIES.crypto[0] ?? ALL_FUSION_SYMBOLS[0];
+
+if (!DEFAULT_TRADING_SYMBOL) {
+	throw new Error("Trading workspace requires at least one fusion symbol");
+}
 
 export const useTradingWorkspaceStore = create<TradingWorkspaceState>((set) => ({
-	currentSymbol: WATCHLIST_CATEGORIES.crypto[0] ?? ALL_FUSION_SYMBOLS[0],
+	currentSymbol: DEFAULT_TRADING_SYMBOL,
 	favorites: prefs.favorites ?? [],
 	layout: prefs.layout ?? "single",
 

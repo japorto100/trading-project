@@ -67,7 +67,7 @@ func TestWithRateLimit_AdminRevocationEndpointRule(t *testing.T) {
 		nowFunc: func() time.Time { return now },
 	})
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/revocations/jti", nil)
 		req.RemoteAddr = "127.0.0.1:50000"
 		res := httptest.NewRecorder()
@@ -98,7 +98,7 @@ func TestWithRateLimit_PublicRoutesExcluded(t *testing.T) {
 	publicPaths := []string{"/health", "/api/v1/stream/market"}
 	for _, path := range publicPaths {
 		t.Run(path, func(t *testing.T) {
-			for i := 0; i < 5; i++ {
+			for range 5 {
 				req := httptest.NewRequest(http.MethodGet, path, nil)
 				res := httptest.NewRecorder()
 				handler.ServeHTTP(res, req)

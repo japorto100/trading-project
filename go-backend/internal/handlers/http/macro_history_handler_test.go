@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
@@ -18,11 +17,11 @@ type fakeMacroHistoryService struct {
 	err          error
 	lastExchange string
 	lastPair     gct.Pair
-	lastAsset    asset.Item
+	lastAsset    string
 	lastLimit    int
 }
 
-func (f *fakeMacroHistoryService) History(_ context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+func (f *fakeMacroHistoryService) History(_ context.Context, exchange string, pair currency.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
 	f.lastExchange = exchange
 	f.lastPair = pair
 	f.lastAsset = assetType
@@ -217,5 +216,28 @@ func TestMacroHistoryHandler_MapsRbiSeriesPrefix(t *testing.T) {
 	}
 	if service.lastPair.Base.String() != "RBI_DBIE_FXRES_TR_USD_WEEKLY" {
 		t.Fatalf("expected alias RBI_DBIE_FXRES_TR_USD_WEEKLY, got %s", service.lastPair.Base)
+	}
+}
+
+func TestMacroHistoryHandler_AllowsAutoMacroSeries(t *testing.T) {
+	service := &fakeMacroHistoryService{
+		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 3.2}},
+	}
+	handler := MacroHistoryHandler(service)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=POLICY_RATE&exchange=auto&assetType=macro&limit=5", nil)
+	res := httptest.NewRecorder()
+
+	handler.ServeHTTP(res, req)
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", res.Code)
+	}
+	if service.lastExchange != "AUTO" {
+		t.Fatalf("expected exchange AUTO, got %s", service.lastExchange)
+	}
+	if service.lastPair.Base.String() != "POLICY_RATE" {
+		t.Fatalf("expected raw auto macro base POLICY_RATE, got %s", service.lastPair.Base)
+	}
+	if service.lastAsset != "macro" {
+		t.Fatalf("expected macro asset type, got %s", service.lastAsset)
 	}
 }

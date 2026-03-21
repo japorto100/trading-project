@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
@@ -15,16 +14,16 @@ type fakeMacroIngestHistory struct {
 	calls []struct {
 		exchange string
 		pair     gct.Pair
-		asset    asset.Item
+		asset    string
 		limit    int
 	}
 }
 
-func (f *fakeMacroIngestHistory) History(_ context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error) {
+func (f *fakeMacroIngestHistory) History(_ context.Context, exchange string, pair currency.Pair, assetType string, limit int) ([]gct.SeriesPoint, error) {
 	f.calls = append(f.calls, struct {
 		exchange string
 		pair     gct.Pair
-		asset    asset.Item
+		asset    string
 		limit    int
 	}{
 		exchange: exchange,

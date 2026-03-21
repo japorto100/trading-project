@@ -6,6 +6,7 @@
 package observability
 
 import (
+	"fmt"
 	"net/http"
 	"runtime/trace"
 	"sync"
@@ -35,7 +36,10 @@ func (f *FlightRecorder) Start() error {
 	f.once.Do(func() {
 		startErr = f.fr.Start()
 	})
-	return startErr
+	if startErr != nil {
+		return fmt.Errorf("start flight recorder: %w", startErr)
+	}
+	return nil
 }
 
 // HTTPHandler returns an http.HandlerFunc that dumps the current trace buffer

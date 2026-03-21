@@ -336,7 +336,7 @@ func resolveStreamParams(r *http.Request) (streamParams, error) {
 		ResolveAutoExchange: resolveAutoStreamExchange,
 	})
 	if err != nil {
-		return streamParams{}, err
+		return streamParams{}, fmt.Errorf("resolve stream target %s/%s/%s: %w", symbol, exchange, assetType, err)
 	}
 
 	params := streamParams{
@@ -399,10 +399,13 @@ func streamValueOrDefault(value, fallback string) string {
 func writeSSEEvent(w http.ResponseWriter, event string, payload any) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal sse event %s payload: %w", event, err)
 	}
 	_, err = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
-	return err
+	if err != nil {
+		return fmt.Errorf("write sse event %s: %w", event, err)
+	}
+	return nil
 }
 
 func getOrCreateStreamCandleBuilder(params streamParams) (*marketstreaming.CandleBuilder, error) {
@@ -427,7 +430,7 @@ func getOrCreateStreamCandleBuilder(params streamParams) (*marketstreaming.Candl
 		MaxOutOfOrderBuckets: 4,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create candle builder for timeframe %s: %w", params.Timeframe, err)
 	}
 	actual, loaded := marketStreamBuilders.LoadOrStore(key, builder)
 	if loaded {
@@ -452,7 +455,7 @@ type streamAlertRulePayload struct {
 func parseStreamAlertRules(raw string) ([]marketstreaming.AlertRule, error) {
 	var payload []streamAlertRulePayload
 	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode stream alert rules: %w", err)
 	}
 	if len(payload) == 0 {
 		return nil, nil

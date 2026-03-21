@@ -4,6 +4,7 @@ package ofac
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -64,7 +65,7 @@ func NewSDNWatcher(storePath string, httpClient *http.Client) *base.DiffWatcher 
 func parseSDNXML(r io.Reader) ([]map[string]any, error) {
 	var list SDNList
 	if err := xml.NewDecoder(r).Decode(&list); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode ofac sdn xml: %w", err)
 	}
 	result := make([]map[string]any, 0, len(list.Entries))
 	for _, e := range list.Entries {

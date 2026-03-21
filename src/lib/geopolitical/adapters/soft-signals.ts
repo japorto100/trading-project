@@ -59,6 +59,12 @@ interface GatewayNewsResponse {
 
 const DEFAULT_SOFT_SIGNAL_TIMEOUT_MS = 8000;
 const DEFAULT_NEWS_TIMEOUT_MS = 8000;
+const FALLBACK_SOFT_SIGNAL_ARTICLE: SoftSignalArticle = {
+	title: "Soft signal candidate",
+	url: "https://signals.local/fallback",
+	publishedAt: new Date(0).toISOString(),
+	source: "fallback",
+};
 
 function isSoftSignalEnabled(): boolean {
 	const raw = process.env.GEOPOLITICAL_SOFT_SIGNAL_ENABLED;
@@ -304,11 +310,11 @@ async function callSoftSignalService(
 		const rawCandidates = Array.isArray(payload.candidates) ? payload.candidates : [];
 		const result: GeoCandidate[] = [];
 		for (let i = 0; i < rawCandidates.length; i++) {
-			const candidate = toSoftCandidate(
-				adapterId,
-				rawCandidates[i],
-				articles[Math.min(i, articles.length - 1)],
-			);
+			const rawCandidate = rawCandidates[i];
+			if (!rawCandidate) continue;
+			const fallbackArticle =
+				articles[Math.min(i, Math.max(articles.length - 1, 0))] ?? FALLBACK_SOFT_SIGNAL_ARTICLE;
+			const candidate = toSoftCandidate(adapterId, rawCandidate, fallbackArticle);
 			if (candidate) {
 				result.push(candidate);
 			}

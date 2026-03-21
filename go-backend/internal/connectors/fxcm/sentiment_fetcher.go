@@ -5,6 +5,7 @@ package fxcm
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -33,7 +34,7 @@ func NewSentimentFetcher(httpClient *http.Client) *base.BulkFetcher {
 func parseSentimentJSON(r io.Reader) ([]any, error) {
 	var raw any
 	if err := json.NewDecoder(r).Decode(&raw); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode fxcm sentiment json: %w", err)
 	}
 	switch v := raw.(type) {
 	case []any:

@@ -1,7 +1,7 @@
 package streaming
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -99,6 +99,6 @@ func (e *AlertEngine) EvaluateQuote(symbol string, price float64, rules []AlertR
 }
 
 func hashAlertID(rule AlertRule, ts time.Time) string {
-	sum := sha1.Sum([]byte(fmt.Sprintf("%s|%s|%s|%0.8f|%d", rule.ID, rule.Symbol, rule.Condition, rule.Target, ts.UnixNano())))
+	sum := sha256.Sum256(fmt.Appendf(nil, "%s|%s|%s|%0.8f|%d", rule.ID, rule.Symbol, rule.Condition, rule.Target, ts.UnixNano()))
 	return hex.EncodeToString(sum[:8])
 }

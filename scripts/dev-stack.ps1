@@ -626,15 +626,13 @@ try {
         # (uv workspace: python-backend/ is root, members share python-backend/.venv)
 
         # Map ports per API_CONTRACTS/SYSTEM_STATE:
-        # Compute plane (python-compute/): indicator 8092, finance-bridge 8081, soft-signals 8091
+        # Compute plane (python-compute/): indicator 8092, soft-signals 8091
+        # finance-bridge REMOVED (20.03.2026) — Go Gateway handles all market data fetch natively
         Register-ManagedService -Name "indicator" -Port 8092 -StartAction {
-            Start-ServiceProcess -WorkingDir (Join-Path $computeRoot "indicator-service") -Name "indicator" -App "app:app" -Port 8092
+            Start-ServiceProcess -WorkingDir (Join-Path $computeRoot "indicator_engine") -Name "indicator" -App "app:app" -Port 8092
         }
         Register-ManagedService -Name "soft-signals" -Port 8091 -StartAction {
             Start-ServiceProcess -WorkingDir (Join-Path $computeRoot "geopolitical-soft-signals") -Name "soft-signals" -App "app:app" -Port 8091
-        }
-        Register-ManagedService -Name "finance-bridge" -Port 8081 -StartAction {
-            Start-ServiceProcess -WorkingDir (Join-Path $computeRoot "finance-bridge") -Name "finance-bridge" -App "app:app" -Port 8081
         }
         # Agent plane (python-agent/): memory-service 8093, agent-service 8094
         # Both use the standalone python-agent/.venv
@@ -676,7 +674,6 @@ try {
     if (-not $SkipPython) {
         Start-ManagedService -Name "indicator" | Out-Null
         Start-ManagedService -Name "soft-signals" | Out-Null
-        Start-ManagedService -Name "finance-bridge" | Out-Null
         Start-ManagedService -Name "memory-service" | Out-Null
         Start-ManagedService -Name "agent-service" | Out-Null
     }
@@ -699,7 +696,6 @@ try {
     if (-not $SkipPython) {
         Ensure-PortReady -Port 8092 -Name "indicator" -TimeoutSecs 90
         Ensure-PortReady -Port 8091 -Name "soft-signals" -TimeoutSecs 90
-        Ensure-PortReady -Port 8081 -Name "finance-bridge" -TimeoutSecs 90
         Ensure-PortReady -Port 8093 -Name "memory-service" -TimeoutSecs 90
         Ensure-PortReady -Port 8094 -Name "agent-service" -TimeoutSecs 90
     }
@@ -718,7 +714,7 @@ try {
         Write-Host "SeaweedFS S3:  http://127.0.0.1:8333"
         Write-Host "SeaweedFS UI:  http://127.0.0.1:9333  | Filer: http://127.0.0.1:8888"
     }
-    Write-Host "Python API:   8081, 8091, 8092, 8093, 8094 (agent)"
+    Write-Host "Python API:   8091 (soft-signals), 8092 (indicator), 8093 (memory), 8094 (agent)"
     if (-not $SkipGCT) { Write-Host "GCT gRPC:     127.0.0.1:9052" }
     if (-not $SkipObservability) { Write-Host "OpenObserve:  http://localhost:5080  (Traces/Logs/Metrics)" -ForegroundColor Cyan }
     if ($MockLlm) { Write-Host "Mock LLM:     http://127.0.0.1:11500  (agent verify — AGENT_PROVIDER=openai-compatible)" -ForegroundColor Magenta }

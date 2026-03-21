@@ -38,9 +38,7 @@ func NewRSSClient(cfg RSSClientConfig) *RSSClient {
 	}
 
 	retries := cfg.RequestRetries
-	if retries < 0 {
-		retries = 0
-	}
+	retries = max(retries, 0)
 
 	return &RSSClient{
 		feedURLs:       feeds,
@@ -113,11 +111,4 @@ func (c *RSSClient) Fetch(ctx context.Context, _ string, limit int) ([]marketSer
 		}
 	}
 	return items, nil
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

@@ -7,8 +7,8 @@ import (
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
 	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
-	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
+	"tradeviewfusion/go-backend/internal/connectors/orchestrator"
 	"tradeviewfusion/go-backend/internal/contracts"
 	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
@@ -34,7 +34,7 @@ type QuoteClient struct {
 	stockClient  stockTickerClient
 	macroClient  macroTickerClient
 	forexClient  forexTickerClient
-	router       *adaptive.Router
+	planner      *orchestrator.Planner
 }
 
 func NewQuoteClient(
@@ -48,11 +48,12 @@ func NewQuoteClient(
 		stockClient:  stockClient,
 		macroClient:  macroClient,
 		forexClient:  forexClient,
+		planner:      orchestrator.New(nil),
 	}
 }
 
 func (c *QuoteClient) SetAdaptiveRouter(router *adaptive.Router) {
-	c.router = router
+	c.planner.SetRouter(router)
 }
 
 func (c *QuoteClient) GetTickerTarget(ctx context.Context, target contracts.MarketTarget) (gct.Ticker, error) {
@@ -64,7 +65,7 @@ func (c *QuoteClient) GetTicker(ctx context.Context, exchange string, pair curre
 	if strings.EqualFold(exchange, "AUTO") {
 		return c.getTickerWithAutoFailover(ctx, pair, assetType)
 	}
-	if strings.EqualFold(exchange, "FRED") || strings.EqualFold(exchange, "FED") || strings.EqualFold(exchange, "BOJ") || strings.EqualFold(exchange, "SNB") || strings.EqualFold(exchange, "BCB") || strings.EqualFold(exchange, "BANXICO") || strings.EqualFold(exchange, "BOK") || strings.EqualFold(exchange, "BCRA") || strings.EqualFold(exchange, "TCMB") || strings.EqualFold(exchange, "RBI") || strings.EqualFold(exchange, "IMF") || strings.EqualFold(exchange, "OECD") || strings.EqualFold(exchange, "WORLDBANK") || strings.EqualFold(exchange, "UN") || strings.EqualFold(exchange, "ADB") {
+	if IsMacroProvider(exchange) {
 		if c.macroClient == nil {
 			return gct.Ticker{}, fmt.Errorf("macro client unavailable")
 		}
@@ -72,27 +73,43 @@ func (c *QuoteClient) GetTicker(ctx context.Context, exchange string, pair curre
 		if pair.Quote.String() == "" {
 			pair.Quote = currency.NewCode("USD")
 		}
-		return c.macroClient.GetTicker(ctx, pair, assetType)
+		ticker, err := c.macroClient.GetTicker(ctx, pair, assetType)
+		if err != nil {
+			return gct.Ticker{}, fmt.Errorf("get macro ticker for %s/%s: %w", exchange, pair.String(), err)
+		}
+		return ticker, nil
 	}
 
 	if strings.EqualFold(exchange, "FINNHUB") {
 		if c.stockClient == nil {
 			return gct.Ticker{}, fmt.Errorf("stock client unavailable")
 		}
-		return c.stockClient.GetTicker(ctx, pair, assetType)
+		ticker, err := c.stockClient.GetTicker(ctx, pair, assetType)
+		if err != nil {
+			return gct.Ticker{}, fmt.Errorf("get stock ticker for %s: %w", pair.String(), err)
+		}
+		return ticker, nil
 	}
 
 	if strings.EqualFold(exchange, "ECB") {
 		if c.forexClient == nil {
 			return gct.Ticker{}, fmt.Errorf("forex client unavailable")
 		}
-		return c.forexClient.GetTicker(ctx, pair)
+		ticker, err := c.forexClient.GetTicker(ctx, pair)
+		if err != nil {
+			return gct.Ticker{}, fmt.Errorf("get forex ticker for %s: %w", pair.String(), err)
+		}
+		return ticker, nil
 	}
 
 	if c.cryptoClient == nil {
 		return gct.Ticker{}, fmt.Errorf("crypto client unavailable")
 	}
-	return c.cryptoClient.GetTicker(ctx, exchange, pair, assetType)
+	ticker, err := c.cryptoClient.GetTicker(ctx, exchange, pair, assetType)
+	if err != nil {
+		return gct.Ticker{}, fmt.Errorf("get crypto ticker for %s/%s/%s: %w", exchange, pair.String(), assetType.String(), err)
+	}
+	return ticker, nil
 }
 
 func (c *QuoteClient) getTickerWithAutoFailover(ctx context.Context, pair currency.Pair, assetType asset.Item) (gct.Ticker, error) {
@@ -103,44 +120,28 @@ func (c *QuoteClient) getTickerWithAutoFailover(ctx context.Context, pair curren
 	case "forex":
 		return c.tryForexProviders(ctx, pair, []string{"ecb"}, "forex_spot")
 	case "macro":
-		return c.tryMacroProviders(ctx, pair, assetType, []string{"fred", "fed", "boj", "snb", "bcb", "banxico", "bok", "bcra", "tcmb", "rbi", "imf", "oecd", "worldbank", "un", "adb"}, "macro")
+		return c.tryMacroProviders(ctx, pair, assetType, []string{"fred", "fed", "boj", "snb", "bcb", "banxico", "bok", "bcra", "tcmb", "rbi", "imf", "oecd", "worldbank", "un", "adb", "ofr", "nyfed"}, "macro")
 	default:
 		return c.tryCryptoProviders(ctx, pair, assetType, []string{"binance", "kraken", "coinbase", "okx", "bybit"}, "crypto_spot")
 	}
-}
-
-func (c *QuoteClient) providerCandidates(assetClass string, fallback []string) []string {
-	if c.router == nil {
-		return fallback
-	}
-	candidates := c.router.Candidates(assetClass, fallback)
-	if len(candidates) == 0 {
-		return fallback
-	}
-	return candidates
 }
 
 func (c *QuoteClient) tryCryptoProviders(ctx context.Context, pair currency.Pair, assetType asset.Item, fallback []string, assetClass string) (gct.Ticker, error) {
 	if c.cryptoClient == nil {
 		return gct.Ticker{}, fmt.Errorf("crypto client unavailable")
 	}
-	var lastErr error
-	for _, provider := range c.providerCandidates(assetClass, fallback) {
+	plan := c.planner.Plan(assetClass, fallback)
+	if len(plan.Candidates) == 0 {
+		return gct.Ticker{}, fmt.Errorf("no crypto providers configured")
+	}
+	result, err := orchestrator.ExecuteFirst(ctx, c.planner, plan, func(callCtx context.Context, provider string) (gct.Ticker, error) {
 		normalizedPair := normalizeCryptoPairForProvider(provider, pair)
-		ticker, err := c.cryptoClient.GetTicker(ctx, providerDisplayName(provider), normalizedPair, assetType)
-		if err == nil {
-			if c.router != nil {
-				c.router.RecordSuccess(provider)
-			}
-			return ticker, nil
-		}
-		lastErr = err
-		c.recordProviderFailure(provider, err)
+		return c.cryptoClient.GetTicker(callCtx, providerDisplayName(provider), normalizedPair, assetType)
+	})
+	if err != nil {
+		return gct.Ticker{}, fmt.Errorf("execute crypto provider plan: %w", err)
 	}
-	if lastErr == nil {
-		lastErr = fmt.Errorf("no crypto providers configured")
-	}
-	return gct.Ticker{}, lastErr
+	return result.Value, nil
 }
 
 func normalizeCryptoPairForProvider(provider string, pair currency.Pair) currency.Pair {
@@ -212,6 +213,18 @@ func providerDisplayName(provider string) string {
 		return "TCMB"
 	case "rbi":
 		return "RBI"
+	case "worldbank":
+		return "WORLDBANK"
+	case "imf":
+		return "IMF"
+	case "un":
+		return "UN"
+	case "adb":
+		return "ADB"
+	case "ofr":
+		return "OFR"
+	case "nyfed":
+		return "NYFED"
 	case "oecd":
 		return "OECD"
 	default:
@@ -224,13 +237,11 @@ func (c *QuoteClient) tryStockProviders(ctx context.Context, pair currency.Pair,
 		return gct.Ticker{}, fmt.Errorf("stock client unavailable")
 	}
 	var lastErr error
-	for _, provider := range c.providerCandidates(assetClass, fallback) {
+	for _, provider := range c.planner.Plan(assetClass, fallback).Candidates {
 		if strings.ToLower(provider) == "finnhub" {
 			ticker, err := c.stockClient.GetTicker(ctx, pair, assetType)
 			if err == nil {
-				if c.router != nil {
-					c.router.RecordSuccess(provider)
-				}
+				c.planner.RecordSuccess(provider)
 				return ticker, nil
 			}
 			lastErr = err
@@ -248,13 +259,11 @@ func (c *QuoteClient) tryForexProviders(ctx context.Context, pair currency.Pair,
 		return gct.Ticker{}, fmt.Errorf("forex client unavailable")
 	}
 	var lastErr error
-	for _, provider := range c.providerCandidates(assetClass, fallback) {
+	for _, provider := range c.planner.Plan(assetClass, fallback).Candidates {
 		if strings.ToLower(provider) == "ecb" {
 			ticker, err := c.forexClient.GetTicker(ctx, pair)
 			if err == nil {
-				if c.router != nil {
-					c.router.RecordSuccess(provider)
-				}
+				c.planner.RecordSuccess(provider)
 				return ticker, nil
 			}
 			lastErr = err
@@ -272,10 +281,10 @@ func (c *QuoteClient) tryMacroProviders(ctx context.Context, pair currency.Pair,
 		return gct.Ticker{}, fmt.Errorf("macro client unavailable")
 	}
 	var lastErr error
-	for _, provider := range c.providerCandidates(assetClass, fallback) {
+	for _, provider := range c.planner.Plan(assetClass, fallback).Candidates {
 		exchange := strings.ToUpper(provider)
 		p := pair
-		if strings.EqualFold(exchange, "FRED") || strings.EqualFold(exchange, "FED") || strings.EqualFold(exchange, "BOJ") || strings.EqualFold(exchange, "SNB") || strings.EqualFold(exchange, "BCB") || strings.EqualFold(exchange, "BANXICO") || strings.EqualFold(exchange, "BOK") || strings.EqualFold(exchange, "BCRA") || strings.EqualFold(exchange, "TCMB") || strings.EqualFold(exchange, "RBI") || strings.EqualFold(exchange, "IMF") || strings.EqualFold(exchange, "OECD") || strings.EqualFold(exchange, "WORLDBANK") || strings.EqualFold(exchange, "UN") || strings.EqualFold(exchange, "ADB") {
+		if IsMacroProvider(exchange) {
 			p.Base = currency.NewCode(ResolveMacroSeries(exchange, p.Base.String()))
 		}
 		if p.Quote.String() == "" {
@@ -283,9 +292,7 @@ func (c *QuoteClient) tryMacroProviders(ctx context.Context, pair currency.Pair,
 		}
 		ticker, err := c.macroClient.GetTicker(ctx, p, assetType)
 		if err == nil {
-			if c.router != nil {
-				c.router.RecordSuccess(provider)
-			}
+			c.planner.RecordSuccess(provider)
 			return ticker, nil
 		}
 		lastErr = err
@@ -298,8 +305,5 @@ func (c *QuoteClient) tryMacroProviders(ctx context.Context, pair currency.Pair,
 }
 
 func (c *QuoteClient) recordProviderFailure(provider string, err error) {
-	if c.router == nil {
-		return
-	}
-	c.router.RecordFailureWithClass(provider, err, baseconnectors.ClassifyError(err, nil))
+	c.planner.RecordFailure(provider, err)
 }

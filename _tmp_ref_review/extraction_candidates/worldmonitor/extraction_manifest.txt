@@ -1,0 +1,45 @@
+selected_count=19
+stage1_count=4
+stage2_count=5
+stage3_count=4
+stage4_count=4
+stage5_count=2
+source_repo=D:\tradingview-clones\tradeview-fusion\_tmp_ref_review\geo\worldmonitor
+extraction_scope=dual_engine_map_panel_shell_sources
+
+[STAGE1_MAP_RUNTIME]
+src/components/Map.ts
+src/components/DeckGLMap.ts
+src/components/MapContainer.ts
+src/components/MapPopup.ts
+
+[STAGE2_PANEL_SHELL]
+src/App.ts
+src/app/panel-layout.ts
+src/components/Panel.ts
+src/styles/panels.css
+src/styles/main.css
+
+[STAGE3_DATA_SOURCES_AND_VARIANTS]
+src/app/data-loader.ts
+src/config/feeds.ts
+src/config/panels.ts
+.env.example
+
+[STAGE4_INTERACTION_AND_SUPPORT]
+src/app/event-handlers.ts
+src/app/search-manager.ts
+src/app/country-intel.ts
+src/components/VirtualList.ts
+
+[STAGE5_REFERENCE_DOCS]
+docs/DOCUMENTATION.md
+docs/local-backend-audit.md
+
+[EXTRACTION_NOTES]
+- Stage 1 captures the actual renderer split: D3/SVG fallback plus DeckGL/MapLibre desktop path.
+- Stage 2 captures the dashboard shell and panel composition system that currently outperforms tradeview-fusion in UI coherence.
+- Stage 3 captures source breadth, variant defaults, and data-loading/runtime-freshness patterns.
+- Stage 4 captures search, country detail, event wiring, and large-list rendering support.
+- Stage 5 keeps the minimal supporting docs needed to interpret architecture and source/runtime assumptions.
+- This extraction is for pattern transfer and architectural review, not for direct code import.

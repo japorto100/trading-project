@@ -1,7 +1,7 @@
 """
 Full-stack E2E launcher for TradeView Fusion.
-Starts: Go Gateway (:9060) + Python indicator (:8090) + soft-signals (:8091)
-        + finance-bridge (:8092) + Next.js (:3000)
+Starts: Go Gateway (:9060) + Python indicator (:8092) + soft-signals (:8091)
+        + Next.js (:3000)
 Then runs e2e_runner.py.
 """
 from __future__ import annotations
@@ -158,25 +158,19 @@ def main() -> int:
         procs.append(go_proc)
         drain(go_proc, "go")
 
-        # 2. Python indicator service (:8090)
+        # 2. Python indicator service (:8092)
         ind_proc = start_python_service(
-            "indicator", PY_DIR / "services" / "indicator-service", 8090, env)
+            "indicator", PY_DIR / "python-compute" / "indicator_engine", 8092, env)
         procs.append(ind_proc)
         drain(ind_proc, "indicator")
 
         # 3. Soft-signals (:8091)
         ss_proc = start_python_service(
-            "soft-signals", PY_DIR / "services" / "geopolitical-soft-signals", 8091, env)
+            "soft-signals", PY_DIR / "python-compute" / "geopolitical-soft-signals", 8091, env)
         procs.append(ss_proc)
         drain(ss_proc, "soft-signals")
 
-        # 4. Finance bridge (:8092)
-        fb_proc = start_python_service(
-            "finance-bridge", PY_DIR / "services" / "finance-bridge", 8092, env)
-        procs.append(fb_proc)
-        drain(fb_proc, "finance-bridge")
-
-        # 5. Next.js (:3000)
+        # 4. Next.js (:3000)
         next_proc = start_nextjs(env)
         procs.append(next_proc)
         drain(next_proc, "nextjs")
@@ -184,9 +178,8 @@ def main() -> int:
         # ── Wait for all ports ───────────────────────────────────────────────
         print("\n⏳ Waiting for services to be ready...")
         wait_for_port(9060, "go-gateway", timeout=60)
-        wait_for_port(8090, "indicator",  timeout=60)
+        wait_for_port(8092, "indicator",  timeout=60)
         wait_for_port(8091, "soft-signals", timeout=60)
-        wait_for_port(8092, "finance-bridge", timeout=60)
         wait_for_port(3000, "nextjs", timeout=90)
 
         # Extra settle time for Next.js JIT compilation

@@ -17,12 +17,11 @@ func TestCandleBuilderConcurrentWrites(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		var wg sync.WaitGroup
-		for i := int64(0); i < 8; i++ {
-			wg.Add(1)
-			go func(bucket int64) {
-				defer wg.Done()
+		for i := range 8 {
+			bucket := int64(i)
+			wg.Go(func() {
 				builder.ApplyTick(Tick{Timestamp: bucket*60 + 1, Last: float64(100 + bucket)})
-			}(i)
+			})
 		}
 		synctest.Wait() // all goroutines in the bubble are idle (done or durably blocked)
 		wg.Wait()
@@ -43,29 +42,26 @@ func TestCandleBuilderConcurrentReadsDuringWrite(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 		// Pre-populate 4 candles so readers always have data.
-		for i := int64(0); i < 4; i++ {
-			builder.ApplyTick(Tick{Timestamp: i*60 + 1, Last: float64(100 + i)})
+		for i := range 4 {
+			builder.ApplyTick(Tick{Timestamp: int64(i*60 + 1), Last: float64(100 + i)})
 		}
 		var wg sync.WaitGroup
 		// concurrent writer: appends 4 more sequential candles
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for i := int64(4); i < 8; i++ {
-				builder.ApplyTick(Tick{Timestamp: i*60 + 1, Last: float64(100 + i)})
+		wg.Go(func() {
+			for i := range 4 {
+				bucket := int64(i + 4)
+				builder.ApplyTick(Tick{Timestamp: bucket*60 + 1, Last: float64(100 + bucket)})
 			}
-		}()
+		})
 		// concurrent readers: mutate returned snapshots to probe isolation
-		for r := 0; r < 4; r++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range 4 {
+			wg.Go(func() {
 				snap := builder.Snapshot(16)
 				for j := range snap {
 					snap[j].Close = 999 // mutate copy — must not affect builder
 				}
 				_, _ = builder.Latest()
-			}()
+			})
 		}
 		synctest.Wait()
 		wg.Wait()

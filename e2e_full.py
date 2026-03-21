@@ -1,16 +1,16 @@
 """
-TradeView Fusion — Comprehensive E2E Runner (Rev 12 / 25 Feb 2026)
+TradeView Fusion — Comprehensive E2E Runner (Rev 13 / 20 Mar 2026)
 Covers:
-  Suite 1  — Infrastructure Health (all 4 services + GCT + Rust)
+  Suite 1  — Infrastructure Health (all services + GCT + Rust)
   Suite 2  — TS API Routes (~30 GET + 5 POST)
   Suite 3  — Trading Dashboard UI (sidebars, tabs, timeframes, order form)
   Suite 4  — GeoMap UI (globe, zoom, layers, timeline, candidate queue)
   Suite 5  — Auth Pages (sign-in, register, form elements)
   Suite 6  — Cross-Layer Integration (TS→Go→Python→Rust chain)
   Suite 7  — Data Sources (source health, market providers)
-  Suite 8  — Python Indicator Service direct :8090 (21 endpoints)
+  Suite 8  — Python Indicator Service direct :8092 (21 endpoints)
   Suite 9  — Python Soft-Signals direct :8091 (4 endpoints)
-  Suite 10 — Finance-Bridge direct :8092 (4 GET endpoints)
+  Suite 10 — (removed, finance-bridge retired — Go Gateway handles market data)
   Suite 11 — Go Gateway GET routes :9060 (~19 routes)
   Suite 12 — Go Gateway POST routes :9060 (indicator/pattern proxies)
   Suite 13 — GCT exhaustive via Go Gateway (7 routes)
@@ -37,16 +37,14 @@ from playwright.sync_api import (
 
 BASE = "http://127.0.0.1:3000"
 GO   = "http://127.0.0.1:9060"
-PY   = "http://127.0.0.1:8090"
-SS   = "http://127.0.0.1:8091"
-FB   = "http://127.0.0.1:8092"
+PY   = "http://127.0.0.1:8092"  # indicator-service
+SS   = "http://127.0.0.1:8091"  # geopolitical-soft-signals
 
 REPO    = Path(__file__).parent
 GO_DIR  = REPO / "go-backend"
 PY_DIR  = REPO / "python-backend"
-PY_IND  = PY_DIR / "services" / "indicator-service"
-PY_SS   = PY_DIR / "services" / "geopolitical-soft-signals"
-PY_FB   = PY_DIR / "services" / "finance-bridge"
+PY_IND  = PY_DIR / "python-compute" / "indicator_engine"
+PY_SS   = PY_DIR / "python-compute" / "geopolitical-soft-signals"
 
 SHOTS_DIR = REPO / "e2e_screenshots"
 SHOTS_DIR.mkdir(exist_ok=True)
@@ -205,9 +203,8 @@ def ensure_services() -> dict[str, bool]:
 
     svc_map: dict[str, tuple[str, int]] = {
         "next": ("127.0.0.1", 3000),
-        "py":   ("127.0.0.1", 8090),
+        "py":   ("127.0.0.1", 8092),
         "ss":   ("127.0.0.1", 8091),
-        "fb":   ("127.0.0.1", 8092),
         "go":   ("127.0.0.1", 9060),
     }
 
@@ -231,13 +228,13 @@ def ensure_services() -> dict[str, bool]:
         except Exception as exc:
             print(f"  ⚠️  Failed to start Next.js: {exc}")
 
-    # ── Indicator :8090 ───────────────────────────────────────────────────────
+    # ── Indicator :8092 ───────────────────────────────────────────────────────
     if not up["py"] and PY_IND.is_dir():
-        print("  🚀 Starting indicator service :8090...")
+        print("  🚀 Starting indicator service :8092...")
         try:
             _started_procs.append(subprocess.Popen(
                 ["uv", "run", "uvicorn", "app:app",
-                 "--host", "127.0.0.1", "--port", "8090"],
+                 "--host", "127.0.0.1", "--port", "8092"],
                 cwd=str(PY_IND),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -258,20 +255,6 @@ def ensure_services() -> dict[str, bool]:
             ))
         except Exception as exc:
             print(f"  ⚠️  Failed to start soft-signals: {exc}")
-
-    # ── Finance-Bridge :8092 ──────────────────────────────────────────────────
-    if not up["fb"] and PY_FB.is_dir():
-        print("  🚀 Starting finance-bridge :8092...")
-        try:
-            _started_procs.append(subprocess.Popen(
-                ["uv", "run", "uvicorn", "app:app",
-                 "--host", "127.0.0.1", "--port", "8092"],
-                cwd=str(PY_FB),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            ))
-        except Exception as exc:
-            print(f"  ⚠️  Failed to start finance-bridge: {exc}")
 
     # ── Go Gateway :9060 ──────────────────────────────────────────────────────
     if not up["go"] and GO_DIR.is_dir():
@@ -311,7 +294,6 @@ def suite_infra(page: Page):
         (f"{GO}/health",    "Go-Gateway /health"),
         (f"{PY}/health",    "indicator  /health"),
         (f"{SS}/health",    "soft-signals /health"),
-        (f"{FB}/health",    "finance-bridge /health"),
     ]:
         try:
             resp = page.request.get(url, timeout=5000)
@@ -347,16 +329,7 @@ def suite_infra(page: Page):
         rec("Infra", "Rust core available in indicator", False,
             f"indicator down: {str(exc)[:60]}")
 
-    # Rust OHLCV cache in finance-bridge
-    try:
-        resp = page.request.get(f"{FB}/health", timeout=5000)
-        body = resp.json() if resp.status == 200 else {}
-        cache_ok = body.get("rustOhlcvCache", {}).get("available", False)
-        rec("Infra", "Rust OHLCV cache in finance-bridge", cache_ok,
-            str(body.get("rustOhlcvCache", {}))[:80])
-    except Exception as exc:
-        rec("Infra", "Rust OHLCV cache in finance-bridge", False,
-            f"finance-bridge down: {str(exc)[:60]}")
+    # finance-bridge REMOVED — Go Gateway handles market data fetch natively
 
 # ─── Suite 2: TS API Routes ───────────────────────────────────────────────────
 
@@ -698,13 +671,7 @@ def suite_integration(page: Page):
         except Exception as e:
             rec("Integration", name, False, str(e)[:80])
 
-    # Finance bridge OHLCV
-    try:
-        resp = page.request.get(f"{FB}/ohlcv?symbol=BTC/USD&timeframe=1h&limit=5", timeout=5000)
-        ok = resp.status not in (500,502,503)
-        rec("Integration", "finance-bridge OHLCV endpoint", ok, f"HTTP {resp.status}")
-    except Exception as e:
-        rec("Integration", "finance-bridge OHLCV endpoint", False, str(e)[:80])
+    # finance-bridge REMOVED — OHLCV goes through Go Gateway
 
 # ─── Suite 7: Data Sources ────────────────────────────────────────────────────
 
@@ -804,31 +771,7 @@ def suite_py_soft_signals(page: Page):
         except Exception as e:
             rec("Py-SoftSignals", name, False, str(e)[:100])
 
-# ─── Suite 10: Finance-Bridge direct (:8092) ──────────────────────────────────
-
-def suite_finance_bridge(page: Page):
-    if not SVC_UP.get("fb"):
-        rec("Finance-Bridge", "ALL", False, "finance-bridge :8092 down — skip"); return
-    BRIDGE_ROUTES: list[tuple[str, str]] = [
-        ("/health",  ""),
-        ("/quote",   "symbol=MSFT"),           # yfinance: use stock ticker (BTC/USD not supported)
-        ("/ohlcv",   "symbol=MSFT&timeframe=1d&limit=5"),
-        ("/search",  "q=MSFT"),
-    ]
-
-    for path, params in BRIDGE_ROUTES:
-        name = f"bridge{path}" + (f"?{params[:30]}" if params else "")
-        try:
-            status, body = svc_get(page, FB, path, params, timeout=10000)
-            ok = status not in (500, 502, 503, 404)
-            detail = f"HTTP {status}"
-            if isinstance(body, dict):
-                detail += f" keys={list(body.keys())[:4]}"
-            elif isinstance(body, list):
-                detail += f" list[{len(body)}]"
-            rec("Finance-Bridge", name, ok, detail)
-        except Exception as e:
-            rec("Finance-Bridge", name, False, str(e)[:100])
+# Suite 10 (Finance-Bridge) REMOVED — Go Gateway handles market data fetch natively
 
 # ─── Suite 11: Go Gateway GET routes (:9060) ──────────────────────────────────
 
@@ -1250,16 +1193,13 @@ def main() -> int:
             print("\n📋 Suite 7: Data Sources")
             suite_sources(page)
 
-            print("\n📋 Suite 8: Python Indicator Service direct :8090")
+            print("\n📋 Suite 8: Python Indicator Service direct :8092")
             suite_py_indicators(page)
 
             print("\n📋 Suite 9: Python Soft-Signals direct :8091")
             suite_py_soft_signals(page)
 
-            print("\n📋 Suite 10: Finance-Bridge direct :8092")
-            suite_finance_bridge(page)
-
-            print("\n📋 Suite 11: Go Gateway GET routes :9060")
+            print("\n📋 Suite 10: Go Gateway GET routes :9060")
             suite_go_get(page)
 
             print("\n📋 Suite 12: Go Gateway POST routes :9060 (proxies)")

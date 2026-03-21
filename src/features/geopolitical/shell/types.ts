@@ -56,11 +56,6 @@ export interface GeoDrawingsResponse {
 	drawings: GeoDrawing[];
 }
 
-export interface GeoDrawingResponse {
-	success: boolean;
-	drawing: GeoDrawing;
-}
-
 export interface SourceHealthResponse {
 	success: boolean;
 	entries: Array<{
@@ -181,14 +176,6 @@ export const DEFAULT_EDIT_FORM: EditFormState = {
 	summary: "",
 	analystNote: "",
 };
-
-export type DrawingMode = "cursor" | "marker" | "line" | "polygon" | "text";
-
-export interface DrawingHistoryCommand {
-	label: string;
-	undo: () => Promise<void>;
-	redo: () => Promise<void>;
-}
 
 export function formatPoint(event: GeoEvent): string {
 	const point = event.coordinates?.[0];

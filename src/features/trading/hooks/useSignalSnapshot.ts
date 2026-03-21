@@ -37,7 +37,9 @@ export function useSignalSnapshot(
 		const lineData = dailySignalData.length >= 2 ? dailySignalData : viewCandleData;
 		const sma50Series = calculateSMA(lineData, 50);
 		const latestSma50 = sma50Series[sma50Series.length - 1]?.value ?? null;
-		const lastClose = lineData[lineData.length - 1].close;
+		const lastCandle = lineData[lineData.length - 1];
+		if (!lastCandle) return EMPTY_SNAPSHOT;
+		const lastClose = lastCandle.close;
 		const lineState =
 			latestSma50 === null ? "neutral" : lastClose >= latestSma50 ? "above" : "below";
 

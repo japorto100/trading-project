@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"errors"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,9 +28,7 @@ func (f *fakeGeopoliticalIngestAdminProxyClient) Do(_ context.Context, method, p
 	f.lastPath = path
 	f.lastBody = append([]byte(nil), payload...)
 	f.lastHeaders = map[string]string{}
-	for k, v := range headers {
-		f.lastHeaders[k] = v
-	}
+	maps.Copy(f.lastHeaders, headers)
 	if f.doFunc != nil {
 		return f.doFunc(method, path, payload, headers)
 	}

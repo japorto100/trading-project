@@ -172,9 +172,7 @@ func NewClient(cfg Config) *Client {
 	}
 
 	retryCount := cfg.RetryCount
-	if retryCount < 0 {
-		retryCount = 0
-	}
+	retryCount = max(retryCount, 0)
 
 	cfg.RequestTimeout = timeout
 	cfg.RetryCount = retryCount
@@ -182,7 +180,7 @@ func NewClient(cfg Config) *Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if cfg.InsecureSkipVerifyTL {
 		if transport.TLSClientConfig == nil {
-			transport.TLSClientConfig = &tls.Config{}
+			transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 		}
 		transport.TLSClientConfig.InsecureSkipVerify = true
 	}
@@ -365,7 +363,11 @@ func (c *Client) grpcServiceClient(ctx context.Context) (gctrpc.GoCryptoTraderSe
 	dialContext, cancel := c.withTimeout(ctx)
 	defer cancel()
 
-	tlsConfig := &tls.Config{InsecureSkipVerify: c.cfg.InsecureSkipVerifyTL}
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		//nolint:gosec // Explicit config-controlled escape hatch for local/dev debugging.
+		InsecureSkipVerify: c.cfg.InsecureSkipVerifyTL,
+	}
 	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 	}
@@ -604,7 +606,7 @@ func parseUnixTimestamp(raw json.RawMessage) (int64, error) {
 		}
 		parsed, parseErr := strconv.ParseInt(trimmed, 10, 64)
 		if parseErr != nil {
-			return 0, parseErr
+			return 0, fmt.Errorf("parse timestamp string %q: %w", trimmed, parseErr)
 		}
 		return parsed, nil
 	}

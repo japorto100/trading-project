@@ -99,8 +99,8 @@ func newTestArtifactService(t *testing.T) *storage.Service {
 		t.Fatalf("new metadata store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close metadata store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close metadata store: %v", closeErr)
 		}
 	})
 
@@ -190,8 +190,8 @@ func TestArtifactDownloadHandler_SetsContentHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("issue upload url: %v", err)
 	}
-	if err := service.UploadArtifact(context.Background(), created.ID, uploadURL.Token, "text/plain", io.NopCloser(bytes.NewBufferString("abc"))); err != nil {
-		t.Fatalf("upload artifact: %v", err)
+	if uploadErr := service.UploadArtifact(context.Background(), created.ID, uploadURL.Token, "text/plain", io.NopCloser(bytes.NewBufferString("abc"))); uploadErr != nil {
+		t.Fatalf("upload artifact: %v", uploadErr)
 	}
 
 	meta, err := service.GetArtifact(created.ID)

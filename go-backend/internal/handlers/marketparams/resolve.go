@@ -91,7 +91,7 @@ func ResolveTarget(symbol, exchange, assetType string, configs map[string]Exchan
 		exchange = resolvedExchange
 		exchangeCfg = resolvedCfg
 	}
-	if _, ok := exchangeCfg.AllowedAssetTypes[assetType]; !ok {
+	if _, assetAllowed := exchangeCfg.AllowedAssetTypes[assetType]; !assetAllowed {
 		return ResolvedTarget{}, fmt.Errorf("unsupported assetType")
 	}
 

@@ -16,6 +16,8 @@ export interface MarkerSymbolLegendEntry {
 	shortCode: string;
 }
 
+export type MarkerSymbol = string;
+
 export const MARKER_SYMBOL_LEGEND: MarkerSymbolLegendEntry[] = [
 	{ symbol: "tank", label: "Conflict", shortCode: "CF" },
 	{ symbol: "gavel", label: "Sanctions", shortCode: "SC" },
@@ -89,4 +91,19 @@ export function getMarkerSymbolLabel(symbol: string): string {
 		.replace(/[_-]+/g, " ")
 		.trim()
 		.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+export function getMarkerSymbolShortCode(symbol: string): string {
+	const normalized = symbol.trim().toLowerCase();
+	if (!normalized) return "UN";
+	const legendEntry = MARKER_SYMBOL_LEGEND.find((entry) => entry.symbol === normalized);
+	if (legendEntry) return legendEntry.shortCode;
+	const label = getMarkerSymbolLabel(symbol);
+	const token = label
+		.split(/\s+/)
+		.filter(Boolean)
+		.slice(0, 2)
+		.map((part) => part[0]?.toUpperCase() ?? "")
+		.join("");
+	return token || "UN";
 }

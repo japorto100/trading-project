@@ -97,7 +97,7 @@ func TestRoutedMacroClient_RoutesRegisteredPrefixClient(t *testing.T) {
 	defaultClient := &fakeRoutedMacroClient{label: "fred"}
 	banxicoClient := &fakeRoutedMacroClient{label: "banxico", ticker: gct.Ticker{Last: 20.25}}
 	client := NewRoutedMacroClient(defaultClient, nil)
-	client.RegisterPrefixClient("BANXICO_", banxicoClient)
+	client.RegisterProviderPrefixClient("banxico", "BANXICO_", banxicoClient)
 
 	_, err := client.GetTicker(context.Background(), currency.NewPair(currency.NewCode("BANXICO_SF43718"), currency.NewCode("USD")), asset.Empty)
 	if err != nil {
@@ -108,5 +108,15 @@ func TestRoutedMacroClient_RoutesRegisteredPrefixClient(t *testing.T) {
 	}
 	if defaultClient.lastPair.Base.String() != "" {
 		t.Fatalf("expected default client not called")
+	}
+	if got := client.ResolveProvider(currency.NewPair(currency.NewCode("BANXICO_SF43718"), currency.NewCode("USD"))); got != "banxico" {
+		t.Fatalf("expected banxico provider, got %q", got)
+	}
+}
+
+func TestRoutedMacroClient_ResolveProviderFallsBackToDefault(t *testing.T) {
+	client := NewRoutedMacroClient(&fakeRoutedMacroClient{label: "fred"}, nil)
+	if got := client.ResolveProvider(currency.NewPair(currency.NewCode("FEDFUNDS"), currency.NewCode("USD"))); got != "fred" {
+		t.Fatalf("expected default provider fred, got %q", got)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -44,9 +45,7 @@ func NewGDELTClient(cfg GDELTClientConfig) *GDELTClient {
 		baseURL = DefaultGDELTBaseURL
 	}
 	retries := cfg.RequestRetries
-	if retries < 0 {
-		retries = 0
-	}
+	retries = max(retries, 0)
 	return &GDELTClient{
 		baseURL:        baseURL,
 		requestRetries: retries,
@@ -89,7 +88,7 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 
 	parsedURL, err := url.Parse(c.baseURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse gdelt base url %q: %w", c.baseURL, err)
 	}
 	query := parsedURL.Query()
 	query.Set("query", queryTerm)
@@ -113,7 +112,7 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 	for attempt := 1; attempt <= attempts; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("build gdelt news request for %s: %w", symbol, err)
 		}
 		req.Header.Set("Accept", "application/json")
 		req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
@@ -122,18 +121,18 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 		if err != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("gdelt news retry backoff canceled after request failure for %s: %w", symbol, ctx.Err())
 				}
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("request gdelt news for %s: %w", symbol, err)
 		}
 
 		if resp.StatusCode >= http.StatusInternalServerError {
 			_ = resp.Body.Close()
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("gdelt news retry backoff canceled after server error for %s: %w", symbol, ctx.Err())
 				}
 				continue
 			}
@@ -149,11 +148,11 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 		if readErr != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("gdelt news retry backoff canceled after read failure for %s: %w", symbol, ctx.Err())
 				}
 				continue
 			}
-			return nil, readErr
+			return nil, fmt.Errorf("read gdelt news response for %s: %w", symbol, readErr)
 		}
 
 		fetchedAt = time.Now().UTC()
@@ -173,22 +172,22 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 			}); recordErr != nil {
 				if attempt < attempts {
 					if !sleepWithContext(ctx, backoffDuration(attempt)) {
-						return nil, ctx.Err()
+						return nil, fmt.Errorf("gdelt snapshot retry backoff canceled for %s: %w", symbol, ctx.Err())
 					}
 					continue
 				}
-				return nil, recordErr
+				return nil, fmt.Errorf("record gdelt news snapshot for %s: %w", symbol, recordErr)
 			}
 		}
 
 		if err := json.NewDecoder(bytes.NewReader(rawBody)).Decode(&payload); err != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("gdelt decode retry backoff canceled for %s: %w", symbol, ctx.Err())
 				}
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("decode gdelt news response for %s: %w", symbol, err)
 		}
 		break
 	}
@@ -221,10 +220,10 @@ func (c *GDELTClient) Fetch(ctx context.Context, symbol string, limit int) ([]ma
 			Items:        items,
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("marshal gdelt normalized snapshot for %s: %w", symbol, err)
 		}
 		if err := c.snapshotNormalizer(ctx, snapshotID, normalizedPayload, fetchedAt); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("normalize gdelt snapshot for %s: %w", symbol, err)
 		}
 	}
 	return items, nil

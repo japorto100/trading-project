@@ -25,7 +25,6 @@ func TestParseTimeframe(t *testing.T) {
 		{"", "1m"},
 	}
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.in, func(t *testing.T) {
 			t.Parallel()
 			tf, err := ParseTimeframe(tc.in)
@@ -92,9 +91,9 @@ func TestCandleBuilderRingBufferTrim(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for i := int64(0); i < 12; i++ {
+	for i := range 12 {
 		res := builder.ApplyTick(Tick{
-			Timestamp: i*60 + 1,
+			Timestamp: int64(i*60 + 1),
 			Last:      100 + float64(i),
 			Volume:    float64(i),
 		})
@@ -148,12 +147,11 @@ func TestAlertEngineConcurrentEvaluate(t *testing.T) {
 		engine.EvaluateQuote("X", 50, rules, time.Unix(0, 0))
 
 		var wg sync.WaitGroup
-		for i := 0; i < 4; i++ {
-			wg.Add(1)
-			go func(idx int) {
-				defer wg.Done()
+		for i := range 4 {
+			idx := i
+			wg.Go(func() {
 				engine.EvaluateQuote("X", 101, rules, time.Unix(int64(idx+1), 0))
-			}(i)
+			})
 		}
 		synctest.Wait() // all goroutines in the bubble are idle (done or durably blocked)
 		wg.Wait()

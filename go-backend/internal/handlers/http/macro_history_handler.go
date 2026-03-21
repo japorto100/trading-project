@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 	marketServices "tradeviewfusion/go-backend/internal/services/market"
 )
@@ -17,7 +16,7 @@ var macroSymbolPartPattern = regexp.MustCompile(`^[A-Z0-9]{2,20}$`)
 var macroSeriesPattern = regexp.MustCompile(`^[A-Z0-9_]{2,40}$`)
 
 type macroHistoryClient interface {
-	History(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error)
+	History(ctx context.Context, exchange string, pair currency.Pair, assetType string, limit int) ([]gct.SeriesPoint, error)
 }
 
 func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
@@ -40,7 +39,7 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 			limit = parsedLimit
 		}
 
-		pair, normalizedSymbol, ok := parseMacroSymbol(symbol, exchange)
+		pair, normalizedSymbol, ok := parseMacroSymbol(symbol, exchange, assetType)
 		if !ok {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid symbol format"})
 			return
@@ -53,9 +52,12 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unsupported assetType"})
 			return
 		}
+		if exchange == "auto" && assetType != "macro" && assetType != "forex" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "unsupported assetType"})
+			return
+		}
 
-		assetItem, _ := asset.New(assetType)
-		points, err := client.History(r.Context(), strings.ToUpper(exchange), pair, assetItem, limit)
+		points, err := client.History(r.Context(), strings.ToUpper(exchange), pair, assetType, limit)
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "macro history request failed"})
 			return
@@ -81,9 +83,20 @@ func MacroHistoryHandler(client macroHistoryClient) http.HandlerFunc {
 	}
 }
 
-func parseMacroSymbol(symbol, exchange string) (currency.Pair, string, bool) {
+func parseMacroSymbol(symbol, exchange, assetType string) (currency.Pair, string, bool) {
 	normalized := strings.TrimSpace(strings.ToUpper(symbol))
 	normalized = strings.ReplaceAll(normalized, "-", "/")
+
+	if exchange == "auto" && assetType == "macro" {
+		trimmed := strings.ReplaceAll(normalized, "/", "")
+		trimmed = strings.ReplaceAll(trimmed, "-", "_")
+		trimmed = strings.ReplaceAll(trimmed, ".", "_")
+		trimmed = strings.ReplaceAll(trimmed, " ", "_")
+		if !macroSeriesPattern.MatchString(trimmed) {
+			return currency.EMPTYPAIR, "", false
+		}
+		return currency.NewPair(currency.NewCode(trimmed), currency.NewCode("USD")), trimmed, true
+	}
 
 	if exchange == "fred" || exchange == "fed" || exchange == "boj" || exchange == "snb" || exchange == "bcb" || exchange == "banxico" || exchange == "bok" || exchange == "bcra" || exchange == "tcmb" || exchange == "rbi" || exchange == "imf" {
 		trimmed := strings.ReplaceAll(normalized, "/", "")

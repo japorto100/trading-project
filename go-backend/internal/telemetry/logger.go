@@ -67,7 +67,10 @@ func (h *traceContextHandler) Handle(ctx context.Context, r slog.Record) error {
 			slog.String("span_id", spanCtx.SpanID().String()),
 		)
 	}
-	return h.Handler.Handle(ctx, r)
+	if err := h.Handler.Handle(ctx, r); err != nil {
+		return fmt.Errorf("handle slog record with trace context: %w", err)
+	}
+	return nil
 }
 
 // fanoutHandler forwards every slog record to multiple slog.Handlers.

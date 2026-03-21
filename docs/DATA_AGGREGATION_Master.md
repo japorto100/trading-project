@@ -5,6 +5,7 @@
 > **Aenderungshistorie:**
 > - Rev. 1 (17.03.2026): Erstanlage
 > - Rev. 2 (18.03.2026): python-agent und python-compute als eigenstaendige Module vermerkt (Phase 22g); Rust Agent Hotpaths ergaenzt; ml_ai-Merge-Ergebnis als Datenpfad-Implikation aufgenommen
+> - Rev. 3 (20.03.2026): Go Fetching-/Connector-Zielbild geschaerft; Group-/Registry-Richtung, gemeinsame Python-IPC-Linie und providerorientierte statt copy-paste-basierte Expansion ergaenzt
 > **Rolle:** Verdichtetes Zielbild fuer Datenfluss, Zonen, Formate, Retrieval-
 > Rollen, Snapshot-/Artefakt-Strategie und tabellarische Data Plane.
 > **Ableitung:** Dieses Dokument ist die Data-Plane-Auspraegung von
@@ -37,6 +38,13 @@ TradeView Fusion soll eine Go-owned Aggregations- und Routing-Schicht mit
 object-first Snapshots, relationaler Metadata-Fuehrung, Arrow-/Polars-/DuckDB-
 basierter tabellarischer Verarbeitung und klar getrennter semantic retrieval
 Schichtung aus `pgvector` und `FalkorDB` erhalten.
+
+Wichtige Praezisierung:
+
+- `Go-owned` bezieht sich hier auf Aggregation, Routing, relationale
+  Domain-/Metadata-Ownership und API-/Policy-Grenzen.
+- Agent-/Memory-interne Episodic- und Retrieval-Daten bleiben fachlich bei der
+  Python-Agent-/Memory-Plane verankert.
 
 ---
 
@@ -100,6 +108,9 @@ source
 - Job-Status
 - pipeline metadata
 - audit / ownership / review / promotion
+- episodic memory ist nicht automatisch Go-DB-owned, sondern je Datenklasse
+  dort zu halten, wo die Fachownership liegt; fuer Agent-Episoden aktuell
+  in der Python-Agent-/Memory-Plane
 
 ---
 
@@ -117,6 +128,8 @@ Rolle:
 - operational metadata
 - review/promotion metadata
 - episodic / audit-nahe Data-Plane-Begleitdaten
+- spaetere tenant-aware relationale Kernschicht fuer produktive
+  Mehrnutzer-/Multitenant-Workloads
 
 ### 5.2 Object-/Artifact-Layer
 
@@ -232,6 +245,9 @@ Arbeitsregel:
 - `DuckDB` zuerst
 - `MotherDuck` nur bei echter DuckDB-Concurrency-/Cloud-Stufe
 - `Druid` nur bei nachgewiesenem Plattformbedarf fuer verteilte Realtime-Analytics
+- `SQLite` bleibt davon getrennt zu sehen: akzeptabel fuer lokale/dev-nahe
+  Relationallayer mit niedriger Concurrency, aber nicht fuer produktive
+  Multiuser-/Multitenant-Last
 
 ---
 
@@ -246,6 +262,36 @@ Arbeitsregel:
   - `api-snapshot`
   - `file-snapshot`
   - `stream-only`
+- Go bleibt auch Owner fuer die **Quellen-Gruppenlogik**:
+  - `rest`
+  - `ws`
+  - `sdmx`
+  - `timeseries`
+  - `bulk`
+  - `rss`
+  - `diff`
+  - `translation`
+  - `oracle`
+  - `pythonipc`
+- Provider wie `fred`, `worldbank`, `ecb`, `oecd`, `imf`, `ofac`, `un`,
+  `seco`, `news` oder `finnhub` bleiben als eigene Pakete zulaessig, sollen
+  aber auf diesen Gruppen aufsetzen statt je Quelle einen eigenen
+  Infrastruktur-Ministapel zu tragen.
+- Der Go-Fetching-Default fuer strukturierte Quellen ist:
+  - `net/http` mit gemeinsamem Client-/Transport-Layer
+  - gemeinsamer Retry-/Circuit-/Rate-/Error-Layer
+  - `x/time/rate` im Base-Layer
+  - `errgroup` und `semaphore` fuer gruppenweite Parallelitaets- und
+    Quotensteuerung; erster produktiver Fanout-Pfad laeuft bereits im
+    Market-Quote-Router fuer `latency_first`
+- Arbeitsregel:
+  - **Config over code** nur fuer Provider-Metadaten
+  - **Code over config** fuer Parser, Normalisierung und echte Fachlogik
+- Zielrichtung fuer neue Quellen:
+  - Provider-Descriptoren aus YAML/JSON fuer Name, Gruppe, Auth-Modus,
+    Base-URL, Capabilities, Retry-/Rate-Klasse, Enablement/Fallbacks
+  - Bindung an Gruppenclients / Registry im Go-Layer
+  - keine neuen Copy-Paste-Connector-Sonderstapel fuer Standardfaelle
 
 ### 7.2 Python Compute aggregation
 
@@ -257,6 +303,26 @@ Arbeitsregel:
   - indicator-service, finance-bridge, geopolitical-soft-signals, volatility-suite, regime-detection
   - Herkunft: `ml_ai/indicator_engine/` + `ml_ai/geopolitical_soft_signals/` + `ml_ai/memory_engine/`
     wurden hier konsolidiert (Phase 22g, 18.03.2026); Originale in `python-backend/archive/` archiviert
+- Go spricht diese Plane ueber einen gemeinsamen `pythonipc`-Stil an;
+  `financebridge` ist der aktuelle Referenzpfad fuer gRPC-/IPC-first mit
+  HTTP-Fallback.
+- Boundary-Klarstellung fuer `financebridge`:
+  - aktueller Ist-Zustand: `financebridge` ist weitgehend eine
+    `yfinance`-gestuetzte interne Quote-/OHLCV-/Search-Bridge
+  - bevorzugte Zielrichtung ist **Option 2**:
+    - reiner Markt-Daten-Fetch schrittweise in Go-native Provider-/Router-Pfade
+      ueberfuehren
+    - Python Compute fuer Compute-/Transform-/Cache-/Beschleuniger-Mehrwert
+      reservieren
+    - `financebridge` nicht als dauerhaften primaeren Markt-Feed-Owner stehen
+      lassen
+  - erster Ist-Schritt dazu ist bereits umgesetzt:
+    - `market/search` laeuft im Go-Gateway jetzt nativ ueber den
+      Symbol-Katalog
+    - `quote/fallback` laeuft jetzt nativ ueber einen Go-`yahoo`-Connector
+    - `ohlcv` laeuft jetzt ebenfalls nativ ueber denselben Go-`yahoo`-Connector
+    - damit ist `financebridge` aus dem reinen Markt-Fetch-Strang entfernt und
+      bleibt nur noch als optionaler Legacy-/Bootstrap-Bridge-Kandidat
 
 ### 7.3 Python Indexing / Ingest Workers
 
@@ -271,11 +337,16 @@ Das ist die logische dritte Python-Domain:
 
 - nicht primaer Online-API
 - sondern ingest-/indexing-/reprocessing-/RAG-Pipeline
+- fuer Go spaeter ebenfalls ein interner `pythonipc`-Konsument, nicht
+  direkter Browser- oder BFF-Partner
 
 ### 7.3b Python Agent als Datenkonsument
 
 - `python-backend/python-agent/` — eigenstaendiges Modul mit eigener `pyproject.toml` + `uv`-venv
 - Agent Runtime konsumiert Daten aus Go-Gateway, Memory-Service und Context-Assembly
+- `memory-episodic-store` ist damit kein eigener Next/Prisma-Owner-Pfad mehr,
+  sondern Compatibility-Fassade auf den offiziellen
+  `Next -> Go -> Python memory-service`-Pfad fuer Episoden
 - **Datenpfad im Agent:**
   - `context_assembler.py` aggregiert KG-Fragmente, Episodic-Eintraege und Vector-Treffer
   - `memory_client.py` spricht Go-Gateway → Memory-Service (KG, Vector, Episodes)
@@ -286,6 +357,13 @@ Das ist die logische dritte Python-Domain:
     - `score_tools_for_query()` — Token-Overlap-Scoring fuer Tool-Selektion
 - Herkunft: `ml_ai/agent/` + `ml_ai/context/` wurden in `python-agent/agent/` konsolidiert
   (Phase 22g, 18.03.2026); Originale in `python-backend/archive/` archiviert
+- Go-seitig sollen `agentservice` und `memory` auf denselben internen
+  Client-/Timeout-/Header-/Request-ID-Stil konvergieren wie `financebridge`,
+  statt dauerhaft voneinander abweichende Sonderpfade zu behalten.
+- Aktueller Ist-Stand:
+  - `indicatorservice`, `agentservice` und `memory` nutzen bereits denselben
+    gemeinsamen IPC-Transportstil
+  - `python-ingest` bleibt der naechste offene Angleichungskandidat
 
 ### 7.4 Rust acceleration
 
@@ -295,6 +373,12 @@ Das ist die logische dritte Python-Domain:
 - **Agent-spezifische Hotpaths** (Phase 22g+): entity extraction, context dedup, tool scoring
   (via `tradeviewfusion_rust_core` PyO3-Wheel, GIL-frei via `py.detach()`)
 - spaeter native backtester-/risk-nahe Pfade
+- Standardgrenze heute:
+  - Python konsumiert Rust intern via PyO3/maturin
+  - Go spricht Python-Servicegrenzen
+- Direkte Go↔Rust-Datenpfade sind spaeter moeglich, aber nur bei
+  nachgewiesenem Hot-Path- oder Betriebsbedarf; sie sind nicht die
+  aktuelle Aggregations-Baseline.
 
 ---
 
@@ -461,11 +545,13 @@ im Zielbild sichtbar bleiben.
 - `FalkorDB`
 - `NATS`
 - `JetStream`
+- `backend sqlite` nur als lokale/dev-nahe Bridge, nicht als Zielverfassung
 
 ### Prepare
 
 - `OpenSearch`
 - `Meilisearch`
+- `sqlc` fuer spaeteren typed Go DB access auf dem Postgres-Pfad
 - `Arrow Flight`
 - `Apache Iceberg`
 - `Hatchet`
@@ -503,6 +589,8 @@ Dieses Dokument beantwortet:
 - wie Daten konkret durch das System laufen
 - welche Formate und Speicherrollen gesetzt werden
 - wie Retrieval und Aggregation logisch getrennt werden
+- welche Datenklassen langfristig Go-owned, Python-owned oder nur
+  BFF-/Glue-vermittelt sein sollen
 
 `ARCHITECTURE_NEW_EXTENSION` beantwortet:
 

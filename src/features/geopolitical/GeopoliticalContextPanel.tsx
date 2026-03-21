@@ -1,6 +1,9 @@
 "use client";
 
 import { buildGeoContextSelectionDetail } from "@/features/geopolitical/selection-detail";
+import { GeoPanelFrame } from "@/features/geopolitical/shell/panels/GeoPanelFrame";
+import { GeoPanelRuntimeMeta } from "@/features/geopolitical/shell/panels/GeoPanelRuntimeMeta";
+import { GeoPanelStateNotice } from "@/features/geopolitical/shell/panels/GeoPanelStateNotice";
 import type { GeoContextItem } from "@/features/geopolitical/shell/types";
 
 type ContextSource = "all" | "cfr" | "crisiswatch";
@@ -10,6 +13,7 @@ interface GeopoliticalContextPanelProps {
 	items: GeoContextItem[];
 	loading: boolean;
 	onSourceChange: (source: ContextSource) => void;
+	onRetry?: () => void;
 }
 
 function sourceLabel(source: string): string {
@@ -23,11 +27,22 @@ export function GeopoliticalContextPanel({
 	items,
 	loading,
 	onSourceChange,
+	onRetry,
 }: GeopoliticalContextPanelProps) {
+	const panelStatus = loading ? "cached" : items.length > 0 ? "live" : "unavailable";
+	const panelStatusLabel = loading ? "cached" : items.length > 0 ? "live" : "unavailable";
 	return (
-		<section className="rounded-md border border-border bg-card p-3">
-			<div className="flex items-center justify-between gap-2">
-				<h2 className="text-sm font-semibold">Conflict Context</h2>
+		<GeoPanelFrame
+			title="Conflict Context"
+			description="Link-first context layer (CFR) + RSS updates (CrisisWatch)."
+			status={panelStatus}
+			statusLabel={panelStatusLabel}
+			meta={
+				<GeoPanelRuntimeMeta
+					items={["context feed", sourceLabel(source), `${items.length} items`]}
+				/>
+			}
+			actions={
 				<select
 					id="geo-context-source-filter"
 					name="geo_context_source_filter"
@@ -40,17 +55,22 @@ export function GeopoliticalContextPanel({
 					<option value="cfr">CFR</option>
 					<option value="crisiswatch">CrisisWatch</option>
 				</select>
-			</div>
-
-			<p className="mt-1 text-xs text-muted-foreground">
-				Link-first context layer (CFR) + RSS updates (CrisisWatch).
-			</p>
-
-			<div className="mt-3 space-y-2">
+			}
+		>
+			<div className="space-y-2">
 				{loading ? (
-					<p className="text-xs text-muted-foreground">Loading context feed...</p>
+					<GeoPanelStateNotice
+						message="Refreshing context feed..."
+						retryLabel="Reload"
+						onRetry={onRetry}
+					/>
 				) : items.length === 0 ? (
-					<p className="text-xs text-muted-foreground">No context items for current filters.</p>
+					<GeoPanelStateNotice
+						message="No context items for current filters."
+						tone="warning"
+						onRetry={onRetry}
+						retryLabel="Reload"
+					/>
 				) : (
 					items.slice(0, 10).map((item) => {
 						const detail = buildGeoContextSelectionDetail(item);
@@ -89,6 +109,6 @@ export function GeopoliticalContextPanel({
 					})
 				)}
 			</div>
-		</section>
+		</GeoPanelFrame>
 	);
 }

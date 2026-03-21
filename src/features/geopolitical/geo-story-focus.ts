@@ -2,7 +2,7 @@ import type { GeoReplayRangeMs } from "@/features/geopolitical/replay-window";
 import {
 	buildGeoTimelineSelectionFocus,
 	type GeoTimelineSelectionFocus,
-} from "@/features/geopolitical/timeline-focus";
+} from "@/features/geopolitical/timeline/timeline-focus";
 import type { GeoEvent } from "@/lib/geopolitical/types";
 
 export interface BuildGeoEventStoryFocusInput {

@@ -12,6 +12,7 @@ import (
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
 	"tradeviewfusion/go-backend/internal/connectors/ipc"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -22,6 +23,7 @@ type Config struct {
 	BaseURLs       []string
 	GrpcAddress    string // optional; derived from primary BaseURL (port+1000) if empty
 	RequestTimeout time.Duration
+	Registry       *connectorregistry.Registry
 }
 
 type Candle struct {
@@ -83,7 +85,7 @@ func NewClient(cfg Config) *Client {
 	primary := baseURLs[0]
 	return &Client{
 		baseURLs:    baseURLs,
-		ipcClient:   ipc.NewClient(ipc.Config{GrpcAddress: strings.TrimSpace(cfg.GrpcAddress), HTTPBaseURL: primary, Timeout: timeout}),
+		ipcClient:   ipc.NewClient(ipc.ConfigWithRegistry(cfg.Registry, "financebridge", primary, strings.TrimSpace(cfg.GrpcAddress), timeout)),
 		baseClients: newBaseClients(baseURLs, timeout),
 	}
 }

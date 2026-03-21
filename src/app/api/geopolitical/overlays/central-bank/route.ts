@@ -5,7 +5,7 @@ import { getGeopoliticalSourceHealth } from "@/lib/geopolitical/source-health";
 import {
 	getGeoCentralBankOverlayConfig,
 	updateGeoCentralBankOverlayConfig,
-} from "@/lib/server/geopolitical-phase12-overlay-config-store";
+} from "@/lib/server/geopolitical-strategic-overlays-store";
 
 async function getCentralBankOverlay() {
 	"use cache";
@@ -44,7 +44,7 @@ function getActor(request: NextRequest): string {
 	return (
 		request.headers.get("x-geo-actor")?.trim() ||
 		request.headers.get("x-auth-user")?.trim() ||
-		"phase12-ui"
+		"geo-operations-ui"
 	);
 }
 

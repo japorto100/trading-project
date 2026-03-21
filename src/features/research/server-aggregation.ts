@@ -64,8 +64,8 @@ export async function buildLocalResearchHomeResponse(
 				criticalCount > 0
 					? `${criticalCount} high-severity geopolitical catalysts active`
 					: "Monitoring-driven research posture",
-			confidence: confidenceFromGeo(freshest.confidence),
-			freshnessLabel: freshnessLabel(freshest.updatedAt),
+			confidence: confidenceFromGeo(freshest?.confidence ?? 0),
+			freshnessLabel: freshest ? freshnessLabel(freshest.updatedAt) : "No fresh events",
 		},
 		mattersNow: topEvents.slice(0, 3).map((event, index) => ({
 			id: event.id,

@@ -361,14 +361,269 @@ Fuer jeden geschlossenen Punkt (`DAT1-DAT18`) mindestens:
   Dev-/Schema-Helfer vorerst bewusst bestehen darf
 - Prisma bleibt vorerst als schnelle Dev-/Schema-Hilfe zulaessig, ist fuer den
   backend-owned relationalen Zielpfad aber nur noch Uebergangswerkzeug
-- `geopolitical-events-store.ts` bleibt als naechster separate Medium-Risk-
-  Ownership-Schnitt vorgemerkt, statt ihn implizit in kleine CRUD-Batches zu
-  verstecken
+- [ ] den Wortlaut hier mittelfristig weiter haerten:
+  kein dauerhafter relationaler Dual-Owner `Next/Prisma + Go`; Prisma nur
+  noch als Uebergang bzw. Auth.js-/BFF-Glue dort, wo es bewusst so bleibt
+- `geopolitical-events-store.ts` ist jetzt als Medium-Risk-Ownership-Schnitt
+  ueber den bestehenden Go-Geo-Store vollzogen:
+  `list/get/create/update/delete/addSource/addAsset/archive` laufen ueber
+  `/api/v1/geopolitical/local-events`, waehrend die TS-Fassade fuer Research,
+  Intelligence Calendar, Graph, Stream, Export, Evaluation, Alerts und
+  Earth-Seed stabil geblieben ist
+- Warum dieser Daten-Schnitt so gemacht wurde:
+  GitNexus zeigte fuer `listGeoEvents` einen kritischen Blast Radius; der
+  sichere Move war daher ein zentraler Go-Owner-Proxy im Store statt mehrere
+  fragmentierte Route-Umbauten
+- Timeline-Appends fuer lokale Geo-Events bleiben vorerst in Next, damit kein
+  doppelter Timeline-/Audit-Write entsteht, solange die Timeline noch nicht
+  als eigener Go-Owner-Batch gezogen wurde
 - Weiteres empfohlenes Muster bleibt identisch:
   `Go store + Go handler -> Gateway route -> Next route/store als Thin Proxy -> verify -> Slice update`
 - Warum dieses Muster hier ebenfalls gilt:
   relationale Owner-Schnitte sollen die API-/Error-Huelle stabil halten und
   keine halb migrierten Hybrid-Pfade hinterlassen
+- `memory-episodic-store.ts` ist jetzt auf den offiziellen Episodenpfad
+  umgestellt:
+  Episode-Reads/Writes laufen ueber `Next -> Go -> Python memory-service`;
+  der lokale Next/Prisma/JSON-Episodenpfad wurde damit als Altlast entmachtet
+- Wichtige Architekturpraezisierung:
+  bei episodic memory liegt die fachliche Ownership im Python-Agent-/Memory-
+  Modul, nicht in einer neuen Go-owned relationalen DB-Schicht
+- Analysis snapshots bleiben vorerst explizit Legacy-/Compat-Helfer, bis ein
+  echter backend-owned Snapshot-Vertrag existiert
+- `portfolio-history-store`, `file-audit` und `control-audit` schreiben jetzt
+  ebenfalls ueber Go-owned Endpunkte / Tabellen statt direkter Prisma-Writes
+- **Naechster empfohlener relationaler Data-Batch:** weitere Geo-Unterstores
+  nur dort, wo sie ueber UI-Helfer hinaus echte backend-owned Truth oder
+  Cross-service-Nutzung bekommen
+- [x] **Go SQLite Schema pruefen:** `TestSQLiteStoreMigratesAllCurrentGoOwnedTables`
+  deckt die aktuell Go-owned relationalen Tabellen in einer frischen Backend-DB ab
+- [ ] **Register/Login-Verify aufnehmen:** nachweisen, dass
+  `register -> credentials login -> session/JWT` mit backend-owned SQLite
+  funktioniert und nicht mehr von Frontend-SQLite-Ownership abhaengt
+- **Derzeit verifiziert:** Register-Route schreibt ueber den Go-Owner-Pfad;
+  Credential-Lookup und TOTP sind auf Store-Ebene abgesichert.
+  `src/lib/auth.test.ts` prueft Credentials-Authorize plus
+  `jwt`-/`session`-Enrichment gegen den Go-owned Auth-Owner-Pfad.
+  Ein echter Live-Verify des verbleibenden Auth.js-/PrismaAdapter-Restpunkts
+  und des Cookie-/Passkey-Browserflusses steht noch aus.
+- [ ] **Prisma-Restfelder inventarisieren:** welche Tabellen/Felder in
+  `prisma/schema.prisma` noch nur fuer Auth.js-/Glue-/Legacy-Zwecke bestehen
+  und welche davon spaeter entfallen oder nach Go uebernommen werden
+- [x] **Prisma-Restfelder inventarisieren:** `User`, `Account`, `Session`,
+  `VerificationToken`, `Authenticator`, `RefreshToken`,
+  `GeoCandidateRecord`, `GeoTimelineRecord`, `GeoDrawingRecord`,
+  `AnalysisSnapshot`, `MemorySyncCheckpoint`, `DocumentRecord`
+- [~] **Prisma-Restfelder vorlaeufig klassifiziert:**
+  `keep/bridge` = Auth.js-/Passkey-/Session-Glue (`Account`, `Session`,
+  `VerificationToken`, `Authenticator`, temporaer auch `User` im
+  `PrismaAdapter`-Kontext);
+  `migrate next` = `RefreshToken`, `GeoTimelineRecord`, `GeoDrawingRecord`,
+  bei echtem Backend-Truth-Bedarf `GeoCandidateRecord`;
+  `defer/delete` = `AnalysisSnapshot`, `MemorySyncCheckpoint`, `DocumentRecord`
+- [ ] **Postgres-Zielpfad explizit halten:** alle neuen Go-owned relationalen
+  Tabellen muessen spaeter in einen einzigen `backend postgres`-Pfad
+  ueberfuehrbar sein; keine neuen domainkritischen Tabellen mehr exklusiv in
+  Next/Prisma anlegen
+- [ ] **SQLite-Grenze klar halten:** fuer lokale/dev-nahe niedrige
+  Concurrency akzeptabel; nicht als Multiuser-/Multitenant-Zielzustand
+  dokumentieren
+- [~] **Live-Auth-Verify-Plan vorgemerkt:** `Next + Go` reichen als Minimalstack;
+  Verify-Reihenfolge spaeter `register -> credentials sign-in -> session/cookie -> sign-out`;
+  optional danach Passkey-Device-/Scaffold-Check; kein Vollstack und keine
+  Data-Plane-Zusatzdienste notwendig
+- **Verify-Gates letzter Batch:**  
+  `go test ./internal/appstate -run "Test(SQLiteStoreMigratesAllCurrentGoOwnedTables|PortfolioSnapshotsAndAuditLogs)" -count=1`  
+  `go test ./internal/handlers/http ./internal/app -run TestDoesNotExist -count=1`  
+  `bun test src/lib/server/portfolio-history-store.test.ts src/lib/server/audit-helpers.test.ts`
+- **Verify-Gates Auth-Check:**  
+  `bun test src/lib/auth.test.ts`
+- **Verify-Gates Registry/Groups + Macro AUTO (20.03.2026):**  
+  `go test ./internal/router/adaptive ./internal/services/market ./internal/handlers/http ./internal/app -run "TestRouter_|TestMacroService_|TestMacroHistoryHandler_|TestMacroIngestRunOnce_|NewServerFromEnv"`  
+  `go build ./internal/router/adaptive ./internal/services/market ./internal/handlers/http ./internal/app`  
+  `golangci-lint run ./internal/router/adaptive/... ./internal/services/market/... ./internal/handlers/http/... ./internal/app/...`
+- **Verify-Gates Registry/Groups + Macro AUTO + Planner (20.03.2026):**  
+  `GOTOOLCHAIN=local go test ./internal/connectors/orchestrator -run TestPlanner`  
+  `GOTOOLCHAIN=local go test ./internal/services/market -run "TestQuoteClient_|TestMacroService_"`  
+  `GOTOOLCHAIN=local go test ./internal/router/adaptive ./internal/handlers/http ./internal/app -run "TestRouter_|TestMacroHistoryHandler_|TestMacroIngestRunOnce_|NewServerFromEnv"`  
+  `GOTOOLCHAIN=local go build ./internal/connectors/orchestrator ./internal/services/market ./internal/router/adaptive ./internal/handlers/http ./internal/app`  
+  `GOTOOLCHAIN=local golangci-lint run ./internal/connectors/orchestrator/... ./internal/services/market/... ./internal/router/adaptive/... ./internal/handlers/http/... ./internal/app/...`
+- **Verify-Gates PythonIPC Registry Bridge (20.03.2026):**  
+  `GOTOOLCHAIN=local go test ./internal/connectors/ipc ./internal/connectors/indicatorservice ./internal/connectors/agentservice ./internal/connectors/memory ./internal/connectors/financebridge`  
+  `GOTOOLCHAIN=local go test ./internal/app -run NewServerFromEnv`  
+  `GOTOOLCHAIN=local go build ./internal/connectors/ipc ./internal/connectors/indicatorservice ./internal/connectors/agentservice ./internal/connectors/memory ./internal/connectors/financebridge ./internal/app`  
+  `GOTOOLCHAIN=local golangci-lint run ./internal/connectors/ipc/... ./internal/connectors/indicatorservice/... ./internal/connectors/agentservice/... ./internal/connectors/memory/... ./internal/connectors/financebridge/... ./internal/app/...`
+- **Verify-Gates Shared Orchestrator Execution Layer (20.03.2026):**  
+  `go test ./internal/connectors/orchestrator ./internal/services/market -run "Test(Planner|Execute|QuoteClient_|NewsService_)"`  
+  `go build ./internal/connectors/orchestrator ./internal/services/market ./internal/handlers/http ./internal/app`  
+  `golangci-lint run ./internal/connectors/orchestrator/... ./internal/services/market/... ./internal/handlers/http/... ./internal/app/...`
+- **Verify-Gates Stream/Depth Planner Path (20.03.2026):**  
+  `go test ./internal/services/market -run "Test(StreamClient_|DepthClient_)"`  
+  `go test ./internal/handlers/http -run "TestOrderbook|TestQuote"`  
+  `go test ./internal/handlers/sse -run "Test(MarketStream|OrderbookStream)"`  
+  `go test ./internal/app -run NewServerFromEnv`  
+  `go build ./internal/services/market ./internal/handlers/http ./internal/handlers/sse ./internal/app`  
+  `golangci-lint run ./internal/services/market/... ./internal/handlers/http/... ./internal/handlers/sse/... ./internal/app/...`
+- **Verify-Gates SymbolCatalog + Yahoo Registry Path (20.03.2026):**  
+  `go test ./internal/connectors/symbolcatalog -run "TestClient_"`  
+  `go test ./internal/connectors/yahoo -run "TestClient"`  
+  `go test ./internal/handlers/http -run "Test(SearchHandler|FinanceBridgeQuoteFallbackHandler|OHLCVHandler)"`  
+  `go test ./internal/app -run NewServerFromEnv`  
+  `go build ./internal/connectors/symbolcatalog ./internal/connectors/yahoo ./internal/handlers/http ./internal/app`  
+  `golangci-lint run ./internal/connectors/symbolcatalog/... ./internal/connectors/yahoo/... ./internal/handlers/http/... ./internal/app/...`
+- **Verify-Gates Timeseries Provider-Namespace Batch (20.03.2026):**  
+  `go test ./internal/services/market -run "Test(RoutedMacroClient_|MacroService_|QuoteClient_)"`  
+  `go test ./internal/app -run NewServerFromEnv`  
+  `go build ./internal/services/market`  
+  `go build ./internal/app`  
+  `golangci-lint run ./internal/services/market/...`  
+  `golangci-lint run ./internal/app/...`
+- **Verify-Gates Timeseries OFR/NYFED Coverage Batch (21.03.2026):**  
+  `go test ./internal/services/market -run "TestResolveMacroSeries_DefaultAliases" -count=1`  
+  `go test ./internal/services/market -run "TestQuoteClient_(RoutesFredToMacroClient|RoutesNyfedToMacroClient|RoutesBojWithPolicyAlias|AutoFailoverForCrypto|AutoFailoverLatencyFirstRunsProvidersConcurrently|AutoFailoverLatencyFirstHonorsGroupConcurrencyBudget)" -count=1`  
+  `go test ./internal/services/market -run "TestMacroService_(History_Fred|History_OfrSeriesPrefix|History_AutoMacroUsesAdaptiveCandidates|History_AutoMacroFallsBackAndRecordsFailure)" -count=1`  
+  `go build ./internal/services/market ./internal/app`  
+  `golangci-lint run ./internal/services/market/... ./internal/app/...`
+- **Verify-Gates Python-Ingest IPC Scaffold (21.03.2026):**  
+  `go test ./internal/connectors/ingestservice -run "TestClient_"`  
+  `go build ./internal/connectors/ingestservice ./internal/connectors/registry`  
+  `golangci-lint run ./internal/connectors/ingestservice/... ./internal/connectors/registry/...`
+- [x] **Go-Gateway Quality Gates (20.03.2026):** `golangci-lint run ./...`,
+  `go build ./...` und gruppierte `go test`-/`go test -race`-Laeufe fuer
+  `internal/connectors`, `internal/handlers`, `internal/services`, restliches
+  `internal`, `pkg` und `cmd` sind gruen
+- [x] **Go-Toolchain-/Vuln-Gate geschlossen:** Toolchain auf `go1.26.1`
+  angehoben; `govulncheck ./...` findet keine Vulnerabilities mehr
+
+- [~] **Go-Fetching-Ist-Zustand eingeordnet:** strukturierte Quellen laufen
+  bereits ueber einen aktiven Base-Layer (`http_client`, `retry`,
+  `ratelimit`, `error_classification`, `capabilities`, `sdmx_client`,
+  `timeseries`, `bulk_fetcher`, `rss_client`, `diff_watcher`, `translation`,
+  `oracle_client`) und viele Provider-Pakete; die Aggregationsarbeit braucht
+  daher Registry-/Gruppen-Konsolidierung statt eines kompletten Resets
+- [~] **Provider-Gruppen fuer die Data Plane explizit ziehen:** `rest`, `ws`,
+  `sdmx`, `timeseries`, `bulk`, `rss`, `diff`, `translation`, `oracle`,
+  `pythonipc`; `config/provider-router.yaml` und `adaptive.Router` tragen jetzt
+  bereits kanonische Gruppen statt nur der alten `g*`-Labels; die
+  Gruppen-Normalisierung liegt jetzt explizit in `internal/connectors/groups`,
+  inklusive erster Gruppen-Policies (`max_concurrency`, `retry_profile`)
+- [~] **Provider-Descriptoren vorbereiten:** YAML-/JSON-Metadaten fuer
+  Gruppe, Auth-Modus, Capabilities, Rate-/Retry-Klasse, Enablement,
+  Fallback-Ketten und Coverage; Parser- und Normalisierungslogik bleibt Code;
+  erster expliziter Descriptor-/Registry-Unterbau liegt jetzt in
+  `internal/connectors/registry`, und der adaptive Router konsumiert diese
+  Registry statt die Descriptor-Schicht nur implizit mitzutragen
+- [~] **Neue Quellen nur noch group-/registry-aware:** `fred`, `worldbank`,
+  `imf`, `oecd`, `banxico`, `bok`, `rbi`, `bcb`, `bcra`, `tcmb`, `ecb` bleiben
+  als eigene Provider-Raender zulaessig, sollen aber nicht mehr als
+  vollstaendige Copy-Paste-Ministapel entstehen; `news_service` laeuft mit
+  `news_headlines` (`gdelt`, `rss`, `finviz`) jetzt bereits ueber denselben
+  Registry-/Planner-Pfad statt ad-hoc Calllisten; `stream_client` und
+  `depth_client` respektieren jetzt dieselbe Registry-/Planner-Schicht fuer
+  `AUTO`-Auswahl vor dem GCT-Upstream
+- [~] **Fetching-Parallelitaet fuer 100+ Quellen haerten:** zusaetzlich zum
+  bestehenden Base-Layer `errgroup`, `semaphore` und `x/time/rate` fuer
+  gruppenweite Parallelitaets- und Quotensteuerung vorsehen; nicht nur
+  einzelclient-nahe Warte-Logik; `x/time/rate` ist jetzt im Base-Layer aktiv,
+  erster gruppenweiter Fanout ueber `errgroup`/`semaphore` laeuft im
+  Market-Quote-Pfad fuer `latency_first` und respektiert jetzt Gruppen-Budgets
+  aus Registry/YAML; `macro/history` nutzt denselben Registry-/Router-Pfad
+  jetzt fuer `exchange=AUTO` und zieht Makro- gegenueber Forex-Zielpfaden
+  ueber dieselbe Gruppen-/Provider-Schicht; die gemeinsame
+  Candidate-/Strategie-/Concurrency-Planung liegt jetzt explizit in
+  `internal/connectors/orchestrator/planner.go`; die wiederverwendbare
+  First-success-/Collect-all-Ausfuehrung fuer fanout-faehige Providerpfade
+  liegt jetzt zusaetzlich in `internal/connectors/orchestrator/executor.go`
+  statt in separaten Service-Hilfsfunktionen
+- [x] **Authority-Order fuer Daten-Fallbacks gehaertet:**
+  bei gleichem Provider-Score bleibt die konfigurierte Reihenfolge in
+  `asset_classes.providers` jetzt erhalten; das verhindert alphabetische
+  Umbrueche in Makro-/Timeseries-Fallbacks und macht `authority_first`
+  fuer Datenquellen deterministisch
+- [~] **Python-IPC als Datenpfad vereinheitlichen:** `financebridge` ist
+  Referenz fuer `gRPC/IPC-first + HTTP fallback`; `agentservice`, `memory`,
+  `indicatorservice` und spaeter `python-ingest` sollen denselben Stil
+  uebernehmen; `indicatorservice`, `agentservice` und `memory` nutzen das
+  IPC-Muster jetzt bereits; fuer `python-ingest` liegt jetzt zumindest der
+  Go-seitige registry-aware Connector-Scaffold `internal/connectors/ingestservice`
+  vor, ohne schon einen Always-on-Runtimepfad zu behaupten; der gemeinsame
+  `ipc.Client` ist jetzt registry-aware (`ipc.ConfigWithRegistry`)
+  und setzt fuer interne Python-Bridge-Requests
+  Provider-/Group-/Retry-/Bridge-Metadaten, waehrend `wiring.go` dieselbe
+  Connector-Registry sowohl fuer den adaptiven Router als auch fuer
+  `indicatorservice`, `memory` und `agentservice` verwendet
+- [ ] **`python-agent -> python-ingest` als Daten-Write-Pfad festziehen:**
+  Memory-/RAG-/GraphRAG-Ingestion soll spaeter direkt zwischen diesen beiden
+  Python-Domains laufen koennen; Go bleibt dafuer nicht der Pflicht-Hop im
+  internen Hot Path
+- [ ] **`python-compute -> python-ingest` als optionaler Producer-Pfad
+  modellieren:** Compute-/Feature-/Batch-Artefakte duerfen spaeter ueber
+  denselben `pythonipc`-Stil in die Ingest-/Indexing-Plane fliessen, aber nur
+  als klarer Producer-Use-Case statt als allgemeine neue Kopplung
+- [ ] **Go nur fuer externe Ingest-Steuerung:** Browser/Admin/API-getriggerte
+  Reindex-/Seed-/Backfill-Aufrufe laufen weiter ueber `Next -> Go ->
+  python-ingest`, waehrend interne Python-Write-Pfade direkt bleiben duerfen
+- [x] **`financebridge` als reinen Daten-Fetch-Sonderpfad fuer den
+  Markt-Strang abgebaut (Option 2):** `market/search`, `quote/fallback` und
+  `ohlcv` laufen jetzt nativ im Go-Gateway; `financebridge` ist fuer reines
+  Quote-/OHLCV-/Search-Fetching kein Pflichtpfad mehr und nur noch optionaler
+  Legacy-/Bootstrap-Kandidat
+- [~] **Erster Option-2-Cut umgesetzt:** `market/search` laeuft im Gateway
+  jetzt nativ ueber `symbolcatalog`; verbleibende Fetch-Restpfade in
+  `financebridge` waren vor allem `quote/fallback` und `ohlcv`
+- [~] **Zweiter Option-2-Cut umgesetzt:** `quote/fallback` laeuft jetzt nativ
+  ueber einen Go-`yahoo`-Connector; als reiner Python-Fetch-Restpfad bleibt in
+  diesem Strang aktuell vor allem `ohlcv`
+- [x] **Dritter Option-2-Cut umgesetzt:** `ohlcv` laeuft jetzt ebenfalls nativ
+  ueber den Go-`yahoo`-Connector; damit ist `financebridge` aus dem reinen
+  Markt-Fetch-Strang entfernt und nur noch optionaler Legacy-/Bootstrap-
+  Bridge-Kandidat
+- [x] **Router-Authority vor Provider-Fallbacks durchgesetzt:** wenn eine
+  Asset-Klasse im adaptiven Router explizit konfiguriert ist, erweitert die
+  Allowlist diese Klasse nicht mehr implizit; verhindert stille Fremdprovider
+  in `latency_first`-/Authority-Pfaden
+- [ ] **Rust-Datenpfad bewusst unveraendert lassen:** `python-compute` und
+  `python-agent` konsumieren `rust_core` weiter via PyO3; direkter Go↔Rust-
+  Datenpfad bleibt spaeterer Hot-Path-Trigger, nicht heutige Baseline
+
+### E2. Finish-Kriterien Go Fetching / Registry / Data Plane
+
+- [x] **Go-Fetching-Basis sitzt:** Base-Layer, Gruppen, Registry, Router,
+  Planner und Executor sind jetzt reale Bausteine statt lose Leitidee
+- [x] **Primäre Marktpfade sitzen auf demselben Standard:** `quote`,
+  `macro/history`, `news`, `stream`, `depth` nutzen Registry-/Planner-Logik
+  statt weitere ad-hoc Fanout-/Fallback-Helfer zu tragen
+- [x] **PythonIPC ist in die Data Plane eingehaengt:** `indicatorservice`,
+  `agentservice`, `memory` und `financebridge` sind registry-aware am
+  gemeinsamen IPC-Rand
+- [x] **Option-2-Markt-Fetch durchgezogen:** `search`, `quote/fallback`,
+  `ohlcv` sind aus dem reinen Python-Fetch-Strang entfernt
+- [~] **`symbolcatalog` als aktiver Such-/Symbolpfad voll einordnen:** der
+  Pfad ist jetzt nicht nur Go-nativ, sondern auch im Descriptor-/Group-Standard
+  der Data Plane sichtbar; offen bleibt nur noch die spaetere Anbindung an
+  denselben aktiven Asset-Class-/Planungsstandard wie fanout-faehige Providerpfade
+- [~] **`yahoo`-Pfad voll in die Registry-Data-Plane einhaengen:** der
+  native `quote/fallback`-/`ohlcv`-Pfad ist jetzt im Descriptor-/Group-Modell
+  und in `provider-router.yaml` sichtbar; offen bleibt nur noch, ihn spaeter
+  gleich tief wie die groesseren Providerfamilien an den Planungsstandard zu binden
+- [~] **`timeseries`-/Authority-Familie weiter vereinheitlichen:** neue
+  Makro-/Authority-Quellen wachsen jetzt bereits ueber provider-benannte
+  Registrierungen im `RoutedMacroClient` und die aktiven Provider `ofr`/`nyfed`
+  sind im `provider-router.yaml` sichtbar; offen bleibt die weitere Reduktion
+  loserer Prefix-/Alias-Sonderfaelle zugunsten eines noch klareren
+  provider-zentrierten Erweiterungspfads
+- [~] **`python-ingest` an denselben IPC-/Registry-Standard anschliessen:**
+  der Go-seitige registry-aware Connector-Scaffold `internal/connectors/ingestservice`
+  plus Provider-Descriptor ist vorhanden, ohne schon einen Always-on-
+  Runtimepfad zu behaupten; Zielbild bleibt: `python-agent -> python-ingest`
+  direkt fuer Write/ingest, `python-compute -> python-ingest` optional als
+  Producer, `Go -> python-ingest` fuer externe Trigger/Governance
+- [ ] **Descriptor-Abdeckung fuer aktive Datenpfade vollstaendig machen:**
+  produktiv genutzte News-, Market-, Macro-, Stream-, Depth- und PythonIPC-
+  Provider muessen im `provider-router.yaml`/Registry-Modell sichtbar sein
+- [ ] **Go-Data-Aggregation-Teil erst dann finished:** wenn `symbolcatalog`,
+  `yahoo`, `timeseries`-Familie und `python-ingest` geschlossen sind und die
+  jeweiligen granularen Verify-Gates pro Batch gruen bleiben
 
 **Phase 22g Quality Pass — ml_ai Merge + Rust Agent Hotpaths (18.03.2026)**
 

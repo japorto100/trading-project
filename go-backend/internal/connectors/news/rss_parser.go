@@ -3,6 +3,7 @@ package news
 import (
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -24,7 +25,7 @@ type rssDocument struct {
 func parseRSS(reader io.Reader, source string, maxItems int) ([]marketServices.Headline, error) {
 	var doc rssDocument
 	if err := xml.NewDecoder(reader).Decode(&doc); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode rss payload for %s: %w", source, err)
 	}
 
 	if maxItems <= 0 {

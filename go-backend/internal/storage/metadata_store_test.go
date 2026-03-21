@@ -14,8 +14,8 @@ func TestSQLiteMetadataStoreCreateGetAndComplete(t *testing.T) {
 		t.Fatalf("new store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
@@ -32,8 +32,8 @@ func TestSQLiteMetadataStoreCreateGetAndComplete(t *testing.T) {
 		ExpiresAt:      createdAt.Add(15 * time.Minute),
 	}
 
-	if err := store.Create(artifact); err != nil {
-		t.Fatalf("create artifact: %v", err)
+	if createErr := store.Create(artifact); createErr != nil {
+		t.Fatalf("create artifact: %v", createErr)
 	}
 
 	got, err := store.Get("art_123")
@@ -44,12 +44,12 @@ func TestSQLiteMetadataStoreCreateGetAndComplete(t *testing.T) {
 		t.Fatalf("object key = %q, want %q", got.ObjectKey, artifact.ObjectKey)
 	}
 
-	if err := store.MarkUploaded("art_123", UploadResult{
+	if uploadErr := store.MarkUploaded("art_123", UploadResult{
 		SizeBytes:  12,
 		SHA256Hex:  "abc123",
 		UploadedAt: createdAt.Add(time.Minute),
-	}); err != nil {
-		t.Fatalf("mark uploaded: %v", err)
+	}); uploadErr != nil {
+		t.Fatalf("mark uploaded: %v", uploadErr)
 	}
 
 	got, err = store.Get("art_123")
@@ -75,8 +75,8 @@ func TestSQLiteMetadataStoreCreateGetAndUpdateSourceSnapshot(t *testing.T) {
 		t.Fatalf("new store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
@@ -104,8 +104,8 @@ func TestSQLiteMetadataStoreCreateGetAndUpdateSourceSnapshot(t *testing.T) {
 		UpdatedAt:      fetchedAt,
 	}
 
-	if err := store.CreateSourceSnapshot(snapshot); err != nil {
-		t.Fatalf("create source snapshot: %v", err)
+	if createErr := store.CreateSourceSnapshot(snapshot); createErr != nil {
+		t.Fatalf("create source snapshot: %v", createErr)
 	}
 
 	got, err := store.GetSourceSnapshot(snapshot.ID)
@@ -123,8 +123,8 @@ func TestSQLiteMetadataStoreCreateGetAndUpdateSourceSnapshot(t *testing.T) {
 	}
 
 	updatedAt := fetchedAt.Add(5 * time.Minute)
-	if err := store.MarkSourceSnapshotStatus(snapshot.ID, SourceSnapshotNormalized, "v2", "", updatedAt); err != nil {
-		t.Fatalf("mark source snapshot status: %v", err)
+	if markErr := store.MarkSourceSnapshotStatus(snapshot.ID, SourceSnapshotNormalized, "v2", "", updatedAt); markErr != nil {
+		t.Fatalf("mark source snapshot status: %v", markErr)
 	}
 
 	got, err = store.GetSourceSnapshot(snapshot.ID)
@@ -150,8 +150,8 @@ func TestSQLiteMetadataStoreListAndGetLatestSourceSnapshots(t *testing.T) {
 		t.Fatalf("new store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
@@ -192,8 +192,8 @@ func TestSQLiteMetadataStoreListAndGetLatestSourceSnapshots(t *testing.T) {
 	}
 
 	for _, snapshot := range snapshots {
-		if err := store.CreateSourceSnapshot(snapshot); err != nil {
-			t.Fatalf("create source snapshot %s: %v", snapshot.ID, err)
+		if createErr := store.CreateSourceSnapshot(snapshot); createErr != nil {
+			t.Fatalf("create source snapshot %s: %v", snapshot.ID, createErr)
 		}
 	}
 

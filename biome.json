@@ -69,6 +69,21 @@
 			"trailingCommas": "all"
 		}
 	},
+	"overrides": [
+		{
+			"includes": ["src/app/api/**", "src/lib/server/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noConsole": {
+							"level": "warn",
+							"options": { "allow": ["error", "warn"] }
+						}
+					}
+				}
+			}
+		}
+	],
 	"assist": {
 		"enabled": true,
 		"actions": {

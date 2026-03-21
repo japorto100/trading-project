@@ -300,5 +300,8 @@ func decodeJSONBody(r *http.Request, out any) error {
 	if len(body) == 0 {
 		return nil
 	}
-	return json.Unmarshal(body, out)
+	if err := json.Unmarshal(body, out); err != nil {
+		return fmt.Errorf("decode json body: %w", err)
+	}
+	return nil
 }

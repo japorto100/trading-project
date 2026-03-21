@@ -4,6 +4,7 @@ import { getGeoMapBodyBasemapFeatures } from "@/features/geopolitical/bodies";
 import type { CountryRegimeState } from "@/features/geopolitical/d3/scales";
 import { getRenderableBodyPointLayers } from "@/features/geopolitical/layers/bodyPointLayerCatalog";
 import type { BodyPointLayerPoint } from "@/features/geopolitical/layers/bodyPointLayers";
+import { getMarkerSymbolShortCode } from "@/features/geopolitical/markerSymbols";
 import type { GeoMapBody } from "@/features/geopolitical/store";
 import type { GeoCandidate, GeoDrawing, GeoEvent } from "@/lib/geopolitical/types";
 
@@ -277,7 +278,7 @@ export function useGeoMapProjectionModel({
 			accumulator.push({
 				id: event.id,
 				symbol: event.symbol,
-				shortLabel: event.symbol.slice(0, 2).toUpperCase(),
+				shortLabel: getMarkerSymbolShortCode(event.symbol),
 				lat: firstCoordinate.lat,
 				lng: firstCoordinate.lng,
 				x: projected[0],

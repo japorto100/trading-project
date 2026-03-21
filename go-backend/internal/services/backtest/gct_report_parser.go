@@ -24,7 +24,7 @@ func extractGCTReportResult(reportDir, strategyName string, startedAt time.Time)
 
 	body, err := os.ReadFile(reportPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read gct report file %s: %w", reportPath, err)
 	}
 	return parseGCTReportHTML(string(body)), nil
 }
@@ -37,7 +37,7 @@ func locateGCTReportFile(reportDir, strategyName string, startedAt time.Time) (s
 
 	entries, err := os.ReadDir(directory)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("read gct report directory %s: %w", directory, err)
 	}
 
 	strategyNeedle := strings.ToLower(strings.TrimSpace(strategyName))
@@ -189,7 +189,11 @@ func parseFlexibleFloat(value string) (float64, error) {
 	if normalized == "" {
 		return 0, fmt.Errorf("empty numeric value")
 	}
-	return strconv.ParseFloat(normalized, 64)
+	parsed, err := strconv.ParseFloat(normalized, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse float value %q: %w", normalized, err)
+	}
+	return parsed, nil
 }
 
 func parseFirstInt(value string) (int, error) {
@@ -200,7 +204,7 @@ func parseFirstInt(value string) (int, error) {
 	normalized := strings.TrimSpace(strings.ReplaceAll(matched, ",", ""))
 	parsed, err := strconv.Atoi(normalized)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("parse integer value %q: %w", normalized, err)
 	}
 	return parsed, nil
 }

@@ -78,8 +78,11 @@ export async function POST(request: Request) {
 	let recoveryCodes: string[] = [];
 
 	try {
-		recoveryCodes = Array.from({ length: 8 }, () =>
-			crypto.randomUUID().split("-")[0].toUpperCase(),
+		recoveryCodes = Array.from(
+			{ length: 8 },
+			() =>
+				crypto.randomUUID().split("-")[0]?.toUpperCase() ??
+				crypto.randomUUID().slice(0, 8).toUpperCase(),
 		);
 		const response = await fetch(`${getGoGatewayUrl()}/api/v1/auth/owner/register`, {
 			method: "POST",

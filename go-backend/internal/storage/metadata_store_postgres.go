@@ -60,7 +60,10 @@ func (s *PostgresMetadataStore) Close() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
-	return s.db.Close()
+	if err := s.db.Close(); err != nil {
+		return fmt.Errorf("close postgres metadata db: %w", err)
+	}
+	return nil
 }
 
 func (s *PostgresMetadataStore) Create(artifact Artifact) error {

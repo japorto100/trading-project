@@ -64,3 +64,6 @@
 [submodule "_tmp_ref_review/math/kand"]
 	path = _tmp_ref_review/math/kand
 	url = https://github.com/rust-ta/kand
+[submodule "_tmp_ref_review/geo/worldmonitor"]
+	path = _tmp_ref_review/geo/worldmonitor
+	url = https://github.com/abhigyanpatwari/worldmonitor.git

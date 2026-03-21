@@ -142,7 +142,7 @@ func (c *WebsocketClient) connectInternal(ctx context.Context, retryCount int) e
 }
 
 // WriteJSON sends a JSON encoded message to the websocket concurrently safe.
-func (c *WebsocketClient) WriteJSON(v interface{}) error {
+func (c *WebsocketClient) WriteJSON(v any) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -151,7 +151,10 @@ func (c *WebsocketClient) WriteJSON(v interface{}) error {
 	}
 
 	_ = c.conn.SetWriteDeadline(time.Now().Add(c.config.WriteWait))
-	return c.conn.WriteJSON(v)
+	if err := c.conn.WriteJSON(v); err != nil {
+		return fmt.Errorf("write websocket json message: %w", err)
+	}
+	return nil
 }
 
 // WriteMessage sends a raw message to the websocket concurrently safe.
@@ -164,7 +167,10 @@ func (c *WebsocketClient) WriteMessage(messageType int, data []byte) error {
 	}
 
 	_ = c.conn.SetWriteDeadline(time.Now().Add(c.config.WriteWait))
-	return c.conn.WriteMessage(messageType, data)
+	if err := c.conn.WriteMessage(messageType, data); err != nil {
+		return fmt.Errorf("write websocket message type %d: %w", messageType, err)
+	}
+	return nil
 }
 
 // Close gracefully closes the websocket connection.

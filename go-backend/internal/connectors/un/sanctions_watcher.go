@@ -5,6 +5,7 @@ package un
 
 import (
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -75,7 +76,7 @@ func NewSanctionsWatcher(storePath string, httpClient *http.Client) *base.DiffWa
 func parseUNSanctionsXML(r io.Reader) ([]map[string]any, error) {
 	var list UNConsolidatedList
 	if err := xml.NewDecoder(r).Decode(&list); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode un sanctions xml: %w", err)
 	}
 	result := make([]map[string]any, 0, len(list.Individuals.Individual)+len(list.Entities.Entity))
 	for _, e := range list.Individuals.Individual {

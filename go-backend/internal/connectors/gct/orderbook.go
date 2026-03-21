@@ -9,7 +9,6 @@ import (
 	"tradeviewfusion/go-backend/internal/contracts"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	gctrpc "github.com/thrasher-corp/gocryptotrader/gctrpc"
 )
 
@@ -134,12 +133,4 @@ func fromGRPCOrderbookItems(items []*gctrpc.OrderbookItem) []contracts.Orderbook
 		})
 	}
 	return levels
-}
-
-func marketTargetAssetItem(value string) asset.Item {
-	item, err := asset.New(strings.ToLower(strings.TrimSpace(value)))
-	if err != nil {
-		return asset.Empty
-	}
-	return item
 }

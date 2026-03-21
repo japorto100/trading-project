@@ -7,6 +7,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // 1. Stable React Compiler (SOTA 2026 Standard)
   reactCompiler: true,
+  typedRoutes: true,
+  transpilePackages: ["resium"],
 
   // 2. Unified Caching Model (Next.js 16)
   // Standard in SOTA 2026: Everything is dynamic by default.
@@ -33,6 +35,9 @@ const nextConfig: NextConfig = {
 
   // 5. Interface & Security
   reactStrictMode: true,
+  env: {
+    CESIUM_BASE_URL: "/cesium",
+  },
   typescript: {
     ignoreBuildErrors: false,
   },

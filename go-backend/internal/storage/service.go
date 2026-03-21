@@ -105,7 +105,7 @@ func (s *Service) CreateArtifact(ctx context.Context, input CreateArtifactInput)
 		ExpiresAt:      now.Add(s.ttl),
 	}
 	if err := s.store.Create(artifact); err != nil {
-		return Artifact{}, err
+		return Artifact{}, fmt.Errorf("create artifact metadata %s: %w", artifact.ID, err)
 	}
 	return artifact, nil
 }
@@ -113,7 +113,7 @@ func (s *Service) CreateArtifact(ctx context.Context, input CreateArtifactInput)
 func (s *Service) IssueUploadURL(artifactID, baseURL string) (SignedURL, error) {
 	artifact, err := s.store.Get(artifactID)
 	if err != nil {
-		return SignedURL{}, err
+		return SignedURL{}, fmt.Errorf("load artifact %s for upload url: %w", artifactID, err)
 	}
 	if artifact.Status != StatusPendingUpload {
 		return SignedURL{}, ErrArtifactUploadState
@@ -124,7 +124,7 @@ func (s *Service) IssueUploadURL(artifactID, baseURL string) (SignedURL, error) 
 func (s *Service) IssueDownloadURL(artifactID, baseURL string) (SignedURL, error) {
 	artifact, err := s.store.Get(artifactID)
 	if err != nil {
-		return SignedURL{}, err
+		return SignedURL{}, fmt.Errorf("load artifact %s for download url: %w", artifactID, err)
 	}
 	if artifact.Status != StatusReady {
 		return SignedURL{}, ErrArtifactNotReady
@@ -135,7 +135,7 @@ func (s *Service) IssueDownloadURL(artifactID, baseURL string) (SignedURL, error
 func (s *Service) GetArtifact(artifactID string) (Artifact, error) {
 	artifact, err := s.store.Get(artifactID)
 	if err != nil {
-		return Artifact{}, err
+		return Artifact{}, fmt.Errorf("load artifact %s: %w", artifactID, err)
 	}
 	if artifact.Status == StatusReady {
 		token, err := s.signer.Issue(TokenClaims{
@@ -163,22 +163,25 @@ func (s *Service) UploadArtifact(ctx context.Context, artifactID, token, content
 	}
 	artifact, err := s.store.Get(artifactID)
 	if err != nil {
-		return err
+		return fmt.Errorf("load artifact %s for upload: %w", artifactID, err)
 	}
 	if artifact.Status != StatusPendingUpload {
 		return ErrArtifactUploadState
 	}
-	if strings.TrimSpace(contentType) == "" {
-		contentType = artifact.ContentType
+	if providedType := strings.TrimSpace(contentType); providedType != "" && artifact.ContentType != "" && !strings.EqualFold(providedType, artifact.ContentType) {
+		return fmt.Errorf("upload content type mismatch: got %q want %q", providedType, artifact.ContentType)
 	}
 	result, err := s.provider.Put(ctx, artifact.ObjectKey, body)
 	if err != nil {
-		return err
+		return fmt.Errorf("store artifact object %s: %w", artifact.ObjectKey, err)
 	}
 	if result.UploadedAt.IsZero() {
 		result.UploadedAt = s.nowFunc().UTC()
 	}
-	return s.store.MarkUploaded(artifactID, result)
+	if err := s.store.MarkUploaded(artifactID, result); err != nil {
+		return fmt.Errorf("mark artifact %s uploaded: %w", artifactID, err)
+	}
+	return nil
 }
 
 func (s *Service) OpenDownload(ctx context.Context, artifactID, token string) (Artifact, io.ReadCloser, error) {
@@ -188,14 +191,14 @@ func (s *Service) OpenDownload(ctx context.Context, artifactID, token string) (A
 	}
 	artifact, err := s.store.Get(artifactID)
 	if err != nil {
-		return Artifact{}, nil, err
+		return Artifact{}, nil, fmt.Errorf("load artifact %s for download: %w", artifactID, err)
 	}
 	if artifact.Status != StatusReady {
 		return Artifact{}, nil, ErrArtifactNotReady
 	}
 	reader, err := s.provider.Get(ctx, artifact.ObjectKey)
 	if err != nil {
-		return Artifact{}, nil, err
+		return Artifact{}, nil, fmt.Errorf("open artifact object %s: %w", artifact.ObjectKey, err)
 	}
 	return artifact, reader, nil
 }

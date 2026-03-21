@@ -112,7 +112,7 @@ govulncheck ./...
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (36017 symbols, 107371 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (199581 symbols, 611987 relationships, 300 execution flows).
 
 ## Always Start Here
 

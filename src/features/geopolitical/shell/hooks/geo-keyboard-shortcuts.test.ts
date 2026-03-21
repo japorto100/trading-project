@@ -1,10 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
+import type { DrawingMode } from "@/features/geopolitical/drawing/types";
 import {
 	type GeoKeyboardShortcutParams,
 	handleGeoKeyboardShortcutEvent,
 	shouldIgnoreGeoShortcutTarget,
 } from "@/features/geopolitical/shell/hooks/geo-keyboard-shortcuts";
-import type { DrawingMode } from "@/features/geopolitical/shell/types";
 
 function createParams(
 	overrides: Partial<GeoKeyboardShortcutParams> = {},

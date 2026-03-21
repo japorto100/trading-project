@@ -32,6 +32,7 @@ export function verifyPassword(password: string, encodedHash: string): boolean {
 	const parts = encodedHash.split("$");
 	if (parts.length !== 6) return false;
 	const [prefix, nRaw, rRaw, pRaw, saltB64, hashB64] = parts;
+	if (!prefix || !nRaw || !rRaw || !pRaw || !saltB64 || !hashB64) return false;
 	if (prefix !== HASH_PREFIX) return false;
 
 	const N = Number.parseInt(nRaw, 10);

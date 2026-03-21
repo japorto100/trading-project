@@ -126,7 +126,7 @@ func (c *Client) GetTicker(ctx context.Context, pair currency.Pair, assetType as
 	}
 	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, "/quote", query, nil)
 	if err != nil {
-		return gct.Ticker{}, err
+		return gct.Ticker{}, fmt.Errorf("build finnhub quote request for %s: %w", symbol, err)
 	}
 
 	ticker, err := c.doTickerRequest(req)

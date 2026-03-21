@@ -2,6 +2,7 @@ package finnhub
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -51,8 +52,8 @@ func TestGetTicker_RejectsMissingKey(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	requestErr, ok := err.(*gct.RequestError)
-	if !ok {
+	var requestErr *gct.RequestError
+	if !errors.As(err, &requestErr) {
 		t.Fatalf("expected *gct.RequestError, got %T", err)
 	}
 	if requestErr.StatusCode != http.StatusUnauthorized {
@@ -93,8 +94,8 @@ func TestGetTicker_RejectsUnsupportedAssetType(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	requestErr, ok := err.(*gct.RequestError)
-	if !ok {
+	var requestErr *gct.RequestError
+	if !errors.As(err, &requestErr) {
 		t.Fatalf("expected *gct.RequestError, got %T", err)
 	}
 	if requestErr.StatusCode != http.StatusBadRequest {
@@ -179,8 +180,8 @@ func TestOpenTradeStream_RejectsMissingKey(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	requestErr, ok := err.(*gct.RequestError)
-	if !ok {
+	var requestErr *gct.RequestError
+	if !errors.As(err, &requestErr) {
 		t.Fatalf("expected *gct.RequestError, got %T", err)
 	}
 	if requestErr.StatusCode != http.StatusUnauthorized {

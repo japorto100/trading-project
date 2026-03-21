@@ -28,6 +28,9 @@ func TestResolveMacroSeries_DefaultAliases(t *testing.T) {
 		{exchange: "IMF", symbol: "POLICY_RATE", want: DefaultImfPolicySeries},
 		{exchange: "IMF", symbol: "M_111_FITB", want: "IMF_IFS_M_111_FITB"},
 		{exchange: "IMF", symbol: "IMF_IFS_M_111_FITB", want: "IMF_IFS_M_111_FITB"},
+		{exchange: "OFR", symbol: "FSI", want: "OFR_FSI"},
+		{exchange: "NYFED", symbol: "DEFAULT", want: "NYFED_SOFR"},
+		{exchange: "NYFED", symbol: "EFFR", want: "NYFED_EFFR"},
 		{exchange: "BOJ", symbol: "JPNCPI", want: "JPNCPI"},
 	}
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type {
 	GeoFlatViewConflictHeatCell,
 	GeoFlatViewConflictZoneFeature,
-} from "@/features/geopolitical/flat-view-conflict-layers";
+} from "@/features/geopolitical/flat-view/flat-view-conflict-layers";
 import {
 	buildGeoCandidateSelectionDetail,
 	buildGeoConflictAssetSelectionDetail,

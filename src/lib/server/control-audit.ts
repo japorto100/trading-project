@@ -1,15 +1,11 @@
-// Server-only: write ControlAuditLog entries via Prisma (AC20).
-// Used by Control Surface BFF routes for bounded-write and approval-write actions.
-// Mirrors the writeFileAudit pattern — never throws.
-
 import type { ControlAction, ControlActionClass } from "@/features/control/lib/action-classes";
-import { getPrismaClient } from "@/lib/server/prisma";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 interface WriteControlAuditOptions {
 	action: ControlAction;
 	actionClass: ControlActionClass;
 	requestId: string;
-	target: string; // sessionId or resource identifier
+	target: string;
 	actorUserId?: string;
 	actorRole?: string;
 	status?: "ok" | "failed";
@@ -18,12 +14,15 @@ interface WriteControlAuditOptions {
 }
 
 export async function writeControlAudit(opts: WriteControlAuditOptions): Promise<void> {
-	const db = getPrismaClient();
-	if (!db) return;
-
 	try {
-		await db.controlAuditLog.create({
-			data: {
+		await fetch(new URL("/api/v1/control/audit", getGatewayBaseURL()), {
+			method: "POST",
+			cache: "no-store",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+			},
+			body: JSON.stringify({
 				action: opts.action,
 				actionClass: opts.actionClass,
 				actorUserId: opts.actorUserId ?? null,
@@ -32,11 +31,10 @@ export async function writeControlAudit(opts: WriteControlAuditOptions): Promise
 				target: opts.target,
 				status: opts.status ?? "ok",
 				errorCode: opts.errorCode ?? null,
-				expiresAt: opts.expiresAt ?? null,
-			},
+				expiresAt: opts.expiresAt?.toISOString() ?? null,
+			}),
 		});
 	} catch {
-		// Audit failure must never crash the primary request — log only.
 		console.error("[control-audit] Failed to write audit log", {
 			action: opts.action,
 			target: opts.target,

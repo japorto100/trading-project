@@ -39,7 +39,7 @@
 | React | `19` |
 | TanStack Query | `5.82.x` |
 | Auth.js / next-auth | `5.0.0-beta.30` |
-| Go | `1.26` |
+| Go | `1.26.1` |
 | Python | `>=3.11` (praktisch 3.12+ orientiert) |
 | FastAPI | `0.116.1` |
 | Rust Bridge | `maturin` + PyO3 crate `tradeviewfusion-rust-core` |
@@ -114,6 +114,9 @@ vorbereitet, aber noch nicht die dominante Alltags-Laufzeit des Systems.
 - request-scoped Provider-Credentials fuer read-only Providerpfade eingefuehrt
 - gemeinsame `MarketTarget`-/Resolver-Grenze fuer Quote / Orderbook / SSE read
 - BaseConnector-/Capability-/Retry-/Error-Class-Foundation vorhanden
+- Gateway-Qualitaetsbaseline aktuell gruen: `golangci-lint run ./...`,
+  `go build ./...`, gruppierte `go test`, gruppierte `go test -race` und
+  `govulncheck ./...`
 
 ### Python
 

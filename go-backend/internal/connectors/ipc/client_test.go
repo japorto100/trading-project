@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 )
 
 func TestClient_HTTPFallback(t *testing.T) {
@@ -72,6 +74,60 @@ func TestClient_PostJSON_HTTPFallback(t *testing.T) {
 	}
 	if string(body) != `{"received":true}` {
 		t.Errorf("unexpected response body: %q", string(body))
+	}
+}
+
+func TestClient_HTTPFallbackAddsRegistryHeaders(t *testing.T) {
+	var gotProvider string
+	var gotGroup string
+	var gotRetryProfile string
+	var gotBridgeMode string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotProvider = r.Header.Get("X-TVF-Connector-Provider")
+		gotGroup = r.Header.Get("X-TVF-Connector-Group")
+		gotRetryProfile = r.Header.Get("X-TVF-Retry-Profile")
+		gotBridgeMode = r.Header.Get("X-TVF-Bridge-Mode")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer server.Close()
+
+	reg := connectorregistry.New(connectorregistry.Config{
+		Groups: map[string]connectorregistry.GroupConfig{
+			"pythonipc": {RetryProfile: "internal_rpc"},
+		},
+		Providers: map[string]connectorregistry.ProviderConfig{
+			"indicatorservice": {
+				Group:        "pythonipc",
+				Bridge:       "grpc_http_fallback",
+				RetryProfile: "internal_rpc",
+			},
+		},
+		AssetClasses: map[string]connectorregistry.AssetClassConfig{
+			"placeholder": {Providers: []string{"indicatorservice"}, Strategy: "authority_first"},
+		},
+	})
+	client := NewClient(ConfigWithRegistry(reg, "indicatorservice", server.URL, "", 0))
+	defer client.Close()
+
+	status, _, err := client.Get(context.Background(), "/health", nil, nil)
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+	if status != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", status)
+	}
+	if gotProvider != "indicatorservice" {
+		t.Fatalf("expected provider header indicatorservice, got %q", gotProvider)
+	}
+	if gotGroup != "pythonipc" {
+		t.Fatalf("expected group header pythonipc, got %q", gotGroup)
+	}
+	if gotRetryProfile != "internal_rpc" {
+		t.Fatalf("expected retry profile internal_rpc, got %q", gotRetryProfile)
+	}
+	if gotBridgeMode != "grpc_http_fallback" {
+		t.Fatalf("expected bridge mode grpc_http_fallback, got %q", gotBridgeMode)
 	}
 }
 

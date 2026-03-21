@@ -2,7 +2,7 @@ package gdelt
 
 import (
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -73,9 +73,7 @@ func NewClient(cfg Config) *Client {
 	}
 
 	retries := cfg.RequestRetries
-	if retries < 0 {
-		retries = 0
-	}
+	retries = max(retries, 0)
 
 	return &Client{
 		baseURL:        strings.TrimSpace(baseURL),
@@ -125,7 +123,7 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 		if doErr != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("gdelt retry backoff canceled after transport failure: %w", ctx.Err())
 				}
 				continue
 			}
@@ -136,7 +134,7 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 			_ = resp.Body.Close()
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("gdelt retry backoff canceled after server error: %w", ctx.Err())
 				}
 				continue
 			}
@@ -151,7 +149,7 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 			_ = resp.Body.Close()
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("gdelt retry backoff canceled after decode failure: %w", ctx.Err())
 				}
 				continue
 			}
@@ -233,7 +231,7 @@ func buildQuery(query Query) string {
 
 func buildEventID(rawURL string, seenDate string, title string) string {
 	base := strings.TrimSpace(rawURL) + "|" + strings.TrimSpace(seenDate) + "|" + strings.TrimSpace(title)
-	sum := sha1.Sum([]byte(base))
+	sum := sha256.Sum256([]byte(base))
 	return "gdelt-" + hex.EncodeToString(sum[:])[:16]
 }
 

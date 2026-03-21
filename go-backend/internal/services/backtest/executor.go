@@ -2,6 +2,7 @@ package backtest
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -33,7 +34,7 @@ func (e *SimulatedExecutor) Execute(ctx context.Context, req RunRequest, _ strin
 		defer timer.Stop()
 		select {
 		case <-ctx.Done():
-			return ExecutionOutcome{}, ctx.Err()
+			return ExecutionOutcome{}, fmt.Errorf("simulated executor canceled: %w", ctx.Err())
 		case <-timer.C:
 		}
 	}

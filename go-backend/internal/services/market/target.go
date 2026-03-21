@@ -21,7 +21,3 @@ func normalizeMarketTarget(target contracts.MarketTarget) (string, currency.Pair
 	}
 	return normalized.Exchange, pair, item
 }
-
-func normalizeContractPair(pair contracts.Pair) contracts.Pair {
-	return pair.Normalized()
-}

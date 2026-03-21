@@ -107,13 +107,13 @@ func TestSDNWatcherRecordsSnapshotMetadataAndRawPayload(t *testing.T) {
 
 	snapshotID := filepath.Base(rawFiles[0])
 	snapshotID = snapshotID[:len(snapshotID)-len(filepath.Ext(snapshotID))]
-	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(tempDir, "state", "source-snapshots", "source_snapshots.db"))
+	metaStore, err := storage.NewSQLiteMetadataStore(filepath.Join(tempDir, "state", "source-snapshots", "ofac_meta.db"))
 	if err != nil {
 		t.Fatalf("open snapshot metadata store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := metaStore.Close(); err != nil {
-			t.Fatalf("close snapshot metadata store: %v", err)
+		if closeErr := metaStore.Close(); closeErr != nil {
+			t.Fatalf("close snapshot metadata store: %v", closeErr)
 		}
 	})
 

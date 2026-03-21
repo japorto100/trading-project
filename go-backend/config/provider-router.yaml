@@ -9,50 +9,114 @@ asset_classes:
     providers: [ecb]
     strategy: authority_first
   macro:
-    providers: [fred, fed, boj, snb, bcb, banxico, bok, bcra, tcmb, rbi, imf]
+    providers: [fred, fed, boj, snb, bcb, banxico, bok, bcra, tcmb, rbi, imf, oecd, worldbank, un, adb, ofr, nyfed]
     strategy: authority_first
+  news_headlines:
+    providers: [gdelt, rss, finviz]
+    strategy: freshness_first
+  symbol_search:
+    providers: [symbolcatalog]
+    strategy: authority_first
+  quote_fallback:
+    providers: [yahoo]
+    strategy: authority_first
+  market_ohlcv:
+    providers: [yahoo]
+    strategy: authority_first
+
+groups:
+  ws:
+    max_concurrency: 3
+    retry_profile: market_stream
+  rest:
+    max_concurrency: 2
+    retry_profile: market_read
+  timeseries:
+    max_concurrency: 1
+    retry_profile: authority_read
+  sdmx:
+    max_concurrency: 1
+    retry_profile: authority_read
+  bulk:
+    max_concurrency: 1
+    retry_profile: batch_read
+  rss:
+    max_concurrency: 1
+    retry_profile: feed_poll
+  diff:
+    max_concurrency: 1
+    retry_profile: watcher_poll
+  translation:
+    max_concurrency: 1
+    retry_profile: translation_bridge
+  oracle:
+    max_concurrency: 1
+    retry_profile: oracle_read
+  pythonipc:
+    max_concurrency: 2
+    retry_profile: internal_rpc
 
 providers:
   binance:
-    group: g2_websocket_streams
+    group: ws
     kind: exchange_ws_rest_hybrid
     notes: Primary crypto spot realtime via GCT/Finnhub-style streaming path
+    auth_mode: api_key
+    enabled: true
+    retry_profile: market_stream
     capabilities:
       quote: true
       ohlcv: true
       streaming: true
   kraken:
-    group: g2_websocket_streams
+    group: ws
     kind: exchange_ws_rest_hybrid
+    auth_mode: api_key
+    enabled: true
+    retry_profile: market_stream
     capabilities:
       quote: true
       ohlcv: true
       streaming: true
   coinbase:
-    group: g2_websocket_streams
+    group: ws
     kind: exchange_ws_rest_hybrid
+    auth_mode: api_key
+    enabled: true
+    retry_profile: market_stream
     capabilities:
       quote: true
       ohlcv: true
       streaming: true
   okx:
-    group: g2_websocket_streams
+    group: ws
     kind: exchange_ws_rest_hybrid
+    auth_mode: api_key
+    enabled: true
+    retry_profile: market_stream
     capabilities:
       quote: true
       ohlcv: true
       streaming: true
   bybit:
-    group: g2_websocket_streams
+    group: ws
     kind: exchange_ws_rest_hybrid
+    auth_mode: api_key
+    enabled: true
+    retry_profile: market_stream
     capabilities:
       quote: true
       ohlcv: true
       streaming: true
   finnhub:
-    group: g1_rest_api_standard
+    group: rest
     kind: market_data_realtime
     notes: REST quote/search + websocket stream integration
+    auth_mode: api_key
+    enabled: true
+    rate_limit_per_second: 2
+    rate_limit_burst: 2
+    retry_profile: market_read
     capabilities:
       quote: true
       batchQuote: true
@@ -60,99 +124,282 @@ providers:
       news: true
       streaming: true
       requiresApiKey: true
+  rss:
+    group: rss
+    kind: syndicated_feed_aggregator
+    notes: RSS/Atom market and geopolitical feed aggregator
+    auth_mode: none
+    enabled: true
+    retry_profile: feed_poll
+    capabilities:
+      news: true
+  gdelt:
+    group: rest
+    kind: global_news_search
+    notes: GDELT document search and article feed adapter
+    auth_mode: none
+    enabled: true
+    retry_profile: market_read
+    capabilities:
+      news: true
+      search: true
+  finviz:
+    group: rest
+    kind: market_news_scrape
+    notes: Finviz ticker news adapter for equity-centric headlines
+    auth_mode: none
+    enabled: true
+    retry_profile: market_read
+    capabilities:
+      news: true
+  symbolcatalog:
+    group: rest
+    kind: internal_symbol_catalog
+    notes: Built-in symbol and alias catalog used for native Go market search
+    auth_mode: none
+    enabled: true
+    retry_profile: market_read
+    capabilities:
+      search: true
+  yahoo:
+    group: rest
+    kind: market_data_rest_fallback
+    notes: Native Go Yahoo Finance connector for quote fallback and OHLCV
+    auth_mode: none
+    enabled: true
+    retry_profile: market_read
+    capabilities:
+      quote: true
+      ohlcv: true
+      search: false
   ecb:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: authority_fx_reference
     notes: Daily ECB FX reference feed
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
   fred:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: macro_timeseries
     notes: FRED observations (G1/G4 hybrid)
+    auth_mode: api_key
+    enabled: true
+    rate_limit_per_second: 2
+    rate_limit_burst: 2
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
       requiresApiKey: true
   fed:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: macro_timeseries
     notes: Placeholder for Fed/FRB time series adapter family
+    auth_mode: none
+    enabled: false
+    retry_profile: authority_read
     capabilities:
       ohlcv: true
       backfill: true
   boj:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: macro_timeseries
     notes: Placeholder for Bank of Japan time series adapter
+    auth_mode: none
+    enabled: false
+    retry_profile: authority_read
     capabilities:
       ohlcv: true
       backfill: true
   snb:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: macro_timeseries
     notes: Placeholder for Swiss National Bank time series adapter
+    auth_mode: none
+    enabled: false
+    retry_profile: authority_read
     capabilities:
       ohlcv: true
       backfill: true
   bcb:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: central_bank_timeseries_rest
     notes: Banco Central do Brasil SGS series adapter (BCB_SGS_*)
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
   banxico:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: central_bank_timeseries_rest
     notes: Banxico SIE series adapter (BANXICO_<id>, token required)
+    auth_mode: api_key
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
       requiresApiKey: true
   bok:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: central_bank_timeseries_rest
     notes: Bank of Korea ECOS adapter (BOK_ECOS_<stat>_<cycle>_<item>, API key required)
+    auth_mode: api_key
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
       requiresApiKey: true
   bcra:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: central_bank_timeseries_rest
     notes: BCRA principales variables v4 adapter (BCRA_<id>, public JSON)
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
   tcmb:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: central_bank_timeseries_rest
     notes: TCMB EVDS3 adapter via igmevdsms-dis/fe (TCMB_EVDS_<series>)
+    auth_mode: api_key
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
   rbi:
-    group: g4_centralbank_timeseries
+    group: timeseries
     kind: central_bank_timeseries_rest
     notes: RBI DBIE gateway adapter (RBI_DBIE_FXRES_<reserve>_<currency>_<freq>) with session-token handshake
+    auth_mode: session_token
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
       backfill: true
   imf:
-    group: g4_centralbank_timeseries
+    group: sdmx
     kind: sdmx_timeseries
     notes: IMF IFS SDMX adapter (IMF_IFS_<FREQ>_<REF_AREA>_<INDICATOR>, e.g. M_111_FITB for USA policy rate)
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
     capabilities:
       quote: true
       ohlcv: true
+      backfill: true
+  worldbank:
+    group: sdmx
+    kind: sdmx_timeseries
+    notes: World Bank WDI SDMX adapter
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  oecd:
+    group: sdmx
+    kind: sdmx_timeseries
+    notes: OECD SDMX adapter
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  ofr:
+    group: timeseries
+    kind: authority_timeseries_rest
+    notes: Office of Financial Research time series adapter
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  nyfed:
+    group: timeseries
+    kind: authority_timeseries_rest
+    notes: New York Fed markets and rates adapter
+    auth_mode: none
+    enabled: true
+    retry_profile: authority_read
+    capabilities:
+      quote: true
+      ohlcv: true
+      backfill: true
+  financebridge:
+    group: pythonipc
+    kind: compute_service
+    notes: Python compute bridge; gRPC-first with HTTP fallback
+    auth_mode: internal
+    enabled: true
+    bridge: grpc_http_fallback
+    retry_profile: internal_rpc
+    capabilities:
+      quote: true
+      ohlcv: true
+      search: true
+  indicatorservice:
+    group: pythonipc
+    kind: compute_service
+    notes: Python indicator service; gRPC-first with HTTP fallback
+    auth_mode: internal
+    enabled: true
+    bridge: grpc_http_fallback
+    retry_profile: internal_rpc
+    capabilities:
+      ohlcv: true
+  memory:
+    group: pythonipc
+    kind: agent_memory_service
+    notes: Python memory service
+    auth_mode: internal
+    enabled: true
+    bridge: http_now_grpc_later
+    retry_profile: internal_rpc
+    capabilities:
+      search: true
+      backfill: true
+  agentservice:
+    group: pythonipc
+    kind: agent_runtime_service
+    notes: Python agent service
+    auth_mode: internal
+    enabled: true
+    bridge: http_now_grpc_later
+    retry_profile: internal_rpc
+    capabilities:
+      search: true
+  ingestservice:
+    group: pythonipc
+    kind: ingest_worker_service
+    notes: Python ingest workers scaffold; write-path candidate for chunking, embedding and indexing
+    auth_mode: internal
+    enabled: true
+    bridge: grpc_http_fallback
+    retry_profile: internal_rpc
+    capabilities:
       backfill: true

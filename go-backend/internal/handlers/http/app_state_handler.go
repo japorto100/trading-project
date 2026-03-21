@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -51,6 +52,10 @@ type appStateStore interface {
 	CreateTradeJournalEntry(profileKey, symbol, orderID, note string, tags []string, contextJSON, screenshotURL string) (appstate.TradeJournalRecord, error)
 	UpdateTradeJournalEntry(profileKey, entryID string, note *string, tags []string, hasTags bool, contextJSON *string, screenshotURL *string) (appstate.TradeJournalRecord, bool, error)
 	DeleteTradeJournalEntry(profileKey, entryID string) (bool, error)
+	ListPortfolioSnapshots(profileKey string, limit int) ([]appstate.PortfolioSnapshotRecord, error)
+	SavePortfolioSnapshot(profileKey, generatedAt, snapshotJSON string) (appstate.PortfolioSnapshotRecord, error)
+	WriteFileAuditLog(record appstate.FileAuditLogRecord) error
+	WriteControlAuditLog(record appstate.ControlAuditLogRecord) error
 }
 
 type preferencesRequest struct {
@@ -873,6 +878,143 @@ func FusionTradeJournalDetailHandler(store appStateStore) http.HandlerFunc {
 	}
 }
 
+func FusionPortfolioHistoryHandler(store appStateStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if store == nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "app state store unavailable"})
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			profileKey := strings.TrimSpace(r.URL.Query().Get("profileKey"))
+			if profileKey == "" {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "profileKey is required", "reason": "MISSING_PROFILE_KEY"})
+				return
+			}
+			limit, _ := strconv.Atoi(strings.TrimSpace(r.URL.Query().Get("limit")))
+			items, err := store.ListPortfolioSnapshots(profileKey, limit)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"success": true, "entries": serializePortfolioSnapshots(items)})
+		case http.MethodPost:
+			var req struct {
+				ProfileKey  string          `json:"profileKey"`
+				GeneratedAt string          `json:"generatedAt"`
+				Snapshot    json.RawMessage `json:"snapshot"`
+			}
+			if err := decodeJSONBody(r, &req); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
+				return
+			}
+			snapshotJSON := strings.TrimSpace(string(req.Snapshot))
+			if snapshotJSON == "" {
+				snapshotJSON = "{}"
+			}
+			entry, err := store.SavePortfolioSnapshot(req.ProfileKey, req.GeneratedAt, snapshotJSON)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusCreated, map[string]any{"success": true, "entry": serializePortfolioSnapshot(entry)})
+		default:
+			w.Header().Set("Allow", strings.Join([]string{http.MethodGet, http.MethodPost}, ", "))
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
+		}
+	}
+}
+
+func FileAuditLogHandler(store appStateStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if store == nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "app state store unavailable"})
+			return
+		}
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
+			return
+		}
+		var req struct {
+			DocumentID  string `json:"documentId"`
+			Action      string `json:"action"`
+			ActionClass string `json:"actionClass"`
+			ActorUserID string `json:"actorUserId"`
+			ActorRole   string `json:"actorRole"`
+			RequestID   string `json:"requestId"`
+			Target      string `json:"target"`
+			Status      string `json:"status"`
+			ErrorCode   string `json:"errorCode"`
+			ExpiresAt   string `json:"expiresAt"`
+		}
+		if err := decodeJSONBody(r, &req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
+			return
+		}
+		if err := store.WriteFileAuditLog(appstate.FileAuditLogRecord{
+			DocumentID:  req.DocumentID,
+			Action:      req.Action,
+			ActionClass: req.ActionClass,
+			ActorUserID: req.ActorUserID,
+			ActorRole:   req.ActorRole,
+			RequestID:   req.RequestID,
+			Target:      req.Target,
+			Status:      req.Status,
+			ErrorCode:   req.ErrorCode,
+			ExpiresAt:   req.ExpiresAt,
+		}); err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{"success": true})
+	}
+}
+
+func ControlAuditLogHandler(store appStateStore) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if store == nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "app state store unavailable"})
+			return
+		}
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]any{"error": "method not allowed"})
+			return
+		}
+		var req struct {
+			Action      string `json:"action"`
+			ActionClass string `json:"actionClass"`
+			ActorUserID string `json:"actorUserId"`
+			ActorRole   string `json:"actorRole"`
+			RequestID   string `json:"requestId"`
+			Target      string `json:"target"`
+			Status      string `json:"status"`
+			ErrorCode   string `json:"errorCode"`
+			ExpiresAt   string `json:"expiresAt"`
+		}
+		if err := decodeJSONBody(r, &req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
+			return
+		}
+		if err := store.WriteControlAuditLog(appstate.ControlAuditLogRecord{
+			Action:      req.Action,
+			ActionClass: req.ActionClass,
+			ActorUserID: req.ActorUserID,
+			ActorRole:   req.ActorRole,
+			RequestID:   req.RequestID,
+			Target:      req.Target,
+			Status:      req.Status,
+			ErrorCode:   req.ErrorCode,
+			ExpiresAt:   req.ExpiresAt,
+		}); err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{"success": true})
+	}
+}
+
 func handlePasskeyRegistrationContext(store appStateStore, w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
@@ -952,7 +1094,7 @@ func handlePasskeyAuthenticationContext(store appStateStore, w http.ResponseWrit
 	var req struct {
 		Email string `json:"email"`
 	}
-	if err := decodeJSONBody(r, &req); err != nil && err != io.EOF {
+	if err := decodeJSONBody(r, &req); err != nil && !errors.Is(err, io.EOF) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
 		return
 	}
@@ -1390,6 +1532,31 @@ func serializeTradeJournalEntry(item appstate.TradeJournalRecord) map[string]any
 		"screenshotUrl": emptyToNil(item.ScreenshotURL),
 		"createdAt":     item.CreatedAt,
 		"updatedAt":     item.UpdatedAt,
+	}
+}
+
+func serializePortfolioSnapshots(items []appstate.PortfolioSnapshotRecord) []map[string]any {
+	out := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		out = append(out, serializePortfolioSnapshot(item))
+	}
+	return out
+}
+
+func serializePortfolioSnapshot(item appstate.PortfolioSnapshotRecord) map[string]any {
+	var snapshot any
+	if strings.TrimSpace(item.SnapshotJSON) != "" {
+		var decoded any
+		if err := json.Unmarshal([]byte(item.SnapshotJSON), &decoded); err == nil {
+			snapshot = decoded
+		}
+	}
+	return map[string]any{
+		"id":          item.ID,
+		"profileKey":  item.ProfileKey,
+		"generatedAt": item.GeneratedAt,
+		"snapshot":    snapshot,
+		"createdAt":   item.CreatedAt,
 	}
 }
 

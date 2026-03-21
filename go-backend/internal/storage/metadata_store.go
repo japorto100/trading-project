@@ -21,7 +21,7 @@ func NewSQLiteMetadataStore(path string) (*SQLiteMetadataStore, error) {
 	if trimmed == "." || trimmed == "" {
 		return nil, fmt.Errorf("metadata db path required")
 	}
-	if err := os.MkdirAll(filepath.Dir(trimmed), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(trimmed), 0o750); err != nil {
 		return nil, fmt.Errorf("create metadata db dir: %w", err)
 	}
 	// URI DSN: busy_timeout is applied at connection level before any lock is
@@ -104,7 +104,10 @@ func (s *SQLiteMetadataStore) Close() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
-	return s.db.Close()
+	if err := s.db.Close(); err != nil {
+		return fmt.Errorf("close sqlite metadata db: %w", err)
+	}
+	return nil
 }
 
 func (s *SQLiteMetadataStore) Create(artifact Artifact) error {

@@ -119,7 +119,7 @@ func (s *ContextService) fetchCFR(ctx context.Context, limit int, region string,
 	}
 	items, err := s.cfrClient.List(ctx, limit, region, q)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list cfr context items: %w", err)
 	}
 	result := make([]ContextItem, 0, len(items))
 	for _, item := range items {
@@ -142,7 +142,7 @@ func (s *ContextService) fetchCrisisWatch(ctx context.Context, limit int, region
 	}
 	items, err := s.crisiswatchClient.List(ctx, limit, region, q)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list crisiswatch context items: %w", err)
 	}
 	result := make([]ContextItem, 0, len(items))
 	for _, item := range items {

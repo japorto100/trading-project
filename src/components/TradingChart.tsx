@@ -289,9 +289,11 @@ export function TradingChart({
 		(time: number): TradingChartCandle | null => {
 			if (candleData.length === 0) return null;
 			let nearest = candleData[0];
+			if (!nearest) return null;
 			let minDistance = Math.abs(nearest.time - time);
 			for (let index = 1; index < candleData.length; index += 1) {
 				const candidate = candleData[index];
+				if (!candidate) continue;
 				const distance = Math.abs(candidate.time - time);
 				if (distance < minDistance) {
 					nearest = candidate;
@@ -342,9 +344,11 @@ export function TradingChart({
 					if (magnetMode === "strong") {
 						const snapTargets = [nearest.open, nearest.high, nearest.low, nearest.close];
 						let snapped = snapTargets[0];
+						if (typeof snapped !== "number") return null;
 						let minDistance = Math.abs(price - snapped);
 						for (let index = 1; index < snapTargets.length; index += 1) {
 							const target = snapTargets[index];
+							if (typeof target !== "number") continue;
 							const distance = Math.abs(price - target);
 							if (distance < minDistance) {
 								snapped = target;

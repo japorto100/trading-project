@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/groups"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	"tradeviewfusion/go-backend/internal/proto/ipc"
 
 	"google.golang.org/grpc"
@@ -31,6 +34,12 @@ type Config struct {
 	HTTPBaseURL string
 	// Timeout for both gRPC and HTTP.
 	Timeout time.Duration
+	// Provider is the canonical provider/service name in the connector registry.
+	Provider string
+	// Descriptor carries registry-backed provider metadata.
+	Descriptor base.ProviderDescriptor
+	// GroupPolicy carries registry-backed group policy metadata.
+	GroupPolicy groups.Policy
 }
 
 // Client is a gRPC-first, HTTP-fallback client for Python IPC.
@@ -39,10 +48,35 @@ type Client struct {
 	grpcAddr   string
 	httpBase   string
 	httpClient *base.Client
+	provider   string
+	descriptor base.ProviderDescriptor
+	group      groups.Policy
 
 	grpcMu   sync.Mutex
 	grpcConn *grpc.ClientConn
 	grpcCli  ipc.PythonIPCClient
+}
+
+func ConfigWithRegistry(reg *connectorregistry.Registry, provider, httpBaseURL, grpcAddress string, timeout time.Duration) Config {
+	cfg := Config{
+		GrpcAddress: grpcAddress,
+		HTTPBaseURL: httpBaseURL,
+		Timeout:     timeout,
+		Provider:    normalizeProviderName(provider),
+	}
+	if reg == nil {
+		return cfg
+	}
+	if descriptor, ok := reg.Descriptor(provider); ok {
+		cfg.Provider = descriptor.Name
+		cfg.Descriptor = descriptor
+		if descriptor.Group != "" {
+			if policy, ok := reg.GroupPolicy(descriptor.Group); ok {
+				cfg.GroupPolicy = policy
+			}
+		}
+	}
+	return cfg
 }
 
 // NewClient creates an IPC client. GrpcAddress is derived from HTTPBaseURL if empty.
@@ -66,6 +100,9 @@ func NewClient(cfg Config) *Client {
 		grpcAddr:   grpcAddr,
 		httpBase:   httpBase,
 		httpClient: base.NewClient(base.Config{BaseURL: httpBase, Timeout: timeout, RetryCount: 0}),
+		provider:   normalizeProviderName(cfg.Provider),
+		descriptor: cfg.Descriptor,
+		group:      cfg.GroupPolicy,
 	}
 }
 
@@ -110,7 +147,7 @@ func (c *Client) grpcClient(ctx context.Context) (ipc.PythonIPCClient, error) {
 		grpc.WithBlock(),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dial ipc grpc %s: %w", c.grpcAddr, err)
 	}
 	c.grpcConn = conn
 	c.grpcCli = ipc.NewPythonIPCClient(conn)
@@ -125,6 +162,7 @@ func (c *Client) Do(ctx context.Context, method, path string, body []byte, heade
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
+	headers = c.enrichHeaders(headers)
 
 	// Try gRPC first
 	cli, grpcErr := c.grpcClient(ctx)
@@ -180,10 +218,38 @@ func (c *Client) Get(ctx context.Context, path string, query url.Values, headers
 		path = path + "?" + query.Encode()
 	}
 	h := map[string]string{"Accept": "application/json"}
-	for k, v := range headers {
-		h[k] = v
-	}
+	maps.Copy(h, headers)
 	return c.Do(ctx, http.MethodGet, path, nil, h)
+}
+
+func (c *Client) enrichHeaders(headers map[string]string) map[string]string {
+	out := make(map[string]string, len(headers)+4)
+	maps.Copy(out, headers)
+	if c.provider != "" && strings.TrimSpace(out["X-TVF-Connector-Provider"]) == "" {
+		out["X-TVF-Connector-Provider"] = c.provider
+	}
+	groupName := groups.Normalize(c.descriptor.Group)
+	if groupName == "" {
+		groupName = groups.Normalize(c.group.Name)
+	}
+	if groupName != "" && strings.TrimSpace(out["X-TVF-Connector-Group"]) == "" {
+		out["X-TVF-Connector-Group"] = groupName
+	}
+	retryProfile := strings.TrimSpace(c.descriptor.RetryProfile)
+	if retryProfile == "" {
+		retryProfile = strings.TrimSpace(c.group.RetryProfile)
+	}
+	if retryProfile != "" && strings.TrimSpace(out["X-TVF-Retry-Profile"]) == "" {
+		out["X-TVF-Retry-Profile"] = retryProfile
+	}
+	if bridge := strings.TrimSpace(c.descriptor.Bridge); bridge != "" && strings.TrimSpace(out["X-TVF-Bridge-Mode"]) == "" {
+		out["X-TVF-Bridge-Mode"] = bridge
+	}
+	return out
+}
+
+func normalizeProviderName(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
 }
 
 // Close closes the gRPC connection. Call when shutting down.
@@ -194,7 +260,10 @@ func (c *Client) Close() error {
 		err := c.grpcConn.Close()
 		c.grpcConn = nil
 		c.grpcCli = nil
-		return err
+		if err != nil {
+			return fmt.Errorf("close ipc grpc connection: %w", err)
+		}
+		return nil
 	}
 	return nil
 }

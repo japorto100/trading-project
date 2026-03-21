@@ -2,13 +2,13 @@ import { memo } from "react";
 import {
 	buildDrawingWorkflowHint,
 	buildGeoInteractionStatus,
-} from "@/features/geopolitical/drawing-workflow";
-import type { GeoFlatViewBounds } from "@/features/geopolitical/flat-view-handoff";
+} from "@/features/geopolitical/drawing/drawing-workflow";
+import { MapInteractionStatusOverlay } from "@/features/geopolitical/drawing/MapInteractionStatusOverlay";
+import type { DrawingMode } from "@/features/geopolitical/drawing/types";
+import type { GeoFlatViewBounds } from "@/features/geopolitical/flat-view/flat-view-handoff";
 import { getBodyPointLayerLegendEntries } from "@/features/geopolitical/layers/bodyPointLayerCatalog";
 import { MapCanvas } from "@/features/geopolitical/MapCanvas";
 import { MapBodyLayerLegendOverlay } from "@/features/geopolitical/shell/MapBodyLayerLegendOverlay";
-import { MapInteractionStatusOverlay } from "@/features/geopolitical/shell/MapInteractionStatusOverlay";
-import type { DrawingMode } from "@/features/geopolitical/shell/types";
 import type { GeoEarthChoroplethMode, GeoMapBody } from "@/features/geopolitical/store";
 import type { GeoCandidate, GeoDrawing, GeoEvent } from "@/lib/geopolitical/types";
 

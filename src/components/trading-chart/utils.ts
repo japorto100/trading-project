@@ -41,6 +41,7 @@ export const calculateHeikinAshi = (data: TradingChartCandle[]): TradingChartCan
 
 	for (let i = 0; i < data.length; i++) {
 		const d = data[i];
+		if (!d) continue;
 
 		if (i === 0) {
 			result.push({
@@ -53,6 +54,7 @@ export const calculateHeikinAshi = (data: TradingChartCandle[]): TradingChartCan
 			});
 		} else {
 			const prev = result[i - 1];
+			if (!prev) continue;
 			const close = (d.open + d.high + d.low + d.close) / 4;
 			const open = (prev.open + prev.close) / 2;
 

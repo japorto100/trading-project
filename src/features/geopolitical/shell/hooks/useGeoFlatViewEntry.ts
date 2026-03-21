@@ -6,8 +6,8 @@ import {
 	buildGeoFlatViewHandoffFromRegionEvents,
 	buildGeoFlatViewHandoffFromStoryPreset,
 	type GeoFlatViewBounds,
-} from "@/features/geopolitical/flat-view-handoff";
-import type { GeoFlatViewState } from "@/features/geopolitical/flat-view-state";
+} from "@/features/geopolitical/flat-view/flat-view-handoff";
+import type { GeoFlatViewState } from "@/features/geopolitical/flat-view/flat-view-state";
 import type { GeoFilterStateSnapshot } from "@/features/geopolitical/geo-filter-contract";
 import type { GeoStoryFocusPreset } from "@/features/geopolitical/geo-story-focus";
 import type { GeoMapBody, GeoReplayRangeMs } from "@/features/geopolitical/store";

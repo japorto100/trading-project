@@ -125,11 +125,11 @@ func (c *SDMXClient) BuildSeriesPathWithOptions(dimensions map[string]string, st
 		}
 	}
 	for k, v := range extra {
-		key := strings.TrimSpace(k)
-		if key == "" {
+		extraKey := strings.TrimSpace(k)
+		if extraKey == "" {
 			continue
 		}
-		q.Set(key, strings.TrimSpace(v))
+		q.Set(extraKey, strings.TrimSpace(v))
 	}
 	path := strings.TrimRight(c.dataPathPrefix, "/") + "/" + url.PathEscape(c.dataflowID)
 	if key != "" {
@@ -246,7 +246,7 @@ func ParseSDMXJSONSingleSeries(r interface{ Read([]byte) (int, error) }) ([]Seri
 		} `json:"structure"`
 	}
 	if err := json.NewDecoder(r).Decode(&payload); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode sdmx json payload: %w", err)
 	}
 	if len(payload.DataSets) == 0 || len(payload.DataSets[0].Series) == 0 {
 		return nil, fmt.Errorf("missing sdmx dataset series")

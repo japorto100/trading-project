@@ -1,0 +1,33 @@
+{
+  "golang_version": "1.26.1",
+  "quality_gates": [
+    "golangci-lint run ./...",
+    "go build ./...",
+    "go test ./...",
+    "go test -race ./...",
+    "govulncheck ./..."
+  ],
+  "analysis_settings": {
+    "check_race_conditions": true,
+    "enforce_structured_logging": true,
+    "require_wrapped_external_errors": true,
+    "check_fat_contexts": true,
+    "check_toolchain_vulnerabilities": true
+  },
+  "preferred_frameworks": {
+    "http": "standard_library_first",
+    "logging": "slog",
+    "testing": "stdlib_first",
+    "database": "explicit_sql_then_pgx_sqlc"
+  },
+  "high_signal_linters": [
+    "wrapcheck",
+    "errorlint",
+    "fatcontext",
+    "gosec",
+    "spancheck",
+    "loggercheck",
+    "sqlclosecheck",
+    "modernize"
+  ]
+}

@@ -8,23 +8,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	financebridge "tradeviewfusion/go-backend/internal/connectors/financebridge"
+	"tradeviewfusion/go-backend/internal/connectors/yahoo"
 )
 
 type fakeOHLCVClient struct {
-	rows    []financebridge.Candle
+	rows    []yahoo.Candle
 	err     error
-	lastReq financebridge.OHLCVRequest
+	lastReq yahoo.OHLCVRequest
 }
 
-func (f *fakeOHLCVClient) GetOHLCV(_ context.Context, req financebridge.OHLCVRequest) ([]financebridge.Candle, error) {
+func (f *fakeOHLCVClient) GetOHLCV(_ context.Context, req yahoo.OHLCVRequest) ([]yahoo.Candle, error) {
 	f.lastReq = req
 	return f.rows, f.err
 }
 
 func TestOHLCVHandler_ValidatesAndReturnsContract(t *testing.T) {
 	client := &fakeOHLCVClient{
-		rows: []financebridge.Candle{
+		rows: []yahoo.Candle{
 			{Time: 1700000600, Open: 11, High: 13, Low: 10, Close: 12, Volume: 124},
 			{Time: 1700000000, Open: 10, High: 12, Low: 9, Close: 11, Volume: 123},
 			{Time: 1700000000, Open: 10, High: 12, Low: 9, Close: 11.5, Volume: 999},
@@ -45,15 +45,15 @@ func TestOHLCVHandler_ValidatesAndReturnsContract(t *testing.T) {
 	}
 
 	var body struct {
-		Success   bool                   `json:"success"`
-		Symbol    string                 `json:"symbol"`
-		Timeframe string                 `json:"timeframe"`
-		Provider  string                 `json:"provider"`
-		Limit     int                    `json:"limit"`
-		Start     *int64                 `json:"start"`
-		End       *int64                 `json:"end"`
-		Count     int                    `json:"count"`
-		Data      []financebridge.Candle `json:"data"`
+		Success   bool           `json:"success"`
+		Symbol    string         `json:"symbol"`
+		Timeframe string         `json:"timeframe"`
+		Provider  string         `json:"provider"`
+		Limit     int            `json:"limit"`
+		Start     *int64         `json:"start"`
+		End       *int64         `json:"end"`
+		Count     int            `json:"count"`
+		Data      []yahoo.Candle `json:"data"`
 	}
 	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)
@@ -65,8 +65,8 @@ func TestOHLCVHandler_ValidatesAndReturnsContract(t *testing.T) {
 	if body.Symbol != "BTC/USD" {
 		t.Fatalf("expected symbol BTC/USD, got %s", body.Symbol)
 	}
-	if body.Provider != "finance-bridge" {
-		t.Fatalf("expected provider finance-bridge, got %s", body.Provider)
+	if body.Provider != "yahoo" {
+		t.Fatalf("expected provider yahoo, got %s", body.Provider)
 	}
 	if body.Timeframe != "1H" {
 		t.Fatalf("expected normalized timeframe 1H, got %s", body.Timeframe)

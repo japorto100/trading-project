@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -101,6 +102,43 @@ type TradeJournalRecord struct {
 	UpdatedAt     string
 }
 
+type PortfolioSnapshotRecord struct {
+	ID           string
+	ProfileKey   string
+	GeneratedAt  string
+	SnapshotJSON string
+	CreatedAt    string
+}
+
+type FileAuditLogRecord struct {
+	ID          string
+	DocumentID  string
+	Action      string
+	ActionClass string
+	ActorUserID string
+	ActorRole   string
+	RequestID   string
+	Target      string
+	Status      string
+	ErrorCode   string
+	ExpiresAt   string
+	CreatedAt   string
+}
+
+type ControlAuditLogRecord struct {
+	ID          string
+	Action      string
+	ActionClass string
+	ActorUserID string
+	ActorRole   string
+	RequestID   string
+	Target      string
+	Status      string
+	ErrorCode   string
+	ExpiresAt   string
+	CreatedAt   string
+}
+
 type Store struct {
 	db *sql.DB
 }
@@ -110,7 +148,7 @@ func NewSQLiteStore(path string) (*Store, error) {
 	if trimmed == "." || trimmed == "" {
 		return nil, fmt.Errorf("app db path required")
 	}
-	if err := os.MkdirAll(filepath.Dir(trimmed), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(trimmed), 0o750); err != nil {
 		return nil, fmt.Errorf("create app db dir: %w", err)
 	}
 	db, err := sql.Open("sqlite", trimmed)
@@ -129,7 +167,10 @@ func (s *Store) Close() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
-	return s.db.Close()
+	if err := s.db.Close(); err != nil {
+		return fmt.Errorf("close app db: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) migrate() error {
@@ -297,6 +338,50 @@ CREATE TABLE IF NOT EXISTS TradeJournalRecord (
 );
 CREATE INDEX IF NOT EXISTS idx_tradejournal_profile_symbol_created ON TradeJournalRecord(profileId, symbol, createdAt);
 CREATE INDEX IF NOT EXISTS idx_tradejournal_orderid ON TradeJournalRecord(orderId);
+
+CREATE TABLE IF NOT EXISTS PortfolioSnapshotRecord (
+	id TEXT PRIMARY KEY,
+	profileId TEXT NOT NULL,
+	generatedAt TEXT NOT NULL,
+	snapshotJson TEXT NOT NULL,
+	createdAt TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portfoliosnapshot_profile_generated ON PortfolioSnapshotRecord(profileId, generatedAt);
+
+CREATE TABLE IF NOT EXISTS FileAuditLog (
+	id TEXT PRIMARY KEY,
+	documentId TEXT,
+	action TEXT NOT NULL,
+	actionClass TEXT NOT NULL,
+	actorUserId TEXT,
+	actorRole TEXT,
+	requestId TEXT NOT NULL,
+	target TEXT NOT NULL,
+	status TEXT NOT NULL DEFAULT 'ok',
+	errorCode TEXT,
+	expiresAt TEXT,
+	createdAt TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fileaudit_document ON FileAuditLog(documentId);
+CREATE INDEX IF NOT EXISTS idx_fileaudit_action_created ON FileAuditLog(action, createdAt);
+CREATE INDEX IF NOT EXISTS idx_fileaudit_actor_created ON FileAuditLog(actorUserId, createdAt);
+
+CREATE TABLE IF NOT EXISTS ControlAuditLog (
+	id TEXT PRIMARY KEY,
+	action TEXT NOT NULL,
+	actionClass TEXT NOT NULL,
+	actorUserId TEXT,
+	actorRole TEXT,
+	requestId TEXT NOT NULL,
+	target TEXT NOT NULL,
+	status TEXT NOT NULL DEFAULT 'ok',
+	errorCode TEXT,
+	expiresAt TEXT,
+	createdAt TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_controlaudit_action_created ON ControlAuditLog(action, createdAt);
+CREATE INDEX IF NOT EXISTS idx_controlaudit_actor_created ON ControlAuditLog(actorUserId, createdAt);
+CREATE INDEX IF NOT EXISTS idx_controlaudit_target_created ON ControlAuditLog(target, createdAt);
 `)
 	if err != nil {
 		return fmt.Errorf("migrate app db: %w", err)
@@ -318,7 +403,7 @@ func (s *Store) ensureColumn(tableName, columnName, columnDDL string) error {
 	if err != nil {
 		return fmt.Errorf("inspect %s columns: %w", tableName, err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var cid int
 		var name, colType string
@@ -373,7 +458,7 @@ WHERE profileId = ?
 		prefs.SidebarOpen = sidebarOpen != 0
 		prefs.ShowDrawingTool = showDrawingTool != 0
 		prefs.DarkMode = darkMode != 0
-	} else if err != sql.ErrNoRows {
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		return Preferences{}, fmt.Errorf("read layout preference: %w", err)
 	}
 	rows, err := s.db.Query(`
@@ -386,7 +471,7 @@ ORDER BY wi.position ASC
 	if err != nil {
 		return Preferences{}, fmt.Errorf("read favorites: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var symbol string
 		if err := rows.Scan(&symbol); err != nil {
@@ -512,7 +597,7 @@ LIMIT ?
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]UserRecord, 0, limit)
 	for rows.Next() {
 		var item UserRecord
@@ -543,7 +628,7 @@ FROM User
 WHERE id = ?
 `, targetUserID).Scan(&target.ID, &target.Email, &target.Name, &target.Role, &target.CreatedAt, &target.UpdatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return UserRecord{}, fmt.Errorf("user not found")
 		}
 		return UserRecord{}, fmt.Errorf("load target user: %w", err)
@@ -586,21 +671,22 @@ func (s *Store) GetUserByIDOrEmail(userID, email string) (UserRecord, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	var row UserRecord
 	var err error
-	if userID != "" {
+	switch {
+	case userID != "":
 		err = s.db.QueryRow(`
 SELECT id, COALESCE(email, ''), COALESCE(name, ''), role, COALESCE(passwordHash, ''), CAST(createdAt AS TEXT), CAST(updatedAt AS TEXT)
 FROM User WHERE id = ?
 `, userID).Scan(&row.ID, &row.Email, &row.Name, &row.Role, &row.PasswordHash, &row.CreatedAt, &row.UpdatedAt)
-	} else if email != "" {
+	case email != "":
 		err = s.db.QueryRow(`
 SELECT id, COALESCE(email, ''), COALESCE(name, ''), role, COALESCE(passwordHash, ''), CAST(createdAt AS TEXT), CAST(updatedAt AS TEXT)
 FROM User WHERE email = ?
 `, email).Scan(&row.ID, &row.Email, &row.Name, &row.Role, &row.PasswordHash, &row.CreatedAt, &row.UpdatedAt)
-	} else {
+	default:
 		return UserRecord{}, fmt.Errorf("user identity required")
 	}
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return UserRecord{}, fmt.Errorf("user not found")
 		}
 		return UserRecord{}, fmt.Errorf("load user: %w", err)
@@ -651,20 +737,19 @@ func (s *Store) UpdateUserConsent(userID string, llm, analytics, marketing *bool
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	consentedAt := current.ConsentedAt
-	withdrawnAt := current.WithdrawnAt
 	if nextLLM || nextAnalytics || nextMarketing {
 		if consentedAt == "" {
 			consentedAt = now
 		}
-		withdrawnAt = ""
+		current.WithdrawnAt = ""
 	} else {
-		withdrawnAt = now
+		current.WithdrawnAt = now
 	}
 	if _, err := s.db.Exec(`
 UPDATE UserConsent
 SET llmProcessing = ?, analyticsEnabled = ?, marketingEnabled = ?, consentedAt = ?, withdrawnAt = ?, updatedAt = ?
 WHERE userId = ?
-`, boolToInt(nextLLM), boolToInt(nextAnalytics), boolToInt(nextMarketing), nullIfEmpty(consentedAt), nullIfEmpty(withdrawnAt), now, userID); err != nil {
+`, boolToInt(nextLLM), boolToInt(nextAnalytics), boolToInt(nextMarketing), nullIfEmpty(consentedAt), nullIfEmpty(current.WithdrawnAt), now, userID); err != nil {
 		return ConsentRecord{}, fmt.Errorf("update user consent: %w", err)
 	}
 	return s.loadConsent(userID)
@@ -769,7 +854,7 @@ SELECT expires FROM VerificationToken
 WHERE identifier = ? AND token = ?
 `, strings.TrimSpace(strings.ToLower(identifier)), token).Scan(&expires)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
 		return false, fmt.Errorf("load verification token: %w", err)
@@ -811,7 +896,7 @@ WHERE u.email = ? AND rc.codeHash = ?
 LIMIT 1
 `, strings.TrimSpace(strings.ToLower(email)), strings.TrimSpace(strings.ToUpper(recoveryCode))).Scan(&match.UserID, &match.CodeID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return RecoveryMatch{}, fmt.Errorf("recovery code not found")
 		}
 		return RecoveryMatch{}, fmt.Errorf("load recovery code: %w", err)
@@ -854,11 +939,11 @@ func (s *Store) GetOrCreateUserByEmail(email, displayName, role string) (UserRec
 		if user.Name == "" {
 			user.Name = strings.Split(normalizedEmail, "@")[0]
 		}
-		if _, err := s.db.Exec(`
+		if _, execErr := s.db.Exec(`
 INSERT INTO User (id, email, name, role, createdAt, updatedAt)
 VALUES (?, ?, ?, ?, ?, ?)
-`, user.ID, user.Email, user.Name, user.Role, user.CreatedAt, user.UpdatedAt); err != nil {
-			return UserRecord{}, nil, fmt.Errorf("create user by email: %w", err)
+`, user.ID, user.Email, user.Name, user.Role, user.CreatedAt, user.UpdatedAt); execErr != nil {
+			return UserRecord{}, nil, fmt.Errorf("create user by email: %w", execErr)
 		}
 	}
 	authenticators, err := s.ListAuthenticatorsByUserID(user.ID)
@@ -883,7 +968,7 @@ ORDER BY CASE WHEN lastUsedAt IS NULL THEN 1 ELSE 0 END ASC, lastUsedAt DESC, cr
 	if err != nil {
 		return nil, fmt.Errorf("list authenticators: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]PasskeyAuthenticator, 0)
 	for rows.Next() {
 		var item PasskeyAuthenticator
@@ -988,7 +1073,7 @@ LIMIT 1
 		&authn.LastUsedAt, &user.ID, &user.Email, &user.Name, &user.Role, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return PasskeyAuthenticator{}, UserRecord{}, fmt.Errorf("authenticator not found")
 		}
 		return PasskeyAuthenticator{}, UserRecord{}, fmt.Errorf("load authenticator: %w", err)
@@ -1035,8 +1120,8 @@ func (s *Store) DeleteAuthenticatorForUser(userID, authenticatorID string) (int,
 	}
 	defer func() { _ = tx.Rollback() }()
 	var count int
-	if err := tx.QueryRow(`SELECT COUNT(*) FROM Authenticator WHERE userId = ?`, userID).Scan(&count); err != nil {
-		return 0, fmt.Errorf("count authenticators: %w", err)
+	if countErr := tx.QueryRow(`SELECT COUNT(*) FROM Authenticator WHERE userId = ?`, userID).Scan(&count); countErr != nil {
+		return 0, fmt.Errorf("count authenticators: %w", countErr)
 	}
 	if count <= 1 {
 		return 0, fmt.Errorf("cannot remove last passkey")
@@ -1075,7 +1160,7 @@ WHERE LOWER(COALESCE(email, '')) = ? OR LOWER(COALESCE(username, '')) = ? OR nam
 LIMIT 1
 `, normalized, normalized, trimmed).Scan(&row.ID, &row.Email, &row.Name, &row.Role, &row.PasswordHash, &row.CreatedAt, &row.UpdatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return UserRecord{}, fmt.Errorf("user not found")
 		}
 		return UserRecord{}, fmt.Errorf("find user for credentials: %w", err)
@@ -1105,14 +1190,14 @@ func (s *Store) RegisterUser(email, username, name, role, passwordHash string, r
 	if err == nil {
 		return UserRecord{}, fmt.Errorf("email already registered")
 	}
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return UserRecord{}, fmt.Errorf("check existing email: %w", err)
 	}
 	err = tx.QueryRow(`SELECT id FROM User WHERE username = ? LIMIT 1`, username).Scan(&existing)
 	if err == nil {
 		return UserRecord{}, fmt.Errorf("username already taken")
 	}
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return UserRecord{}, fmt.Errorf("check existing username: %w", err)
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
@@ -1188,7 +1273,7 @@ WHERE po.profileId = ?
 	if err != nil {
 		return nil, fmt.Errorf("list paper orders: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]PaperOrderRecord, 0)
 	for rows.Next() {
 		var item PaperOrderRecord
@@ -1298,7 +1383,7 @@ WHERE pa.profileId = ?
 	if err != nil {
 		return nil, fmt.Errorf("list price alerts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]PriceAlertRecord, 0)
 	for rows.Next() {
 		var item PriceAlertRecord
@@ -1432,7 +1517,7 @@ WHERE tj.profileId = ?
 	if err != nil {
 		return nil, fmt.Errorf("list trade journal: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	items := make([]TradeJournalRecord, 0)
 	for rows.Next() {
 		var item TradeJournalRecord
@@ -1533,6 +1618,99 @@ func (s *Store) DeleteTradeJournalEntry(profileKey, entryID string) (bool, error
 	return rows > 0, nil
 }
 
+func (s *Store) ListPortfolioSnapshots(profileKey string, limit int) ([]PortfolioSnapshotRecord, error) {
+	if s == nil || s.db == nil {
+		return nil, fmt.Errorf("app db unavailable")
+	}
+	profileID, err := s.ensureUserProfile(profileKey)
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	rows, err := s.db.Query(`
+SELECT ps.id, up.profileKey, CAST(ps.generatedAt AS TEXT), ps.snapshotJson, CAST(ps.createdAt AS TEXT)
+FROM PortfolioSnapshotRecord ps
+JOIN UserProfile up ON up.id = ps.profileId
+WHERE ps.profileId = ?
+ORDER BY ps.generatedAt DESC
+LIMIT ?
+`, profileID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("query portfolio snapshots: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	items := make([]PortfolioSnapshotRecord, 0)
+	for rows.Next() {
+		var item PortfolioSnapshotRecord
+		if err := rows.Scan(&item.ID, &item.ProfileKey, &item.GeneratedAt, &item.SnapshotJSON, &item.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan portfolio snapshot: %w", err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate portfolio snapshots: %w", err)
+	}
+	return items, nil
+}
+
+func (s *Store) SavePortfolioSnapshot(profileKey, generatedAt, snapshotJSON string) (PortfolioSnapshotRecord, error) {
+	if s == nil || s.db == nil {
+		return PortfolioSnapshotRecord{}, fmt.Errorf("app db unavailable")
+	}
+	profileID, err := s.ensureUserProfile(profileKey)
+	if err != nil {
+		return PortfolioSnapshotRecord{}, err
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	record := PortfolioSnapshotRecord{
+		ID:           newID("ps"),
+		ProfileKey:   strings.TrimSpace(profileKey),
+		GeneratedAt:  firstNonEmpty(strings.TrimSpace(generatedAt), now),
+		SnapshotJSON: strings.TrimSpace(snapshotJSON),
+		CreatedAt:    now,
+	}
+	if record.SnapshotJSON == "" {
+		record.SnapshotJSON = "{}"
+	}
+	if _, err := s.db.Exec(`
+INSERT INTO PortfolioSnapshotRecord (id, profileId, generatedAt, snapshotJson, createdAt)
+VALUES (?, ?, ?, ?, ?)
+`, record.ID, profileID, record.GeneratedAt, record.SnapshotJSON, record.CreatedAt); err != nil {
+		return PortfolioSnapshotRecord{}, fmt.Errorf("insert portfolio snapshot: %w", err)
+	}
+	return record, nil
+}
+
+func (s *Store) WriteFileAuditLog(record FileAuditLogRecord) error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("app db unavailable")
+	}
+	_, err := s.db.Exec(`
+INSERT INTO FileAuditLog (id, documentId, action, actionClass, actorUserId, actorRole, requestId, target, status, errorCode, expiresAt, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, firstNonEmpty(record.ID, newID("faudit")), nullIfEmpty(record.DocumentID), record.Action, record.ActionClass, nullIfEmpty(record.ActorUserID), nullIfEmpty(record.ActorRole), record.RequestID, record.Target, firstNonEmpty(record.Status, "ok"), nullIfEmpty(record.ErrorCode), nullIfEmpty(record.ExpiresAt), firstNonEmpty(record.CreatedAt, time.Now().UTC().Format(time.RFC3339Nano)))
+	if err != nil {
+		return fmt.Errorf("insert file audit log: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) WriteControlAuditLog(record ControlAuditLogRecord) error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("app db unavailable")
+	}
+	_, err := s.db.Exec(`
+INSERT INTO ControlAuditLog (id, action, actionClass, actorUserId, actorRole, requestId, target, status, errorCode, expiresAt, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, firstNonEmpty(record.ID, newID("caudit")), record.Action, record.ActionClass, nullIfEmpty(record.ActorUserID), nullIfEmpty(record.ActorRole), record.RequestID, record.Target, firstNonEmpty(record.Status, "ok"), nullIfEmpty(record.ErrorCode), nullIfEmpty(record.ExpiresAt), firstNonEmpty(record.CreatedAt, time.Now().UTC().Format(time.RFC3339Nano)))
+	if err != nil {
+		return fmt.Errorf("insert control audit log: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) getTradeJournalEntry(profileID, entryID string) (TradeJournalRecord, bool, error) {
 	var record TradeJournalRecord
 	var tagsJSON string
@@ -1545,7 +1723,7 @@ WHERE tj.id = ? AND tj.profileId = ?
 LIMIT 1
 `, strings.TrimSpace(entryID), profileID).Scan(&record.ID, &record.ProfileKey, &record.Symbol, &record.OrderID, &record.Note, &tagsJSON, &record.ContextJSON, &record.ScreenshotURL, &record.CreatedAt, &record.UpdatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return TradeJournalRecord{}, false, nil
 		}
 		return TradeJournalRecord{}, false, fmt.Errorf("load trade journal: %w", err)
@@ -1566,7 +1744,7 @@ WHERE pa.id = ? AND pa.profileId = ?
 LIMIT 1
 `, strings.TrimSpace(alertID), profileID).Scan(&record.ID, &record.ProfileKey, &record.Symbol, &record.Condition, &record.TargetValue, &enabled, &triggered, &record.TriggeredAt, &record.Message, &record.CreatedAt, &record.UpdatedAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return PriceAlertRecord{}, false, nil
 		}
 		return PriceAlertRecord{}, false, fmt.Errorf("load price alert: %w", err)
@@ -1614,11 +1792,11 @@ func (s *Store) ensureUserProfile(profileKey string) (string, error) {
 func existingIDTx(tx *sql.Tx, query string, arg string) (string, error) {
 	var id string
 	err := tx.QueryRow(query, arg).Scan(&id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("load existing id tx: %w", err)
 	}
 	return id, nil
 }
@@ -1626,11 +1804,11 @@ func existingIDTx(tx *sql.Tx, query string, arg string) (string, error) {
 func existingIDDB(db *sql.DB, query string, arg string) (string, error) {
 	var id string
 	err := db.QueryRow(query, arg).Scan(&id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("load existing id db: %w", err)
 	}
 	return id, nil
 }

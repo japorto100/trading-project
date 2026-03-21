@@ -13,6 +13,7 @@ import (
 	"github.com/failsafe-go/failsafe-go/circuitbreaker"
 	"github.com/failsafe-go/failsafe-go/failsafehttp"
 	"github.com/failsafe-go/failsafe-go/retrypolicy"
+	"golang.org/x/time/rate"
 )
 
 type Client struct {
@@ -20,7 +21,7 @@ type Client struct {
 	timeout    time.Duration
 	retryCount int
 	httpClient *http.Client
-	limiter    *simpleRateLimiter
+	limiter    *rate.Limiter
 }
 
 func NewClient(cfg Config) *Client {
@@ -32,9 +33,7 @@ func NewClient(cfg Config) *Client {
 	}
 
 	retryCount := cfg.RetryCount
-	if retryCount < 0 {
-		retryCount = 0
-	}
+	retryCount = max(retryCount, 0)
 
 	transport := cfg.Transport
 	if transport == nil {
@@ -77,7 +76,7 @@ func NewClient(cfg Config) *Client {
 		timeout:    timeout,
 		retryCount: retryCount,
 		httpClient: &http.Client{Timeout: timeout, Transport: roundTripper},
-		limiter:    newSimpleRateLimiter(cfg.RateLimitPerSecond),
+		limiter:    newRateLimiter(cfg.RateLimitPerSecond, cfg.RateLimitBurst),
 	}
 }
 
@@ -159,7 +158,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("request required")
 	}
 
-	if waitErr := c.limiter.Wait(req.Context()); waitErr != nil {
+	if waitErr := waitForRateLimiter(req.Context(), c.limiter); waitErr != nil {
 		return nil, waitErr
 	}
 
@@ -171,6 +170,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 				return lastResp, exceededErr.LastError
 			}
 		}
+		return nil, fmt.Errorf("perform http request: %w", err)
 	}
-	return resp, err
+	return resp, nil
 }

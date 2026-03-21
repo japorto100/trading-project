@@ -67,9 +67,7 @@ func NewClient(cfg Config) *Client {
 	}
 
 	cacheTTL := cfg.CacheTTL
-	if cacheTTL < 0 {
-		cacheTTL = 0
-	}
+	cacheTTL = max(cacheTTL, 0)
 
 	client := &Client{
 		rssURL: rssURL,
@@ -283,12 +281,12 @@ func (c *Client) persistCache() {
 		return
 	}
 
-	if err := os.MkdirAll(filepath.Dir(c.persistPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(c.persistPath), 0o750); err != nil {
 		return
 	}
 
 	tmpPath := c.persistPath + ".tmp"
-	if err := os.WriteFile(tmpPath, raw, 0o644); err != nil {
+	if err := os.WriteFile(tmpPath, raw, 0o600); err != nil {
 		return
 	}
 	_ = os.Rename(tmpPath, c.persistPath)
@@ -304,7 +302,7 @@ func (c *Client) loadPersistedCache() {
 	}
 
 	var payload persistedCache
-	if err := json.Unmarshal(raw, &payload); err != nil {
+	if unmarshalErr := json.Unmarshal(raw, &payload); unmarshalErr != nil {
 		return
 	}
 	if len(payload.Items) == 0 {

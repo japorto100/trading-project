@@ -84,7 +84,28 @@
 
 ---
 
-## 6. Querverweise
+## 6. Gateway-Qualitaetsregeln
+
+- Groessere Gateway-Aenderungen gelten erst als verifiziert, wenn mindestens
+  folgende Gates gruen sind:
+  - `golangci-lint run ./...`
+  - `go build ./...`
+  - `go test`
+  - `go test -race`
+  - `govulncheck ./...`
+- Externe, Interface-basierte oder infrastrukturelle Fehlerpfade werden mit
+  Kontext gewrappt; nackte `return err`-Boundarys sind an Gateway-,
+  Connector-, Handler-, Messaging- und Storage-Grenzen nicht zulaessig.
+- Neue Go-Domainpfade brauchen mindestens Paket-/Boundary-Tests; Live-Smoke-
+  Checks ersetzen keine gezielten Tests fuer Write-, Policy- oder
+  State-Transition-Pfade.
+- Wenn Tests und produktiver Vertrag auseinanderlaufen, wird zuerst der echte
+  produktive Vertrag geprueft. Veraltete Tests duerfen angepasst werden, wenn
+  der Produktionscode und seine dokumentierte Semantik bereits konsistent sind.
+
+---
+
+## 7. Querverweise
 
 - `docs/GO_GATEWAY.md` (vollstaendiger Integrationsleitfaden, RSC, Streaming Details)
 - `docs/specs/architecture/ARCHITECTURE_BASELINE.md`

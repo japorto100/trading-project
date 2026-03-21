@@ -51,6 +51,20 @@ describe("geo map workspace store", () => {
 		nextState.setActiveReplayRangeMs(null);
 	});
 
+	it("tracks the active workspace tab independently from timeline visibility toggles", () => {
+		const state = useGeoMapWorkspaceStore.getState();
+
+		expect(state.workspaceTab).toBe("inspector");
+		state.setWorkspaceTab("timeline");
+		expect(useGeoMapWorkspaceStore.getState().workspaceTab).toBe("timeline");
+
+		state.setShowTimelinePanel(false);
+		expect(useGeoMapWorkspaceStore.getState().workspaceTab).toBe("timeline");
+
+		state.setWorkspaceTab("inspector");
+		state.setShowTimelinePanel(true);
+	});
+
 	it("keeps timeline selection in shared workspace state", () => {
 		const state = useGeoMapWorkspaceStore.getState();
 

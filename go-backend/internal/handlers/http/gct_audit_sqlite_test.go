@@ -41,11 +41,11 @@ func TestGCTAuditSQLiteStore_AppendAndList(t *testing.T) {
 		"userRole":   "trader",
 	}
 
-	if err := store.Append(rec1); err != nil {
-		t.Fatalf("append rec1: %v", err)
+	if appendErr := store.Append(rec1); appendErr != nil {
+		t.Fatalf("append rec1: %v", appendErr)
 	}
-	if err := store.Append(rec2); err != nil {
-		t.Fatalf("append rec2: %v", err)
+	if appendErr := store.Append(rec2); appendErr != nil {
+		t.Fatalf("append rec2: %v", appendErr)
 	}
 
 	got, err := store.List(10)
@@ -80,13 +80,13 @@ func TestGCTAuditSQLiteStore_EmptyTsSkipped(t *testing.T) {
 	defer func() { _ = store.Close() }()
 
 	// Record with empty ts must be silently skipped (no insert)
-	if err := store.Append(map[string]any{
+	if appendErr := store.Append(map[string]any{
 		"ts":     "",
 		"method": "GET",
 		"path":   "/skip",
 		"status": 200,
-	}); err != nil {
-		t.Fatalf("append with empty ts should not error: %v", err)
+	}); appendErr != nil {
+		t.Fatalf("append with empty ts should not error: %v", appendErr)
 	}
 
 	got, err := store.List(10)
@@ -116,8 +116,8 @@ func TestGCTAuditSQLiteStore_ListCappedAt200(t *testing.T) {
 			"path":   "/api",
 			"status": 200,
 		}
-		if err := store.Append(rec); err != nil {
-			t.Fatalf("append %d: %v", i, err)
+		if appendErr := store.Append(rec); appendErr != nil {
+			t.Fatalf("append %d: %v", i, appendErr)
 		}
 	}
 

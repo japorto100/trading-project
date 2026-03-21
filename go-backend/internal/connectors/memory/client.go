@@ -2,15 +2,16 @@
 package memory
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/ipc"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -19,12 +20,14 @@ const DefaultBaseURL = "http://127.0.0.1:8093"
 // Config holds configuration for the memory service client.
 type Config struct {
 	BaseURL        string
+	GrpcAddress    string
 	RequestTimeout time.Duration
+	Registry       *connectorregistry.Registry
 }
 
 // Client is the memory service client.
 type Client struct {
-	baseClient *base.Client
+	ipcClient *ipc.Client
 }
 
 // NewClient creates a new memory service client.
@@ -38,11 +41,13 @@ func NewClient(cfg Config) *Client {
 		timeout = 5 * time.Second
 	}
 	return &Client{
-		baseClient: base.NewClient(base.Config{
-			BaseURL:    baseURL,
-			Timeout:    timeout,
-			RetryCount: 0,
-		}),
+		ipcClient: ipc.NewClient(ipc.ConfigWithRegistry(
+			cfg.Registry,
+			"memory",
+			baseURL,
+			strings.TrimSpace(cfg.GrpcAddress),
+			timeout,
+		)),
 	}
 }
 
@@ -138,62 +143,47 @@ type HealthResponse struct {
 	Episodic string `json:"episodic"`
 }
 
-// ---------------------------------------------------------------------------
-// Helper
-// ---------------------------------------------------------------------------
-
-func (c *Client) addRequestID(ctx context.Context, req *http.Request) {
-	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
-		req.Header.Set("X-Request-ID", requestID)
-	}
-}
-
 func (c *Client) postJSON(ctx context.Context, path string, body any, out any) error {
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("memory client encode %s: %w", path, err)
 	}
-	req, err := c.baseClient.NewRequest(ctx, http.MethodPost, path, nil, bytes.NewReader(encoded))
-	if err != nil {
-		return fmt.Errorf("memory client build request %s: %w", path, err)
+	headers := map[string]string{
+		"Content-Type": "application/json",
+		"Accept":       "application/json",
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	c.addRequestID(ctx, req)
-	resp, err := c.baseClient.Do(req)
+	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
+		headers["X-Request-ID"] = requestID
+	}
+	status, respBody, err := c.ipcClient.Do(ctx, http.MethodPost, path, encoded, headers)
 	if err != nil {
 		return fmt.Errorf("memory client request %s: %w", path, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("memory client upstream status %d for %s", resp.StatusCode, path)
+	if status >= http.StatusBadRequest {
+		return fmt.Errorf("memory client upstream status %d for %s", status, path)
 	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	if err := json.Unmarshal(respBody, out); err != nil {
+		return fmt.Errorf("memory client decode POST %s response: %w", path, err)
+	}
+	return nil
 }
 
 func (c *Client) getJSON(ctx context.Context, path string, query map[string]string, out any) error {
-	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, path, nil, nil)
-	if err != nil {
-		return fmt.Errorf("memory client build GET %s: %w", path, err)
+	headers := map[string]string{"Accept": "application/json"}
+	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
+		headers["X-Request-ID"] = requestID
 	}
-	if len(query) > 0 {
-		q := req.URL.Query()
-		for k, v := range query {
-			q.Set(k, v)
-		}
-		req.URL.RawQuery = q.Encode()
-	}
-	req.Header.Set("Accept", "application/json")
-	c.addRequestID(ctx, req)
-	resp, err := c.baseClient.Do(req)
+	status, respBody, err := c.ipcClient.Get(ctx, path, mapToValues(query), headers)
 	if err != nil {
 		return fmt.Errorf("memory client GET %s: %w", path, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode >= http.StatusBadRequest {
-		return fmt.Errorf("memory client upstream GET status %d for %s", resp.StatusCode, path)
+	if status >= http.StatusBadRequest {
+		return fmt.Errorf("memory client upstream GET status %d for %s", status, path)
 	}
-	return json.NewDecoder(resp.Body).Decode(out)
+	if err := json.Unmarshal(respBody, out); err != nil {
+		return fmt.Errorf("memory client decode GET %s response: %w", path, err)
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
@@ -290,4 +280,15 @@ func (c *Client) GetHealth(ctx context.Context) (HealthResponse, error) {
 		return HealthResponse{}, err
 	}
 	return out, nil
+}
+
+func mapToValues(values map[string]string) url.Values {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make(url.Values, len(values))
+	for key, value := range values {
+		out.Set(key, value)
+	}
+	return out
 }

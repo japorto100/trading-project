@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tradeviewfusion/go-backend/internal/connectors/ipc"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -16,6 +17,7 @@ type Config struct {
 	BaseURL        string
 	GrpcAddress    string // optional; derived from BaseURL (port+1000) if empty
 	RequestTimeout time.Duration
+	Registry       *connectorregistry.Registry
 }
 
 type Client struct {
@@ -33,11 +35,13 @@ func NewClient(cfg Config) *Client {
 	}
 
 	return &Client{
-		ipcClient: ipc.NewClient(ipc.Config{
-			GrpcAddress: strings.TrimSpace(cfg.GrpcAddress),
-			HTTPBaseURL: baseURL,
-			Timeout:     timeout,
-		}),
+		ipcClient: ipc.NewClient(ipc.ConfigWithRegistry(
+			cfg.Registry,
+			"indicatorservice",
+			baseURL,
+			strings.TrimSpace(cfg.GrpcAddress),
+			timeout,
+		)),
 	}
 }
 

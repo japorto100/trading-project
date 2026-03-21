@@ -6,7 +6,7 @@ import type {
 	GeoFlatViewConflictStrikePoint,
 	GeoFlatViewConflictTargetPoint,
 	GeoFlatViewConflictZoneFeature,
-} from "@/features/geopolitical/flat-view-conflict-layers";
+} from "@/features/geopolitical/flat-view/flat-view-conflict-layers";
 import type { GeoContextItem } from "@/features/geopolitical/shell/types";
 import type { GeoCandidate, GeoEvent, GeoTimelineEntry } from "@/lib/geopolitical/types";
 import type { MarketNewsArticle } from "@/lib/news/types";

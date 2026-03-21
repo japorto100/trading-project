@@ -7,6 +7,7 @@ package eu
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -41,7 +42,7 @@ func NewSanctionsWatcher(storePath string, httpClient *http.Client) *base.DiffWa
 func parseEUSanctionsJSON(r io.Reader) ([]map[string]any, error) {
 	var raw any
 	if err := json.NewDecoder(r).Decode(&raw); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode eu sanctions json: %w", err)
 	}
 	switch v := raw.(type) {
 	case []any:

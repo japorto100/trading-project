@@ -8,23 +8,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	financebridge "tradeviewfusion/go-backend/internal/connectors/financebridge"
+	"tradeviewfusion/go-backend/internal/connectors/yahoo"
 )
 
-type fakeFinanceBridgeQuoteClient struct {
-	quote      financebridge.Quote
+type fakeFallbackQuoteClient struct {
+	quote      yahoo.Quote
 	err        error
 	lastSymbol string
 }
 
-func (f *fakeFinanceBridgeQuoteClient) GetQuote(_ context.Context, symbol string) (financebridge.Quote, error) {
+func (f *fakeFallbackQuoteClient) GetQuote(_ context.Context, symbol string) (yahoo.Quote, error) {
 	f.lastSymbol = symbol
 	return f.quote, f.err
 }
 
 func TestFinanceBridgeQuoteFallbackHandler_ReturnsQuoteContract(t *testing.T) {
-	client := &fakeFinanceBridgeQuoteClient{
-		quote: financebridge.Quote{
+	client := &fakeFallbackQuoteClient{
+		quote: yahoo.Quote{
 			Symbol:        "SPY",
 			Price:         500.12,
 			Change:        1.2,
@@ -62,7 +62,7 @@ func TestFinanceBridgeQuoteFallbackHandler_ReturnsQuoteContract(t *testing.T) {
 	if !body.Success {
 		t.Fatal("expected success=true")
 	}
-	if body.Data.Exchange != "finance-bridge" || body.Data.Source != "finance-bridge" {
+	if body.Data.Exchange != "yahoo" || body.Data.Source != "yahoo" {
 		t.Fatalf("unexpected exchange/source: %+v", body.Data)
 	}
 	if body.Data.AssetType != "etf" {
@@ -75,7 +75,7 @@ func TestFinanceBridgeQuoteFallbackHandler_ReturnsQuoteContract(t *testing.T) {
 
 func TestFinanceBridgeQuoteFallbackHandler_ValidatesAndMapsErrors(t *testing.T) {
 	t.Run("missing symbol", func(t *testing.T) {
-		handler := FinanceBridgeQuoteFallbackHandler(&fakeFinanceBridgeQuoteClient{})
+		handler := FinanceBridgeQuoteFallbackHandler(&fakeFallbackQuoteClient{})
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/quote/fallback", nil)
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, req)
@@ -85,7 +85,7 @@ func TestFinanceBridgeQuoteFallbackHandler_ValidatesAndMapsErrors(t *testing.T) 
 	})
 
 	t.Run("upstream error", func(t *testing.T) {
-		handler := FinanceBridgeQuoteFallbackHandler(&fakeFinanceBridgeQuoteClient{err: errors.New("boom")})
+		handler := FinanceBridgeQuoteFallbackHandler(&fakeFallbackQuoteClient{err: errors.New("boom")})
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/quote/fallback?symbol=GLD", nil)
 		res := httptest.NewRecorder()
 		handler.ServeHTTP(res, req)

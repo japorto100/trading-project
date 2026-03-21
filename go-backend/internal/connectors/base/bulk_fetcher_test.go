@@ -17,11 +17,11 @@ func TestBulkFetcherFetch_ZipCSV(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if _, err := io.WriteString(fileWriter, "name,value\nA,1\n"); err != nil {
-		t.Fatalf("WriteString: %v", err)
+	if _, writeErr := io.WriteString(fileWriter, "name,value\nA,1\n"); writeErr != nil {
+		t.Fatalf("WriteString: %v", writeErr)
 	}
-	if err := zipWriter.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
+	if closeErr := zipWriter.Close(); closeErr != nil {
+		t.Fatalf("Close: %v", closeErr)
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -35,9 +35,9 @@ func TestBulkFetcherFetch_ZipCSV(t *testing.T) {
 		URL:    server.URL + "/sample.zip",
 		Format: BulkFormatCSVZIP,
 		ParseFunc: func(r io.Reader) ([]any, error) {
-			payload, err := io.ReadAll(r)
-			if err != nil {
-				return nil, err
+			payload, readErr := io.ReadAll(r)
+			if readErr != nil {
+				return nil, readErr
 			}
 			return []any{string(payload)}, nil
 		},

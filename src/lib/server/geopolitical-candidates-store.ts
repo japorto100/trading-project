@@ -275,11 +275,13 @@ export async function updateGeoCandidateState(
 		const store = await readStore();
 		const index = store.candidates.findIndex((candidate) => candidate.id === candidateId);
 		if (index < 0) return null;
+		const current = store.candidates[index];
+		if (!current) return null;
 		const next: GeoCandidate = {
-			...store.candidates[index],
+			...current,
 			state,
-			reviewNote: options?.reviewNote ?? store.candidates[index].reviewNote,
-			mergedIntoEventId: options?.mergedIntoEventId ?? store.candidates[index].mergedIntoEventId,
+			reviewNote: options?.reviewNote ?? current.reviewNote,
+			mergedIntoEventId: options?.mergedIntoEventId ?? current.mergedIntoEventId,
 		};
 		store.candidates[index] = next;
 		await writeStore(store);

@@ -1,0 +1,115 @@
+Dass dein Agent für jeden Provider einen eigenen Ordner mit redundantem Code anlegt, ist ein klassisches Anzeichen für das "Copy-Paste-Pattern". Bei 100+ Quellen fliegen dir die Wartung und Updates (z. B. ein neuer Header für alle) in Kürze um die Ohren.
+Das Ziel in Go für 2026 ist "Configuration over Code". Hier sind die Strategien und Packages, die dir das Leben erleichtern:
+1. Das "Unified Provider" Interface
+Anstatt 100 Implementierungen zu schreiben, definierst du ein gemeinsames Interface. Alle Provider-spezifischen Details (URLs, Auth-Keys, Pfade) kommen in eine Konfigurationsdatei (YAML/JSON) oder eine Datenbank.
+Empfohlene Architektur:
+
+* client.Go: Ein generischer HTTP-Client, der Retries, Logging und Timeouts zentral steuert.
+* parser.Go: Nutzt Generics ([T any]), um JSON in deine Ziel-Structs zu werfen.
+
+2. Hilfreiche Packages
+
+* Resty: Der Goldstandard für Go-HTTP-Clients. Er bietet integriertes Retrying, Request-Middleware (perfekt für Auth-Header) und Marshaling. Du kannst einen "Base Client" konfigurieren und für jeden Provider nur die Endpoint-Details ändern.
+* Gentleman: Ähnlich wie Resty, aber sehr modular aufgebaut. Ideal, wenn du Plugins für verschiedene Auth-Typen brauchst.
+* Koanf oder Viper: Zum Einlesen der 100+ Provider-Konfigurationen. So muss dein Agent nur ein neues YAML-File schreiben, statt neuen Go-Code zu generieren.
+
+3. Der "Factory" Approach
+Anstatt Ordner wie /ezb, /fed, /commerzbank zu haben, nutzt du eine Provider-Registry:
+
+type ProviderConfig struct {
+    Name     string
+    BaseURL  string
+    Interval string
+    Schema   interface{} // Das erwartete Format
+}
+
+Dein Code loopt dann einfach durch eine Liste dieser Konfigurationen. Der Agent schreibt dann nur noch Mapping-Files (z. B. "Feld 'rate' in der EZB-API entspricht 'price' in unserer DB"), anstatt die komplette Logik neu zu bauen.
+4. Generics (Der Gamechanger)
+Seit Go 1.18 (und verfeinert in 1.26) kannst du Funktionen schreiben, die den Typ erst beim Aufruf bestimmen:
+func FetchData[T any](url string) (T, error) { ... }
+Damit brauchst du nur eine Fetch-Funktion für alle 100 Quellen.
+Soll ich dir ein minimalistisches Beispiel zeigen, wie man so einen "Universal-Fetcher" mit Resty und Generics aufbaut?
+
+Hier ist ein moderner Universal-Fetcher-Ansatz für 2026. Das Ziel: Ein einziger Go-Service verwaltet 100+ Quellen über Konfigurationen, statt 100-mal den fast gleichen Code zu schreiben.
+1. Das Herzstück: Generischer Fetcher (mit Resty)
+Wir nutzen Generics, damit eine Funktion jedes beliebige Datenformat (EZB, Fed, etc.) verarbeiten kann.
+
+package main
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"://github.com"
+)
+// UniversalClient bündelt die Logik für alle 100+ Providertype UniversalClient struct {
+	httpClient *resty.Client
+}
+func NewUniversalClient() *UniversalClient {
+	client := resty.New().
+		SetTimeout(10 * time.Second).
+		SetRetryCount(3).
+		SetRetryWaitTime(2 * time.Second)
+	
+	return &UniversalClient{httpClient: client}
+}
+// FetchData nutzt Generics [T], um das JSON direkt in die richtige Struct zu werfenfunc FetchData[T any](ctx context.Context, c *UniversalClient, url string, authKey string) (T, error) {
+	var result T
+	
+	resp, err := c.httpClient.R().
+		SetContext(ctx).
+		SetHeader("Authorization", "Bearer "+authKey).
+		SetResult(&result). // Automatisch unmarshallen
+		Get(url)
+
+	if err != nil {
+		return result, fmt.Errorf("request failed: %w", err)
+	}
+
+	if resp.IsError() {
+		return result, fmt.Errorf("api error: %s", resp.Status())
+	}
+
+	return result, nil
+}
+
+2. Die Provider-Struktur (Code-Splitting vermeiden)
+Statt Ordner für jeden Provider zu erstellen, definierst du nur noch die Daten-Modelle (Structs) in einem zentralen models-Paket.
+
+// models/providers.gotype EZBResponse struct {
+	Rates map[string]float64 `json:"rates"`
+	Base  string             `json:"base"`
+}
+type FedResponse struct {
+	Value     float64 `json:"val"`
+	Indicator string  `json:"ind"`
+}
+
+3. Die Anwendung (The "Factory" Pattern)
+Dein Agent muss jetzt nur noch die Konfiguration (URL + Model) hinzufügen, nicht die Fetch-Logik.
+
+func main() {
+	client := NewUniversalClient()
+	ctx := context.Background()
+
+	// Beispiel 1: EZB abrufen
+	ezbData, err := FetchData[EZBResponse](ctx, client, "https://api.ezb.europa.eu", "secret-1")
+	if err == nil {
+		fmt.Printf("EZB Base: %s\n", ezbData.Base)
+	}
+
+	// Beispiel 2: FED abrufen (Gleiche Funktion, anderes Model!)
+	fedData, err := FetchData[FedResponse](ctx, client, "https://api.stlouisfed.org", "secret-2")
+	if err == nil {
+		fmt.Printf("FED Value: %f\n", fedData.Value)
+	}
+}
+
+Warum das besser ist:
+
+   1. DRY (Don't Repeat Yourself): Wenn du morgen ein Logging-Tool wie OpenTelemetry hinzufügst, änderst du es an einer Stelle (UniversalClient), nicht in 100 Ordnern.
+   2. Skalierbarkeit: Dein Agent erstellt nur noch eine neue Datei im models-Ordner und fügt die URL in eine Config-Datei (YAML/JSON) ein.
+   3. Wartbarkeit: 100+ Ordner führen unweigerlich zu "Version Drift" (manche Provider nutzen alte Go-Patterns, manche neue). Hier bleibt alles konsistent.
+
+Soll ich dir zeigen, wie du diese 100 Provider über eine YAML-Config steuerst, damit dein Agent gar keinen neuen Go-Code mehr für neue Quellen schreiben muss?
+

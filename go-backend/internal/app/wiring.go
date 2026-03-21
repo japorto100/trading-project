@@ -26,7 +26,6 @@ import (
 	"tradeviewfusion/go-backend/internal/connectors/cfr"
 	"tradeviewfusion/go-backend/internal/connectors/crisiswatch"
 	"tradeviewfusion/go-backend/internal/connectors/ecb"
-	financebridge "tradeviewfusion/go-backend/internal/connectors/financebridge"
 	"tradeviewfusion/go-backend/internal/connectors/finnhub"
 	"tradeviewfusion/go-backend/internal/connectors/fred"
 	"tradeviewfusion/go-backend/internal/connectors/gametheory"
@@ -42,10 +41,13 @@ import (
 	"tradeviewfusion/go-backend/internal/connectors/oecd"
 	"tradeviewfusion/go-backend/internal/connectors/ofr"
 	"tradeviewfusion/go-backend/internal/connectors/rbi"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	softsignals "tradeviewfusion/go-backend/internal/connectors/softsignals"
+	"tradeviewfusion/go-backend/internal/connectors/symbolcatalog"
 	"tradeviewfusion/go-backend/internal/connectors/tcmb"
 	"tradeviewfusion/go-backend/internal/connectors/un"
 	"tradeviewfusion/go-backend/internal/connectors/worldbank"
+	"tradeviewfusion/go-backend/internal/connectors/yahoo"
 	httpHandlers "tradeviewfusion/go-backend/internal/handlers/http"
 	sseHandlers "tradeviewfusion/go-backend/internal/handlers/sse"
 	"tradeviewfusion/go-backend/internal/messaging"
@@ -91,8 +93,8 @@ func NewServerFromEnv() (*Server, error) {
 		InsecureSkipVerifyTL: boolOr("GCT_JSONRPC_INSECURE_TLS", false),
 		PreferGRPC:           boolOr("GCT_PREFER_GRPC", true),
 	}
-	if err := validateGCTSecurityConfig(gctConfig, gctSecurityPolicyFromEnv()); err != nil {
-		return nil, err
+	if validationErr := validateGCTSecurityConfig(gctConfig, gctSecurityPolicyFromEnv()); validationErr != nil {
+		return nil, validationErr
 	}
 	gctClient := gct.NewClient(gctConfig)
 	ecbClient := ecb.NewClient(ecb.Config{
@@ -145,56 +147,65 @@ func NewServerFromEnv() (*Server, error) {
 		RequestTimeout: durationMsOr("IMF_HTTP_TIMEOUT_MS", 6000),
 	})
 	macroClient := marketServices.NewRoutedMacroClient(fredClient, bcbClient)
-	macroClient.RegisterPrefixClient("BANXICO_", banxicoClient)
-	macroClient.RegisterPrefixClient("BOK_ECOS_", bokClient)
-	macroClient.RegisterPrefixClient("BCRA_", bcraClient)
-	macroClient.RegisterPrefixClient("TCMB_EVDS_", tcmbClient)
-	macroClient.RegisterPrefixClient("RBI_DBIE_FXRES_", rbiClient)
-	macroClient.RegisterPrefixClient("IMF_IFS_", imfClient)
+	macroClient.RegisterProviderPrefixClient("banxico", "BANXICO_", banxicoClient)
+	macroClient.RegisterProviderPrefixClient("bok", "BOK_ECOS_", bokClient)
+	macroClient.RegisterProviderPrefixClient("bcra", "BCRA_", bcraClient)
+	macroClient.RegisterProviderPrefixClient("tcmb", "TCMB_EVDS_", tcmbClient)
+	macroClient.RegisterProviderPrefixClient("rbi", "RBI_DBIE_FXRES_", rbiClient)
+	macroClient.RegisterProviderPrefixClient("imf", "IMF_IFS_", imfClient)
 	oecdClient := oecd.NewClient(oecd.Config{
 		BaseURL:        envOr("OECD_BASE_URL", oecd.DefaultBaseURL),
 		RequestTimeout: durationMsOr("OECD_HTTP_TIMEOUT_MS", 6000),
 	})
-	macroClient.RegisterPrefixClient("OECD_", oecdClient)
+	macroClient.RegisterProviderPrefixClient("oecd", "OECD_", oecdClient)
 	worldbankClient := worldbank.NewClient(worldbank.Config{
 		BaseURL:        envOr("WORLDBANK_BASE_URL", worldbank.DefaultBaseURL),
 		RequestTimeout: durationMsOr("WORLDBANK_HTTP_TIMEOUT_MS", 6000),
 	})
-	macroClient.RegisterPrefixClient("WB_WDI_", worldbankClient)
+	macroClient.RegisterProviderPrefixClient("worldbank", "WB_WDI_", worldbankClient)
 	unClient := un.NewClient(un.Config{
 		BaseURL:        envOr("UN_BASE_URL", un.DefaultBaseURL),
 		RequestTimeout: durationMsOr("UN_HTTP_TIMEOUT_MS", 6000),
 	})
-	macroClient.RegisterPrefixClient("UN_", unClient)
+	macroClient.RegisterProviderPrefixClient("un", "UN_", unClient)
 	adbClient := adb.NewClient(adb.Config{
 		BaseURL:        envOr("ADB_BASE_URL", adb.DefaultBaseURL),
 		RequestTimeout: durationMsOr("ADB_HTTP_TIMEOUT_MS", 6000),
 	})
-	macroClient.RegisterPrefixClient("ADB_", adbClient)
+	macroClient.RegisterProviderPrefixClient("adb", "ADB_", adbClient)
 	ofrClient := ofr.NewClient(ofr.Config{
 		BaseURL:        envOr("OFR_BASE_URL", ofr.DefaultBaseURL),
 		RequestTimeout: durationMsOr("OFR_HTTP_TIMEOUT_MS", 6000),
 		CacheTTL:       durationMsOr("OFR_CACHE_TTL_MS", 300000),
 	})
-	macroClient.RegisterPrefixClient("OFR_", ofrClient)
+	macroClient.RegisterProviderPrefixClient("ofr", "OFR_", ofrClient)
 	nyfedClient := nyfed.NewClient(nyfed.Config{
 		BaseURL:        envOr("NYFED_BASE_URL", nyfed.DefaultBaseURL),
 		RequestTimeout: durationMsOr("NYFED_HTTP_TIMEOUT_MS", 6000),
 		CacheTTL:       durationMsOr("NYFED_CACHE_TTL_MS", 300000),
 	})
-	macroClient.RegisterPrefixClient("NYFED_", nyfedClient)
-	financeBridgeClient := financebridge.NewClient(financebridge.Config{
-		BaseURL:        envOr("FINANCE_BRIDGE_URL", envOr("YFINANCE_BRIDGE_URL", financebridge.DefaultBaseURL)),
-		BaseURLs:       csvOr("FINANCE_BRIDGE_URLS", nil),
-		RequestTimeout: durationMsOr("FINANCE_BRIDGE_HTTP_TIMEOUT_MS", 8000),
+	macroClient.RegisterProviderPrefixClient("nyfed", "NYFED_", nyfedClient)
+	connectorRegistry, connectorRegistryErr := loadConnectorRegistry()
+	if connectorRegistryErr != nil && boolOr("ADAPTIVE_ROUTER_REQUIRED", false) {
+		return nil, connectorRegistryErr
+	}
+	yahooClient := yahoo.NewClient(yahoo.Config{
+		BaseURL:        envOr("YAHOO_BASE_URL", yahoo.DefaultBaseURL),
+		RequestTimeout: durationMsOr("YAHOO_HTTP_TIMEOUT_MS", 5000),
+		Registry:       connectorRegistry,
 	})
 	indicatorServiceClient := indicatorservice.NewClient(indicatorservice.Config{
 		BaseURL:        envOr("INDICATOR_SERVICE_URL", indicatorservice.DefaultBaseURL),
 		RequestTimeout: durationMsOr("INDICATOR_SERVICE_TIMEOUT_MS", 8000),
+		Registry:       connectorRegistry,
 	})
 	softSignalsProxyClient := softsignals.NewClient(softsignals.Config{
 		BaseURL:        envOr("GEOPOLITICAL_SOFT_SIGNAL_URL", softsignals.DefaultBaseURL),
 		RequestTimeout: durationMsOr("GEOPOLITICAL_SOFT_SIGNAL_TIMEOUT_MS", 8000),
+	})
+	symbolCatalogClient := symbolcatalog.NewClient(symbolcatalog.Config{
+		RegistryPath: envOr("SYMBOL_CATALOG_REGISTRY_PATH", ""),
+		Registry:     connectorRegistry,
 	})
 	geopoliticalNextClient := geopoliticalnext.NewClient(geopoliticalnext.Config{
 		BaseURL:        envOr("GEOPOLITICAL_FRONTEND_API_URL", geopoliticalnext.DefaultBaseURL),
@@ -210,8 +221,8 @@ func NewServerFromEnv() (*Server, error) {
 		MockDataPath:      envOr("ACLED_MOCK_DATA_PATH", "data/mock/acled-events.json"),
 		SnapshotStorePath: envOr("ACLED_SNAPSHOT_STATE_PATH", "data/providers/geopolitical/acled.json"),
 	})
-	if err := validateACLEDMockRuntime(boolOr("ACLED_MOCK_ENABLED", false)); err != nil {
-		return nil, err
+	if validationErr := validateACLEDMockRuntime(boolOr("ACLED_MOCK_ENABLED", false)); validationErr != nil {
+		return nil, validationErr
 	}
 	gdeltGeoClient := gdelt.NewClient(gdelt.Config{
 		BaseURL:        envOr("GDELT_BASE_URL", gdelt.DefaultBaseURL),
@@ -220,15 +231,17 @@ func NewServerFromEnv() (*Server, error) {
 	})
 	var muxRouterSnapshotter *adaptive.Router
 	quoteClient := marketServices.NewQuoteClient(gctClient, finnhubClient, macroClient, ecbClient)
-	if adaptiveRouter, err := loadAdaptiveRouter(); err == nil {
-		quoteClient.SetAdaptiveRouter(adaptiveRouter)
-		muxRouterSnapshotter = adaptiveRouter
-	} else if boolOr("ADAPTIVE_ROUTER_REQUIRED", false) {
-		return nil, err
-	}
-	depthClient := marketServices.NewDepthClient(gctClient)
 	macroService := marketServices.NewMacroService(macroClient, ecbClient)
+	depthClient := marketServices.NewDepthClient(gctClient)
 	streamClient := marketServices.NewStreamClient(quoteClient, gctClient, finnhubClient)
+	if connectorRegistry != nil {
+		adaptiveRouter := adaptive.NewFromRegistry(connectorRegistry)
+		quoteClient.SetAdaptiveRouter(adaptiveRouter)
+		macroService.SetAdaptiveRouter(adaptiveRouter)
+		depthClient.SetAdaptiveRouter(adaptiveRouter)
+		streamClient.SetAdaptiveRouter(adaptiveRouter)
+		muxRouterSnapshotter = adaptiveRouter
+	}
 	geopoliticalEventsService := geopoliticalServices.NewEventsService(acledClient, gdeltGeoClient)
 	cfrClient := cfr.NewClient()
 	crisiswatchClient := crisiswatch.NewClient(crisiswatch.Config{
@@ -249,8 +262,8 @@ func NewServerFromEnv() (*Server, error) {
 	var natsPub messaging.Publisher = messaging.NoopPublisher{}
 	if boolOr("NATS_ENABLED", false) {
 		natsURL := envOr("NATS_URL", "nats://127.0.0.1:4222")
-		if np, err := messaging.NewNATSPublisher(natsURL); err != nil {
-			slog.Warn("[wiring] NATS unavailable, noop", "error", err)
+		if np, publishErr := messaging.NewNATSPublisher(natsURL); publishErr != nil {
+			slog.Warn("[wiring] NATS unavailable, noop", "error", publishErr)
 		} else {
 			natsPub = np
 			slog.Info("[wiring] NATS connected", "url", natsURL)
@@ -260,15 +273,17 @@ func NewServerFromEnv() (*Server, error) {
 	memoryClient := memory.NewClient(memory.Config{
 		BaseURL:        envOr("MEMORY_SERVICE_URL", memory.DefaultBaseURL),
 		RequestTimeout: durationMsOr("MEMORY_SERVICE_TIMEOUT_MS", 5000),
+		Registry:       connectorRegistry,
 	})
 	agentServiceClient := agentservice.NewClient(agentservice.Config{
 		BaseURL:        envOr("AGENT_SERVICE_URL", agentservice.DefaultBaseURL),
 		RequestTimeout: durationMsOr("AGENT_SERVICE_TIMEOUT_MS", 5000),
+		Registry:       connectorRegistry,
 	})
 	capRegistry := capability.NewRegistry()
 	if capPath := envOr("CAPABILITY_REGISTRY_PATH", "config/capabilities.yaml"); capPath != "" {
-		if err := capRegistry.LoadFromFile(capPath); err != nil {
-			slog.Warn("[wiring] capability registry load failed", "path", capPath, "error", err)
+		if loadErr := capRegistry.LoadFromFile(capPath); loadErr != nil {
+			slog.Warn("[wiring] capability registry load failed", "path", capPath, "error", loadErr)
 		}
 	}
 	geopoliticalGameTheoryService := geopoliticalServices.NewGameTheoryService(acledClient, gameTheoryClient)
@@ -311,10 +326,13 @@ func NewServerFromEnv() (*Server, error) {
 		RequestRetries: intOr("NEWS_HTTP_RETRIES", 1),
 	})
 	newsService := marketServices.NewNewsService(rssClient, gdeltClient, finvizClient)
+	if muxRouterSnapshotter != nil {
+		newsService.SetAdaptiveRouter(muxRouterSnapshotter)
+	}
 	strategyExamplesDir := envOr("GCT_STRATEGY_EXAMPLES_DIR", "go-crypto-trader/backtester/config/strategyexamples")
 	backtestExecutor := backtestServices.Executor(backtestServices.NewSimulatedExecutor())
 	if boolOr("GCT_BACKTEST_EXECUTOR_ENABLED", false) {
-		gctBacktestExecutor, err := backtestServices.NewGCTExecutor(backtestServices.GCTExecutorConfig{
+		gctBacktestExecutor, executorErr := backtestServices.NewGCTExecutor(backtestServices.GCTExecutorConfig{
 			Address:               envOr("GCT_BACKTEST_GRPC_ADDRESS", ""),
 			Username:              gctBacktestUsername,
 			Password:              gctBacktestPassword,
@@ -323,8 +341,8 @@ func NewServerFromEnv() (*Server, error) {
 			PollInterval:          durationMsOr("GCT_BACKTEST_POLL_INTERVAL_MS", 750),
 			ReportOutputDir:       envOr("GCT_BACKTEST_REPORT_OUTPUT_DIR", "go-crypto-trader/backtester/results"),
 		})
-		if err != nil {
-			return nil, err
+		if executorErr != nil {
+			return nil, fmt.Errorf("init gct backtest executor: %w", executorErr)
 		}
 		backtestExecutor = gctBacktestExecutor
 	}
@@ -339,9 +357,9 @@ func NewServerFromEnv() (*Server, error) {
 	jwtRevocationAuditEnabled := boolOr("AUTH_JWT_REVOCATION_AUDIT_JSONL_ENABLED", true)
 	var jwtRevocationAuditDB *httpHandlers.JWTRevocationAuditSQLiteStore
 	if boolOr("AUTH_JWT_REVOCATION_AUDIT_DB_ENABLED", false) {
-		store, err := httpHandlers.NewJWTRevocationAuditSQLiteStore(jwtRevocationAuditSQLitePathFromEnv())
-		if err != nil {
-			return nil, err
+		store, auditDBErr := httpHandlers.NewJWTRevocationAuditSQLiteStore(jwtRevocationAuditSQLitePathFromEnv())
+		if auditDBErr != nil {
+			return nil, fmt.Errorf("init jwt revocation audit db: %w", auditDBErr)
 		}
 		jwtRevocationAuditDB = store
 	}
@@ -355,10 +373,10 @@ func NewServerFromEnv() (*Server, error) {
 	// GCT Audit: SQLite primary (default true when GCT_AUDIT_ENABLED), JSONL as fallback/degraded
 	var gctAuditDB *httpHandlers.GCTAuditSQLiteStore
 	if boolOr("GCT_AUDIT_DB_ENABLED", true) {
-		store, err := httpHandlers.NewGCTAuditSQLiteStore(gctAuditSQLitePathFromEnv())
-		if err != nil {
+		store, auditErr := httpHandlers.NewGCTAuditSQLiteStore(gctAuditSQLitePathFromEnv())
+		if auditErr != nil {
 			// Degraded: log and continue with JSONL only (no fail-fast for audit DB)
-			slog.Warn("[gct-audit] SQLite init failed, using JSONL only", "error", err)
+			slog.Warn("[gct-audit] SQLite init failed, using JSONL only", "error", auditErr)
 		} else {
 			gctAuditDB = store
 		}
@@ -416,6 +434,9 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/fusion/alerts/", httpHandlers.FusionAlertDetailHandler(appStateStore))
 	mux.HandleFunc("/api/v1/fusion/trade-journal", httpHandlers.FusionTradeJournalHandler(appStateStore))
 	mux.HandleFunc("/api/v1/fusion/trade-journal/", httpHandlers.FusionTradeJournalDetailHandler(appStateStore))
+	mux.HandleFunc("/api/v1/fusion/portfolio/history", httpHandlers.FusionPortfolioHistoryHandler(appStateStore))
+	mux.HandleFunc("/api/v1/files/audit", httpHandlers.FileAuditLogHandler(appStateStore))
+	mux.HandleFunc("/api/v1/control/audit", httpHandlers.ControlAuditLogHandler(appStateStore))
 	mux.HandleFunc("/api/v1/admin/users", httpHandlers.AdminUsersHandler(appStateStore))
 	mux.HandleFunc("/api/v1/auth/current-user", httpHandlers.CurrentUserHandler(appStateStore))
 	mux.HandleFunc("/api/v1/auth/consent", httpHandlers.AuthConsentHandler(appStateStore))
@@ -427,7 +448,7 @@ func NewServerFromEnv() (*Server, error) {
 	}
 	mux.HandleFunc("/api/v1/quote", httpHandlers.QuoteHandler(quoteClient))
 	mux.HandleFunc("/api/v1/orderbook", httpHandlers.OrderbookHandler(depthClient))
-	mux.HandleFunc("/api/v1/quote/fallback", httpHandlers.FinanceBridgeQuoteFallbackHandler(financeBridgeClient))
+	mux.HandleFunc("/api/v1/quote/fallback", httpHandlers.FinanceBridgeQuoteFallbackHandler(yahooClient))
 	mux.HandleFunc(
 		"/api/v1/auth/revocations/jti",
 		httpHandlers.JWTJTIRevocationHandlerWithAudit(jwtRevocations.Revoke, func(record httpHandlers.JWTRevocationAuditRecord) {
@@ -489,8 +510,8 @@ func NewServerFromEnv() (*Server, error) {
 		}
 	}
 	mux.HandleFunc("/api/v1/auth/revocations/audit", httpHandlers.JWTJTIRevocationAuditHandler(jwtRevocationAuditLister))
-	mux.HandleFunc("/api/v1/ohlcv", httpHandlers.OHLCVHandler(financeBridgeClient))
-	mux.HandleFunc("/api/v1/search", httpHandlers.SearchHandler(financeBridgeClient))
+	mux.HandleFunc("/api/v1/ohlcv", httpHandlers.OHLCVHandler(yahooClient))
+	mux.HandleFunc("/api/v1/search", httpHandlers.SearchHandler(symbolCatalogClient))
 	mux.HandleFunc("/api/v1/macro/history", httpHandlers.MacroHistoryHandler(macroService))
 	mux.HandleFunc("/api/v1/stream/market", sseHandlers.MarketStreamHandler(streamClient, natsPub))
 	mux.HandleFunc("/api/v1/stream/orderbook", sseHandlers.OrderbookStreamHandler(depthClient))
@@ -502,6 +523,8 @@ func NewServerFromEnv() (*Server, error) {
 	mux.HandleFunc("/api/v1/narrative-shift", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/narrative-shift"))
 	mux.HandleFunc("/api/v1/ingest/classify", httpHandlers.IndicatorProxyHandler(softSignalsProxyClient, "/api/v1/ingest/classify"))
 	mux.HandleFunc("/api/v1/geopolitical/events", httpHandlers.GeopoliticalEventsHandler(geopoliticalEventsService))
+	mux.HandleFunc("/api/v1/geopolitical/local-events", httpHandlers.GeopoliticalLocalEventsHandler(geopoliticalEventsStore))
+	mux.HandleFunc("/api/v1/geopolitical/local-events/", httpHandlers.GeopoliticalLocalEventsHandler(geopoliticalEventsStore))
 	mux.HandleFunc("/api/v1/geopolitical/context", httpHandlers.GeopoliticalContextHandler(geopoliticalContextService))
 	mux.HandleFunc("/api/v1/geopolitical/candidates", httpHandlers.GeopoliticalCandidatesProxyHandler(geopoliticalNextClient, geopoliticalCandidateReviewStore, geopoliticalTimelineStore, geopoliticalEventsStore))
 	mux.HandleFunc("/api/v1/geopolitical/candidates/", httpHandlers.GeopoliticalCandidatesProxyHandler(geopoliticalNextClient, geopoliticalCandidateReviewStore, geopoliticalTimelineStore, geopoliticalEventsStore))
@@ -772,9 +795,12 @@ func NewServerFromEnv() (*Server, error) {
 	server.closeFn = func() error {
 		if err := appStateStore.Close(); err != nil {
 			_ = artifactStore.Close()
-			return err
+			return fmt.Errorf("close app state store: %w", err)
 		}
-		return artifactStore.Close()
+		if err := artifactStore.Close(); err != nil {
+			return fmt.Errorf("close artifact metadata store: %w", err)
+		}
+		return nil
 	}
 	return server, nil
 }
@@ -906,7 +932,7 @@ func macroTargetsOr(value string, fallback []marketServices.MacroIngestTarget) [
 	return targets
 }
 
-func loadAdaptiveRouter() (*adaptive.Router, error) {
+func loadConnectorRegistry() (*connectorregistry.Registry, error) {
 	paths := []string{
 		strings.TrimSpace(os.Getenv("ADAPTIVE_ROUTER_CONFIG_PATH")),
 		"config/provider-router.yaml",
@@ -916,14 +942,14 @@ func loadAdaptiveRouter() (*adaptive.Router, error) {
 		if path == "" {
 			continue
 		}
-		router, err := adaptive.LoadFromFile(path)
+		registry, err := connectorregistry.LoadFromFile(path)
 		if err == nil {
-			return router, nil
+			return registry, nil
 		}
 		if os.IsNotExist(err) {
 			continue
 		}
-		return nil, err
+		return nil, fmt.Errorf("load connector registry from %s: %w", path, err)
 	}
 	return nil, nil
 }

@@ -21,7 +21,7 @@ func NewJWTRevocationAuditSQLiteStore(path string) (*JWTRevocationAuditSQLiteSto
 		return nil, fmt.Errorf("jwt revocation audit sqlite: empty path")
 	}
 	if dir := filepath.Dir(trimmed); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			return nil, fmt.Errorf("jwt revocation audit sqlite: create dir: %w", err)
 		}
 	}
@@ -146,7 +146,10 @@ func (s *JWTRevocationAuditSQLiteStore) Close() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
-	return s.db.Close()
+	if err := s.db.Close(); err != nil {
+		return fmt.Errorf("jwt revocation audit sqlite: close db: %w", err)
+	}
+	return nil
 }
 
 func nullIfEmpty(value string) any {

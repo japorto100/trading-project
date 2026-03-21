@@ -128,7 +128,7 @@ func handleGeopoliticalContradictionsCreate(
 	timeline geopoliticalTimelineStore,
 ) {
 	var body map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&body); decodeErr != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
 		return
 	}
@@ -182,7 +182,7 @@ func handleGeopoliticalContradictionsPatch(
 	}
 
 	var body map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	if decodeErr := json.NewDecoder(r.Body).Decode(&body); decodeErr != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON body"})
 		return
 	}

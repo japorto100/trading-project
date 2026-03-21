@@ -42,6 +42,15 @@ export function useGeopoliticalMarkerMutations({
 	setBusy,
 	setError,
 }: UseGeopoliticalMarkerMutationsParams) {
+	const ensureMutationResponseOk = useCallback(
+		async (response: Response, fallbackMessage: string) => {
+			if (response.ok) return;
+			const errorPayload = (await response.json().catch(() => ({}))) as { error?: string };
+			throw new Error(errorPayload.error ?? `${fallbackMessage} (${response.status})`);
+		},
+		[],
+	);
+
 	const createMarker = useCallback(async () => {
 		if (!eventsEditable) {
 			setError(
@@ -218,34 +227,60 @@ export function useGeopoliticalMarkerMutations({
 
 	const runHardIngest = useCallback(async () => {
 		setBusy(true);
-		await fetch("/api/geopolitical/candidates/ingest/hard", { method: "POST" });
-		setBusy(false);
-		await fetchAll();
-	}, [fetchAll, setBusy]);
+		setError(null);
+		try {
+			const response = await fetch("/api/geopolitical/candidates/ingest/hard", { method: "POST" });
+			await ensureMutationResponseOk(response, "Hard ingest failed");
+			await fetchAll();
+		} catch (requestError) {
+			setError(requestError instanceof Error ? requestError.message : "Hard ingest failed");
+		} finally {
+			setBusy(false);
+		}
+	}, [ensureMutationResponseOk, fetchAll, setBusy, setError]);
 
 	const runSoftIngest = useCallback(async () => {
 		setBusy(true);
-		await fetch("/api/geopolitical/candidates/ingest/soft", { method: "POST" });
-		setBusy(false);
-		await fetchAll();
-	}, [fetchAll, setBusy]);
+		setError(null);
+		try {
+			const response = await fetch("/api/geopolitical/candidates/ingest/soft", { method: "POST" });
+			await ensureMutationResponseOk(response, "Soft ingest failed");
+			await fetchAll();
+		} catch (requestError) {
+			setError(requestError instanceof Error ? requestError.message : "Soft ingest failed");
+		} finally {
+			setBusy(false);
+		}
+	}, [ensureMutationResponseOk, fetchAll, setBusy, setError]);
 
 	const handleCandidateAction = useCallback(
 		async (candidateId: string, action: "accept" | "reject" | "snooze" | "reclassify") => {
 			setBusy(true);
-			const body =
-				action === "reclassify"
-					? { reviewNote: "reclassified via queue", category: "news_narrative" }
-					: { reviewNote: `${action} via queue` };
-			await fetch(`/api/geopolitical/candidates/${encodeURIComponent(candidateId)}/${action}`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
-			setBusy(false);
-			await fetchAll();
+			setError(null);
+			try {
+				const body =
+					action === "reclassify"
+						? { reviewNote: "reclassified via queue", category: "news_narrative" }
+						: { reviewNote: `${action} via queue` };
+				const response = await fetch(
+					`/api/geopolitical/candidates/${encodeURIComponent(candidateId)}/${action}`,
+					{
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(body),
+					},
+				);
+				await ensureMutationResponseOk(response, `Candidate ${action} failed`);
+				await fetchAll();
+			} catch (requestError) {
+				setError(
+					requestError instanceof Error ? requestError.message : `Candidate ${action} failed`,
+				);
+			} finally {
+				setBusy(false);
+			}
 		},
-		[fetchAll, setBusy],
+		[ensureMutationResponseOk, fetchAll, setBusy, setError],
 	);
 
 	const quickImportCandidate = useCallback(
@@ -342,15 +377,33 @@ export function useGeopoliticalMarkerMutations({
 			}
 			if (!selectedEvent) return;
 			setBusy(true);
-			await fetch(`/api/geopolitical/events/${encodeURIComponent(selectedEvent.id)}/sources`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
-			});
-			setBusy(false);
-			await fetchAll();
+			setError(null);
+			try {
+				const response = await fetch(
+					`/api/geopolitical/events/${encodeURIComponent(selectedEvent.id)}/sources`,
+					{
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(payload),
+					},
+				);
+				await ensureMutationResponseOk(response, "Source add failed");
+				await fetchAll();
+			} catch (requestError) {
+				setError(requestError instanceof Error ? requestError.message : "Source add failed");
+			} finally {
+				setBusy(false);
+			}
 		},
-		[eventsEditable, externalSourceLabel, fetchAll, selectedEvent, setBusy, setError],
+		[
+			ensureMutationResponseOk,
+			eventsEditable,
+			externalSourceLabel,
+			fetchAll,
+			selectedEvent,
+			setBusy,
+			setError,
+		],
 	);
 
 	const addAssetToSelectedEvent = useCallback(
@@ -368,15 +421,33 @@ export function useGeopoliticalMarkerMutations({
 			}
 			if (!selectedEvent) return;
 			setBusy(true);
-			await fetch(`/api/geopolitical/events/${encodeURIComponent(selectedEvent.id)}/assets`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload),
-			});
-			setBusy(false);
-			await fetchAll();
+			setError(null);
+			try {
+				const response = await fetch(
+					`/api/geopolitical/events/${encodeURIComponent(selectedEvent.id)}/assets`,
+					{
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify(payload),
+					},
+				);
+				await ensureMutationResponseOk(response, "Asset add failed");
+				await fetchAll();
+			} catch (requestError) {
+				setError(requestError instanceof Error ? requestError.message : "Asset add failed");
+			} finally {
+				setBusy(false);
+			}
 		},
-		[eventsEditable, externalSourceLabel, fetchAll, selectedEvent, setBusy, setError],
+		[
+			ensureMutationResponseOk,
+			eventsEditable,
+			externalSourceLabel,
+			fetchAll,
+			selectedEvent,
+			setBusy,
+			setError,
+		],
 	);
 
 	return {

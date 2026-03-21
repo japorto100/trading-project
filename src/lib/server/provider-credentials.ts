@@ -85,6 +85,7 @@ function decryptProviderCredentialsPayload(raw: string): string | null {
 	}
 	try {
 		const key = deriveCookieEncryptionKey(resolveProviderCredentialsCookieSecret());
+		if (!parts[1] || !parts[2] || !parts[3]) return null;
 		const iv = decodeBase64Url(parts[1]);
 		const tag = decodeBase64Url(parts[2]);
 		const ciphertext = decodeBase64Url(parts[3]);

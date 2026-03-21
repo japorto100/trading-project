@@ -84,8 +84,11 @@ function generateTradesFromCandles(
 	for (let i = lookback; i < candles.length - holdBars; i++) {
 		const history = candles.slice(i - lookback, i);
 		const average = history.reduce((sum, row) => sum + row.close, 0) / history.length;
-		const entry = candles[i].close;
-		const exit = candles[i + holdBars].close;
+		const entryCandle = candles[i];
+		const exitCandle = candles[i + holdBars];
+		if (!entryCandle || !exitCandle) continue;
+		const entry = entryCandle.close;
+		const exit = exitCandle.close;
 		if (!Number.isFinite(entry) || !Number.isFinite(exit) || entry <= 0 || exit <= 0) {
 			continue;
 		}

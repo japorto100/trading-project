@@ -10,6 +10,7 @@
 > **Aenderungshistorie:**
 > - Rev. 1 (17.03.2026): Erstanlage
 > - Rev. 2 (18.03.2026): Python Agent Plane um `anyio`-Primitive + 2-Modul-Struktur ergaenzt; Rust Hot-Path Plane um Agent-Hotpaths erweitert; `anyio` in Set-Liste; ml_ai-Merge-Ergebnis dokumentiert
+> - Rev. 3 (20.03.2026): Go Connector-/Fetcher-Zielbild geschaerft; gruppenorientierte Provider-Architektur, Registry-/Descriptor-Richtung und Python-IPC-Konvergenz ergaenzt
 
 ---
 
@@ -53,6 +54,12 @@ mit
 - Browser spricht nur mit kontrollierten BFF-/Gateway-Pfaden.
 - Keine direkte Browser-Kommunikation mit Python, Rust, FalkorDB, Valkey,
   pgvector oder Object Storage.
+- `Next.js` ist **kein** dauerhafter relationaler Domain-Owner.
+- `Next.js` darf serverseitige Glue-/BFF-/Auth.js-Aufgaben behalten, aber
+  keine zweite langfristige Business-DB-Wahrheit neben Go aufbauen.
+- `Prisma` bzw. `PrismaAdapter` ist nur noch als Uebergangs- und
+  Auth.js-/Session-Glue-Schicht zu verstehen, nicht als langfristige
+  Authority fuer neue backend-owned Domain-Tabellen.
 
 ### 3.2 Go Control Plane
 
@@ -64,6 +71,59 @@ mit
   - Streaming / SSE / WebSocket-Boundaries
   - Audit / Correlation / Request-IDs
   - signed access zu Artefakten
+- `Go` ist der bevorzugte Owner fuer relationale Domain-Daten und
+  spaetere Multiuser-/Multitenant-Pfade.
+- Neue backend-owned relationale Modelle sollen direkt im Go-Pfad entstehen,
+  nicht zuerst als dauerhafte Next/Prisma-Domaene.
+- `Go` bleibt ebenso der Owner fuer **strukturierte Source-Routing- und
+  Fetching-Entscheidungen**:
+  - Provider-Gruppen
+  - Capabilities
+  - Retry-/Fallback-/Quota-Semantik
+  - Symbol-/Prefix-Normalisierung
+  - spaetere Registry-/Descriptor-Entscheidungen
+- Neue strukturierte Quellen sollen **nicht** mehr als vollstaendige
+  Copy-Paste-Spezialstapel entstehen, sondern ueber:
+  - gemeinsamen Base-Connector-Layer
+  - klare Quellen-Gruppen
+  - provider-spezifische Duennrander
+  - spaetere Registry-/Descriptor-Dateien
+- Default-Fetching im Go-Layer bleibt:
+  - `net/http` mit wiederverwendetem `http.Client`/`Transport`
+  - `failsafe-go` fuer Retry/Circuit
+  - `errgroup`, `semaphore` und `x/time/rate` fuer gruppen- und
+    provideruebergreifende Parallelitaets- und Rate-Kontrolle
+  - aktueller Ist-Stand:
+    - `x/time/rate` laeuft bereits im Base-Layer
+    - erster `errgroup`/`semaphore`-Fanout ist im Market-Quote-Pfad fuer
+      `latency_first` aktiv
+- `Resty`, `Connect`, `Temporal`, `Arrow Flight` oder `ClickHouse` sind
+  beobachtete Ausbaupfade, aber **kein** impliziter Default fuer den
+  jetzigen Architekturstand.
+
+### 3.2b Connector-Zielbild fuer strukturierte Quellen
+
+- Provider-spezifische Pakete wie `fred`, `worldbank`, `ecb`, `oecd`, `imf`,
+  `ofac`, `un`, `seco` oder `news` bleiben zulaessig, aber sie sind **nicht**
+  die primaere Architekturform.
+- Der eigentliche Sollzustand ist:
+  - `base` fuer gemeinsamen HTTP-/Retry-/Rate-/Error-/Auth-/Snapshot-Code
+  - `groups` fuer Quellengruppen wie `rest`, `ws`, `sdmx`, `timeseries`,
+    `bulk`, `rss`, `diff`, `translation`, `oracle`, `pythonipc`
+  - `providers` fuer die wirklich provider-spezifischen Rander
+  - `registry` fuer Descriptor-Loading, Capability-Bindung,
+    Source-Enablement und spaetere Fallback-/Health-Metadaten
+- Provider-Descriptoren duerfen spaeter YAML-/JSON-basiert sein, aber nur fuer
+  Metadaten wie:
+  - Name
+  - Gruppe
+  - Base URL
+  - Auth-Modus
+  - Capabilities
+  - Rate-/Retry-Klasse
+  - Enablement/Fallback-Kette
+- Parser-, Normalisierungs- und gruppenspezifische Fachlogik bleibt Code und
+  wird **nicht** blind in Konfiguration verlagert.
 
 ### 3.3 Python Compute Plane
 
@@ -99,6 +159,9 @@ mit
   - `anyio.move_on_after(AGENT_TOOL_TIMEOUT_SEC)` in `loop._run_tool()` — verhindert blockierende Einzel-Calls
   - `asyncio.gather()` fuer parallele Tool-Ausfuehrung in `_gather_tool_results()`
 - **HTTP-Konventionen:** `agent/http_client.py` — singleton `httpx.AsyncClient` (ABP.2c); kein `async with AsyncClient()` pro Call
+- Episodic memory und agent-interne Speicher-/Retrievaldaten sind hier
+  fachlich verortet; Go bleibt dafuer Gateway-/Policy-Layer, nicht
+  primaerer Daten-Owner.
 - **Rust-Integration:** `tradeviewfusion_rust_core` (PyO3-Wheel) fuer agent-spezifische Hot Paths:
   - `extract_entities_from_text()` — Entitaets-Extraktion aus freiem Text
   - `dedup_context_fragments()` — Hash-basiertes Dedup von Context-Fragmenten
@@ -118,6 +181,8 @@ Wichtig:
 
 - Diese Plane muss **nicht** sofort ein weiterer permanenter Public Service sein.
 - Sie kann zuerst als Worker-/Pipeline-Domain betrieben werden.
+- Fuer Go ist diese Plane spaeter ein weiterer interner `pythonipc`-Konsument,
+  nicht ein eigener Browser- oder BFF-Pfad.
 
 ### 3.6 Rust Hot-Path Plane
 
@@ -133,6 +198,51 @@ Wichtig:
 - keine Policy-, BFF- oder generische Domain-Truth-Schicht
 - **Modul:** `python-backend/rust_core/` (PyO3-cdylib, maturin); wird von `python-agent` und `python-compute` als Wheel konsumiert
 - **GIL-Policy:** alle neuen Funktionen nutzen `py.detach()` fuer GIL-freie Ausfuehrung (PyO3 0.22+)
+- Standardgrenze heute:
+  - Go spricht Python-Services
+  - Python konsumiert Rust ueber PyO3/maturin
+- Ein direkter Go↔Rust-Servicepfad ist ein **spaeterer** Ausbau und braucht
+  Profiling-/Betriebsevidence; er ist nicht der aktuelle Architekturdefault.
+
+### 3.7 Interne Servicegrenzen Go ↔ Python / spaeter Rust
+
+- `financebridge` ist das aktuelle Referenzmuster fuer interne
+  Service-Anbindung:
+  - gRPC-/IPC-first
+  - HTTP-Fallback
+  - Request-ID-Weitergabe
+  - gemeinsamer Base-Client fuer Degradation
+- Fachliche Klarstellung:
+  - `financebridge` ist heute kein generischer Markt-Daten-Hub, sondern
+    primaer eine `yfinance`-gestuetzte interne Market-Bridge fuer
+    Quote-/OHLCV-/Search-Bootstrap und Fallback
+  - bevorzugte Zielrichtung ist **Option 2**:
+    - reines Markt-Daten-Fetching (`quote`, `ohlcv`, `search`) schrittweise aus
+      Python heraus in Go-native Provider-/Router-Pfade ziehen
+    - Python Compute fuer echte Compute-, Resampling-, DataFrame- und
+      Beschleunigeraufgaben reservieren
+    - `financebridge` damit langfristig abbauen oder auf klaren
+      Compute-Mehrwert reduzieren, statt es als versteckten Primaerfeed zu
+      halten
+  - erster Ist-Schritt dazu ist bereits umgesetzt:
+    - `market/search` laeuft im Gateway jetzt nativ ueber den
+      Symbol-Katalog statt ueber `financebridge`
+    - `quote/fallback` laeuft jetzt nativ ueber einen Go-`yahoo`-Connector
+      statt ueber Python-`financebridge`
+    - `ohlcv` laeuft jetzt ebenfalls nativ ueber denselben Go-`yahoo`-Connector
+    - damit ist `financebridge` aus dem reinen Markt-Fetch-Strang entfernt und
+      bleibt nur noch als optionaler Legacy-/Bootstrap-Bridge-Kandidat
+- `agentservice`, `memory`, `indicatorservice` und spaeter `python-ingest`
+  sollen auf denselben `pythonipc`-Stil konvergieren, statt getrennte
+  Sonderpfade mit eigener Error-/Timeout-/Header-Semantik zu behalten.
+- aktueller Ist-Stand:
+  - `indicatorservice`, `softsignals`, `gametheory`, `agentservice` und
+    `memory` nutzen bereits denselben gemeinsamen IPC-Transportstil wie
+    `financebridge`
+  - `python-ingest` bleibt der naechste noch offene Kandidat
+- Solange Rust ueber Python konsumiert wird, bleibt Go gegenueber diesen
+  Hotpaths auf der Python-Service-Grenze. Ein direkter Rust-Service ist
+  nur fuer klar nachgewiesene spaetere Hotspots vorgesehen.
 
 ---
 
@@ -145,6 +255,12 @@ Wichtig:
   - System of Record
   - User-, Portfolio-, Order-, Audit-, Config-, Metadata- und Episodic-Daten
   - relationale Kernobjekte fuer produktive Betriebsdaten
+- Arbeitsregel:
+  - `SQLite` bleibt lokale/dev-nahe Bridge
+  - `Postgres` ist das produktive Ziel fuer echte Mehrnutzer-,
+    Multitenant- und Pooling-Anforderungen
+  - kein dauerhafter Parallel-Owner `Next/Prisma + Go/Postgres` fuer
+    dieselben Domain-Daten
 
 ### 4.2 Object / Artifact Layer
 
@@ -196,6 +312,9 @@ Wichtig:
 - Arbeitsregel:
   - fuer Dev, Bootstrap oder lokale Experimente ok
   - nicht als langfristige Produktionsverfassung betrachten
+  - `SQLite` ist fuer lokale Entwicklung und niedrige interne Concurrency
+    akzeptabel, aber nicht die Architekturantwort fuer 1000e Nutzer oder
+    produktive Mandantenfaehigkeit
 
 ---
 
@@ -449,6 +568,7 @@ Ziel:
 
 - `OpenSearch`
 - `Meilisearch`
+- `sqlc` (typed Go DB access fuer den spaeteren Postgres-Pfad)
 - `Arrow Flight`
 - `Apache Iceberg`
 - `Hatchet`
@@ -496,6 +616,7 @@ Dieses Dokument beantwortet:
 - welche Planes es gibt
 - welche Systeme Kern, Option oder spaeteres Ausbauziel sind
 - wie die Stores grob verteilt sind
+- welche Schicht welchen Daten-Owner langfristig tragen soll
 
 `DATA_AGGREGATION_Master` leitet daraus ab:
 

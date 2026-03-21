@@ -36,7 +36,7 @@ func TestTopicFormat(t *testing.T) {
 		want string
 	}{
 		{"TickSubject slash", messaging.TickSubject("BTC/USDT"), "market.BTC-USDT.tick"},
-		{"CandleSubject slash+tf", messaging.CandleSubject("ETH/USDT", "1m"), "market.candle.ETH-USDT.1m"},
+		{"CandleSubject slash+tf", messaging.CandleSubject("ETH/USDT", "1m"), "market.ETH-USDT.ohlcv.1m"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

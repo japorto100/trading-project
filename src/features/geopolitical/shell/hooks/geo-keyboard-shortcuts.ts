@@ -1,4 +1,4 @@
-import type { DrawingMode } from "@/features/geopolitical/shell/types";
+import type { DrawingMode } from "@/features/geopolitical/drawing/types";
 
 type AsyncOrVoid = () => void | Promise<void>;
 type StateUpdater<T> = T | ((previous: T) => T);

@@ -61,10 +61,7 @@ func (l *inMemoryRateLimiter) allow(key string, limit int, window time.Duration)
 	}
 
 	if current.count >= limit {
-		retryAfter := int(window.Seconds() - now.Sub(current.windowStart).Seconds())
-		if retryAfter < 1 {
-			retryAfter = 1
-		}
+		retryAfter := max(1, int(window.Seconds()-now.Sub(current.windowStart).Seconds()))
 		return false, retryAfter
 	}
 

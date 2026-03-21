@@ -1,12 +1,7 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 import { createLocalStoreAdapter } from "@/lib/server/local-store-adapter";
-import { assertPersistenceFallbackAllowed } from "@/lib/server/persistence-policy";
-import { getPrismaClient } from "@/lib/server/prisma";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 export interface AgentEpisode {
 	id: string;
@@ -63,247 +58,149 @@ export interface CreateAnalysisSnapshotInput {
 }
 
 interface EpisodicStoreFile {
-	episodes: AgentEpisode[];
 	snapshots: AnalysisSnapshot[];
 }
 
-// ---------------------------------------------------------------------------
-// Local file store (fallback)
-// ---------------------------------------------------------------------------
+interface EpisodesGatewayPayload {
+	ok?: boolean;
+	id?: string;
+	created_at?: string;
+	total?: number;
+	episodes?: Array<Record<string, unknown>>;
+	error?: string;
+}
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_PATH = path.join(DATA_DIR, "memory-episodic.json");
 
-const localStore = createLocalStoreAdapter<EpisodicStoreFile>({
+const localSnapshotStore = createLocalStoreAdapter<EpisodicStoreFile>({
 	storeName: "memory-episodic-store",
 	filePath: STORE_PATH,
-	defaultValue: { episodes: [], snapshots: [] },
+	defaultValue: { snapshots: [] },
 	isValid: (value: unknown): value is EpisodicStoreFile =>
 		typeof value === "object" &&
 		value !== null &&
-		Array.isArray((value as EpisodicStoreFile).episodes) &&
 		Array.isArray((value as EpisodicStoreFile).snapshots),
 });
 
-type DbClient = NonNullable<ReturnType<typeof getPrismaClient>>;
-
-function getDbClient(): DbClient | null {
-	return getPrismaClient();
+function memoryGatewayBaseURL(): string {
+	return new URL("/api/v1/memory", getGatewayBaseURL()).toString();
 }
 
-function parseJson<T>(raw: string, fallback: T): T {
-	try {
-		return JSON.parse(raw) as T;
-	} catch {
-		return fallback;
+async function readGatewayJSON(response: Response): Promise<EpisodesGatewayPayload> {
+	return (await response.json().catch(() => ({}))) as EpisodesGatewayPayload;
+}
+
+function daysUntil(retainUntil: string): number {
+	const target = Date.parse(retainUntil);
+	if (!Number.isFinite(target)) return 90;
+	const diffMs = target - Date.now();
+	if (diffMs <= 0) return 1;
+	return Math.max(1, Math.ceil(diffMs / 86_400_000));
+}
+
+function asStringArray(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return value.filter((item): item is string => typeof item === "string");
+}
+
+function asObjectRecord(value: unknown): Record<string, unknown> {
+	if (!value || typeof value !== "object" || Array.isArray(value)) {
+		return {};
 	}
+	return value as Record<string, unknown>;
 }
 
-// ---------------------------------------------------------------------------
-// DB helpers — AgentEpisode
-// ---------------------------------------------------------------------------
-
-interface DbEpisodeRow {
-	id: string;
-	sessionId: string;
-	agentRole: string;
-	inputJson: string;
-	outputJson: string;
-	toolsUsed: string;
-	durationMs: number;
-	tokenCount: number;
-	confidence: number;
-	tagsJson: string;
-	metadataJson: string;
-	retainUntil: Date;
-	createdAt: Date;
-}
-
-function dbRowToEpisode(row: DbEpisodeRow): AgentEpisode {
+function toAgentEpisode(row: Record<string, unknown>): AgentEpisode {
 	return {
-		id: row.id,
-		sessionId: row.sessionId,
-		agentRole: row.agentRole,
-		inputJson: row.inputJson,
-		outputJson: row.outputJson,
-		toolsUsed: parseJson<string[]>(row.toolsUsed, []),
-		durationMs: row.durationMs,
-		tokenCount: row.tokenCount,
-		confidence: row.confidence,
-		tags: parseJson<string[]>(row.tagsJson, []),
-		metadata: parseJson<Record<string, unknown>>(row.metadataJson, {}),
-		retainUntil: new Date(row.retainUntil).toISOString(),
-		createdAt: new Date(row.createdAt).toISOString(),
+		id: typeof row.id === "string" ? row.id : "",
+		sessionId: typeof row.session_id === "string" ? row.session_id : "",
+		agentRole: typeof row.agent_role === "string" ? row.agent_role : "",
+		inputJson: typeof row.input_json === "string" ? row.input_json : "{}",
+		outputJson: typeof row.output_json === "string" ? row.output_json : "{}",
+		toolsUsed: asStringArray(row.tools_used),
+		durationMs: typeof row.duration_ms === "number" ? row.duration_ms : 0,
+		tokenCount: typeof row.token_count === "number" ? row.token_count : 0,
+		confidence: typeof row.confidence === "number" ? row.confidence : 0,
+		tags: asStringArray(row.tags),
+		metadata: asObjectRecord(row.metadata),
+		retainUntil: typeof row.retain_until === "string" ? row.retain_until : "",
+		createdAt: typeof row.created_at === "string" ? row.created_at : "",
 	};
 }
 
-async function createAgentEpisodeDb(
-	db: DbClient,
-	input: CreateAgentEpisodeInput,
-): Promise<AgentEpisode> {
-	const row = await db.agentEpisode.create({
-		data: {
-			sessionId: input.sessionId,
-			agentRole: input.agentRole,
-			inputJson: input.inputJson,
-			outputJson: input.outputJson,
-			toolsUsed: JSON.stringify(input.toolsUsed ?? []),
-			durationMs: input.durationMs,
-			tokenCount: input.tokenCount ?? 0,
-			confidence: input.confidence ?? 0,
-			tagsJson: JSON.stringify(input.tags ?? []),
-			metadataJson: JSON.stringify(input.metadata ?? {}),
-			retainUntil: new Date(input.retainUntil),
+async function postEpisodeToGateway(input: CreateAgentEpisodeInput): Promise<AgentEpisode> {
+	const response = await fetch(`${memoryGatewayBaseURL()}/episode`, {
+		method: "POST",
+		cache: "no-store",
+		headers: {
+			"Content-Type": "application/json",
+			"X-Request-ID": randomUUID(),
 		},
-	});
-	return dbRowToEpisode(row as DbEpisodeRow);
-}
-
-async function listAgentEpisodesDb(
-	db: DbClient,
-	agentRole: string | undefined,
-	limit: number,
-): Promise<AgentEpisode[]> {
-	const rows = await db.agentEpisode.findMany({
-		where: agentRole ? { agentRole } : undefined,
-		orderBy: { createdAt: "desc" },
-		take: limit,
-	});
-	return rows.map((row) => dbRowToEpisode(row as DbEpisodeRow));
-}
-
-async function pruneExpiredEpisodesDb(db: DbClient): Promise<number> {
-	const result = await db.agentEpisode.deleteMany({
-		where: { retainUntil: { lt: new Date() } },
-	});
-	return result.count;
-}
-
-// ---------------------------------------------------------------------------
-// DB helpers — AnalysisSnapshot
-// ---------------------------------------------------------------------------
-
-interface DbSnapshotRow {
-	id: string;
-	symbol: string | null;
-	region: string | null;
-	analysisType: string;
-	inputJson: string;
-	outputJson: string;
-	confidence: number;
-	modelId: string;
-	retainUntil: Date;
-	createdAt: Date;
-}
-
-function dbRowToSnapshot(row: DbSnapshotRow): AnalysisSnapshot {
-	return {
-		id: row.id,
-		symbol: row.symbol ?? undefined,
-		region: row.region ?? undefined,
-		analysisType: row.analysisType,
-		inputJson: row.inputJson,
-		outputJson: row.outputJson,
-		confidence: row.confidence,
-		modelId: row.modelId,
-		retainUntil: new Date(row.retainUntil).toISOString(),
-		createdAt: new Date(row.createdAt).toISOString(),
-	};
-}
-
-async function createAnalysisSnapshotDb(
-	db: DbClient,
-	input: CreateAnalysisSnapshotInput,
-): Promise<AnalysisSnapshot> {
-	const row = await db.analysisSnapshot.create({
-		data: {
-			symbol: input.symbol ?? null,
-			region: input.region ?? null,
-			analysisType: input.analysisType,
-			inputJson: input.inputJson,
-			outputJson: input.outputJson,
-			confidence: input.confidence ?? 0,
-			modelId: input.modelId,
-			retainUntil: new Date(input.retainUntil),
-		},
-	});
-	return dbRowToSnapshot(row as DbSnapshotRow);
-}
-
-async function listAnalysisSnapshotsDb(
-	db: DbClient,
-	analysisType: string | undefined,
-	limit: number,
-): Promise<AnalysisSnapshot[]> {
-	const rows = await db.analysisSnapshot.findMany({
-		where: analysisType ? { analysisType } : undefined,
-		orderBy: { createdAt: "desc" },
-		take: limit,
-	});
-	return rows.map((row) => dbRowToSnapshot(row as DbSnapshotRow));
-}
-
-// ---------------------------------------------------------------------------
-// File store helpers — AgentEpisode
-// ---------------------------------------------------------------------------
-
-async function createAgentEpisodeFile(input: CreateAgentEpisodeInput): Promise<AgentEpisode> {
-	return localStore.withWriteLock(async () => {
-		const store = await localStore.read();
-		const now = new Date().toISOString();
-		const episode: AgentEpisode = {
-			id: `ep_${randomUUID()}`,
-			sessionId: input.sessionId,
-			agentRole: input.agentRole,
-			inputJson: input.inputJson,
-			outputJson: input.outputJson,
-			toolsUsed: input.toolsUsed ?? [],
-			durationMs: input.durationMs,
-			tokenCount: input.tokenCount ?? 0,
+		body: JSON.stringify({
+			session_id: input.sessionId,
+			agent_role: input.agentRole,
+			input_json: input.inputJson,
+			output_json: input.outputJson,
+			tools_used: input.toolsUsed ?? [],
+			duration_ms: input.durationMs,
+			token_count: input.tokenCount ?? 0,
 			confidence: input.confidence ?? 0,
 			tags: input.tags ?? [],
 			metadata: input.metadata ?? {},
-			retainUntil: input.retainUntil,
-			createdAt: now,
-		};
-		store.episodes.unshift(episode);
-		await localStore.write(store);
-		return episode;
+			retain_days: daysUntil(input.retainUntil),
+		}),
 	});
+	const payload = await readGatewayJSON(response);
+	if (!response.ok || !payload.id || !payload.created_at) {
+		throw new Error(payload.error || "memory episode create failed");
+	}
+	return {
+		id: payload.id,
+		sessionId: input.sessionId,
+		agentRole: input.agentRole,
+		inputJson: input.inputJson,
+		outputJson: input.outputJson,
+		toolsUsed: input.toolsUsed ?? [],
+		durationMs: input.durationMs,
+		tokenCount: input.tokenCount ?? 0,
+		confidence: input.confidence ?? 0,
+		tags: input.tags ?? [],
+		metadata: input.metadata ?? {},
+		retainUntil: input.retainUntil,
+		createdAt: payload.created_at,
+	};
 }
 
-async function listAgentEpisodesFile(
+async function getEpisodesFromGateway(
 	agentRole: string | undefined,
 	limit: number,
 ): Promise<AgentEpisode[]> {
-	const store = await localStore.read();
-	return store.episodes
-		.filter((e) => !agentRole || e.agentRole === agentRole)
-		.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-		.slice(0, limit);
-}
-
-async function pruneExpiredEpisodesFile(): Promise<number> {
-	return localStore.withWriteLock(async () => {
-		const store = await localStore.read();
-		const now = Date.now();
-		const before = store.episodes.length;
-		store.episodes = store.episodes.filter((e) => Date.parse(e.retainUntil) > now);
-		const pruned = before - store.episodes.length;
-		if (pruned > 0) await localStore.write(store);
-		return pruned;
+	const query = new URLSearchParams({ limit: String(limit) });
+	if (agentRole?.trim()) {
+		query.set("agentRole", agentRole.trim());
+	}
+	const response = await fetch(`${memoryGatewayBaseURL()}/episodes?${query.toString()}`, {
+		method: "GET",
+		cache: "no-store",
+		headers: {
+			Accept: "application/json",
+			"X-Request-ID": randomUUID(),
+		},
 	});
+	const payload = await readGatewayJSON(response);
+	if (!response.ok) {
+		throw new Error(payload.error || "memory episodes list failed");
+	}
+	if (!Array.isArray(payload.episodes)) return [];
+	return payload.episodes.map((row) => toAgentEpisode(asObjectRecord(row)));
 }
-
-// ---------------------------------------------------------------------------
-// File store helpers — AnalysisSnapshot
-// ---------------------------------------------------------------------------
 
 async function createAnalysisSnapshotFile(
 	input: CreateAnalysisSnapshotInput,
 ): Promise<AnalysisSnapshot> {
-	return localStore.withWriteLock(async () => {
-		const store = await localStore.read();
+	return localSnapshotStore.withWriteLock(async () => {
+		const store = await localSnapshotStore.read();
 		const now = new Date().toISOString();
 		const snapshot: AnalysisSnapshot = {
 			id: `snap_${randomUUID()}`,
@@ -318,7 +215,7 @@ async function createAnalysisSnapshotFile(
 			createdAt: now,
 		};
 		store.snapshots.unshift(snapshot);
-		await localStore.write(store);
+		await localSnapshotStore.write(store);
 		return snapshot;
 	});
 }
@@ -327,77 +224,33 @@ async function listAnalysisSnapshotsFile(
 	analysisType: string | undefined,
 	limit: number,
 ): Promise<AnalysisSnapshot[]> {
-	const store = await localStore.read();
+	const store = await localSnapshotStore.read();
 	return store.snapshots
-		.filter((s) => !analysisType || s.analysisType === analysisType)
-		.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+		.filter((snapshot) => !analysisType || snapshot.analysisType === analysisType)
+		.sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
 		.slice(0, limit);
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
 export async function createAgentEpisode(input: CreateAgentEpisodeInput): Promise<AgentEpisode> {
-	const db = getDbClient();
-	if (db) {
-		try {
-			return await createAgentEpisodeDb(db, input);
-		} catch (error) {
-			assertPersistenceFallbackAllowed("AgentEpisode DB write failed");
-			void error;
-		}
-	} else {
-		assertPersistenceFallbackAllowed("AgentEpisode DB client unavailable");
-	}
-	return createAgentEpisodeFile(input);
+	return postEpisodeToGateway(input);
 }
 
 export async function listAgentEpisodes(agentRole?: string, limit = 100): Promise<AgentEpisode[]> {
 	const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 1000) : 100;
-	const db = getDbClient();
-	if (db) {
-		try {
-			return await listAgentEpisodesDb(db, agentRole, safeLimit);
-		} catch (error) {
-			assertPersistenceFallbackAllowed("AgentEpisode DB read failed");
-			void error;
-		}
-	} else {
-		assertPersistenceFallbackAllowed("AgentEpisode DB client unavailable");
-	}
-	return listAgentEpisodesFile(agentRole, safeLimit);
+	return getEpisodesFromGateway(agentRole, safeLimit);
 }
 
 export async function pruneExpiredEpisodes(): Promise<number> {
-	const db = getDbClient();
-	if (db) {
-		try {
-			return await pruneExpiredEpisodesDb(db);
-		} catch (error) {
-			assertPersistenceFallbackAllowed("AgentEpisode DB prune failed");
-			void error;
-		}
-	} else {
-		assertPersistenceFallbackAllowed("AgentEpisode DB client unavailable");
-	}
-	return pruneExpiredEpisodesFile();
+	// Episodic retention is enforced by the canonical Python memory-service store.
+	// This compatibility facade no longer owns local episode persistence.
+	return 0;
 }
 
 export async function createAnalysisSnapshot(
 	input: CreateAnalysisSnapshotInput,
 ): Promise<AnalysisSnapshot> {
-	const db = getDbClient();
-	if (db) {
-		try {
-			return await createAnalysisSnapshotDb(db, input);
-		} catch (error) {
-			assertPersistenceFallbackAllowed("AnalysisSnapshot DB write failed");
-			void error;
-		}
-	} else {
-		assertPersistenceFallbackAllowed("AnalysisSnapshot DB client unavailable");
-	}
+	// No backend-owned snapshots API exists yet. Keep this as an explicit local
+	// compatibility helper until an agent-side snapshot contract is defined.
 	return createAnalysisSnapshotFile(input);
 }
 
@@ -406,16 +259,5 @@ export async function listAnalysisSnapshots(
 	limit = 50,
 ): Promise<AnalysisSnapshot[]> {
 	const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 500) : 50;
-	const db = getDbClient();
-	if (db) {
-		try {
-			return await listAnalysisSnapshotsDb(db, analysisType, safeLimit);
-		} catch (error) {
-			assertPersistenceFallbackAllowed("AnalysisSnapshot DB read failed");
-			void error;
-		}
-	} else {
-		assertPersistenceFallbackAllowed("AnalysisSnapshot DB client unavailable");
-	}
 	return listAnalysisSnapshotsFile(analysisType, safeLimit);
 }

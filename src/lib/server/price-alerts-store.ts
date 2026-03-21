@@ -226,6 +226,7 @@ export async function updatePriceAlert(
 		);
 		if (index < 0) return null;
 		const current = store.alerts[index];
+		if (!current) return null;
 		const next: PriceAlert & { profileKey: string } = {
 			...current,
 			enabled: updates.enabled ?? current.enabled,

@@ -1,0 +1,126 @@
+﻿*** Begin Patch
+*** Update File: D:\tradingview-clones\tradeview-fusion\go-backend\internal\services\market\macro_service_test.go
+@@
+-func TestMacroService_History_AutoMacroUsesAdaptiveCandidates(t *testing.T) {
++func TestMacroService_History_AutoMacroUsesAdaptiveCandidates(t *testing.T) {
++	macroAsset, ok := asset.New("macro")
++	if !ok {
++		t.Fatal("expected macro asset type")
++	}
++
+ 	macro := &fakeMacroHistoryClient{
+ 		points: []gct.SeriesPoint{{Timestamp: 1, Value: 3.2}},
+ 		err:    nil,
+ 	}
+@@
+-	points, err := service.History(context.Background(), "AUTO", currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), asset.Empty, 30)
++	points, err := service.History(context.Background(), "AUTO", currency.NewPair(currency.NewCode("CPIAUCSL"), currency.NewCode("USD")), macroAsset, 30)
+@@
+ }
+ 
+ func TestMacroService_History_AutoMacroFallsBackAndRecordsFailure(t *testing.T) {
+-	macro := &fakeMacroHistoryClient{err: errors.New("upstream timeout"), points: []gct.SeriesPoint{{Timestamp: 1, Value: 13.25}}}
+-	service := NewMacroService(macro, &fakeForexHistoryClient{})
++	macroAsset, ok := asset.New("macro")
++	if !ok {
++		t.Fatal("expected macro asset type")
++	}
++
++	service := NewMacroService(&fakeMacroHistoryClient{}, &fakeForexHistoryClient{})
+ 	router := adaptive.New(adaptive.Config{
+ 		AssetClasses: map[string]adaptive.AssetClassConfig{
+ 			"macro": {Providers: []string{"fred", "bcb"}, Strategy: "authority_first"},
+ 		},
+@@
+-	service.SetAdaptiveRouter(router)
+-
+ 	callCount := 0
+-	macro.err = nil
+-	macro.points = []gct.SeriesPoint{{Timestamp: 1, Value: 13.25}}
+-	originalGetSeries := macro.GetSeries
+-	macro.GetSeries = nil
+-	_ = originalGetSeries
+-	// use second fake client for deterministic fallback behavior
+ 	failing := &fakeMacroHistoryClient{err: errors.New("fred down")}
+ 	success := &fakeMacroHistoryClient{points: []gct.SeriesPoint{{Timestamp: 1, Value: 13.25}}}
+ 	service = NewMacroService(&macroFallbackMux{clients: []macroHistoryClient{failing, success}, onCall: func() { callCount++ }}, &fakeForexHistoryClient{})
+ 	service.SetAdaptiveRouter(router)
+ 
+-	points, err := service.History(context.Background(), "AUTO", currency.NewPair(currency.NewCode("POLICY_RATE"), currency.NewCode("USD")), asset.Empty, 30)
++	points, err := service.History(context.Background(), "AUTO", currency.NewPair(currency.NewCode("POLICY_RATE"), currency.NewCode("USD")), macroAsset, 30)
+ 	if err != nil {
+ 		t.Fatalf("expected no error, got %v", err)
+ 	}
+@@
+ 	if callCount != 2 {
+ 		t.Fatalf("expected two provider attempts, got %d", callCount)
+ 	}
++
++	snapshot := router.Snapshot()
++	if len(snapshot) == 0 {
++		t.Fatal("expected adaptive router snapshot entries")
++	}
++	var fredFailures int
++	var bcbSuccesses int
++	for _, state := range snapshot {
++		switch state.Name {
++		case "fred":
++			fredFailures = state.Failures
++		case "bcb":
++			bcbSuccesses = state.Successes
++		}
++	}
++	if fredFailures != 1 {
++		t.Fatalf("expected fred failure to be recorded once, got %d", fredFailures)
++	}
++	if bcbSuccesses != 1 {
++		t.Fatalf("expected bcb success to be recorded once, got %d", bcbSuccesses)
++	}
+ }
+*** Update File: D:\tradingview-clones\tradeview-fusion\go-backend\internal\handlers\http\macro_history_handler_test.go
+@@
+ func TestMacroHistoryHandler_MapsRbiSeriesPrefix(t *testing.T) {
+@@
+ 	if service.lastPair.Base.String() != "RBI_DBIE_FXRES_TR_USD_WEEKLY" {
+ 		t.Fatalf("expected alias RBI_DBIE_FXRES_TR_USD_WEEKLY, got %s", service.lastPair.Base)
+ 	}
+ }
++
++func TestMacroHistoryHandler_AllowsAutoMacroSeries(t *testing.T) {
++	service := &fakeMacroHistoryService{
++		points: []gct.SeriesPoint{{Timestamp: 1771200000, Value: 3.2}},
++	}
++	handler := MacroHistoryHandler(service)
++	req := httptest.NewRequest(http.MethodGet, "/api/v1/macro/history?symbol=POLICY_RATE&exchange=auto&assetType=macro&limit=5", nil)
++	res := httptest.NewRecorder()
++
++	handler.ServeHTTP(res, req)
++	if res.Code != http.StatusOK {
++		t.Fatalf("expected status 200, got %d", res.Code)
++	}
++	if service.lastExchange != "AUTO" {
++		t.Fatalf("expected exchange AUTO, got %s", service.lastExchange)
++	}
++	if service.lastPair.Base.String() != "POLICY_RATE" {
++		t.Fatalf("expected raw auto macro base POLICY_RATE, got %s", service.lastPair.Base)
++	}
++	if service.lastAsset.String() != "macro" {
++		t.Fatalf("expected macro asset type, got %s", service.lastAsset.String())
++	}
++}
+*** Update File: D:\tradingview-clones\tradeview-fusion\go-backend\internal\app\wiring.go
+@@
+ 	var muxRouterSnapshotter *adaptive.Router
+ 	quoteClient := marketServices.NewQuoteClient(gctClient, finnhubClient, macroClient, ecbClient)
++	macroService := marketServices.NewMacroService(macroClient, ecbClient)
+ 	if adaptiveRouter, adaptiveErr := loadAdaptiveRouter(); adaptiveErr == nil {
+ 		quoteClient.SetAdaptiveRouter(adaptiveRouter)
++		macroService.SetAdaptiveRouter(adaptiveRouter)
+ 		muxRouterSnapshotter = adaptiveRouter
+ 	} else if boolOr("ADAPTIVE_ROUTER_REQUIRED", false) {
+ 		return nil, adaptiveErr
+ 	}
+ 	depthClient := marketServices.NewDepthClient(gctClient)
+-	macroService := marketServices.NewMacroService(macroClient, ecbClient)
+ 	streamClient := marketServices.NewStreamClient(quoteClient, gctClient, finnhubClient)
+*** End Patch

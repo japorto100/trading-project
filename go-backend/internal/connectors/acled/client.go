@@ -178,7 +178,7 @@ func (c *Client) FetchEvents(ctx context.Context, query Query) ([]Event, error) 
 
 	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, defaultPath, urlQuery, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("build acled request: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	if c.apiToken != "" {
@@ -345,13 +345,13 @@ func (c *Client) readMockEventsFromFile() ([]Event, error) {
 	}
 	raw, err := os.ReadFile(c.mockDataPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read acled mock data %s: %w", c.mockDataPath, err)
 	}
 	var payload struct {
 		Events []Event `json:"events"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode acled mock data %s: %w", c.mockDataPath, err)
 	}
 	if len(payload.Events) == 0 {
 		return nil, fmt.Errorf("mock data contains no events")

@@ -172,6 +172,7 @@ function AgentChatMessageInner({
 									className="h-16 w-16 rounded border border-primary-foreground/20 overflow-hidden hover:opacity-80 transition-opacity"
 									title={att.name}
 								>
+									{/* biome-ignore lint/performance/noImgElement: previewUrl is a blob: URL from URL.createObjectURL — Next.js <Image> cannot optimize blob: URLs */}
 									<img src={att.previewUrl} alt={att.name} className="h-full w-full object-cover" />
 								</button>
 							))}

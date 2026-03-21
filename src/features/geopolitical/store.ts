@@ -1,11 +1,12 @@
 "use client";
 
 import { create } from "zustand";
-import type { GeoFlatViewHandoff } from "@/features/geopolitical/flat-view-handoff";
+import type { DrawingMode } from "@/features/geopolitical/drawing/types";
+import type { GeoFlatViewHandoff } from "@/features/geopolitical/flat-view/flat-view-handoff";
 import {
 	buildGeoFlatViewStateFromHandoff,
 	type GeoFlatViewState,
-} from "@/features/geopolitical/flat-view-state";
+} from "@/features/geopolitical/flat-view/flat-view-state";
 import type { GeoStoryFocusPreset } from "@/features/geopolitical/geo-story-focus";
 import {
 	buildGeoMultiSelectionState,
@@ -13,7 +14,6 @@ import {
 } from "@/features/geopolitical/multi-selection-contract";
 import {
 	DEFAULT_EDIT_FORM,
-	type DrawingMode,
 	type EditFormState,
 	type GeoContextItem,
 	type GeoGameTheoryItem,
@@ -38,6 +38,7 @@ export type GeoMapBody = "earth" | "moon";
 export type GeoMapViewMode = "globe" | "flat";
 export type GeoEarthChoroplethMode = "severity" | "regime" | "macro";
 export type GeoReplayRangeMs = [number, number];
+export type GeoWorkspaceTab = "inspector" | "timeline";
 export interface GeoLatLngPoint {
 	lat: number;
 	lng: number;
@@ -111,6 +112,7 @@ interface GeoMapWorkspaceState {
 	showFiltersToolbar: boolean;
 	showBodyLayerLegend: boolean;
 	showTimelinePanel: boolean;
+	workspaceTab: GeoWorkspaceTab;
 	timelineViewRangeMs: GeoReplayRangeMs | null;
 	timelineSelectedTimeMs: number | null;
 	activeReplayRangeMs: GeoReplayRangeMs | null;
@@ -187,6 +189,7 @@ interface GeoMapWorkspaceActions {
 	setShowFiltersToolbar: (next: Updater<boolean>) => void;
 	setShowBodyLayerLegend: (next: Updater<boolean>) => void;
 	setShowTimelinePanel: (next: Updater<boolean>) => void;
+	setWorkspaceTab: (next: Updater<GeoWorkspaceTab>) => void;
 	setTimelineViewRangeMs: (next: Updater<GeoReplayRangeMs | null>) => void;
 	setTimelineSelectedTimeMs: (next: Updater<number | null>) => void;
 	setActiveReplayRangeMs: (next: Updater<GeoReplayRangeMs | null>) => void;
@@ -264,6 +267,7 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 	showFiltersToolbar: true,
 	showBodyLayerLegend: true,
 	showTimelinePanel: true,
+	workspaceTab: "inspector",
 	timelineViewRangeMs: null,
 	timelineSelectedTimeMs: null,
 	activeReplayRangeMs: null,
@@ -462,6 +466,8 @@ export const useGeoMapWorkspaceStore = create<GeoMapWorkspaceStore>((set) => ({
 		set((state) => ({ showBodyLayerLegend: resolveUpdater(state.showBodyLayerLegend, next) })),
 	setShowTimelinePanel: (next) =>
 		set((state) => ({ showTimelinePanel: resolveUpdater(state.showTimelinePanel, next) })),
+	setWorkspaceTab: (next) =>
+		set((state) => ({ workspaceTab: resolveUpdater(state.workspaceTab, next) })),
 	setTimelineViewRangeMs: (next) =>
 		set((state) => ({ timelineViewRangeMs: resolveUpdater(state.timelineViewRangeMs, next) })),
 	setTimelineSelectedTimeMs: (next) =>

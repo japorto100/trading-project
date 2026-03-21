@@ -15,3 +15,6 @@ opentelemetry-instrumentation-httpx>=0.50b0
 
 [eval]
 locust>=2.24.0
+
+[grpclib]
+grpclib>=0.4.0

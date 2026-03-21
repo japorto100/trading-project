@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -19,6 +20,7 @@ func TestPostJSON_UsesBaseClientAndPropagatesRequestID(t *testing.T) {
 	var gotContentType string
 	var gotAccept string
 	var gotRequestID string
+	var gotProvider string
 	var gotBody string
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,6 +29,7 @@ func TestPostJSON_UsesBaseClientAndPropagatesRequestID(t *testing.T) {
 		gotContentType = r.Header.Get("Content-Type")
 		gotAccept = r.Header.Get("Accept")
 		gotRequestID = r.Header.Get("X-Request-ID")
+		gotProvider = r.Header.Get("X-TVF-Connector-Provider")
 		body, _ := io.ReadAll(r.Body)
 		gotBody = string(body)
 		w.WriteHeader(http.StatusAccepted)
@@ -36,6 +39,17 @@ func TestPostJSON_UsesBaseClientAndPropagatesRequestID(t *testing.T) {
 
 	client := NewClient(Config{
 		BaseURL: server.URL,
+		Registry: connectorregistry.New(connectorregistry.Config{
+			AssetClasses: map[string]connectorregistry.AssetClassConfig{
+				"placeholder": {Providers: []string{"indicatorservice"}, Strategy: "authority_first"},
+			},
+			Groups: map[string]connectorregistry.GroupConfig{
+				"pythonipc": {RetryProfile: "internal_rpc"},
+			},
+			Providers: map[string]connectorregistry.ProviderConfig{
+				"indicatorservice": {Group: "pythonipc", Bridge: "grpc_http_fallback", RetryProfile: "internal_rpc"},
+			},
+		}),
 	})
 	ctx := requestctx.WithRequestID(context.Background(), "req-123")
 
@@ -63,6 +77,9 @@ func TestPostJSON_UsesBaseClientAndPropagatesRequestID(t *testing.T) {
 	}
 	if gotRequestID != "req-123" {
 		t.Fatalf("expected request id req-123, got %q", gotRequestID)
+	}
+	if gotProvider != "indicatorservice" {
+		t.Fatalf("expected provider header indicatorservice, got %q", gotProvider)
 	}
 	if gotBody != `{"symbol":"BTCUSD"}` {
 		t.Fatalf("unexpected request body %q", gotBody)

@@ -28,7 +28,7 @@ func NewFilesystemProvider(baseDir string) (*FilesystemProvider, error) {
 	if trimmed == "." || trimmed == "" {
 		return nil, fmt.Errorf("filesystem base dir required")
 	}
-	if err := os.MkdirAll(trimmed, 0o755); err != nil {
+	if err := os.MkdirAll(trimmed, 0o750); err != nil {
 		return nil, fmt.Errorf("create filesystem provider dir: %w", err)
 	}
 	return &FilesystemProvider{baseDir: trimmed}, nil
@@ -39,8 +39,8 @@ func (p *FilesystemProvider) Put(_ context.Context, objectKey string, body io.Re
 	if err != nil {
 		return UploadResult{}, err
 	}
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-		return UploadResult{}, fmt.Errorf("create object dir: %w", err)
+	if mkdirErr := os.MkdirAll(filepath.Dir(targetPath), 0o750); mkdirErr != nil {
+		return UploadResult{}, fmt.Errorf("create object dir: %w", mkdirErr)
 	}
 
 	tmpFile, err := os.CreateTemp(filepath.Dir(targetPath), "artifact-*.tmp")

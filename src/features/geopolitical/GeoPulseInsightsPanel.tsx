@@ -1,30 +1,44 @@
 "use client";
 
+import { GeoPanelFrame } from "@/features/geopolitical/shell/panels/GeoPanelFrame";
+import { GeoPanelRuntimeMeta } from "@/features/geopolitical/shell/panels/GeoPanelRuntimeMeta";
+import { GeoPanelStateNotice } from "@/features/geopolitical/shell/panels/GeoPanelStateNotice";
 import type { GeoGraphResponse } from "@/features/geopolitical/shell/types";
 
 interface GeoPulseInsightsPanelProps {
 	graph: GeoGraphResponse | null;
+	onRetry?: () => void;
 }
 
-export function GeoPulseInsightsPanel({ graph }: GeoPulseInsightsPanelProps) {
+export function GeoPulseInsightsPanel({ graph, onRetry }: GeoPulseInsightsPanelProps) {
 	if (!graph || !graph.success) {
 		return (
-			<section className="rounded-md border border-border bg-card p-3">
-				<h2 className="text-sm font-semibold">GeoPulse Insights</h2>
-				<p className="mt-1 text-xs text-muted-foreground">No graph data yet.</p>
-			</section>
+			<GeoPanelFrame
+				title="GeoPulse Insights"
+				description="No graph data yet."
+				status="unavailable"
+			>
+				<GeoPanelStateNotice
+					message="Graph slice is unavailable for the current workspace."
+					tone="warning"
+					onRetry={onRetry}
+					retryLabel="Reload graph"
+				/>
+			</GeoPanelFrame>
 		);
 	}
 
 	const topEdges = graph.edges.slice(0, 6);
 
 	return (
-		<section className="rounded-md border border-border bg-card p-3">
-			<h2 className="text-sm font-semibold">GeoPulse Insights</h2>
-			<p className="mt-1 text-xs text-muted-foreground">
-				Graph slice from backend: {graph.nodeCount} nodes, {graph.edgeCount} edges.
-			</p>
-
+		<GeoPanelFrame
+			title="GeoPulse Insights"
+			description={`Graph slice from backend: ${graph.nodeCount} nodes, ${graph.edgeCount} edges.`}
+			status="live"
+			meta={
+				<GeoPanelRuntimeMeta items={["graph snapshot", graph.source, `${graph.edgeCount} edges`]} />
+			}
+		>
 			<div className="mt-3 rounded-md border border-border bg-background p-2">
 				<h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
 					Top Regions
@@ -75,6 +89,6 @@ export function GeoPulseInsightsPanel({ graph }: GeoPulseInsightsPanelProps) {
 					)}
 				</div>
 			</div>
-		</section>
+		</GeoPanelFrame>
 	);
 }

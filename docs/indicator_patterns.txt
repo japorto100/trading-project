@@ -1,0 +1,54 @@
+ok andere frage habe auch entscheidungsproblem für trading indicators. momentan habe ich einige in python 40 oder so alle in pipeline.py und in rust weitere auch in einem file. ein clone hat es ganz gesplittet. Beide scheinen mir nicht sota zu sein. ideen?
+
+
+
+Das Splitten in 100+ Einzeldateien ist ein Wartungs-Albtraum, aber alles in eine pipeline.py zu klatschen, führt zu "God Objects", die niemand mehr testen kann.
+In der Welt von High-Performance Trading (Go/Rust) und Data Science (Python) ist der State-of-the-Art (SOTA) Ansatz für 2026 die "Registry-Architektur" mit funktionaler Komposition.
+Hier ist die Strategie, um deine Indikatoren sauber zu strukturieren:
+1. Die Struktur: "Namespace by Category"
+Statt 40 Dateien oder einer Riesen-Datei gruppierst du nach mathematischer Verwandtschaft. Das reduziert die Anzahl der Files massiv, hält sie aber übersichtlich.
+
+* indicators/trend.py (SMA, EMA, ADX)
+* indicators/momentum.py (RSI, MACD, Stochastics)
+* indicators/volatility.py (Bollinger, ATR)
+* indicators/volume.py (OBV, VWAP)
+
+2. SOTA Pattern: The Registry (Python & Rust)
+Du registrierst jeden Indikator in einem zentralen Map-Objekt. Dein Agent muss dann nur noch den Namen aufrufen, statt die Logik hart zu verdrahten.
+In Python (mit Type Hints):
+
+from typing import Callable, Dictimport numpy as np
+# Ein Dictionary als RegistryINDICATOR_REGISTRY: Dict[str, Callable] = {}
+def register_indicator(name: str):
+    def decorator(func: Callable):
+        INDICATOR_REGISTRY[name] = func
+        return func
+    return decorator
+
+@register_indicator("RSI")def calculate_rsi(data: np.ndarray, period: int = 14):
+    # Logik hier...
+    return rsi_values
+
+3. Rust-SOTA: Traits & Static Dispatch
+In Rust nutzt du Traits, um sicherzustellen, dass jeder Indikator die gleiche "Form" hat. Das ist extrem schnell, da der Compiler die Aufrufe zur Compile-Zeit optimiert.
+
+pub trait Indicator {
+    fn calculate(&self, data: &[f64]) -> Vec<f64>;
+}
+pub struct SMA { pub period: usize }
+impl Indicator for SMA {
+    fn calculate(&self, data: &[f64]) -> Vec<f64> {
+        // High-speed Rust implementation
+    }
+}
+
+4. Warum das dein Problem löst:
+
+* Abstraktion: Deine pipeline.py weiß nichts mehr über die Mathematik. Sie sagt nur noch: for name in config.enabled_indicators: registry[name](data).
+* Testbarkeit: Du kannst trend.py isoliert testen, ohne die ganze Pipeline zu laden.
+* Interoperabilität: Wenn du Rust-Code in Python nutzt (via PyO3), kannst du die Rust-Indikatoren einfach in die Python-Registry "einhängen".
+
+5. Bonus: Performance-Tipp für 2026
+Wenn du 40+ Indikatoren auf Echtzeit-Daten fährst, schau dir Polars (für Python/Rust) an. Es ist wesentlich schneller als Pandas und erlaubt es dir, Indikatoren als "Expressions" zu schreiben, die parallel auf der CPU berechnet werden.
+Soll dein Coding-Agent die bestehende pipeline.py automatisch in diese Kategorien (Trend, Momentum, etc.) zerlegen oder willst du direkt die Registry-Logik aufbauen?
+

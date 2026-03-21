@@ -26,8 +26,8 @@ type artifactService interface {
 
 type artifactPayload struct {
 	Artifact artifactDTO `json:"artifact"`
-	Upload   linkDTO     `json:"upload,omitempty"`
-	Download linkDTO     `json:"download,omitempty"`
+	Upload   linkDTO     `json:"upload,omitzero"`
+	Download linkDTO     `json:"download,omitzero"`
 }
 
 type artifactDTO struct {

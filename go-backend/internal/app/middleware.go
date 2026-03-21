@@ -19,7 +19,7 @@ import (
 )
 
 const requestIDHeader = "X-Request-ID"
-const providerCredentialsHeader = "X-Tradeview-Provider-Credentials"
+const providerCredentialsHeader = "X-Tradeview-Provider-Credentials" //nolint:gosec // header name only, not an embedded credential
 const maxProviderCredentialsHeaderBytes = 8192
 const maxProviderCredentialsCount = 16
 const maxProviderCredentialFieldBytes = 4096
@@ -41,7 +41,10 @@ func (w *loggingResponseWriter) Write(p []byte) (int, error) {
 	}
 	n, err := w.ResponseWriter.Write(p)
 	w.bytesWritten += n
-	return n, err
+	if err != nil {
+		return n, fmt.Errorf("write response body: %w", err)
+	}
+	return n, nil
 }
 
 func (w *loggingResponseWriter) Flush() {

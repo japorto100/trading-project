@@ -345,6 +345,7 @@ export class ChartRenderer {
 
 		const p1 = drawing.points[0];
 		const p2 = drawing.points[1];
+		if (!p1 || !p2) return;
 		const x1 = this.coord!.timeToX(p1.time);
 		const y1 = this.coord!.priceToY(p1.price);
 		const x2 = this.coord!.timeToX(p2.time);
@@ -363,7 +364,9 @@ export class ChartRenderer {
 	) {
 		if (drawing.points.length < 1) return;
 
-		const y = this.coord!.priceToY(drawing.points[0].price);
+		const firstPoint = drawing.points[0];
+		if (!firstPoint) return;
+		const y = this.coord!.priceToY(firstPoint.price);
 
 		ctx.beginPath();
 		ctx.moveTo(0, y);
@@ -376,7 +379,7 @@ export class ChartRenderer {
 		ctx.fillStyle = "#ffffff";
 		ctx.font = "10px monospace";
 		ctx.textAlign = "center";
-		ctx.fillText(drawing.points[0].price.toFixed(2), viewport.width - 35, y + 4);
+		ctx.fillText(firstPoint.price.toFixed(2), viewport.width - 35, y + 4);
 	}
 
 	private renderRectangle(ctx: CanvasRenderingContext2D, drawing: Drawing) {
@@ -384,6 +387,7 @@ export class ChartRenderer {
 
 		const p1 = drawing.points[0];
 		const p2 = drawing.points[1];
+		if (!p1 || !p2) return;
 		const x1 = this.coord!.timeToX(p1.time);
 		const y1 = this.coord!.priceToY(p1.price);
 		const x2 = this.coord!.timeToX(p2.time);
@@ -399,6 +403,7 @@ export class ChartRenderer {
 
 		const p1 = drawing.points[0];
 		const p2 = drawing.points[1];
+		if (!p1 || !p2) return;
 		const x1 = this.coord!.timeToX(p1.time);
 		const x2 = this.coord!.timeToX(p2.time);
 		const y1 = this.coord!.priceToY(p1.price);

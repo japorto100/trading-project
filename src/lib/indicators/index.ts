@@ -31,10 +31,10 @@ export function calculateSMA(data: OHLCV[], period: number): IndicatorData[] {
 	for (let i = period - 1; i < data.length; i++) {
 		let sum = 0;
 		for (let j = 0; j < period; j++) {
-			sum += data[i - j].close;
+			sum += data[i - j]!.close;
 		}
 		result.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: sum / period,
 		});
 	}
@@ -55,20 +55,20 @@ export function calculateEMA(data: OHLCV[], period: number): IndicatorData[] {
 	// First EMA is SMA
 	let ema = 0;
 	for (let i = 0; i < period; i++) {
-		ema += data[i].close;
+		ema += data[i]!.close;
 	}
 	ema /= period;
 
 	result.push({
-		time: data[period - 1].time,
+		time: data[period - 1]!.time,
 		value: ema,
 	});
 
 	// Calculate subsequent EMAs
 	for (let i = period; i < data.length; i++) {
-		ema = (data[i].close - ema) * multiplier + ema;
+		ema = (data[i]!.close - ema) * multiplier + ema;
 		result.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: ema,
 		});
 	}
@@ -90,10 +90,10 @@ export function calculateWMA(data: OHLCV[], period: number): IndicatorData[] {
 	for (let i = period - 1; i < data.length; i++) {
 		let wma = 0;
 		for (let j = 0; j < period; j++) {
-			wma += data[i - period + 1 + j].close * weights[j];
+			wma += data[i - period + 1 + j]!.close * weights[j]!;
 		}
 		result.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: wma / weightSum,
 		});
 	}
@@ -118,7 +118,7 @@ export function calculateRSI(data: OHLCV[], period: number = 14): IndicatorData[
 
 	// Calculate price changes
 	for (let i = 1; i < data.length; i++) {
-		const change = data[i].close - data[i - 1].close;
+		const change = data[i]!.close - data[i - 1]!.close;
 		gains.push(change > 0 ? change : 0);
 		losses.push(change < 0 ? Math.abs(change) : 0);
 	}
@@ -128,8 +128,8 @@ export function calculateRSI(data: OHLCV[], period: number = 14): IndicatorData[
 	let avgLoss = 0;
 
 	for (let i = 0; i < period; i++) {
-		avgGain += gains[i];
-		avgLoss += losses[i];
+		avgGain += gains[i]!;
+		avgLoss += losses[i]!;
 	}
 	avgGain /= period;
 	avgLoss /= period;
@@ -137,18 +137,18 @@ export function calculateRSI(data: OHLCV[], period: number = 14): IndicatorData[
 	// First RSI
 	const rs = avgLoss !== 0 ? avgGain / avgLoss : 0;
 	result.push({
-		time: data[period].time,
+		time: data[period]!.time,
 		value: 100 - 100 / (1 + rs),
 	});
 
 	// Calculate subsequent RSIs using smoothed method
 	for (let i = period; i < gains.length; i++) {
-		avgGain = (avgGain * (period - 1) + gains[i]) / period;
-		avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+		avgGain = (avgGain * (period - 1) + gains[i]!) / period;
+		avgLoss = (avgLoss * (period - 1) + losses[i]!) / period;
 
 		const rs = avgLoss !== 0 ? avgGain / avgLoss : 0;
 		result.push({
-			time: data[i + 1].time,
+			time: data[i + 1]!.time,
 			value: 100 - 100 / (1 + rs),
 		});
 	}
@@ -167,11 +167,11 @@ export function calculateStochastic(
 		const slice = data.slice(i - kPeriod + 1, i + 1);
 		const high = Math.max(...slice.map((d) => d.high));
 		const low = Math.min(...slice.map((d) => d.low));
-		const close = data[i].close;
+		const close = data[i]!.close;
 
 		const k = high !== low ? ((close - low) / (high - low)) * 100 : 50;
 		kValues.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: k,
 		});
 	}
@@ -181,10 +181,10 @@ export function calculateStochastic(
 	for (let i = dPeriod - 1; i < kValues.length; i++) {
 		let sum = 0;
 		for (let j = 0; j < dPeriod; j++) {
-			sum += kValues[i - j].value;
+			sum += kValues[i - j]!.value;
 		}
 		dValues.push({
-			time: kValues[i].time,
+			time: kValues[i]!.time,
 			value: sum / dPeriod,
 		});
 	}
@@ -218,9 +218,12 @@ export function calculateMACD(
 	const slowOffset = slowPeriod - fastPeriod;
 
 	for (let i = 0; i < slowEMA.length; i++) {
+		const slowPoint = slowEMA[i];
+		const fastPoint = fastEMA[i + slowOffset];
+		if (!slowPoint || !fastPoint) continue;
 		macdLine.push({
-			time: slowEMA[i].time,
-			value: fastEMA[i + slowOffset].value - slowEMA[i].value,
+			time: slowPoint.time,
+			value: fastPoint.value - slowPoint.value,
 		});
 	}
 
@@ -231,20 +234,20 @@ export function calculateMACD(
 	// First signal is SMA
 	let signal = 0;
 	for (let i = 0; i < signalPeriod; i++) {
-		signal += macdLine[i].value;
+		signal += macdLine[i]!.value;
 	}
 	signal /= signalPeriod;
 
 	signalLine.push({
-		time: macdLine[signalPeriod - 1].time,
+		time: macdLine[signalPeriod - 1]!.time,
 		value: signal,
 	});
 
 	// Calculate EMA
 	for (let i = signalPeriod; i < macdLine.length; i++) {
-		signal = (macdLine[i].value - signal) * multiplier + signal;
+		signal = (macdLine[i]!.value - signal) * multiplier + signal;
 		signalLine.push({
-			time: macdLine[i].time,
+			time: macdLine[i]!.time,
 			value: signal,
 		});
 	}
@@ -252,10 +255,13 @@ export function calculateMACD(
 	// Combine results
 	const result: MACDData[] = [];
 	for (let i = 0; i < signalLine.length; i++) {
-		const macd = macdLine[i + signalPeriod - 1].value;
-		const sig = signalLine[i].value;
+		const macdPoint = macdLine[i + signalPeriod - 1];
+		const signalPoint = signalLine[i];
+		if (!macdPoint || !signalPoint) continue;
+		const macd = macdPoint.value;
+		const sig = signalPoint.value;
 		result.push({
-			time: signalLine[i].time,
+			time: signalPoint.time,
 			macd,
 			signal: sig,
 			histogram: macd - sig,
@@ -288,19 +294,19 @@ export function calculateBollingerBands(
 		// Calculate SMA
 		let sum = 0;
 		for (let j = 0; j < period; j++) {
-			sum += data[i - j].close;
+			sum += data[i - j]!.close;
 		}
 		const sma = sum / period;
 
 		// Calculate Standard Deviation
 		let sqSum = 0;
 		for (let j = 0; j < period; j++) {
-			sqSum += (data[i - j].close - sma) ** 2;
+			sqSum += (data[i - j]!.close - sma) ** 2;
 		}
 		const std = Math.sqrt(sqSum / period);
 
 		result.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			upper: sma + stdDev * std,
 			middle: sma,
 			lower: sma - stdDev * std,
@@ -319,9 +325,9 @@ export function calculateATR(data: OHLCV[], period: number = 14): IndicatorData[
 	const trueRanges: number[] = [];
 
 	for (let i = 1; i < data.length; i++) {
-		const high = data[i].high;
-		const low = data[i].low;
-		const prevClose = data[i - 1].close;
+		const high = data[i]!.high;
+		const low = data[i]!.low;
+		const prevClose = data[i - 1]!.close;
 
 		const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
 		trueRanges.push(tr);
@@ -332,20 +338,20 @@ export function calculateATR(data: OHLCV[], period: number = 14): IndicatorData[
 	let atr = 0;
 
 	for (let i = 0; i < period; i++) {
-		atr += trueRanges[i];
+		atr += trueRanges[i]!;
 	}
 	atr /= period;
 
 	result.push({
-		time: data[period].time,
+		time: data[period]!.time,
 		value: atr,
 	});
 
 	// Subsequent ATRs use smoothing
 	for (let i = period; i < trueRanges.length; i++) {
-		atr = (atr * (period - 1) + trueRanges[i]) / period;
+		atr = (atr * (period - 1) + trueRanges[i]!) / period;
 		result.push({
-			time: data[i + 1].time,
+			time: data[i + 1]!.time,
 			value: atr,
 		});
 	}
@@ -388,10 +394,10 @@ function calculateWMAFromValues(data: IndicatorData[], period: number): Indicato
 	for (let i = period - 1; i < data.length; i++) {
 		let wma = 0;
 		for (let j = 0; j < period; j++) {
-			wma += data[i - period + 1 + j].value * weights[j];
+			wma += data[i - period + 1 + j]!.value * weights[j]!;
 		}
 		result.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: wma / weightSum,
 		});
 	}
@@ -415,11 +421,11 @@ export function calculateADX(data: OHLCV[], period: number = 14): ADXData {
 	const minusDM: number[] = [];
 
 	for (let i = 1; i < data.length; i++) {
-		const high = data[i].high;
-		const low = data[i].low;
-		const prevHigh = data[i - 1].high;
-		const prevLow = data[i - 1].low;
-		const prevClose = data[i - 1].close;
+		const high = data[i]!.high;
+		const low = data[i]!.low;
+		const prevHigh = data[i - 1]!.high;
+		const prevLow = data[i - 1]!.low;
+		const prevClose = data[i - 1]!.close;
 
 		tr.push(Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose)));
 
@@ -439,21 +445,24 @@ export function calculateADX(data: OHLCV[], period: number = 14): ADXData {
 	const dx: number[] = [];
 
 	for (let i = 0; i < smoothedTR.length; i++) {
-		const pdi = smoothedTR[i] > 0 ? (smoothedPlusDM[i] / smoothedTR[i]) * 100 : 0;
-		const mdi = smoothedTR[i] > 0 ? (smoothedMinusDM[i] / smoothedTR[i]) * 100 : 0;
+		const smoothedTr = smoothedTR[i]!;
+		const smoothedPlus = smoothedPlusDM[i]!;
+		const smoothedMinus = smoothedMinusDM[i]!;
+		const pdi = smoothedTr > 0 ? (smoothedPlus / smoothedTr) * 100 : 0;
+		const mdi = smoothedTr > 0 ? (smoothedMinus / smoothedTr) * 100 : 0;
 
-		plusDI.push({ time: data[i + period].time, value: pdi });
-		minusDI.push({ time: data[i + period].time, value: mdi });
+		plusDI.push({ time: data[i + period]!.time, value: pdi });
+		minusDI.push({ time: data[i + period]!.time, value: mdi });
 
 		const diSum = pdi + mdi;
 		dx.push(diSum > 0 ? (Math.abs(pdi - mdi) / diSum) * 100 : 0);
 	}
 
 	const adxValues = smoothArray(dx, period);
-	const adx: IndicatorData[] = adxValues.map((value, i) => ({
-		time: plusDI[i + period - 1]?.time ?? data[i + period * 2].time,
-		value,
-	}));
+	const adx: IndicatorData[] = adxValues.flatMap((value, i) => {
+		const time = plusDI[i + period - 1]?.time ?? data[i + period * 2]?.time;
+		return time === undefined ? [] : [{ time, value }];
+	});
 
 	return { adx, plusDI, minusDI };
 }
@@ -464,13 +473,14 @@ function smoothArray(arr: number[], period: number): number[] {
 
 	for (let i = 0; i < arr.length; i++) {
 		if (i < period) {
-			sum += arr[i];
+			sum += arr[i]!;
 			if (i === period - 1) {
 				result.push(sum / period);
 			}
 		} else {
 			const prev = result[result.length - 1];
-			result.push((prev * (period - 1) + arr[i]) / period);
+			if (prev === undefined) continue;
+			result.push((prev * (period - 1) + arr[i]!) / period);
 		}
 	}
 
@@ -501,7 +511,7 @@ export function calculateIchimoku(
 		const high = Math.max(...slice.map((entry) => entry.high));
 		const low = Math.min(...slice.map((entry) => entry.low));
 		tenkan.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: (high + low) / 2,
 		});
 	}
@@ -511,7 +521,7 @@ export function calculateIchimoku(
 		const high = Math.max(...slice.map((entry) => entry.high));
 		const low = Math.min(...slice.map((entry) => entry.low));
 		kijun.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: (high + low) / 2,
 		});
 	}
@@ -520,9 +530,12 @@ export function calculateIchimoku(
 	for (let i = 0; i < minLen; i++) {
 		const nextTime = data[i + kijunPeriod - 1 + displacement]?.time;
 		if (nextTime === undefined) continue;
+		const tenkanPoint = tenkan[i];
+		const kijunPoint = kijun[i];
+		if (!tenkanPoint || !kijunPoint) continue;
 		senkouA.push({
 			time: nextTime,
-			value: (tenkan[i].value + kijun[i].value) / 2,
+			value: (tenkanPoint.value + kijunPoint.value) / 2,
 		});
 	}
 
@@ -555,14 +568,18 @@ export function calculateParabolicSAR(
 	const trend: Array<"up" | "down"> = [];
 	if (data.length < 5) return { sar: [], trend: [] };
 
-	let currentTrend: "up" | "down" = data[1].close > data[0].close ? "up" : "down";
-	let ep = currentTrend === "up" ? data[0].high : data[0].low;
-	let currentSAR = currentTrend === "up" ? data[0].low : data[0].high;
+	const firstCandle = data[0];
+	const secondCandle = data[1];
+	if (!firstCandle || !secondCandle) return { sar: [], trend: [] };
+	let currentTrend: "up" | "down" = secondCandle.close > firstCandle.close ? "up" : "down";
+	let ep = currentTrend === "up" ? firstCandle.high : firstCandle.low;
+	let currentSAR = currentTrend === "up" ? firstCandle.low : firstCandle.high;
 	let currentAF = step;
 
 	for (let i = 1; i < data.length; i++) {
 		const candle = data[i];
 		const prevCandle = data[i - 1];
+		if (!candle || !prevCandle) continue;
 
 		currentSAR = currentSAR + currentAF * (ep - currentSAR);
 
@@ -733,13 +750,14 @@ export function calculateVWMA(data: OHLCV[], period: number = 20): IndicatorData
 		let volumeSum = 0;
 		for (let j = 0; j < period; j++) {
 			const candle = data[i - j];
+			if (!candle) continue;
 			weightedPriceSum += candle.close * candle.volume;
 			volumeSum += candle.volume;
 		}
 
 		result.push({
-			time: data[i].time,
-			value: volumeSum > 0 ? weightedPriceSum / volumeSum : data[i].close,
+			time: data[i]!.time,
+			value: volumeSum > 0 ? weightedPriceSum / volumeSum : data[i]!.close,
 		});
 	}
 
@@ -813,6 +831,7 @@ export function detectSMACrossEvents(data: OHLCV[], period: number = 50): SMACro
 	for (let i = 1; i < data.length; i++) {
 		const prev = data[i - 1];
 		const curr = data[i];
+		if (!prev || !curr) continue;
 		const prevSma = smaByTime.get(prev.time);
 		const currSma = smaByTime.get(curr.time);
 		if (prevSma === undefined || currSma === undefined) continue;
@@ -867,13 +886,13 @@ export function calculateRVOL(data: OHLCV[], period: number = 20): IndicatorData
 	for (let i = period - 1; i < data.length; i++) {
 		let avgVolume = 0;
 		for (let j = 0; j < period; j++) {
-			avgVolume += data[i - j].volume;
+			avgVolume += data[i - j]!.volume;
 		}
 		avgVolume /= period;
 
 		result.push({
-			time: data[i].time,
-			value: avgVolume > 0 ? data[i].volume / avgVolume : 0,
+			time: data[i]!.time,
+			value: avgVolume > 0 ? data[i]!.volume / avgVolume : 0,
 		});
 	}
 	return result;
@@ -890,18 +909,21 @@ export function calculateOBV(data: OHLCV[]): IndicatorData[] {
 	let obv = 0;
 
 	result.push({
-		time: data[0].time,
+		time: data[0]!.time,
 		value: obv,
 	});
 
 	for (let i = 1; i < data.length; i++) {
-		if (data[i].close > data[i - 1].close) {
-			obv += data[i].volume;
-		} else if (data[i].close < data[i - 1].close) {
-			obv -= data[i].volume;
+		const prev = data[i - 1];
+		const curr = data[i];
+		if (!prev || !curr) continue;
+		if (curr.close > prev.close) {
+			obv += curr.volume;
+		} else if (curr.close < prev.close) {
+			obv -= curr.volume;
 		}
 		result.push({
-			time: data[i].time,
+			time: curr.time,
 			value: obv,
 		});
 	}
@@ -928,12 +950,12 @@ export function calculateCMF(data: OHLCV[], period: number = 20): IndicatorData[
 		let sumMfv = 0;
 		let sumVol = 0;
 		for (let j = 0; j < period; j++) {
-			sumMfv += mfv[i - j];
-			sumVol += data[i - j].volume;
+			sumMfv += mfv[i - j]!;
+			sumVol += data[i - j]!.volume;
 		}
 
 		result.push({
-			time: data[i].time,
+			time: data[i]!.time,
 			value: sumVol > 0 ? sumMfv / sumVol : 0,
 		});
 	}
@@ -970,12 +992,26 @@ export function analyzeHeartbeatPattern(
 		};
 	}
 
-	const pivots: Array<{ index: number; price: number }> = [{ index: 0, price: data[0].close }];
+	const firstPivotCandle = data[0];
+	if (!firstPivotCandle) {
+		return {
+			score: 0,
+			cycleBars: null,
+			swings: 0,
+			amplitudeStability: 0,
+			periodStability: 0,
+		};
+	}
+	const pivots: Array<{ index: number; price: number }> = [
+		{ index: 0, price: firstPivotCandle.close },
+	];
 	let direction: "up" | "down" | null = null;
-	let lastPivotPrice = data[0].close;
+	let lastPivotPrice = firstPivotCandle.close;
 
 	for (let i = 1; i < data.length; i++) {
-		const price = data[i].close;
+		const candle = data[i];
+		if (!candle) continue;
+		const price = candle.close;
 		const move = (price - lastPivotPrice) / Math.max(Math.abs(lastPivotPrice), 1e-9);
 
 		if (direction === null) {
@@ -1027,10 +1063,13 @@ export function analyzeHeartbeatPattern(
 	const intervals: number[] = [];
 	const amplitudes: number[] = [];
 	for (let i = 1; i < pivots.length; i++) {
-		intervals.push(pivots[i].index - pivots[i - 1].index);
+		const previousPivot = pivots[i - 1];
+		const currentPivot = pivots[i];
+		if (!previousPivot || !currentPivot) continue;
+		intervals.push(currentPivot.index - previousPivot.index);
 		amplitudes.push(
-			Math.abs(pivots[i].price - pivots[i - 1].price) /
-				Math.max(Math.abs(pivots[i - 1].price), 1e-9),
+			Math.abs(currentPivot.price - previousPivot.price) /
+				Math.max(Math.abs(previousPivot.price), 1e-9),
 		);
 	}
 
@@ -1073,8 +1112,10 @@ export function findSupportResistance(
 
 	for (let i = lookback; i < data.length - lookback; i++) {
 		const slice = data.slice(i - lookback, i + lookback + 1);
-		const high = data[i].high;
-		const low = data[i].low;
+		const candle = data[i];
+		if (!candle) continue;
+		const high = candle.high;
+		const low = candle.low;
 
 		// Check for resistance (local high)
 		const isResistance = slice.every((d) => d.high <= high * (1 + threshold));

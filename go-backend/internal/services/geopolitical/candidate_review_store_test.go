@@ -47,15 +47,15 @@ func TestCandidateReviewStore_UpsertAndListFilters(t *testing.T) {
 	}
 
 	// Upsert should replace existing record.
-	if err := store.UpsertCandidate(map[string]any{
+	if upsertErr := store.UpsertCandidate(map[string]any{
 		"id":          "c-1",
 		"headline":    "Fed hold confirmed",
 		"state":       "accepted",
 		"regionHint":  "north-america",
 		"confidence":  0.95,
 		"generatedAt": "2026-02-23T13:00:00Z",
-	}); err != nil {
-		t.Fatalf("upsert candidate: %v", err)
+	}); upsertErr != nil {
+		t.Fatalf("upsert candidate: %v", upsertErr)
 	}
 
 	items, err = store.List(CandidateListFilters{})

@@ -58,7 +58,12 @@ func New[R any](cfg Config, handleIf func(R, error) bool) *Breaker[R] {
 // Execute runs fn through the circuit breaker.
 // Returns circuitbreaker.ErrOpen if the circuit is open.
 func (b *Breaker[R]) Execute(ctx context.Context, fn func() (R, error)) (R, error) {
-	return failsafe.With[R](b.cb).WithContext(ctx).Get(fn)
+	result, err := failsafe.With[R](b.cb).WithContext(ctx).Get(fn)
+	if err != nil {
+		var zero R
+		return zero, fmt.Errorf("execute circuit breaker protected operation: %w", err)
+	}
+	return result, nil
 }
 
 // IsOpen reports whether the circuit is currently open (calls will fail fast).

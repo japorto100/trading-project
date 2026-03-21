@@ -2,51 +2,27 @@ package base
 
 import (
 	"context"
-	"sync"
-	"time"
+	"fmt"
+
+	"golang.org/x/time/rate"
 )
 
-type simpleRateLimiter struct {
-	mu       sync.Mutex
-	interval time.Duration
-	nextAt   time.Time
-}
-
-func newSimpleRateLimiter(ratePerSecond float64) *simpleRateLimiter {
+func newRateLimiter(ratePerSecond float64, burst int) *rate.Limiter {
 	if ratePerSecond <= 0 {
 		return nil
 	}
-	interval := time.Duration(float64(time.Second) / ratePerSecond)
-	if interval <= 0 {
-		interval = time.Millisecond
+	if burst <= 0 {
+		burst = max(1, int(ratePerSecond))
 	}
-	return &simpleRateLimiter{interval: interval}
+	return rate.NewLimiter(rate.Limit(ratePerSecond), burst)
 }
 
-func (l *simpleRateLimiter) Wait(ctx context.Context) error {
-	if l == nil {
+func waitForRateLimiter(ctx context.Context, limiter *rate.Limiter) error {
+	if limiter == nil {
 		return nil
 	}
-
-	for {
-		l.mu.Lock()
-		now := time.Now()
-		if l.nextAt.IsZero() || !now.Before(l.nextAt) {
-			l.nextAt = now.Add(l.interval)
-			l.mu.Unlock()
-			return nil
-		}
-		waitFor := time.Until(l.nextAt)
-		l.mu.Unlock()
-
-		timer := time.NewTimer(waitFor)
-		select {
-		case <-ctx.Done():
-			if !timer.Stop() {
-				<-timer.C
-			}
-			return ctx.Err()
-		case <-timer.C:
-		}
+	if err := limiter.Wait(ctx); err != nil {
+		return fmt.Errorf("wait for rate limiter token: %w", err)
 	}
+	return nil
 }

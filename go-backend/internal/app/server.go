@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type Server struct {
@@ -22,10 +23,21 @@ func NewServer(host, port string, handler http.Handler) *Server {
 
 func (s *Server) Run() error {
 	address := fmt.Sprintf("%s:%s", s.host, s.port)
+	server := &http.Server{
+		Addr:              address,
+		Handler:           s.handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 	if s.closeFn != nil {
 		defer func() { _ = s.closeFn() }()
 	}
-	return http.ListenAndServe(address, s.handler)
+	if err := server.ListenAndServe(); err != nil {
+		return fmt.Errorf("listen and serve gateway: %w", err)
+	}
+	return nil
 }
 
 func (s *Server) Close() error {

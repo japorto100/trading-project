@@ -3,121 +3,110 @@ package adaptive
 import (
 	"context"
 	"fmt"
-	"os"
+	"maps"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	baseconnectors "tradeviewfusion/go-backend/internal/connectors/base"
-
-	"github.com/go-playground/validator/v10"
-	"gopkg.in/yaml.v3"
+	"tradeviewfusion/go-backend/internal/connectors/groups"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 )
 
-var validate = validator.New()
-
-type Config struct {
-	AssetClasses map[string]AssetClassConfig `yaml:"asset_classes" validate:"required,dive"`
-	Providers    map[string]ProviderConfig   `yaml:"providers" validate:"required,dive"`
-}
-
-type AssetClassConfig struct {
-	Providers []string `yaml:"providers" validate:"required,min=1"`
-	Strategy  string   `yaml:"strategy" validate:"required"`
-}
-
-type ProviderConfig struct {
-	Group        string                      `yaml:"group,omitempty"`
-	Kind         string                      `yaml:"kind,omitempty"`
-	Notes        string                      `yaml:"notes,omitempty"`
-	Capabilities baseconnectors.Capabilities `yaml:"capabilities,omitempty"`
-}
+type Config = connectorregistry.Config
+type AssetClassConfig = connectorregistry.AssetClassConfig
+type ProviderConfig = connectorregistry.ProviderConfig
 
 type ProviderState struct {
-	Name           string                      `json:"name"`
-	Group          string                      `json:"group,omitempty"`
-	Kind           string                      `json:"kind,omitempty"`
-	Capabilities   baseconnectors.Capabilities `json:"capabilities,omitempty"`
-	Healthy        bool                        `json:"healthy"`
-	CircuitOpen    bool                        `json:"circuitOpen"`
-	Score          int                         `json:"score"`
-	Failures       int                         `json:"failures"`
-	Consecutive    int                         `json:"consecutiveFailures"`
-	Successes      int                         `json:"successes"`
-	LastError      string                      `json:"lastError,omitempty"`
-	LastErrorClass baseconnectors.ErrorClass   `json:"lastErrorClass,omitempty"`
-	FailureClasses map[string]int              `json:"failureClasses,omitempty"`
-	LastFailure    time.Time                   `json:"lastFailure,omitempty"`
-	LastSuccess    time.Time                   `json:"lastSuccess,omitempty"`
-	CooldownUntil  time.Time                   `json:"cooldownUntil,omitempty"`
+	Name               string                      `json:"name"`
+	Group              string                      `json:"group,omitempty"`
+	Kind               string                      `json:"kind,omitempty"`
+	Notes              string                      `json:"notes,omitempty"`
+	AuthMode           string                      `json:"authMode,omitempty"`
+	Enabled            bool                        `json:"enabled"`
+	RateLimitPerSecond float64                     `json:"rateLimitPerSecond,omitempty"`
+	RateLimitBurst     int                         `json:"rateLimitBurst,omitempty"`
+	RetryProfile       string                      `json:"retryProfile,omitempty"`
+	Fallbacks          []string                    `json:"fallbacks,omitempty"`
+	Bridge             string                      `json:"bridge,omitempty"`
+	Capabilities       baseconnectors.Capabilities `json:"capabilities,omitzero"`
+	Healthy            bool                        `json:"healthy"`
+	CircuitOpen        bool                        `json:"circuitOpen"`
+	Score              int                         `json:"score"`
+	Failures           int                         `json:"failures"`
+	Consecutive        int                         `json:"consecutiveFailures"`
+	Successes          int                         `json:"successes"`
+	LastError          string                      `json:"lastError,omitempty"`
+	LastErrorClass     baseconnectors.ErrorClass   `json:"lastErrorClass,omitempty"`
+	FailureClasses     map[string]int              `json:"failureClasses,omitempty"`
+	LastFailure        time.Time                   `json:"lastFailure,omitzero"`
+	LastSuccess        time.Time                   `json:"lastSuccess,omitzero"`
+	CooldownUntil      time.Time                   `json:"cooldownUntil,omitzero"`
 }
 
 type Router struct {
 	mu               sync.RWMutex
 	assetClasses     map[string]AssetClassConfig
 	states           map[string]*ProviderState
-	providerMeta     map[string]ProviderConfig
+	providerMeta     map[string]baseconnectors.ProviderDescriptor
+	groupPolicies    map[string]groups.Policy
 	circuitThreshold int
 	cooldown         time.Duration
 }
 
 func New(cfg Config) *Router {
+	return NewFromRegistry(connectorregistry.New(cfg))
+}
+
+func NewFromRegistry(reg *connectorregistry.Registry) *Router {
 	r := &Router{
 		assetClasses:     make(map[string]AssetClassConfig),
 		states:           make(map[string]*ProviderState),
-		providerMeta:     make(map[string]ProviderConfig),
+		providerMeta:     make(map[string]baseconnectors.ProviderDescriptor),
+		groupPolicies:    make(map[string]groups.Policy),
 		circuitThreshold: 2,
 		cooldown:         30 * time.Second,
 	}
-	for name, meta := range cfg.Providers {
-		normalized := normalizeProvider(name)
-		if normalized == "" {
+	if reg == nil {
+		return r
+	}
+	for _, name := range reg.ProviderNames() {
+		descriptor, ok := reg.Descriptor(name)
+		if !ok {
 			continue
 		}
-		r.providerMeta[normalized] = ProviderConfig{
-			Group:        normalizeKey(meta.Group),
-			Kind:         strings.TrimSpace(meta.Kind),
-			Notes:        strings.TrimSpace(meta.Notes),
-			Capabilities: meta.Capabilities,
+		r.providerMeta[name] = descriptor
+	}
+	for _, groupName := range groups.All() {
+		if policy, ok := reg.GroupPolicy(groupName); ok {
+			r.groupPolicies[groupName] = policy
 		}
 	}
-	for k, v := range cfg.AssetClasses {
-		key := normalizeKey(k)
-		providers := make([]string, 0, len(v.Providers))
-		for _, p := range v.Providers {
-			name := normalizeProvider(p)
-			if name == "" {
+	for _, name := range reg.AssetClassNames() {
+		assetClass, ok := reg.AssetClass(name)
+		if !ok {
+			continue
+		}
+		r.assetClasses[name] = assetClass
+		for _, provider := range assetClass.Providers {
+			if _, exists := r.states[provider]; exists {
 				continue
 			}
-			providers = append(providers, name)
-			if _, exists := r.states[name]; !exists {
-				state := &ProviderState{Name: name, Healthy: true, Score: 100}
-				r.applyProviderMetaLocked(state, name)
-				r.states[name] = state
-			}
-		}
-		r.assetClasses[key] = AssetClassConfig{
-			Providers: providers,
-			Strategy:  strings.TrimSpace(v.Strategy),
+			state := &ProviderState{Name: provider, Healthy: true, Score: 100, Enabled: true}
+			r.applyProviderMetaLocked(state, provider)
+			r.states[provider] = state
 		}
 	}
 	return r
 }
 
 func LoadFromFile(path string) (*Router, error) {
-	raw, err := os.ReadFile(path)
+	reg, err := connectorregistry.LoadFromFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("read adaptive router config: %w", err)
+		return nil, fmt.Errorf("load adaptive router config: %w", err)
 	}
-	var cfg Config
-	if err := yaml.Unmarshal(raw, &cfg); err != nil {
-		return nil, fmt.Errorf("decode adaptive router config: %w", err)
-	}
-	if err := validate.Struct(cfg); err != nil {
-		return nil, fmt.Errorf("validate adaptive router config: %w", err)
-	}
-	return New(cfg), nil
+	return NewFromRegistry(reg), nil
 }
 
 func (r *Router) Candidates(assetClass string, allowlist []string) []string {
@@ -151,6 +140,9 @@ func (r *Router) Candidates(assetClass string, allowlist []string) []string {
 			return
 		}
 		state := r.ensureStateLocked(normalized)
+		if !state.Enabled {
+			return
+		}
 		circuitOpen := !state.CooldownUntil.IsZero() && now.Before(state.CooldownUntil)
 		score := state.Score
 		if score == 0 {
@@ -163,9 +155,10 @@ func (r *Router) Candidates(assetClass string, allowlist []string) []string {
 		for _, provider := range classCfg.Providers {
 			addIfAllowed(provider)
 		}
-	}
-	for _, provider := range allowlist {
-		addIfAllowed(provider)
+	} else {
+		for _, provider := range allowlist {
+			addIfAllowed(provider)
+		}
 	}
 	r.mu.Unlock()
 
@@ -176,7 +169,7 @@ func (r *Router) Candidates(assetClass string, allowlist []string) []string {
 		if candidates[i].score != candidates[j].score {
 			return candidates[i].score > candidates[j].score
 		}
-		return candidates[i].name < candidates[j].name
+		return false
 	})
 
 	out := make([]string, 0, len(candidates))
@@ -184,6 +177,29 @@ func (r *Router) Candidates(assetClass string, allowlist []string) []string {
 		out = append(out, c.name)
 	}
 	return out
+}
+
+func (r *Router) Strategy(assetClass string) string {
+	if r == nil {
+		return ""
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	classCfg, ok := r.assetClasses[normalizeKey(assetClass)]
+	if !ok {
+		return ""
+	}
+	return normalizeKey(classCfg.Strategy)
+}
+
+func (r *Router) GroupPolicy(group string) (groups.Policy, bool) {
+	if r == nil {
+		return groups.Policy{}, false
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	policy, ok := r.groupPolicies[groups.Normalize(group)]
+	return policy, ok
 }
 
 func (r *Router) RecordSuccess(provider string) {
@@ -256,9 +272,7 @@ func (r *Router) Snapshot() []ProviderState {
 		copyState := *state
 		if state.FailureClasses != nil {
 			copyState.FailureClasses = make(map[string]int, len(state.FailureClasses))
-			for k, v := range state.FailureClasses {
-				copyState.FailureClasses[k] = v
-			}
+			maps.Copy(copyState.FailureClasses, state.FailureClasses)
 		}
 		if !copyState.CooldownUntil.IsZero() && time.Now().After(copyState.CooldownUntil) {
 			copyState.CircuitOpen = false
@@ -274,13 +288,46 @@ func (r *Router) Snapshot() []ProviderState {
 	return out
 }
 
+func (r *Router) Descriptor(provider string) (baseconnectors.ProviderDescriptor, bool) {
+	if r == nil {
+		return baseconnectors.ProviderDescriptor{}, false
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.descriptorLocked(provider)
+}
+
+func (r *Router) DescriptorsByGroup(group string) []baseconnectors.ProviderDescriptor {
+	if r == nil {
+		return nil
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	group = normalizeGroup(group)
+	if group == "" {
+		return nil
+	}
+	out := make([]baseconnectors.ProviderDescriptor, 0)
+	for name := range r.providerMeta {
+		descriptor, ok := r.descriptorLocked(name)
+		if !ok || descriptor.Group != group {
+			continue
+		}
+		out = append(out, descriptor)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].Name < out[j].Name
+	})
+	return out
+}
+
 func (r *Router) Wait(ctx context.Context) error {
 	if r == nil {
 		return nil
 	}
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return fmt.Errorf("wait for adaptive router context: %w", ctx.Err())
 	default:
 		return nil
 	}
@@ -304,7 +351,7 @@ func (r *Router) ensureStateLocked(name string) *ProviderState {
 		r.applyProviderMetaLocked(state, normalized)
 		return state
 	}
-	state := &ProviderState{Name: normalized, Healthy: true, Score: 100}
+	state := &ProviderState{Name: normalized, Healthy: true, Score: 100, Enabled: true}
 	r.applyProviderMetaLocked(state, normalized)
 	r.states[normalized] = state
 	return state
@@ -319,10 +366,32 @@ func (r *Router) applyProviderMetaLocked(state *ProviderState, name string) {
 		return
 	}
 	if state.Group == "" {
-		state.Group = normalizeKey(meta.Group)
+		state.Group = groups.Normalize(meta.Group)
 	}
 	if state.Kind == "" {
 		state.Kind = strings.TrimSpace(meta.Kind)
+	}
+	if state.Notes == "" {
+		state.Notes = strings.TrimSpace(meta.Notes)
+	}
+	if state.AuthMode == "" {
+		state.AuthMode = normalizeKey(meta.AuthMode)
+	}
+	state.Enabled = meta.Enabled
+	if state.RateLimitPerSecond == 0 {
+		state.RateLimitPerSecond = meta.RateLimitPerSecond
+	}
+	if state.RateLimitBurst == 0 {
+		state.RateLimitBurst = meta.RateLimitBurst
+	}
+	if state.RetryProfile == "" {
+		state.RetryProfile = normalizeKey(meta.RetryProfile)
+	}
+	if state.Bridge == "" {
+		state.Bridge = normalizeKey(meta.Bridge)
+	}
+	if len(state.Fallbacks) == 0 && len(meta.Fallbacks) > 0 {
+		state.Fallbacks = append([]string(nil), meta.Fallbacks...)
 	}
 	if state.Capabilities == (baseconnectors.Capabilities{}) {
 		state.Capabilities = meta.Capabilities
@@ -333,8 +402,27 @@ func normalizeKey(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
+func normalizeGroup(value string) string {
+	return groups.Normalize(value)
+}
+
 func normalizeProvider(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func (r *Router) descriptorLocked(provider string) (baseconnectors.ProviderDescriptor, bool) {
+	normalized := normalizeProvider(provider)
+	meta, ok := r.providerMeta[normalized]
+	if !ok {
+		return baseconnectors.ProviderDescriptor{}, false
+	}
+	meta.Name = normalized
+	meta.Group = groups.Normalize(meta.Group)
+	meta.AuthMode = normalizeKey(meta.AuthMode)
+	meta.Bridge = normalizeKey(meta.Bridge)
+	meta.RetryProfile = normalizeKey(meta.RetryProfile)
+	meta.Fallbacks = append([]string(nil), meta.Fallbacks...)
+	return meta, true
 }
 
 func containsNormalized(values []string, needle string) bool {

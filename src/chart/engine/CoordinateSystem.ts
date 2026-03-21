@@ -148,7 +148,8 @@ export class CoordinateSystem {
 		const index = Math.round(this.xToIndex(x, viewport));
 		if (index < 0 || index >= resolvedCandles.length) return null;
 		if (index < Math.floor(vp.startIndex) || index > Math.ceil(vp.endIndex)) return null;
-		return resolvedCandles[index].time;
+		const candle = resolvedCandles[index];
+		return candle ? candle.time : null;
 	}
 
 	priceToY(price: number, viewport?: Viewport, _height?: number, scaleType?: ScaleType): number {
@@ -274,9 +275,12 @@ export class CoordinateSystem {
 	getVisibleTimeRange(): { start: number; end: number } | null {
 		const visible = this.getVisibleCandles();
 		if (visible.length === 0) return null;
+		const firstVisible = visible[0];
+		const lastVisible = visible[visible.length - 1];
+		if (!firstVisible || !lastVisible) return null;
 		return {
-			start: visible[0].time,
-			end: visible[visible.length - 1].time,
+			start: firstVisible.time,
+			end: lastVisible.time,
 		};
 	}
 }

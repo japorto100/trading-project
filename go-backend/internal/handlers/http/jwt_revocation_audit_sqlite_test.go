@@ -19,11 +19,11 @@ func TestJWTRevocationAuditSQLiteStore_AppendAndListNewestFirst(t *testing.T) {
 		}
 	}()
 
-	if err := store.Append(JWTRevocationAuditRecord{JTI: "a", RecordedAt: time.Unix(1, 0).UTC()}); err != nil {
-		t.Fatalf("append a: %v", err)
+	if appendErr := store.Append(JWTRevocationAuditRecord{JTI: "a", RecordedAt: time.Unix(1, 0).UTC()}); appendErr != nil {
+		t.Fatalf("append a: %v", appendErr)
 	}
-	if err := store.Append(JWTRevocationAuditRecord{JTI: "b", RecordedAt: time.Unix(2, 0).UTC(), ActorRole: "admin"}); err != nil {
-		t.Fatalf("append b: %v", err)
+	if appendErr := store.Append(JWTRevocationAuditRecord{JTI: "b", RecordedAt: time.Unix(2, 0).UTC(), ActorRole: "admin"}); appendErr != nil {
+		t.Fatalf("append b: %v", appendErr)
 	}
 
 	got, err := store.List(10)

@@ -5,10 +5,10 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
-	"golang.org/x/sync/errgroup"
+	"tradeviewfusion/go-backend/internal/connectors/orchestrator"
+	"tradeviewfusion/go-backend/internal/router/adaptive"
 )
 
 type Headline struct {
@@ -27,6 +27,7 @@ type NewsService struct {
 	rssFetcher    newsFetcher
 	gdeltFetcher  newsFetcher
 	finvizFetcher newsFetcher
+	planner       *orchestrator.Planner
 }
 
 func NewNewsService(rssFetcher, gdeltFetcher, finvizFetcher newsFetcher) *NewsService {
@@ -34,7 +35,12 @@ func NewNewsService(rssFetcher, gdeltFetcher, finvizFetcher newsFetcher) *NewsSe
 		rssFetcher:    rssFetcher,
 		gdeltFetcher:  gdeltFetcher,
 		finvizFetcher: finvizFetcher,
+		planner:       orchestrator.New(nil),
 	}
+}
+
+func (s *NewsService) SetAdaptiveRouter(router *adaptive.Router) {
+	s.planner.SetRouter(router)
 }
 
 func (s *NewsService) Headlines(ctx context.Context, symbol string, query string, lang string, limit int) ([]Headline, error) {
@@ -60,37 +66,45 @@ func (s *NewsService) Headlines(ctx context.Context, symbol string, query string
 	}
 
 	calls := []struct {
+		provider string
+		fetcher  newsFetcher
+		term     string
+	}{
+		{provider: "rss", fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.rssFetcher), term: queryOrSymbol},
+		{provider: "gdelt", fetcher: s.gdeltFetcher, term: gdeltTerm},
+		{provider: "finviz", fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.finvizFetcher), term: symbol},
+	}
+	callByProvider := make(map[string]struct {
 		fetcher newsFetcher
 		term    string
-	}{
-		{fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.rssFetcher), term: queryOrSymbol},
-		{fetcher: s.gdeltFetcher, term: gdeltTerm},
-		{fetcher: chooseFetcher(allowNonLanguageAwareFetchers, s.finvizFetcher), term: symbol},
-	}
-
-	var (
-		mu     sync.Mutex
-		merged = make([]Headline, 0, limit*2)
-	)
-	g, gctx := errgroup.WithContext(ctx)
-	for _, call := range calls {
-		call := call
-		if call.fetcher == nil {
+	}, len(calls))
+	allowlist := make([]string, 0, len(calls))
+	for _, fetchCall := range calls {
+		if fetchCall.fetcher == nil {
 			continue
 		}
-		g.Go(func() error {
-			items, err := call.fetcher.Fetch(gctx, call.term, limit)
-			if err != nil {
-				return nil // non-fatal: partial results acceptable
-			}
-			normalized := normalizeHeadlines(items)
-			mu.Lock()
-			merged = append(merged, normalized...)
-			mu.Unlock()
-			return nil
-		})
+		callByProvider[fetchCall.provider] = struct {
+			fetcher newsFetcher
+			term    string
+		}{fetcher: fetchCall.fetcher, term: fetchCall.term}
+		allowlist = append(allowlist, fetchCall.provider)
 	}
-	_ = g.Wait()
+	plan := s.planner.Plan("news_headlines", allowlist)
+
+	results := orchestrator.ExecuteAll(ctx, s.planner, plan, func(callCtx context.Context, provider string) ([]Headline, error) {
+		fetchCall, ok := callByProvider[provider]
+		if !ok || fetchCall.fetcher == nil {
+			return nil, nil
+		}
+		return fetchCall.fetcher.Fetch(callCtx, fetchCall.term, limit)
+	})
+	merged := make([]Headline, 0, limit*2)
+	for _, result := range results {
+		if result.Err != nil || len(result.Value) == 0 {
+			continue
+		}
+		merged = append(merged, normalizeHeadlines(result.Value)...)
+	}
 
 	unique := deduplicateHeadlines(merged)
 	sort.SliceStable(unique, func(i, j int) bool {
@@ -224,10 +238,7 @@ func applySourceQuota(items []Headline, limit int) []Headline {
 		return items[:limit]
 	}
 
-	maxPerSource := limit/sourceCount + 1
-	if maxPerSource < 1 {
-		maxPerSource = 1
-	}
+	maxPerSource := max(limit/sourceCount+1, 1)
 
 	result := make([]Headline, 0, limit)
 	skipped := make([]Headline, 0, len(items))

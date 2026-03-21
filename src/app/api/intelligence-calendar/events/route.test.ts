@@ -10,6 +10,15 @@ afterEach(() => {
 
 describe("GET /api/intelligence-calendar/events", () => {
 	it("returns a fallback payload when local calendar data is unavailable", async () => {
+		globalThis.fetch = (async (input) => {
+			const url = typeof input === "string" ? input : input.toString();
+			expect(url).toContain("/api/v1/geopolitical/local-events");
+			return new Response(JSON.stringify({ success: true, source: "local", events: [] }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			});
+		}) as typeof fetch;
+
 		const request = new NextRequest("http://localhost:3000/api/intelligence-calendar/events", {
 			headers: { "x-request-id": "req-calendar-fallback" },
 		});

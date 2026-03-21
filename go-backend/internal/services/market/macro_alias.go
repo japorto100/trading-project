@@ -211,8 +211,33 @@ func ResolveMacroSeries(exchange, symbol string) string {
 			return normalizedSymbol
 		}
 		return "ADB_" + normalizedSymbol
+	case "OFR":
+		if normalizedSymbol == "" {
+			return normalizedSymbol
+		}
+		if strings.HasPrefix(normalizedSymbol, "OFR_") {
+			return normalizedSymbol
+		}
+		return "OFR_" + normalizedSymbol
+	case "NYFED":
+		if normalizedSymbol == "" || normalizedSymbol == "POLICY_RATE" || normalizedSymbol == "DEFAULT" {
+			return "NYFED_SOFR"
+		}
+		if strings.HasPrefix(normalizedSymbol, "NYFED_") {
+			return normalizedSymbol
+		}
+		return "NYFED_" + normalizedSymbol
 	default:
 		return normalizedSymbol
+	}
+}
+
+func IsMacroProvider(exchange string) bool {
+	switch strings.ToUpper(strings.TrimSpace(exchange)) {
+	case "FRED", "FED", "BOJ", "SNB", "BCB", "BANXICO", "BOK", "BCRA", "TCMB", "RBI", "IMF", "OECD", "WORLDBANK", "WB", "UN", "ADB", "OFR", "NYFED":
+		return true
+	default:
+		return false
 	}
 }
 

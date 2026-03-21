@@ -1,8 +1,5 @@
-// Server-only: write FileAuditLog entries via Prisma.
-// Used by BFF routes for bounded-write and approval-write actions.
-
 import type { FileAuditPayload } from "@/features/files/lib/action-classes";
-import { getPrismaClient } from "@/lib/server/prisma";
+import { getGatewayBaseURL } from "@/lib/server/gateway";
 
 interface WriteAuditOptions extends FileAuditPayload {
 	documentId?: string;
@@ -12,12 +9,15 @@ interface WriteAuditOptions extends FileAuditPayload {
 }
 
 export async function writeFileAudit(opts: WriteAuditOptions): Promise<void> {
-	const db = getPrismaClient();
-	if (!db) return;
-
 	try {
-		await db.fileAuditLog.create({
-			data: {
+		await fetch(new URL("/api/v1/files/audit", getGatewayBaseURL()), {
+			method: "POST",
+			cache: "no-store",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json",
+			},
+			body: JSON.stringify({
 				documentId: opts.documentId ?? null,
 				action: opts.action,
 				actionClass: opts.actionClass,
@@ -27,11 +27,10 @@ export async function writeFileAudit(opts: WriteAuditOptions): Promise<void> {
 				target: opts.target,
 				status: opts.status ?? "ok",
 				errorCode: opts.errorCode ?? null,
-				expiresAt: opts.expiresAt ?? null,
-			},
+				expiresAt: opts.expiresAt?.toISOString() ?? null,
+			}),
 		});
 	} catch {
-		// Audit failure must never crash the primary request — log only.
 		console.error("[file-audit] Failed to write audit log", {
 			action: opts.action,
 			target: opts.target,

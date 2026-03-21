@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/thrasher-corp/gocryptotrader/currency"
-	"github.com/thrasher-corp/gocryptotrader/exchanges/asset"
 	"tradeviewfusion/go-backend/internal/connectors/gct"
 )
 
@@ -36,7 +35,7 @@ type MacroIngestService struct {
 }
 
 type macroHistoryProvider interface {
-	History(ctx context.Context, exchange string, pair currency.Pair, assetType asset.Item, limit int) ([]gct.SeriesPoint, error)
+	History(ctx context.Context, exchange string, pair currency.Pair, assetType string, limit int) ([]gct.SeriesPoint, error)
 }
 
 func NewMacroIngestService(history macroHistoryProvider, outputDir string, requestTTL time.Duration) *MacroIngestService {
@@ -80,7 +79,7 @@ func (s *MacroIngestService) RunOnce(ctx context.Context, targets []MacroIngestT
 	if len(targets) == 0 {
 		return nil
 	}
-	if err := os.MkdirAll(s.outputDir, 0o755); err != nil {
+	if err := os.MkdirAll(s.outputDir, 0o750); err != nil {
 		return fmt.Errorf("prepare output dir: %w", err)
 	}
 
@@ -101,8 +100,7 @@ func (s *MacroIngestService) RunOnce(ctx context.Context, targets []MacroIngestT
 		}
 
 		requestCtx, cancel := context.WithTimeout(ctx, s.requestTTL)
-		assetItem, _ := asset.New(assetStr)
-		points, err := s.macroHistory.History(requestCtx, exchange, pair, assetItem, limit)
+		points, err := s.macroHistory.History(requestCtx, exchange, pair, assetStr, limit)
 		cancel()
 		if err != nil {
 			if firstErr == nil {
@@ -133,7 +131,7 @@ func (s *MacroIngestService) writeSnapshot(snapshot MacroIngestSnapshot) error {
 	}
 	filename := fmt.Sprintf("%s_%s.json", sanitizeMacroToken(snapshot.Exchange), sanitizeMacroToken(snapshot.Symbol))
 	path := filepath.Join(s.outputDir, filename)
-	if err := os.WriteFile(path, encoded, 0o644); err != nil {
+	if err := os.WriteFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("write snapshot: %w", err)
 	}
 	return nil

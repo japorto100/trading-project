@@ -11,7 +11,7 @@ type RSSItem struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`
 	URL         string    `json:"url"`
-	PublishedAt time.Time `json:"publishedAt,omitempty"`
+	PublishedAt time.Time `json:"publishedAt,omitzero"`
 	Source      string    `json:"source,omitempty"`
 }
 

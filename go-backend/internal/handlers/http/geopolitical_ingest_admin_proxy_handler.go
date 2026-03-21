@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -143,7 +144,10 @@ func refreshCandidateQueueStoreFromNext(
 	}
 	status, body, err := client.Do(ctx, http.MethodGet, "/api/geopolitical/candidates?state=open", nil, headers)
 	if err != nil || status < 200 || status >= 300 {
-		return err
+		if err != nil {
+			return fmt.Errorf("refresh candidates from next: %w", err)
+		}
+		return fmt.Errorf("refresh candidates from next: unexpected status %d", status)
 	}
 	return syncCandidateStoreFromResponse(store, body)
 }
@@ -159,7 +163,10 @@ func compareOpenCandidateCounts(
 	}
 	status, body, err := client.Do(ctx, http.MethodGet, "/api/geopolitical/candidates?state=open", nil, headers)
 	if err != nil || status < 200 || status >= 300 {
-		return 0, 0, err
+		if err != nil {
+			return 0, 0, fmt.Errorf("compare open candidate counts via next: %w", err)
+		}
+		return 0, 0, fmt.Errorf("compare open candidate counts via next: unexpected status %d", status)
 	}
 	var parsed struct {
 		Candidates []map[string]any `json:"candidates"`
@@ -185,7 +192,10 @@ func refreshContradictionsStoreFromNext(
 	}
 	status, body, err := client.Do(ctx, http.MethodGet, "/api/geopolitical/contradictions", nil, headers)
 	if err != nil || status < 200 || status >= 300 {
-		return err
+		if err != nil {
+			return fmt.Errorf("refresh contradictions from next: %w", err)
+		}
+		return fmt.Errorf("refresh contradictions from next: unexpected status %d", status)
 	}
 	var parsed struct {
 		Contradictions []geopoliticalServices.GeoContradiction `json:"contradictions"`
@@ -193,7 +203,10 @@ func refreshContradictionsStoreFromNext(
 	if err := json.Unmarshal(body, &parsed); err != nil {
 		return nil
 	}
-	return store.ReplaceAll(parsed.Contradictions)
+	if err := store.ReplaceAll(parsed.Contradictions); err != nil {
+		return fmt.Errorf("replace contradictions store from next payload: %w", err)
+	}
+	return nil
 }
 
 func refreshTimelineStoreFromNext(
@@ -207,7 +220,10 @@ func refreshTimelineStoreFromNext(
 	}
 	status, body, err := client.Do(ctx, http.MethodGet, "/api/geopolitical/timeline?limit=500", nil, headers)
 	if err != nil || status < 200 || status >= 300 {
-		return err
+		if err != nil {
+			return fmt.Errorf("refresh timeline from next: %w", err)
+		}
+		return fmt.Errorf("refresh timeline from next: unexpected status %d", status)
 	}
 	var parsed struct {
 		Timeline []geopoliticalServices.GeoTimelineEntry `json:"timeline"`
@@ -215,7 +231,10 @@ func refreshTimelineStoreFromNext(
 	if err := json.Unmarshal(body, &parsed); err != nil {
 		return nil
 	}
-	return store.ReplaceAll(parsed.Timeline)
+	if err := store.ReplaceAll(parsed.Timeline); err != nil {
+		return fmt.Errorf("replace timeline store from next payload: %w", err)
+	}
+	return nil
 }
 
 func countCandidatesInResponse(payload []byte) int {

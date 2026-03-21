@@ -71,7 +71,7 @@ func (s *GameTheoryService) AnalyzeImpact(ctx context.Context, query Query) (Gam
 
 	events, err := s.eventsClient.FetchEvents(ctx, normalized)
 	if err != nil {
-		return GameTheoryImpactResult{}, err
+		return GameTheoryImpactResult{}, fmt.Errorf("fetch geopolitical events for game theory impact: %w", err)
 	}
 
 	inputEvents := make([]gametheory.InputEvent, 0, len(events))
@@ -98,7 +98,7 @@ func (s *GameTheoryService) AnalyzeImpact(ctx context.Context, query Query) (Gam
 		Events:      inputEvents,
 	})
 	if err != nil {
-		return GameTheoryImpactResult{}, err
+		return GameTheoryImpactResult{}, fmt.Errorf("score game theory impact: %w", err)
 	}
 
 	result := GameTheoryImpactResult{

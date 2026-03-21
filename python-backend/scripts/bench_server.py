@@ -147,7 +147,7 @@ class ServiceDef:
 
 
 SERVICES: dict[str, ServiceDef] = {
-    "indicator": ServiceDef("indicator-service", "indicator-service", 8092),
+    "indicator": ServiceDef("indicator_engine", "indicator_engine", 8092),
     "memory":    ServiceDef("memory-service",    "memory-service",    8093),
     "agent":     ServiceDef("agent-service",     "agent-service",     8094),
 }

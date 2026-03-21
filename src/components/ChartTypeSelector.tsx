@@ -32,7 +32,8 @@ const CHART_TYPES: Array<{ type: ChartType; label: string; icon: React.ReactNode
 ];
 
 export function ChartTypeSelector({ chartType, onChartTypeChange }: ChartTypeSelectorProps) {
-	const currentChart = CHART_TYPES.find((c) => c.type === chartType) || CHART_TYPES[0];
+	const currentChart = CHART_TYPES.find((c) => c.type === chartType) ?? CHART_TYPES[0];
+	if (!currentChart) return null;
 
 	return (
 		<DropdownMenu>

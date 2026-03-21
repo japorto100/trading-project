@@ -172,13 +172,16 @@ export function aggregateCandles(
 	for (let i = 0; i < candles.length; i += ratio) {
 		const chunk = candles.slice(i, i + ratio);
 		if (chunk.length === 0) continue;
+		const firstCandle = chunk[0];
+		const lastChunkCandle = chunk[chunk.length - 1];
+		if (!firstCandle || !lastChunkCandle) continue;
 
 		result.push({
-			time: chunk[0].time,
-			open: chunk[0].open,
+			time: firstCandle.time,
+			open: firstCandle.open,
 			high: Math.max(...chunk.map((c) => c.high)),
 			low: Math.min(...chunk.map((c) => c.low)),
-			close: chunk[chunk.length - 1].close,
+			close: lastChunkCandle.close,
 			volume: chunk.reduce((sum, c) => sum + c.volume, 0),
 		});
 	}
@@ -266,6 +269,7 @@ export class ChartSession {
 		if (this.candles.length === 0 || !this.symbolInfo) return;
 
 		const lastCandle = this.candles[this.candles.length - 1];
+		if (!lastCandle) return;
 		const random = Math.random();
 
 		// Calculate price movement

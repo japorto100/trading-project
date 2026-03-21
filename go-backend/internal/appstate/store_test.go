@@ -1,10 +1,70 @@
 package appstate
 
 import (
+	"database/sql"
 	"path/filepath"
 	"testing"
 	"time"
 )
+
+func assertTableExists(t *testing.T, db *sql.DB, tableName string) {
+	t.Helper()
+	var found string
+	err := db.QueryRow(
+		`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+		tableName,
+	).Scan(&found)
+	if err != nil {
+		t.Fatalf("expected table %s to exist: %v", tableName, err)
+	}
+	if found != tableName {
+		t.Fatalf("table lookup returned %q, want %q", found, tableName)
+	}
+}
+
+func assertTableCount(t *testing.T, db *sql.DB, tableName string, expected int) {
+	t.Helper()
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM ` + tableName).Scan(&count); err != nil {
+		t.Fatalf("count rows in %s: %v", tableName, err)
+	}
+	if count != expected {
+		t.Fatalf("%s row count = %d, want %d", tableName, count, expected)
+	}
+}
+
+func TestSQLiteStoreMigratesAllCurrentGoOwnedTables(t *testing.T) {
+	t.Parallel()
+
+	store, err := NewSQLiteStore(filepath.Join(t.TempDir(), "backend.db"))
+	if err != nil {
+		t.Fatalf("new sqlite store: %v", err)
+	}
+	t.Cleanup(func() {
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
+		}
+	})
+
+	requiredTables := []string{
+		"UserProfile",
+		"LayoutPreference",
+		"Watchlist",
+		"WatchlistItem",
+		"User",
+		"UserConsent",
+		"VerificationToken",
+		"TotpDevice",
+		"RecoveryCode",
+		"Authenticator",
+		"PriceAlertRecord",
+		"PaperOrderRecord",
+		"TradeJournalRecord",
+	}
+	for _, tableName := range requiredTables {
+		assertTableExists(t, store.db, tableName)
+	}
+}
 
 func TestPreferencesRoundTrip(t *testing.T) {
 	t.Parallel()
@@ -14,8 +74,8 @@ func TestPreferencesRoundTrip(t *testing.T) {
 		t.Fatalf("new sqlite store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
@@ -54,18 +114,18 @@ func TestUpdateUserRole(t *testing.T) {
 		t.Fatalf("new sqlite store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
 	now := "2026-03-17T12:00:00Z"
-	if _, err := store.db.Exec(`
+	if _, seedErr := store.db.Exec(`
 INSERT INTO User (id, email, name, role, createdAt, updatedAt) VALUES
 ('admin-1', 'admin@example.com', 'Admin', 'admin', ?, ?),
 ('user-1', 'user@example.com', 'User', 'viewer', ?, ?)
-`, now, now, now, now); err != nil {
-		t.Fatalf("seed users: %v", err)
+`, now, now, now, now); seedErr != nil {
+		t.Fatalf("seed users: %v", seedErr)
 	}
 
 	updated, err := store.UpdateUserRole("admin-1", "user-1", "trader")
@@ -85,17 +145,17 @@ func TestUserLookupAndConsentRoundTrip(t *testing.T) {
 		t.Fatalf("new sqlite store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
 	now := "2026-03-17T12:00:00Z"
-	if _, err := store.db.Exec(`
+	if _, seedErr := store.db.Exec(`
 INSERT INTO User (id, email, name, role, createdAt, updatedAt)
 VALUES ('user-2', 'consent@example.com', 'Consent User', 'viewer', ?, ?)
-`, now, now); err != nil {
-		t.Fatalf("seed user: %v", err)
+`, now, now); seedErr != nil {
+		t.Fatalf("seed user: %v", seedErr)
 	}
 
 	user, err := store.GetUserByIDOrEmail("", "consent@example.com")
@@ -132,21 +192,21 @@ func TestAuthStateHelpers(t *testing.T) {
 		t.Fatalf("new sqlite store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
 	now := "2026-03-17T12:00:00Z"
-	if _, err := store.db.Exec(`
+	if _, seedErr := store.db.Exec(`
 INSERT INTO User (id, email, username, name, role, passwordHash, createdAt, updatedAt)
 VALUES ('auth-user', 'auth@example.com', 'auth-user', 'Auth User', 'viewer', 'scrypt$16384$8$1$CO7x4hQ9b_MhO7Jin0CeNQ$eToLrgrP0k5fYhF4m7HchPKM6m5AqLu6uf4fPrhCW3AF4LqFxy3rAKsvLKiVv7M5w8ABmIkfM7g3aQiPEEsdgA', ?, ?)
-`, now, now); err != nil {
-		t.Fatalf("seed auth user: %v", err)
+`, now, now); seedErr != nil {
+		t.Fatalf("seed auth user: %v", seedErr)
 	}
 
-	if err := store.CreateTOTPSetup("auth-user", "secret-value", []string{"RECOVERY1", "RECOVERY2"}); err != nil {
-		t.Fatalf("create totp setup: %v", err)
+	if setupErr := store.CreateTOTPSetup("auth-user", "secret-value", []string{"RECOVERY1", "RECOVERY2"}); setupErr != nil {
+		t.Fatalf("create totp setup: %v", setupErr)
 	}
 	match, err := store.FindRecoveryCodeByEmail("auth@example.com", "RECOVERY1")
 	if err != nil {
@@ -155,16 +215,16 @@ VALUES ('auth-user', 'auth@example.com', 'auth-user', 'Auth User', 'viewer', 'sc
 	if match.UserID != "auth-user" {
 		t.Fatalf("recovery match user = %q, want auth-user", match.UserID)
 	}
-	if err := store.DeleteRecoveryCode(match.CodeID); err != nil {
-		t.Fatalf("delete recovery code: %v", err)
+	if deleteErr := store.DeleteRecoveryCode(match.CodeID); deleteErr != nil {
+		t.Fatalf("delete recovery code: %v", deleteErr)
 	}
-	if _, err := store.FindRecoveryCodeByEmail("auth@example.com", "RECOVERY1"); err == nil {
+	if _, lookupErr := store.FindRecoveryCodeByEmail("auth@example.com", "RECOVERY1"); lookupErr == nil {
 		t.Fatal("expected deleted recovery code lookup to fail")
 	}
 
 	expiresAt := time.Date(2026, 3, 18, 12, 0, 0, 0, time.UTC)
-	if err := store.CreateVerificationToken("auth@example.com", "token-1", expiresAt); err != nil {
-		t.Fatalf("create verification token: %v", err)
+	if createErr := store.CreateVerificationToken("auth@example.com", "token-1", expiresAt); createErr != nil {
+		t.Fatalf("create verification token: %v", createErr)
 	}
 	valid, err := store.GetValidVerificationToken("auth@example.com", "token-1", time.Date(2026, 3, 17, 12, 0, 0, 0, time.UTC))
 	if err != nil {
@@ -173,8 +233,8 @@ VALUES ('auth-user', 'auth@example.com', 'auth-user', 'Auth User', 'viewer', 'sc
 	if !valid {
 		t.Fatal("expected verification token to be valid")
 	}
-	if err := store.DeleteVerificationToken("auth@example.com", "token-1"); err != nil {
-		t.Fatalf("delete verification token: %v", err)
+	if deleteErr := store.DeleteVerificationToken("auth@example.com", "token-1"); deleteErr != nil {
+		t.Fatalf("delete verification token: %v", deleteErr)
 	}
 	valid, err = store.GetValidVerificationToken("auth@example.com", "token-1", time.Date(2026, 3, 17, 12, 0, 0, 0, time.UTC))
 	if err != nil {
@@ -193,8 +253,8 @@ func TestPasskeyAuthenticatorRoundTrip(t *testing.T) {
 		t.Fatalf("new sqlite store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
@@ -277,8 +337,8 @@ func TestRegisterUserAndCredentialLookup(t *testing.T) {
 		t.Fatalf("new sqlite store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
@@ -321,8 +381,8 @@ func TestRegisterUserAndCredentialLookup(t *testing.T) {
 		t.Fatal("expected no totp initially")
 	}
 
-	if err := store.CreateTOTPSetup(user.ID, "secret", []string{"X1"}); err != nil {
-		t.Fatalf("create totp setup: %v", err)
+	if setupErr := store.CreateTOTPSetup(user.ID, "secret", []string{"X1"}); setupErr != nil {
+		t.Fatalf("create totp setup: %v", setupErr)
 	}
 	hasTOTP, err = store.HasActiveTOTP(user.ID)
 	if err != nil {
@@ -341,8 +401,8 @@ func TestOrdersAndAlertsRoundTrip(t *testing.T) {
 		t.Fatalf("new sqlite store: %v", err)
 	}
 	t.Cleanup(func() {
-		if err := store.Close(); err != nil {
-			t.Fatalf("close store: %v", err)
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
 		}
 	})
 
@@ -384,7 +444,9 @@ func TestOrdersAndAlertsRoundTrip(t *testing.T) {
 	}
 	triggeredAt := time.Date(2026, 3, 17, 15, 4, 5, 0, time.UTC).Format(time.RFC3339Nano)
 	message := "triggered"
-	updatedAlert, found, err := store.UpdatePriceAlert("paper-default", alert.ID, nil, ptrBool(true), &triggeredAt, &message)
+	triggered := new(bool)
+	*triggered = true
+	updatedAlert, found, err := store.UpdatePriceAlert("paper-default", alert.ID, nil, triggered, &triggeredAt, &message)
 	if err != nil {
 		t.Fatalf("update price alert: %v", err)
 	}
@@ -400,6 +462,54 @@ func TestOrdersAndAlertsRoundTrip(t *testing.T) {
 	}
 }
 
-func ptrBool(value bool) *bool {
-	return &value
+func TestPortfolioSnapshotsAndAuditLogs(t *testing.T) {
+	t.Parallel()
+
+	store, err := NewSQLiteStore(filepath.Join(t.TempDir(), "backend.db"))
+	if err != nil {
+		t.Fatalf("new sqlite store: %v", err)
+	}
+	t.Cleanup(func() {
+		if closeErr := store.Close(); closeErr != nil {
+			t.Fatalf("close store: %v", closeErr)
+		}
+	})
+
+	saved, err := store.SavePortfolioSnapshot("paper-default", "2026-03-19T12:00:00Z", `{"generatedAt":"2026-03-19T12:00:00Z","positions":[]}`)
+	if err != nil {
+		t.Fatalf("save portfolio snapshot: %v", err)
+	}
+	if saved.ID == "" {
+		t.Fatal("expected snapshot id")
+	}
+	snapshots, err := store.ListPortfolioSnapshots("paper-default", 10)
+	if err != nil {
+		t.Fatalf("list portfolio snapshots: %v", err)
+	}
+	if len(snapshots) != 1 {
+		t.Fatalf("snapshots len = %d, want 1", len(snapshots))
+	}
+
+	if err := store.WriteFileAuditLog(FileAuditLogRecord{
+		Action:      "upload",
+		ActionClass: "bounded-write",
+		RequestID:   "req-file-1",
+		Target:      "report.pdf",
+		Status:      "ok",
+	}); err != nil {
+		t.Fatalf("write file audit log: %v", err)
+	}
+	if err := store.WriteControlAuditLog(ControlAuditLogRecord{
+		Action:      "kill-session",
+		ActionClass: "approval-write",
+		RequestID:   "req-control-1",
+		Target:      "session-1",
+		Status:      "failed",
+		ErrorCode:   "APPROVAL_REQUIRED",
+	}); err != nil {
+		t.Fatalf("write control audit log: %v", err)
+	}
+
+	assertTableCount(t, store.db, "FileAuditLog", 1)
+	assertTableCount(t, store.db, "ControlAuditLog", 1)
 }

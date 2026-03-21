@@ -1,17 +1,8 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, PencilRuler } from "lucide-react";
-import {
-	type MouseEvent as ReactMouseEvent,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { CommandPalette } from "@/components/CommandPalette";
-import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -20,60 +11,36 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { useGlobalChat } from "@/features/agent-chat/context/GlobalChatContext";
+import { useGeopoliticalDrawingCommands } from "@/features/geopolitical/drawing/hooks/useGeopoliticalDrawingCommands";
+import { useGeopoliticalDrawingInteractions } from "@/features/geopolitical/drawing/hooks/useGeopoliticalDrawingInteractions";
+import { CreateMarkerPanel } from "@/features/geopolitical/drawing/panels/CreateMarkerPanel";
+import { DrawModePanel } from "@/features/geopolitical/drawing/panels/DrawModePanel";
+import { EditMarkerPanel } from "@/features/geopolitical/drawing/panels/EditMarkerPanel";
 import { EventInspector } from "@/features/geopolitical/EventInspector";
-import { FlatViewScaffold } from "@/features/geopolitical/FlatViewScaffold";
-import { buildGeoFlatViewBoundsFromCoordinates } from "@/features/geopolitical/flat-view-handoff";
-import type { GeoFilterStateSnapshot } from "@/features/geopolitical/geo-filter-contract";
-import { buildGeoEventStoryFocusState } from "@/features/geopolitical/geo-story-focus";
+import { buildGeoFlatViewBoundsFromCoordinates } from "@/features/geopolitical/flat-view/flat-view-handoff";
 import { getBodyPointLayerDefaultVisibilityMap } from "@/features/geopolitical/layers/bodyPointLayerCatalog";
+import { MarkerListModal } from "@/features/geopolitical/markers/MarkerListModal";
 import { SymbolToolbar } from "@/features/geopolitical/SymbolToolbar";
-import { CreateMarkerPanel } from "@/features/geopolitical/shell/CreateMarkerPanel";
-import { DrawModePanel } from "@/features/geopolitical/shell/DrawModePanel";
-import { EditMarkerPanel } from "@/features/geopolitical/shell/EditMarkerPanel";
 import { GeoBulkSelectionBar } from "@/features/geopolitical/shell/GeoBulkSelectionBar";
 import { useGeoFlatViewEntry } from "@/features/geopolitical/shell/hooks/useGeoFlatViewEntry";
-import { useGeoMapDerivedUiState } from "@/features/geopolitical/shell/hooks/useGeoMapDerivedUiState";
 import { useGeoMapKeyboardShortcuts } from "@/features/geopolitical/shell/hooks/useGeoMapKeyboardShortcuts";
-import { useGeopoliticalDrawingCommands } from "@/features/geopolitical/shell/hooks/useGeopoliticalDrawingCommands";
-import { useGeopoliticalDrawingInteractions } from "@/features/geopolitical/shell/hooks/useGeopoliticalDrawingInteractions";
 import { useGeopoliticalMarkerMutations } from "@/features/geopolitical/shell/hooks/useGeopoliticalMarkerMutations";
+import { useGeopoliticalShellController } from "@/features/geopolitical/shell/hooks/useGeopoliticalShellController";
+import { useGeopoliticalShellOrchestration } from "@/features/geopolitical/shell/hooks/useGeopoliticalShellOrchestration";
+import { useGeopoliticalShellPersistence } from "@/features/geopolitical/shell/hooks/useGeopoliticalShellPersistence";
 import { useGeopoliticalWorkspaceData } from "@/features/geopolitical/shell/hooks/useGeopoliticalWorkspaceData";
-import { useVisibleGeoWorkspaceData } from "@/features/geopolitical/shell/hooks/useVisibleGeoWorkspaceData";
+import { GeoWorkspaceStage } from "@/features/geopolitical/shell/layout/GeoWorkspaceStage";
 import { MapFiltersToolbar } from "@/features/geopolitical/shell/MapFiltersToolbar";
 import { MapFooterStatus } from "@/features/geopolitical/shell/MapFooterStatus";
-import { MapLeftSidebar } from "@/features/geopolitical/shell/MapLeftSidebar";
-import { MapRightSidebar } from "@/features/geopolitical/shell/MapRightSidebar";
 import { MapShellHeader } from "@/features/geopolitical/shell/MapShellHeader";
-import { MapViewportPanel } from "@/features/geopolitical/shell/MapViewportPanel";
-import { MarkerListModal } from "@/features/geopolitical/shell/MarkerListModal";
 import { DEFAULT_EDIT_FORM } from "@/features/geopolitical/shell/types";
 import { useGeoMapWorkspaceStore } from "@/features/geopolitical/store";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { buildGeoContext } from "@/lib/chat-context-builders";
-
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-
-function isSameRange(left: [number, number] | null, right: [number, number] | null): boolean {
-	if (left === right) return true;
-	if (!left || !right) return false;
-	return left[0] === right[0] && left[1] === right[1];
-}
 
 export function GeopoliticalMapShell() {
-	const workspaceRef = useRef<HTMLDivElement | null>(null);
 	// FC3: Chat context injection
 	const { open: chatOpen, setChatContext } = useGlobalChat();
-	const prevChatOpenRef = useRef(false);
 	const isMobile = useIsMobile();
-	const [leftPanelWidth, setLeftPanelWidth] = useState(340);
-	const [rightPanelWidth, setRightPanelWidth] = useState(460);
-	const [leftCollapsed, setLeftCollapsed] = useState(false);
-	const [rightCollapsed, setRightCollapsed] = useState(false);
-	const [drawToolsOpen, setDrawToolsOpen] = useState(false);
-	const [markerPlacementArmed, setMarkerPlacementArmed] = useState(false);
-	const [markerModalOpen, setMarkerModalOpen] = useState(false);
-	const [markerListModalOpen, setMarkerListModalOpen] = useState(false);
-	const [viewportResetNonce, setViewportResetNonce] = useState(0);
 
 	const {
 		selectedSymbol,
@@ -138,6 +105,8 @@ export function GeopoliticalMapShell() {
 		setShowBodyLayerLegend,
 		showTimelinePanel,
 		setShowTimelinePanel,
+		workspaceTab,
+		setWorkspaceTab,
 		timelineViewRangeMs,
 		setTimelineViewRangeMs,
 		timelineSelectedTimeMs,
@@ -215,6 +184,8 @@ export function GeopoliticalMapShell() {
 			setShowBodyLayerLegend: state.setShowBodyLayerLegend,
 			showTimelinePanel: state.showTimelinePanel,
 			setShowTimelinePanel: state.setShowTimelinePanel,
+			workspaceTab: state.workspaceTab,
+			setWorkspaceTab: state.setWorkspaceTab,
 			timelineViewRangeMs: state.timelineViewRangeMs,
 			setTimelineViewRangeMs: state.setTimelineViewRangeMs,
 			timelineSelectedTimeMs: state.timelineSelectedTimeMs,
@@ -347,101 +318,125 @@ export function GeopoliticalMapShell() {
 		redoDrawingCommand,
 	} = useGeopoliticalDrawingCommands({ fetchDrawings });
 
-	const filterSnapshot = useMemo<GeoFilterStateSnapshot>(
-		() => ({
-			eventsSource,
-			activeRegionId,
-			searchQuery,
-			minSeverityFilter,
-			acledCountryFilter,
-			acledRegionFilter,
-			acledEventTypeFilter,
-			acledSubEventTypeFilter,
-			acledFromFilter,
-			acledToFilter,
-		}),
-		[
-			activeRegionId,
-			acledCountryFilter,
-			acledEventTypeFilter,
-			acledFromFilter,
-			acledRegionFilter,
-			acledSubEventTypeFilter,
-			acledToFilter,
-			eventsSource,
-			minSeverityFilter,
-			searchQuery,
-		],
-	);
 	const {
-		visibleCandidates,
-		visibleNews,
+		filterSnapshot,
 		visibleContextItems,
 		visibleGameTheoryItems,
 		visibleEvents,
-		visibleTimeline,
-	} = useVisibleGeoWorkspaceData({
+		acledRegionSuggestions,
+		acledSubEventSuggestions,
+		activeFilterChips,
+		selectedEvent,
+		activeRegionLabel,
+		activeStoryFocusPreset,
+		selectedEvents,
+		overlayEvents,
+		overlayCandidates,
+		overlayTimeline,
+		overlaySelectedEventId,
+		overlayNews,
+		overlayGraph,
+		overlaySourceHealth,
+		statsSummary,
+	} = useGeopoliticalShellOrchestration({
 		events,
 		candidates,
 		timeline,
 		news,
 		contextItems,
 		gameTheoryItems,
-		replayRangeMs: activeReplayRangeMs,
-		filterSnapshot,
+		graph,
+		sourceHealth,
+		regions,
+		eventsSource,
+		activeRegionId,
+		searchQuery,
+		minSeverityFilter,
+		acledCountryFilter,
+		acledRegionFilter,
+		acledEventTypeFilter,
+		acledSubEventTypeFilter,
+		acledFromFilter,
+		acledToFilter,
 		selectedEventId,
+		selectedEventIds,
 		selectedTimelineId,
 		activeStoryFocusPresetId,
 		storyFocusPresets,
-		onSelectedEventIdChange: setSelectedEventId,
-		onSelectedTimelineIdChange: setSelectedTimelineId,
-		onActiveStoryFocusPresetIdChange: setActiveStoryFocusPresetId,
-	});
-
-	const {
-		acledRegionSuggestions,
-		acledSubEventSuggestions,
-		activeFilterChips,
-		selectedEvent,
-		activeRegionLabel,
-	} = useGeoMapDerivedUiState({
-		events,
-		regions,
-		selectedEventId,
-		eventsSource,
-		activeRegionId,
-		minSeverityFilter,
+		activeReplayRangeMs,
+		timelineViewRangeMs,
+		timelineSelectedTimeMs,
+		mapBody,
+		chatOpen,
+		setChatContext,
+		setSelectedEventId,
+		setSelectedTimelineId,
+		setActiveStoryFocusPresetId,
 		setActiveRegionId,
-		searchQuery,
 		setSearchQuery,
-		acledCountryFilter,
 		setAcledCountryFilter,
-		acledRegionFilter,
 		setAcledRegionFilter,
-		acledEventTypeFilter,
 		setAcledEventTypeFilter,
-		acledSubEventTypeFilter,
 		setAcledSubEventTypeFilter,
-		acledFromFilter,
 		setAcledFromFilter,
-		acledToFilter,
 		setAcledToFilter,
 		setAcledPage,
+		setTimelineViewRangeMs,
+		setTimelineSelectedTimeMs,
 	});
-	const activeStoryFocusPreset = useMemo(
-		() =>
-			activeStoryFocusPresetId
-				? (storyFocusPresets.find((preset) => preset.id === activeStoryFocusPresetId) ?? null)
-				: null,
-		[activeStoryFocusPresetId, storyFocusPresets],
-	);
-	const selectedEvents = useMemo(
-		() =>
-			selectedEventIds
-				.map((eventId) => visibleEvents.find((event) => event.id === eventId) ?? null)
-				.filter((event): event is NonNullable<typeof event> => event !== null),
-		[selectedEventIds, visibleEvents],
-	);
+	const {
+		workspaceRef,
+		leftCollapsed,
+		rightCollapsed,
+		drawToolsOpen,
+		markerPlacementArmed,
+		markerModalOpen,
+		markerListModalOpen,
+		viewportResetNonce,
+		leftPanelStyleWidth,
+		rightPanelStyleWidth,
+		floatingPanelBottomOffset,
+		drawToolsRightOffset,
+		setDrawToolsOpen,
+		setMarkerPlacementArmed,
+		setMarkerModalOpen,
+		setMarkerListModalOpen,
+		setLeftPanelWidth,
+		setRightPanelWidth,
+		setLeftCollapsed,
+		setRightCollapsed,
+		handleToggleDrawTools,
+		handleToggleLeftPanel,
+		handleToggleRightPanel,
+		beginResize,
+		bumpViewportResetNonce,
+	} = useGeopoliticalShellController({
+		isMobile,
+		pendingPointActive: pendingPoint !== null,
+		selectedEventActive: selectedEvent !== null,
+	});
+
+	useGeopoliticalShellPersistence({
+		isMobile,
+		leftPanelWidth: typeof leftPanelStyleWidth === "number" ? leftPanelStyleWidth : 340,
+		rightPanelWidth: typeof rightPanelStyleWidth === "number" ? rightPanelStyleWidth : 460,
+		leftCollapsed,
+		rightCollapsed,
+		showCandidateQueue,
+		showFiltersToolbar,
+		showBodyLayerLegend,
+		showTimelinePanel,
+		workspaceTab,
+		setLeftPanelWidth,
+		setRightPanelWidth,
+		setLeftCollapsed,
+		setRightCollapsed,
+		setShowCandidateQueue,
+		setShowFiltersToolbar,
+		setShowBodyLayerLegend,
+		setShowTimelinePanel,
+		setWorkspaceTab,
+	});
 
 	const applyMapFilters = useCallback(() => {
 		void fetchAll();
@@ -490,7 +485,10 @@ export function GeopoliticalMapShell() {
 			return;
 		}
 		if (selectedEventIds.length > 0) {
-			selectEvents([selectedEventIds[0]], "replace");
+			const primarySelectedEventId = selectedEventIds[0];
+			if (primarySelectedEventId) {
+				selectEvents([primarySelectedEventId], "replace");
+			}
 		}
 	}, [selectEvents, selectedEventId, selectedEventIds]);
 
@@ -508,20 +506,6 @@ export function GeopoliticalMapShell() {
 			analystNote: selectedEvent.analystNote ?? "",
 		});
 	}, [selectedEvent, setEditForm]);
-
-	useEffect(() => {
-		if (pendingPoint || selectedEvent) {
-			setMarkerModalOpen(true);
-			return;
-		}
-		setMarkerModalOpen(false);
-	}, [pendingPoint, selectedEvent]);
-
-	useEffect(() => {
-		if (!isMobile) return;
-		setLeftCollapsed(true);
-		setRightCollapsed(true);
-	}, [isMobile]);
 
 	const { handleMapClick, completePolygonDrawing, resetCreateForm, deleteSelectedDrawing } =
 		useGeopoliticalDrawingInteractions({
@@ -596,75 +580,22 @@ export function GeopoliticalMapShell() {
 		setShowHeatmap,
 		setShowSoftSignals,
 	});
-
-	const overlayEvents = mapBody === "earth" ? visibleEvents : [];
-	const overlayCandidates = mapBody === "earth" ? visibleCandidates : [];
-	const overlayTimeline = mapBody === "earth" ? visibleTimeline : [];
-	const overlaySelectedEventId = mapBody === "earth" ? selectedEventId : null;
-	const overlayNews = mapBody === "earth" ? visibleNews : [];
-	const overlayGraph = mapBody === "earth" ? graph : null;
-	const overlaySourceHealth = mapBody === "earth" ? sourceHealth : [];
-	const statsSummary = useMemo(() => {
-		if (mapBody !== "earth" || overlayEvents.length === 0) {
-			return { totalEvents: 0, avgSeverityLabel: "n/a", maxSeverityLabel: "n/a" };
-		}
-		let sum = 0;
-		let max = 0;
-		for (const event of overlayEvents) {
-			sum += Number(event.severity);
-			max = Math.max(max, Number(event.severity));
-		}
-		return {
-			totalEvents: overlayEvents.length,
-			avgSeverityLabel: (sum / overlayEvents.length).toFixed(1),
-			maxSeverityLabel: `S${max}`,
-		};
-	}, [mapBody, overlayEvents]);
-	const effectiveRightWidth = rightCollapsed ? 44 : rightPanelWidth;
-	const leftPanelStyleWidth = leftCollapsed
-		? 44
-		: isMobile
-			? "min(24rem, calc(100vw - 24px))"
-			: leftPanelWidth;
-	const rightPanelStyleWidth = rightCollapsed
-		? 44
-		: isMobile
-			? "min(24rem, calc(100vw - 24px))"
-			: rightPanelWidth;
-	const floatingPanelBottomOffset = isMobile ? 56 : 12;
-	const drawToolsRightOffset = isMobile ? 12 : effectiveRightWidth + 18;
 	const mapDrawingMode = drawToolsOpen ? drawingMode : null;
 	const mapPendingLineStart = drawToolsOpen ? pendingLineStart : null;
 	const mapPendingPolygonPoints = drawToolsOpen ? pendingPolygonPoints : [];
-	const handleToggleDrawTools = useCallback(() => {
-		setMarkerPlacementArmed(false);
-		setDrawToolsOpen((previous) => !previous);
-	}, []);
 	const handleToggleMarkerPlacement = useCallback(() => {
 		setDrawToolsOpen(false);
 		setPendingLineStart(null);
 		setPendingPolygonPoints([]);
 		setDrawingMode("marker");
 		setMarkerPlacementArmed((previous) => !previous);
-	}, [setDrawingMode, setPendingLineStart, setPendingPolygonPoints]);
-	const handleToggleLeftPanel = useCallback(() => {
-		setLeftCollapsed((previous) => {
-			const nextCollapsed = !previous;
-			if (isMobile && !nextCollapsed) {
-				setRightCollapsed(true);
-			}
-			return nextCollapsed;
-		});
-	}, [isMobile]);
-	const handleToggleRightPanel = useCallback(() => {
-		setRightCollapsed((previous) => {
-			const nextCollapsed = !previous;
-			if (isMobile && !nextCollapsed) {
-				setLeftCollapsed(true);
-			}
-			return nextCollapsed;
-		});
-	}, [isMobile]);
+	}, [
+		setDrawingMode,
+		setDrawToolsOpen,
+		setMarkerPlacementArmed,
+		setPendingLineStart,
+		setPendingPolygonPoints,
+	]);
 	const handleViewportMapClick = useCallback(
 		(coords: { lat: number; lng: number }) => {
 			if (mapBody !== "earth") return;
@@ -677,7 +608,14 @@ export function GeopoliticalMapShell() {
 				setMarkerPlacementArmed(false);
 			}
 		},
-		[drawToolsOpen, handleMapClick, mapBody, mapDrawingMode, markerPlacementArmed],
+		[
+			drawToolsOpen,
+			handleMapClick,
+			mapBody,
+			mapDrawingMode,
+			markerPlacementArmed,
+			setMarkerPlacementArmed,
+		],
 	);
 	const handleViewportCountryClick = useCallback(
 		(countryId: string) => {
@@ -695,109 +633,27 @@ export function GeopoliticalMapShell() {
 			selectEvent(eventId);
 			setMarkerModalOpen(true);
 		},
-		[selectEvent],
+		[selectEvent, setMarkerModalOpen],
 	);
 	const handleTimelineWorkspaceReset = useCallback(() => {
 		clearSelection();
 		setMarkerModalOpen(false);
 		setTimelineSelectedTimeMs(null);
 		setActiveStoryFocusPresetId(null);
-		setViewportResetNonce((previous) => previous + 1);
-	}, [clearSelection, setActiveStoryFocusPresetId, setTimelineSelectedTimeMs]);
+		bumpViewportResetNonce();
+	}, [
+		bumpViewportResetNonce,
+		clearSelection,
+		setActiveStoryFocusPresetId,
+		setMarkerModalOpen,
+		setTimelineSelectedTimeMs,
+	]);
 	const handleResetBodyPointLayerVisibility = useCallback(() => {
 		setBodyPointLayerVisibility((previous) => ({
 			...previous,
 			...getBodyPointLayerDefaultVisibilityMap(mapBody),
 		}));
 	}, [mapBody, setBodyPointLayerVisibility]);
-	const overlayTimelineDomainMs = useMemo<[number, number] | null>(() => {
-		const timestamps = overlayTimeline
-			.map((entry) => Date.parse(entry.at))
-			.filter((value) => Number.isFinite(value));
-		if (timestamps.length === 0) return null;
-		return [Math.min(...timestamps), Math.max(...timestamps)];
-	}, [overlayTimeline]);
-
-	useEffect(() => {
-		if (!selectedEventId) return;
-		const selectedEvent = overlayEvents.find((event) => event.id === selectedEventId);
-		if (!selectedEvent) return;
-		const nextFocus = buildGeoEventStoryFocusState({
-			event: selectedEvent,
-			domainMs: overlayTimelineDomainMs,
-			viewRangeMs: timelineViewRangeMs,
-			activeRegionId,
-		});
-		if (!nextFocus) return;
-		if (timelineSelectedTimeMs !== nextFocus.selectedTimeMs) {
-			setTimelineSelectedTimeMs(nextFocus.selectedTimeMs);
-		}
-		if (!isSameRange(timelineViewRangeMs, nextFocus.viewRangeMs)) {
-			setTimelineViewRangeMs(nextFocus.viewRangeMs);
-		}
-		if (nextFocus.regionIdToAdopt) {
-			setActiveRegionId(nextFocus.regionIdToAdopt);
-		}
-	}, [
-		activeRegionId,
-		overlayEvents,
-		overlayTimelineDomainMs,
-		selectedEventId,
-		setActiveRegionId,
-		setTimelineSelectedTimeMs,
-		setTimelineViewRangeMs,
-		timelineSelectedTimeMs,
-		timelineViewRangeMs,
-	]);
-
-	// FC3: inject GeoMap context when chat panel opens
-	useEffect(() => {
-		if (chatOpen && !prevChatOpenRef.current) {
-			const selectedTitle = selectedEvent?.title;
-			setChatContext(
-				buildGeoContext(activeRegionId ?? "global", visibleEvents.length, selectedTitle),
-			);
-		}
-		prevChatOpenRef.current = chatOpen;
-	}, [chatOpen, activeRegionId, visibleEvents.length, selectedEvent, setChatContext]);
-
-	const beginResize = useCallback(
-		(panel: "left" | "right") => (event: ReactMouseEvent<HTMLDivElement>) => {
-			event.preventDefault();
-			const workspace = workspaceRef.current;
-			if (!workspace) return;
-			const rect = workspace.getBoundingClientRect();
-			const gap = 12;
-			const minSide = 280;
-			const maxSide = Math.max(360, rect.width * 0.45);
-			const previousUserSelect = document.body.style.userSelect;
-			const previousCursor = document.body.style.cursor;
-			document.body.style.userSelect = "none";
-			document.body.style.cursor = "ew-resize";
-
-			const onMove = (moveEvent: MouseEvent) => {
-				const currentRect = workspace.getBoundingClientRect();
-				if (panel === "left") {
-					const next = moveEvent.clientX - currentRect.left - gap;
-					setLeftPanelWidth(clamp(next, minSide, maxSide));
-					return;
-				}
-				const next = currentRect.right - moveEvent.clientX - gap;
-				setRightPanelWidth(clamp(next, minSide, maxSide));
-			};
-
-			const onUp = () => {
-				window.removeEventListener("mousemove", onMove);
-				window.removeEventListener("mouseup", onUp);
-				document.body.style.userSelect = previousUserSelect;
-				document.body.style.cursor = previousCursor;
-			};
-
-			window.addEventListener("mousemove", onMove);
-			window.addEventListener("mouseup", onUp);
-		},
-		[],
-	);
 
 	return (
 		<div className="flex h-screen min-h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -815,301 +671,221 @@ export function GeopoliticalMapShell() {
 			/>
 
 			<div className="flex min-h-0 flex-1 overflow-hidden">
-				<main ref={workspaceRef} className="relative min-h-0 flex-1 overflow-hidden">
-					{mapViewMode === "flat" && flatViewState ? (
-						<FlatViewScaffold
-							state={flatViewState}
-							events={overlayEvents}
-							showFiltersToolbar={showFiltersToolbar}
-							showBodyLayerLegend={showBodyLayerLegend}
-							showTimelinePanel={showTimelinePanel}
-							selectedEventId={overlaySelectedEventId}
-							onSelectEvent={selectEvent}
-							onBackToGlobe={backToGlobe}
-						/>
-					) : (
-						<MapViewportPanel
-							mapBody={mapBody}
-							viewportResetNonce={viewportResetNonce}
-							loading={loading}
-							events={overlayEvents}
-							candidates={overlayCandidates}
-							drawings={drawings}
-							showRegionLayer={showRegionLayer}
-							showHeatmap={showHeatmap}
-							showSoftSignals={showSoftSignals}
-							showBodyLayerLegend={showBodyLayerLegend}
-							bodyPointLayerVisibility={bodyPointLayerVisibility}
-							earthChoroplethMode={earthChoroplethMode}
-							selectedEventId={overlaySelectedEventId}
-							selectedEventIds={selectedEventIds}
-							selectedDrawingId={selectedDrawingId}
-							markerPlacementArmed={markerPlacementArmed}
-							canUndoDrawings={canUndoDrawings}
-							canRedoDrawings={canRedoDrawings}
-							onSelectEvent={selectEvent}
-							onSelectEvents={selectEvents}
-							onSelectDrawing={selectDrawing}
-							onToggleBodyPointLayerVisibility={toggleBodyPointLayerVisibility}
-							onResetBodyPointLayerVisibility={handleResetBodyPointLayerVisibility}
-							onChangeEarthChoroplethMode={setEarthChoroplethMode}
-							drawingMode={mapDrawingMode}
-							pendingLineStart={mapPendingLineStart}
-							pendingPolygonPoints={mapPendingPolygonPoints}
-							drawingColor={drawingColor}
-							onMapClick={handleViewportMapClick}
-							onCountryClick={handleViewportCountryClick}
-							onOpenFlatViewForCluster={openFlatViewForClusterBounds}
-						/>
-					)}
-
-					<div className="pointer-events-none absolute inset-0 z-20">
-						{showFiltersToolbar ? (
-							<div className="pointer-events-auto absolute left-3 right-3 top-3">
-								<MapFiltersToolbar
-									eventsSource={eventsSource}
-									setEventsSource={setEventsSource}
-									mapBody={mapBody}
-									setMapBody={setMapBody}
-									activeRegionId={activeRegionId}
-									setActiveRegionId={setActiveRegionId}
-									regions={regions}
-									acledCountryFilter={acledCountryFilter}
-									setAcledCountryFilter={setAcledCountryFilter}
-									minSeverityFilter={minSeverityFilter}
-									setMinSeverityFilter={setMinSeverityFilter}
-									searchQuery={searchQuery}
-									setSearchQuery={setSearchQuery}
-									isExternalSource={isExternalSource}
-									externalSourceLabel={externalSourceLabel}
-									acledRegionFilter={acledRegionFilter}
-									setAcledRegionFilter={setAcledRegionFilter}
-									acledEventTypeFilter={acledEventTypeFilter}
-									setAcledEventTypeFilter={setAcledEventTypeFilter}
-									acledSubEventTypeFilter={acledSubEventTypeFilter}
-									setAcledSubEventTypeFilter={setAcledSubEventTypeFilter}
-									acledFromFilter={acledFromFilter}
-									setAcledFromFilter={setAcledFromFilter}
-									acledToFilter={acledToFilter}
-									setAcledToFilter={setAcledToFilter}
-									acledPage={acledPage}
-									setAcledPage={setAcledPage}
-									acledTotal={acledTotal}
-									acledHasMore={acledHasMore}
-									activeRegionLabel={activeRegionLabel}
-									activeFilterChips={activeFilterChips}
-									acledRegionSuggestions={acledRegionSuggestions}
-									acledSubEventSuggestions={acledSubEventSuggestions}
-									statsSummary={statsSummary}
-									onApply={applyMapFilters}
-								/>
-							</div>
-						) : null}
-						{selectedEventIds.length > 1 ? (
-							<div className="pointer-events-auto absolute left-3 top-[6.75rem]">
+				<GeoWorkspaceStage
+					workspaceRef={workspaceRef}
+					mapViewMode={mapViewMode}
+					flatViewState={flatViewState}
+					flatViewProps={{
+						events: overlayEvents,
+						showFiltersToolbar,
+						showBodyLayerLegend,
+						showTimelinePanel,
+						selectedEventId: overlaySelectedEventId,
+						onSelectEvent: selectEvent,
+						onBackToGlobe: backToGlobe,
+					}}
+					viewportProps={{
+						mapBody,
+						viewportResetNonce,
+						loading,
+						events: overlayEvents,
+						candidates: overlayCandidates,
+						drawings,
+						showRegionLayer,
+						showHeatmap,
+						showSoftSignals,
+						showBodyLayerLegend,
+						bodyPointLayerVisibility,
+						earthChoroplethMode,
+						selectedEventId: overlaySelectedEventId,
+						selectedEventIds,
+						selectedDrawingId,
+						markerPlacementArmed,
+						canUndoDrawings,
+						canRedoDrawings,
+						onSelectEvent: selectEvent,
+						onSelectEvents: selectEvents,
+						onSelectDrawing: selectDrawing,
+						onToggleBodyPointLayerVisibility: toggleBodyPointLayerVisibility,
+						onResetBodyPointLayerVisibility: handleResetBodyPointLayerVisibility,
+						onChangeEarthChoroplethMode: setEarthChoroplethMode,
+						drawingMode: mapDrawingMode,
+						pendingLineStart: mapPendingLineStart,
+						pendingPolygonPoints: mapPendingPolygonPoints,
+						drawingColor,
+						onMapClick: handleViewportMapClick,
+						onCountryClick: handleViewportCountryClick,
+						onOpenFlatViewForCluster: openFlatViewForClusterBounds,
+					}}
+					viewportChromeProps={{
+						showFiltersToolbar,
+						filtersToolbar: (
+							<MapFiltersToolbar
+								eventsSource={eventsSource}
+								setEventsSource={setEventsSource}
+								mapBody={mapBody}
+								setMapBody={setMapBody}
+								activeRegionId={activeRegionId}
+								setActiveRegionId={setActiveRegionId}
+								regions={regions}
+								acledCountryFilter={acledCountryFilter}
+								setAcledCountryFilter={setAcledCountryFilter}
+								minSeverityFilter={minSeverityFilter}
+								setMinSeverityFilter={setMinSeverityFilter}
+								searchQuery={searchQuery}
+								setSearchQuery={setSearchQuery}
+								isExternalSource={isExternalSource}
+								externalSourceLabel={externalSourceLabel}
+								acledRegionFilter={acledRegionFilter}
+								setAcledRegionFilter={setAcledRegionFilter}
+								acledEventTypeFilter={acledEventTypeFilter}
+								setAcledEventTypeFilter={setAcledEventTypeFilter}
+								acledSubEventTypeFilter={acledSubEventTypeFilter}
+								setAcledSubEventTypeFilter={setAcledSubEventTypeFilter}
+								acledFromFilter={acledFromFilter}
+								setAcledFromFilter={setAcledFromFilter}
+								acledToFilter={acledToFilter}
+								setAcledToFilter={setAcledToFilter}
+								acledPage={acledPage}
+								setAcledPage={setAcledPage}
+								acledTotal={acledTotal}
+								acledHasMore={acledHasMore}
+								activeRegionLabel={activeRegionLabel}
+								activeFilterChips={activeFilterChips}
+								acledRegionSuggestions={acledRegionSuggestions}
+								acledSubEventSuggestions={acledSubEventSuggestions}
+								statsSummary={statsSummary}
+								onApply={applyMapFilters}
+							/>
+						),
+						bulkSelectionBar:
+							selectedEventIds.length > 1 ? (
 								<GeoBulkSelectionBar
 									count={selectedEventIds.length}
 									onClear={clearSelection}
 									onKeepPrimary={handleKeepPrimarySelectedEvent}
 									onOpenFlatView={handleOpenFlatViewForSelectedEvents}
 								/>
-							</div>
-						) : null}
-
-						<div className="pointer-events-auto absolute right-3 top-3 z-40">
-							<Button
-								type="button"
-								size="sm"
-								variant="secondary"
-								className="h-9 border border-border/70 bg-card/90 shadow-lg backdrop-blur"
-								onClick={() => setMarkerListModalOpen(true)}
-								aria-label="Open marker list"
-							>
-								Marker List
-							</Button>
-						</div>
-						<div
-							className="pointer-events-auto absolute top-[6.75rem] z-40"
-							style={{ right: drawToolsRightOffset }}
-						>
-							<Button
-								type="button"
-								size="sm"
-								variant="secondary"
-								className="h-9 border border-border/70 bg-card/90 shadow-lg backdrop-blur"
-								onClick={handleToggleDrawTools}
-								aria-expanded={drawToolsOpen}
-								aria-label="Toggle drawing tools"
-								title={drawToolsOpen ? "Hide drawing tools" : "Show drawing tools"}
-							>
-								<PencilRuler className="h-4 w-4" />
-							</Button>
-							{drawToolsOpen ? (
-								<div className="mt-2 max-w-[19rem] rounded-lg border border-border/70 bg-card/95 p-2 shadow-xl backdrop-blur">
-									<DrawModePanel
-										drawingMode={drawingMode}
-										drawingTextLabel={drawingTextLabel}
-										drawingColor={drawingColor}
-										pendingPolygonPointsCount={pendingPolygonPoints.length}
-										lineStartSet={Boolean(pendingLineStart)}
-										busy={busy}
-										selectedDrawingId={selectedDrawingId}
-										canOpenSelectedDrawingInFlatView={selectedDrawingId !== null}
-										canUndoDrawings={canUndoDrawings}
-										canRedoDrawings={canRedoDrawings}
-										onModeChange={(mode) => {
-											setDrawingMode(mode);
-											setPendingLineStart(null);
-											setPendingPolygonPoints([]);
-										}}
-										onTextLabelChange={setDrawingTextLabel}
-										onDrawingColorChange={setDrawingColor}
-										onCompletePolygon={() => void completePolygonDrawing()}
-										onClearPolygon={() => setPendingPolygonPoints([])}
-										onOpenSelectedDrawingInFlatView={() => void openFlatViewForSelectedDrawing()}
-										onDeleteSelectedDrawing={() => void deleteSelectedDrawing()}
-										onUndo={() => void undoDrawingCommand()}
-										onRedo={() => void redoDrawingCommand()}
-									/>
-								</div>
-							) : null}
-						</div>
-
-						<div
-							className="pointer-events-auto absolute left-3 top-[7.75rem] overflow-hidden rounded-lg border border-border/70 bg-card/85 shadow-xl backdrop-blur"
-							style={{ width: leftPanelStyleWidth, bottom: floatingPanelBottomOffset }}
-						>
-							<div className="flex h-10 items-center justify-between border-b border-border px-2">
-								<span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-									Left Panel
-								</span>
-								<Button
-									type="button"
-									size="icon"
-									variant="ghost"
-									className="h-7 w-7"
-									onClick={handleToggleLeftPanel}
-									aria-label={leftCollapsed ? "Expand left panel" : "Collapse left panel"}
-								>
-									{leftCollapsed ? (
-										<ChevronRight className="h-4 w-4" />
-									) : (
-										<ChevronLeft className="h-4 w-4" />
-									)}
-								</Button>
-							</div>
-							{leftCollapsed ? null : (
-								<>
-									<div className="h-[calc(100%-2.5rem)] overflow-y-auto">
-										<MapLeftSidebar
-											markerPlacementArmed={markerPlacementArmed}
-											onToggleMarkerPlacement={handleToggleMarkerPlacement}
-											showFiltersToolbar={showFiltersToolbar}
-											onShowFiltersToolbarChange={setShowFiltersToolbar}
-											showBodyLayerLegend={showBodyLayerLegend}
-											onShowBodyLayerLegendChange={setShowBodyLayerLegend}
-											showTimelinePanel={showTimelinePanel}
-											onShowTimelinePanelChange={setShowTimelinePanel}
-										/>
-									</div>
-									{isMobile ? null : (
-										<div
-											className="absolute bottom-0 right-0 top-0 z-30 w-2 cursor-ew-resize"
-											onMouseDown={beginResize("left")}
-											role="separator"
-											aria-label="Resize left panel"
-										/>
-									)}
-								</>
-							)}
-						</div>
-
-						<div
-							className="pointer-events-auto absolute right-3 top-[7.75rem] overflow-hidden rounded-lg border border-border/70 bg-card/85 shadow-xl backdrop-blur"
-							style={{ width: rightPanelStyleWidth, bottom: floatingPanelBottomOffset }}
-						>
-							<div className="flex h-10 items-center justify-between border-b border-border px-2">
-								<Button
-									type="button"
-									size="icon"
-									variant="ghost"
-									className="h-7 w-7"
-									onClick={handleToggleRightPanel}
-									aria-label={rightCollapsed ? "Expand right panel" : "Collapse right panel"}
-								>
-									{rightCollapsed ? (
-										<ChevronLeft className="h-4 w-4" />
-									) : (
-										<ChevronRight className="h-4 w-4" />
-									)}
-								</Button>
-								<span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-									Right Panel
-								</span>
-							</div>
-							{rightCollapsed ? null : (
-								<>
-									<div className="h-[calc(100%-2.5rem)] overflow-y-auto">
-										<MapRightSidebar
-											isEarthContext={mapBody === "earth"}
-											error={error}
-											busy={busy}
-											showCandidateQueue={mapBody === "earth" && showCandidateQueue}
-											showTimelinePanel={mapBody === "earth" && showTimelinePanel}
-											candidates={overlayCandidates}
-											onCandidateAction={(candidateId, action) => {
-												void handleCandidateAction(candidateId, action);
-											}}
-											onQuickImportCandidate={(rawText) => {
-												void quickImportCandidate(rawText);
-											}}
-											activeRegionLabel={activeRegionLabel}
-											news={overlayNews}
-											onOpenFlatViewForRegion={openFlatViewForRegion}
-											graph={overlayGraph}
-											gameTheoryEnabled={mapBody === "earth" && eventsSource === "acled"}
-											gameTheoryLoading={gameTheoryLoading}
-											gameTheoryItems={visibleGameTheoryItems}
-											gameTheorySummary={gameTheorySummary ?? null}
-											contextSource={contextSource}
-											onContextSourceChange={setContextSource}
-											contextItems={mapBody === "earth" ? visibleContextItems : []}
-											contextLoading={contextLoading}
-											sourceHealth={overlaySourceHealth}
-											timeline={overlayTimeline}
-											selectedTimelineId={selectedTimelineId}
-											storyFocusPresets={storyFocusPresets}
-											activeStoryFocusPresetId={activeStoryFocusPresetId}
-											activeRegionId={activeRegionId}
-											events={overlayEvents}
-											timelineViewRangeMs={timelineViewRangeMs}
-											timelineSelectedTimeMs={timelineSelectedTimeMs}
-											activeReplayRangeMs={activeReplayRangeMs}
-											onTimelineViewRangeChange={setTimelineViewRangeMs}
-											onTimelineSelectedTimeChange={setTimelineSelectedTimeMs}
-											onActiveReplayRangeChange={setActiveReplayRangeMs}
-											onSelectEventFromTimeline={handleTimelineEventFocus}
-											onOpenFlatViewFromTimeline={openFlatViewForEventId}
-											onTimelineReset={handleTimelineWorkspaceReset}
-											onSelectedTimelineIdChange={setSelectedTimelineId}
-											onStoryFocusPresetsChange={setStoryFocusPresets}
-											onActiveStoryFocusPresetIdChange={setActiveStoryFocusPresetId}
-											onActiveRegionIdChange={setActiveRegionId}
-										/>
-									</div>
-									{isMobile ? null : (
-										<div
-											className="absolute bottom-0 left-0 top-0 z-30 w-2 cursor-ew-resize"
-											onMouseDown={beginResize("right")}
-											role="separator"
-											aria-label="Resize right panel"
-										/>
-									)}
-								</>
-							)}
-						</div>
-					</div>
-				</main>
+							) : null,
+						onOpenMarkerList: () => setMarkerListModalOpen(true),
+						drawToolsRightOffset,
+						drawToolsOpen,
+						onToggleDrawTools: handleToggleDrawTools,
+						drawToolsPanel: (
+							<DrawModePanel
+								drawingMode={drawingMode}
+								drawingTextLabel={drawingTextLabel}
+								drawingColor={drawingColor}
+								pendingPolygonPointsCount={pendingPolygonPoints.length}
+								lineStartSet={Boolean(pendingLineStart)}
+								busy={busy}
+								selectedDrawingId={selectedDrawingId}
+								canOpenSelectedDrawingInFlatView={selectedDrawingId !== null}
+								canUndoDrawings={canUndoDrawings}
+								canRedoDrawings={canRedoDrawings}
+								onModeChange={(mode) => {
+									setDrawingMode(mode);
+									setPendingLineStart(null);
+									setPendingPolygonPoints([]);
+								}}
+								onTextLabelChange={setDrawingTextLabel}
+								onDrawingColorChange={setDrawingColor}
+								onCompletePolygon={() => void completePolygonDrawing()}
+								onClearPolygon={() => setPendingPolygonPoints([])}
+								onOpenSelectedDrawingInFlatView={() => void openFlatViewForSelectedDrawing()}
+								onDeleteSelectedDrawing={() => void deleteSelectedDrawing()}
+								onUndo={() => void undoDrawingCommand()}
+								onRedo={() => void redoDrawingCommand()}
+							/>
+						),
+					}}
+					leftPanelProps={{
+						collapsed: leftCollapsed,
+						width: leftPanelStyleWidth,
+						bottomOffset: floatingPanelBottomOffset,
+						isMobile,
+						onToggleCollapsed: handleToggleLeftPanel,
+						onResizeStart: beginResize("left"),
+					}}
+					leftSidebarProps={{
+						markerPlacementArmed,
+						onToggleMarkerPlacement: handleToggleMarkerPlacement,
+						showFiltersToolbar,
+						onShowFiltersToolbarChange: setShowFiltersToolbar,
+						showBodyLayerLegend,
+						onShowBodyLayerLegendChange: setShowBodyLayerLegend,
+						showTimelinePanel,
+						onShowTimelinePanelChange: setShowTimelinePanel,
+					}}
+					rightPanelProps={{
+						collapsed: rightCollapsed,
+						width: rightPanelStyleWidth,
+						bottomOffset: floatingPanelBottomOffset,
+						isMobile,
+						onToggleCollapsed: handleToggleRightPanel,
+						onResizeStart: beginResize("right"),
+					}}
+					rightSidebarProps={{
+						isEarthContext: mapBody === "earth",
+						error,
+						busy,
+						showCandidateQueue: mapBody === "earth" && showCandidateQueue,
+						showTimelinePanel: mapBody === "earth" && showTimelinePanel,
+						candidates: overlayCandidates,
+						onCandidateAction: (candidateId, action) => {
+							void handleCandidateAction(candidateId, action);
+						},
+						onQuickImportCandidate: (rawText) => {
+							void quickImportCandidate(rawText);
+						},
+						onRefreshWorkspace: () => {
+							void fetchAll();
+						},
+						onRefreshRegionNews: () => {
+							void fetchRegionNews();
+						},
+						onRefreshContext: () => {
+							void fetchGeopoliticalContext();
+						},
+						onRefreshGameTheory: () => {
+							void fetchGameTheoryImpact();
+						},
+						workspaceTab,
+						onWorkspaceTabChange: setWorkspaceTab,
+						activeRegionLabel,
+						news: overlayNews,
+						onOpenFlatViewForRegion: openFlatViewForRegion,
+						graph: overlayGraph,
+						gameTheoryEnabled: mapBody === "earth" && eventsSource === "acled",
+						gameTheoryLoading,
+						gameTheoryItems: visibleGameTheoryItems,
+						gameTheorySummary: gameTheorySummary ?? null,
+						contextSource,
+						onContextSourceChange: setContextSource,
+						contextItems: mapBody === "earth" ? visibleContextItems : [],
+						contextLoading,
+						sourceHealth: overlaySourceHealth,
+						timeline: overlayTimeline,
+						selectedTimelineId,
+						storyFocusPresets,
+						activeStoryFocusPresetId,
+						activeRegionId,
+						events: overlayEvents,
+						timelineViewRangeMs,
+						timelineSelectedTimeMs,
+						activeReplayRangeMs,
+						onTimelineViewRangeChange: setTimelineViewRangeMs,
+						onTimelineSelectedTimeChange: setTimelineSelectedTimeMs,
+						onActiveReplayRangeChange: setActiveReplayRangeMs,
+						onSelectEventFromTimeline: handleTimelineEventFocus,
+						onOpenFlatViewFromTimeline: openFlatViewForEventId,
+						onTimelineReset: handleTimelineWorkspaceReset,
+						onSelectedTimelineIdChange: setSelectedTimelineId,
+						onStoryFocusPresetsChange: setStoryFocusPresets,
+						onActiveStoryFocusPresetIdChange: setActiveStoryFocusPresetId,
+						onActiveRegionIdChange: setActiveRegionId,
+					}}
+				/>
 			</div>
 
 			<Dialog

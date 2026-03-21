@@ -91,14 +91,33 @@ function buildCandidateHeadline(
 	return `${templates[idx % templates.length]} #${idx + 1}`;
 }
 
+function getSeedRegion(index: number) {
+	const region = DEFAULT_GEO_REGIONS[index % DEFAULT_GEO_REGIONS.length];
+	if (!region) {
+		throw new Error(`Missing geo seed region for index ${index}`);
+	}
+	return region;
+}
+
+function getSeedSymbol(index: number) {
+	const symbol = GEO_SYMBOL_CATALOG[index % GEO_SYMBOL_CATALOG.length];
+	if (!symbol) {
+		throw new Error(`Missing geo seed symbol for index ${index}`);
+	}
+	return symbol;
+}
+
 function buildSeedEventInput(index: number): CreateGeoEventInput {
 	const rand = seededRandom(10_000 + index * 97);
-	const region = DEFAULT_GEO_REGIONS[index % DEFAULT_GEO_REGIONS.length];
-	const symbol = GEO_SYMBOL_CATALOG[index % GEO_SYMBOL_CATALOG.length];
+	const region = getSeedRegion(index);
+	const symbol = getSeedSymbol(index);
 	const center = REGION_CENTERS[region.id] ?? { lat: 0, lng: 0 };
 	const { lat, lng } = jitterCoordinate(center, rand);
-	const countryCodes =
-		region.countryCodes.length > 0 ? [region.countryCodes[index % region.countryCodes.length]] : [];
+	const countryCode =
+		region.countryCodes.length > 0
+			? region.countryCodes[index % region.countryCodes.length]
+			: undefined;
+	const countryCodes = countryCode ? [countryCode] : [];
 	return {
 		title: buildEventTitle(symbol.label, region.label, index),
 		symbol: symbol.symbol,
@@ -117,8 +136,8 @@ function buildSeedEventInput(index: number): CreateGeoEventInput {
 
 function buildSeedCandidateInput(index: number, contradiction = false) {
 	const rand = seededRandom(20_000 + index * 131);
-	const region = DEFAULT_GEO_REGIONS[index % DEFAULT_GEO_REGIONS.length];
-	const symbol = GEO_SYMBOL_CATALOG[index % GEO_SYMBOL_CATALOG.length];
+	const region = getSeedRegion(index);
+	const symbol = getSeedSymbol(index);
 	const provider = contradiction
 		? "ConflictSeedSynth"
 		: index % 3 === 0
@@ -142,7 +161,10 @@ function buildSeedCandidateInput(index: number, contradiction = false) {
 		regionHint: region.id,
 		countryHints:
 			region.countryCodes.length > 0
-				? [region.countryCodes[index % region.countryCodes.length]]
+				? (() => {
+						const countryHint = region.countryCodes[index % region.countryCodes.length];
+						return countryHint ? [countryHint] : undefined;
+					})()
 				: undefined,
 		sourceRefs: [
 			buildSeedSourceRef(
@@ -214,8 +236,8 @@ export async function ensureGeoEarthSeedDataset(
 	);
 	for (let index = 0; index < missingContradictions; index += 1) {
 		const contradictionIndex = beforeContradictionCount + index;
-		const region = DEFAULT_GEO_REGIONS[contradictionIndex % DEFAULT_GEO_REGIONS.length];
-		const symbol = GEO_SYMBOL_CATALOG[contradictionIndex % GEO_SYMBOL_CATALOG.length];
+		const region = getSeedRegion(contradictionIndex);
+		const symbol = getSeedSymbol(contradictionIndex);
 		const sourceRef = buildSeedSourceRef(
 			"ConflictSeedSynth",
 			`https://seed.local/contradictions/${contradictionIndex}`,

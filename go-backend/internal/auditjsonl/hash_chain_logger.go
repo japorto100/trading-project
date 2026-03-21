@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +45,7 @@ func (l *HashChainLogger) Append(record map[string]any) error {
 
 	dir := filepath.Dir(l.path)
 	if dir != "." && dir != "" {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil {
 			return fmt.Errorf("mkdir audit dir: %w", err)
 		}
 	}
@@ -81,9 +82,7 @@ func (l *HashChainLogger) Append(record map[string]any) error {
 
 func cloneMap(in map[string]any) map[string]any {
 	out := make(map[string]any, len(in))
-	for k, v := range in {
-		out[k] = v
-	}
+	maps.Copy(out, in)
 	return out
 }
 

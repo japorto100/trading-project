@@ -2,6 +2,8 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::collections::HashMap;
 
+pub mod error;
+pub mod helper;
 mod config; // Phase 20 stub — Rust Compute Service config
 mod ohlcv_cache;
 
@@ -41,6 +43,7 @@ fn ema(values: &[f64], period: usize) -> Vec<f64> {
 }
 
 fn rsi(values: &[f64], period: usize) -> Vec<f64> {
+    // F2: Wilder RSI warmup — SMA for first `period` changes, then Wilder smoothing
     if values.len() < 2 {
         return vec![50.0; values.len()];
     }
@@ -51,19 +54,31 @@ fn rsi(values: &[f64], period: usize) -> Vec<f64> {
         gains.push(if delta > 0.0 { delta } else { 0.0 });
         losses.push(if delta < 0.0 { -delta } else { 0.0 });
     }
-    let avg_gain = sma(&gains, period);
-    let avg_loss = sma(&losses, period);
-    avg_gain
-        .iter()
-        .zip(avg_loss.iter())
-        .map(|(g, l)| {
-            if *l == 0.0 {
-                100.0
-            } else {
-                100.0 - 100.0 / (1.0 + g / l)
-            }
-        })
-        .collect()
+    let n = gains.len();
+    let mut out = vec![50.0_f64; n];
+    if n <= period {
+        return out;
+    }
+    // SMA warmup: average of first `period` changes (indices 1..=period)
+    let mut avg_gain: f64 = gains[1..=period].iter().sum::<f64>() / period as f64;
+    let mut avg_loss: f64 = losses[1..=period].iter().sum::<f64>() / period as f64;
+    out[period] = if avg_loss == 0.0 {
+        100.0
+    } else {
+        100.0 - 100.0 / (1.0 + avg_gain / avg_loss)
+    };
+    // Wilder smoothing for the rest
+    let p = period as f64;
+    for i in (period + 1)..n {
+        avg_gain = (avg_gain * (p - 1.0) + gains[i]) / p;
+        avg_loss = (avg_loss * (p - 1.0) + losses[i]) / p;
+        out[i] = if avg_loss == 0.0 {
+            100.0
+        } else {
+            100.0 - 100.0 / (1.0 + avg_gain / avg_loss)
+        };
+    }
+    out
 }
 
 fn atr(highs: &[f64], lows: &[f64], closes: &[f64], period: usize) -> Vec<f64> {
@@ -80,16 +95,18 @@ fn atr(highs: &[f64], lows: &[f64], closes: &[f64], period: usize) -> Vec<f64> {
             f64::max((h - prev_c).abs(), (l - prev_c).abs()),
         ));
     }
-    sma(&tr, period)
+    // F1: Wilder ATR — EMA with alpha=1/period (span = 2*period-1)
+    ema(&tr, period * 2 - 1)
 }
 
-fn pstdev(values: &[f64]) -> f64 {
-    if values.len() < 2 {
+fn sample_std(values: &[f64]) -> f64 {
+    // F3: sample std-dev (/ n-1) — matches pandas rolling.std() used in book formulas
+    let n = values.len();
+    if n < 2 {
         return 0.0;
     }
-    let n = values.len() as f64;
-    let mean = values.iter().sum::<f64>() / n;
-    let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / n;
+    let mean = values.iter().sum::<f64>() / n as f64;
+    let variance = values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (n as f64 - 1.0);
     variance.sqrt()
 }
 
@@ -101,7 +118,7 @@ fn bb_bandwidth(values: &[f64], period: usize, num_std: f64) -> Vec<f64> {
         let window = &values[start..=i];
         let n = window.len() as f64;
         let mid = window.iter().sum::<f64>() / n;
-        let std = pstdev(window);
+        let std = sample_std(window);
         let upper = mid + num_std * std;
         let lower = mid - num_std * std;
         out.push(if mid != 0.0 {
@@ -121,7 +138,7 @@ fn bb_percent_b(values: &[f64], period: usize, num_std: f64) -> Vec<f64> {
         let window = &values[start..=i];
         let n = window.len() as f64;
         let mid = window.iter().sum::<f64>() / n;
-        let std = pstdev(window);
+        let std = sample_std(window);
         let upper = mid + num_std * std;
         let lower = mid - num_std * std;
         let bw = upper - lower;
@@ -297,6 +314,210 @@ fn adx_components(
     }
     let adx_vals = wilder_avg(&dx, period);
     (adx_vals, di_plus, di_minus)
+}
+
+// ---------------------------------------------------------------------------
+// F4: New MA types — SMMA, KAMA, ALMA, IWMA, OLS-MA, Ichimoku
+// ---------------------------------------------------------------------------
+
+fn smma(values: &[f64], period: usize) -> Vec<f64> {
+    // SMMA = Wilder smoothing: alpha=1/period = EMA with span=2*period-1
+    if period == 0 {
+        return values.to_vec();
+    }
+    ema(values, 2 * period - 1)
+}
+
+fn kama(values: &[f64], period: usize, fast: usize, slow: usize) -> Vec<f64> {
+    // Kaufman Adaptive MA
+    if values.is_empty() {
+        return Vec::new();
+    }
+    let fast_sc = 2.0 / (fast as f64 + 1.0);
+    let slow_sc = 2.0 / (slow as f64 + 1.0);
+    let n = values.len();
+    let mut out = vec![values[0]; n];
+    for i in period..n {
+        let direction = (values[i] - values[i - period]).abs();
+        let volatility: f64 = (i - period + 1..=i).map(|k| (values[k] - values[k - 1]).abs()).sum();
+        let er = if volatility < 1e-10 { 0.0 } else { direction / volatility };
+        let sc = (er * (fast_sc - slow_sc) + slow_sc).powi(2);
+        out[i] = out[i - 1] + sc * (values[i] - out[i - 1]);
+    }
+    out
+}
+
+fn alma(values: &[f64], period: usize, offset: f64, sigma: f64) -> Vec<f64> {
+    // Arnaud Legoux MA — Gaussian-weighted MA
+    if values.is_empty() || period == 0 {
+        return Vec::new();
+    }
+    let m = (offset * (period as f64 - 1.0)) as usize;
+    let s = period as f64 / sigma;
+    let weights: Vec<f64> = (0..period)
+        .map(|i| {
+            let diff = i as f64 - m as f64;
+            (-(diff * diff) / (2.0 * s * s)).exp()
+        })
+        .collect();
+    let wsum: f64 = weights.iter().sum();
+    let n = values.len();
+    let mut out = vec![0.0_f64; n];
+    for i in (period - 1)..n {
+        let window = &values[i + 1 - period..=i];
+        out[i] = weights.iter().zip(window.iter()).map(|(w, v)| w * v).sum::<f64>() / wsum;
+    }
+    out
+}
+
+fn iwma(values: &[f64], period: usize) -> Vec<f64> {
+    // Inverse Weighted MA — oldest bar gets weight 1/period, newest gets 1/1
+    if values.is_empty() || period == 0 {
+        return Vec::new();
+    }
+    let weights: Vec<f64> = (0..period).map(|j| 1.0 / (period - j) as f64).collect();
+    let wsum: f64 = weights.iter().sum();
+    let n = values.len();
+    let mut out = vec![0.0_f64; n];
+    for i in (period - 1)..n {
+        let window = &values[i + 1 - period..=i];
+        out[i] = weights.iter().zip(window.iter()).map(|(w, v)| w * v).sum::<f64>() / wsum;
+    }
+    out
+}
+
+fn ols_ma(values: &[f64], period: usize) -> Vec<f64> {
+    // OLS Linear Regression fitted value at last bar of each window
+    if values.is_empty() || period == 0 {
+        return Vec::new();
+    }
+    let n = values.len();
+    let mut out = vec![0.0_f64; n];
+    for i in (period - 1)..n {
+        let window = &values[i + 1 - period..=i];
+        let w = window.len() as f64;
+        let x_mean = (w - 1.0) / 2.0;
+        let y_mean = window.iter().sum::<f64>() / w;
+        let mut num = 0.0_f64;
+        let mut den = 0.0_f64;
+        for (j, y) in window.iter().enumerate() {
+            let xj = j as f64;
+            num += (xj - x_mean) * (y - y_mean);
+            den += (xj - x_mean).powi(2);
+        }
+        let slope = if den < 1e-10 { 0.0 } else { num / den };
+        let intercept = y_mean - slope * x_mean;
+        out[i] = intercept + slope * (w - 1.0);
+    }
+    out
+}
+
+fn ichimoku_series(
+    highs: &[f64],
+    lows: &[f64],
+    closes: &[f64],
+) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+    // Ichimoku: Tenkan(9), Kijun(26), Span A=(T+K)/2, Span B midpoint(52), Chikou=close
+    let n = closes.len();
+    let mut tenkan = vec![0.0_f64; n];
+    let mut kijun = vec![0.0_f64; n];
+    let mut span_a = vec![0.0_f64; n];
+    let mut span_b = vec![0.0_f64; n];
+    let chikou = closes.to_vec();
+    for i in 0..n {
+        let t_s = i.saturating_sub(8);
+        let t_hh = highs[t_s..=i].iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let t_ll = lows[t_s..=i].iter().cloned().fold(f64::INFINITY, f64::min);
+        tenkan[i] = (t_hh + t_ll) / 2.0;
+
+        let k_s = i.saturating_sub(25);
+        let k_hh = highs[k_s..=i].iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let k_ll = lows[k_s..=i].iter().cloned().fold(f64::INFINITY, f64::min);
+        kijun[i] = (k_hh + k_ll) / 2.0;
+
+        span_a[i] = (tenkan[i] + kijun[i]) / 2.0;
+
+        let sb_s = i.saturating_sub(51);
+        let sb_hh = highs[sb_s..=i].iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let sb_ll = lows[sb_s..=i].iter().cloned().fold(f64::INFINITY, f64::min);
+        span_b[i] = (sb_hh + sb_ll) / 2.0;
+    }
+    (tenkan, kijun, span_a, span_b, chikou)
+}
+
+// ---------------------------------------------------------------------------
+// F5: New oscillators / volume indicators — VWAP, Keltner, OBV, CMF
+// ---------------------------------------------------------------------------
+
+fn vwap_series(highs: &[f64], lows: &[f64], closes: &[f64], volumes: &[f64]) -> Vec<f64> {
+    // Session VWAP: cumulative(typical_price * vol) / cumulative(vol)
+    let n = closes.len();
+    let mut out = Vec::with_capacity(n);
+    let mut cum_tp_vol = 0.0_f64;
+    let mut cum_vol = 0.0_f64;
+    for i in 0..n {
+        let tp = (highs[i] + lows[i] + closes[i]) / 3.0;
+        cum_tp_vol += tp * volumes[i];
+        cum_vol += volumes[i];
+        out.push(if cum_vol < 1e-10 { closes[i] } else { cum_tp_vol / cum_vol });
+    }
+    out
+}
+
+fn keltner_channels(
+    highs: &[f64],
+    lows: &[f64],
+    closes: &[f64],
+    ema_period: usize,
+    atr_period: usize,
+    mult: f64,
+) -> (Vec<f64>, Vec<f64>, Vec<f64>) {
+    // Keltner Channels: EMA ± mult*ATR
+    let middle = ema(closes, ema_period);
+    let atr_vals = atr(highs, lows, closes, atr_period);
+    let upper = middle.iter().zip(atr_vals.iter()).map(|(m, a)| m + mult * a).collect();
+    let lower = middle.iter().zip(atr_vals.iter()).map(|(m, a)| m - mult * a).collect();
+    (upper, middle, lower)
+}
+
+fn obv_series(closes: &[f64], volumes: &[f64]) -> Vec<f64> {
+    // On-Balance Volume: cumulative ±vol based on price direction
+    let n = closes.len();
+    let mut out = Vec::with_capacity(n);
+    let mut obv = 0.0_f64;
+    out.push(obv);
+    for i in 1..n {
+        if closes[i] > closes[i - 1] {
+            obv += volumes[i];
+        } else if closes[i] < closes[i - 1] {
+            obv -= volumes[i];
+        }
+        out.push(obv);
+    }
+    out
+}
+
+fn cmf_series(highs: &[f64], lows: &[f64], closes: &[f64], volumes: &[f64], period: usize) -> Vec<f64> {
+    // Chaikin Money Flow = rolling(CLV*vol, p) / rolling(vol, p)
+    let n = closes.len();
+    let mut clv_vol: Vec<f64> = Vec::with_capacity(n);
+    for i in 0..n {
+        let hl = highs[i] - lows[i];
+        let clv = if hl < 1e-10 {
+            0.0
+        } else {
+            ((closes[i] - lows[i]) - (highs[i] - closes[i])) / hl
+        };
+        clv_vol.push(clv * volumes[i]);
+    }
+    let mut out = Vec::with_capacity(n);
+    for i in 0..n {
+        let start = (i + 1).saturating_sub(period);
+        let vol_sum: f64 = volumes[start..=i].iter().sum();
+        let cv_sum: f64 = clv_vol[start..=i].iter().sum();
+        out.push(if vol_sum < 1e-10 { 0.0 } else { cv_sum / vol_sum });
+    }
+    out
 }
 
 fn composite_sma50_slope_norm_impl(closes: &[f64]) -> Result<(f64, f64, f64), &'static str> {
@@ -506,6 +727,80 @@ fn calculate_indicators_batch_impl(
                 out.insert(format!("adx_{period}"), adx_v);
                 out.insert(format!("di_plus_{period}"), dip);
                 out.insert(format!("di_minus_{period}"), dim);
+            }
+            continue;
+        }
+        // smma_N — Smoothed/Wilder MA
+        if let Some(period_str) = key.strip_prefix("smma_") {
+            let period = period_str.parse::<usize>().unwrap_or(14).max(1);
+            out.insert(indicator.clone(), smma(closes, period));
+            continue;
+        }
+        // kama_N — Kaufman Adaptive MA (fast=2, slow=30)
+        if let Some(period_str) = key.strip_prefix("kama_") {
+            let period = period_str.parse::<usize>().unwrap_or(10).max(1);
+            out.insert(indicator.clone(), kama(closes, period, 2, 30));
+            continue;
+        }
+        // alma_N — Arnaud Legoux MA (offset=0.85, sigma=6.0)
+        if let Some(period_str) = key.strip_prefix("alma_") {
+            let period = period_str.parse::<usize>().unwrap_or(9).max(1);
+            out.insert(indicator.clone(), alma(closes, period, 0.85, 6.0));
+            continue;
+        }
+        // iwma_N — Inverse Weighted MA
+        if let Some(period_str) = key.strip_prefix("iwma_") {
+            let period = period_str.parse::<usize>().unwrap_or(10).max(1);
+            out.insert(indicator.clone(), iwma(closes, period));
+            continue;
+        }
+        // ols_N — OLS Linear Regression MA
+        if let Some(period_str) = key.strip_prefix("ols_") {
+            let period = period_str.parse::<usize>().unwrap_or(14).max(1);
+            out.insert(indicator.clone(), ols_ma(closes, period));
+            continue;
+        }
+        // ichimoku — inserts 5 series (requires highs and lows)
+        if key == "ichimoku" {
+            if highs.len() == len && lows.len() == len {
+                let (tenkan, kijun, span_a, span_b, chikou) = ichimoku_series(highs, lows, closes);
+                out.insert("ichimoku_tenkan".to_string(), tenkan);
+                out.insert("ichimoku_kijun".to_string(), kijun);
+                out.insert("ichimoku_span_a".to_string(), span_a);
+                out.insert("ichimoku_span_b".to_string(), span_b);
+                out.insert("ichimoku_chikou".to_string(), chikou);
+            }
+            continue;
+        }
+        // vwap — session VWAP (requires highs, lows, volumes)
+        if key == "vwap" {
+            if highs.len() == len && lows.len() == len {
+                out.insert(indicator.clone(), vwap_series(highs, lows, closes, volumes));
+            }
+            continue;
+        }
+        // keltner_N — Keltner Channels (EMA=N, ATR=N, mult=1.5); requires highs and lows
+        // inserts keltner_upper_N, keltner_mid_N, keltner_lower_N
+        if let Some(period_str) = key.strip_prefix("keltner_") {
+            let period = period_str.parse::<usize>().unwrap_or(20).max(1);
+            if highs.len() == len && lows.len() == len {
+                let (upper, mid, lower) = keltner_channels(highs, lows, closes, period, period, 1.5);
+                out.insert(format!("keltner_upper_{period}"), upper);
+                out.insert(format!("keltner_mid_{period}"), mid);
+                out.insert(format!("keltner_lower_{period}"), lower);
+            }
+            continue;
+        }
+        // obv — On-Balance Volume
+        if key == "obv" {
+            out.insert(indicator.clone(), obv_series(closes, volumes));
+            continue;
+        }
+        // cmf_N — Chaikin Money Flow (requires highs, lows, volumes)
+        if let Some(period_str) = key.strip_prefix("cmf_") {
+            let period = period_str.parse::<usize>().unwrap_or(20).max(1);
+            if highs.len() == len && lows.len() == len {
+                out.insert(indicator.clone(), cmf_series(highs, lows, closes, volumes, period));
             }
             continue;
         }
@@ -786,6 +1081,88 @@ fn score_tools_for_query(
     }))
 }
 
+// ── Portfolio Analytics (fast-path for portfolio.py) ──────────────────────────
+
+/// Underwater (drawdown) curve: (equity[i] - running_max) / running_max.
+/// Returns 0.0 at new highs, negative fractions in drawdown.
+fn portfolio_drawdown_series_impl(equity: &[f64]) -> Vec<f64> {
+    if equity.is_empty() {
+        return Vec::new();
+    }
+    let mut out = Vec::with_capacity(equity.len());
+    let mut running_max = equity[0];
+    for &e in equity {
+        if e > running_max {
+            running_max = e;
+        }
+        let dd = if running_max > 0.0 {
+            (e - running_max) / running_max
+        } else {
+            0.0
+        };
+        out.push(dd);
+    }
+    out
+}
+
+/// Rolling annualised Sharpe ratio. Returns NaN for positions before the first
+/// full window. rf_daily = annual_rf / 252.
+fn portfolio_rolling_sharpe_impl(returns: &[f64], window: usize, rf_daily: f64) -> Vec<f64> {
+    let n = returns.len();
+    let mut out = vec![f64::NAN; n];
+    if window < 2 || n < window {
+        return out;
+    }
+    let ann = 252.0_f64.sqrt();
+    for i in (window - 1)..n {
+        let slice = &returns[(i + 1 - window)..=i];
+        let mean = slice.iter().sum::<f64>() / window as f64;
+        let var = slice.iter().map(|r| (r - mean).powi(2)).sum::<f64>()
+            / (window - 1) as f64;
+        let std = var.sqrt();
+        out[i] = if std > 1e-12 {
+            (mean - rf_daily) / std * ann
+        } else {
+            0.0
+        };
+    }
+    out
+}
+
+/// Single-asset Kelly fraction: mu / sigma² (clamped to [-2, 2]).
+fn portfolio_kelly_fraction_impl(returns: &[f64]) -> f64 {
+    if returns.len() < 2 {
+        return 0.0;
+    }
+    let n = returns.len() as f64;
+    let mean = returns.iter().sum::<f64>() / n;
+    let var = returns.iter().map(|r| (r - mean).powi(2)).sum::<f64>() / (n - 1.0);
+    if var <= 1e-14 {
+        return 0.0;
+    }
+    (mean / var).clamp(-2.0, 2.0)
+}
+
+#[pyfunction]
+fn portfolio_drawdown_series(py: Python<'_>, equity: Vec<f64>) -> PyResult<Vec<f64>> {
+    Ok(py.detach(move || portfolio_drawdown_series_impl(&equity)))
+}
+
+#[pyfunction]
+fn portfolio_rolling_sharpe(
+    py: Python<'_>,
+    returns: Vec<f64>,
+    window: usize,
+    rf_daily: f64,
+) -> PyResult<Vec<f64>> {
+    Ok(py.detach(move || portfolio_rolling_sharpe_impl(&returns, window, rf_daily)))
+}
+
+#[pyfunction]
+fn portfolio_kelly_fraction(py: Python<'_>, returns: Vec<f64>) -> PyResult<f64> {
+    Ok(py.detach(move || portfolio_kelly_fraction_impl(&returns)))
+}
+
 #[pymodule]
 fn tradeviewfusion_rust_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(composite_sma50_slope_norm, m)?)?;
@@ -796,6 +1173,9 @@ fn tradeviewfusion_rust_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(extract_entities_from_text, m)?)?;
     m.add_function(wrap_pyfunction!(dedup_context_fragments, m)?)?;
     m.add_function(wrap_pyfunction!(score_tools_for_query, m)?)?;
+    m.add_function(wrap_pyfunction!(portfolio_drawdown_series, m)?)?;
+    m.add_function(wrap_pyfunction!(portfolio_rolling_sharpe, m)?)?;
+    m.add_function(wrap_pyfunction!(portfolio_kelly_fraction, m)?)?;
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     Ok(())
 }
@@ -1278,5 +1658,71 @@ mod tests {
         for v in out["rsi_14"].iter().skip(14) {
             assert!(*v > 50.0, "RSI should be > 50 in rising market");
         }
+    }
+
+    #[test]
+    fn test_portfolio_drawdown_series_known_values() {
+        // equity: 100 → 90 → 80 → 100 → 90
+        // peaks:  100   100   100   100   100
+        // dd:      0   -0.1  -0.2    0   -0.1
+        let equity = vec![100.0, 90.0, 80.0, 100.0, 90.0];
+        let dd = portfolio_drawdown_series_impl(&equity);
+        assert_eq!(dd.len(), 5);
+        assert_abs_diff_eq!(dd[0], 0.0, epsilon = 1e-10);
+        assert_abs_diff_eq!(dd[1], -0.1, epsilon = 1e-10);
+        assert_abs_diff_eq!(dd[2], -0.2, epsilon = 1e-10);
+        assert_abs_diff_eq!(dd[3], 0.0, epsilon = 1e-10);
+        assert_abs_diff_eq!(dd[4], -0.1, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_portfolio_drawdown_series_monotone_rise() {
+        let equity: Vec<f64> = (1..=10).map(|i| i as f64 * 10.0).collect();
+        let dd = portfolio_drawdown_series_impl(&equity);
+        for v in &dd {
+            assert_abs_diff_eq!(*v, 0.0, epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_portfolio_rolling_sharpe_nan_warmup() {
+        let returns = vec![0.01; 50];
+        let out = portfolio_rolling_sharpe_impl(&returns, 20, 0.0);
+        assert_eq!(out.len(), 50);
+        for v in &out[..19] {
+            assert!(v.is_nan(), "positions before window should be NaN");
+        }
+        for v in &out[19..] {
+            assert!(v.is_finite(), "positions from window onward should be finite");
+        }
+    }
+
+    #[test]
+    fn test_portfolio_rolling_sharpe_constant_returns_zero_std() {
+        // Constant returns → std=0 → sharpe=0 (not NaN)
+        let returns = vec![0.005; 30];
+        let out = portfolio_rolling_sharpe_impl(&returns, 10, 0.0);
+        for v in &out[9..] {
+            assert_abs_diff_eq!(*v, 0.0, epsilon = 1e-10);
+        }
+    }
+
+    #[test]
+    fn test_portfolio_kelly_fraction_positive_edge() {
+        // Strongly positive returns → positive Kelly
+        let returns: Vec<f64> = vec![0.02; 100];
+        let k = portfolio_kelly_fraction_impl(&returns);
+        // Constant series → var=0 → returns 0.0
+        assert_abs_diff_eq!(k, 0.0, epsilon = 1e-10);
+    }
+
+    #[test]
+    fn test_portfolio_kelly_fraction_mixed_returns() {
+        // Mix of wins and losses → finite Kelly in [-2, 2]
+        let mut returns = vec![0.02_f64; 60];
+        returns.extend(vec![-0.01_f64; 40]);
+        let k = portfolio_kelly_fraction_impl(&returns);
+        assert!(k.is_finite());
+        assert!(k >= -2.0 && k <= 2.0);
     }
 }

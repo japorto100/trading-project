@@ -1,7 +1,6 @@
 package gametheory
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/ipc"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -23,6 +22,7 @@ const (
 
 type Config struct {
 	BaseURL        string
+	GrpcAddress    string
 	RequestTimeout time.Duration
 }
 
@@ -73,7 +73,7 @@ type ImpactResponse struct {
 }
 
 type Client struct {
-	baseClient *base.Client
+	ipcClient *ipc.Client
 }
 
 func NewClient(cfg Config) *Client {
@@ -87,10 +87,10 @@ func NewClient(cfg Config) *Client {
 	}
 
 	return &Client{
-		baseClient: base.NewClient(base.Config{
-			BaseURL:    baseURL,
-			Timeout:    timeout,
-			RetryCount: 0,
+		ipcClient: ipc.NewClient(ipc.Config{
+			GrpcAddress: strings.TrimSpace(cfg.GrpcAddress),
+			HTTPBaseURL: baseURL,
+			Timeout:     timeout,
 		}),
 	}
 }
@@ -129,28 +129,24 @@ func (c *Client) ScoreImpact(ctx context.Context, input ImpactRequest) (ImpactRe
 		return ImpactResponse{}, fmt.Errorf("encode gametheory payload: %w", err)
 	}
 
-	req, err := c.baseClient.NewRequest(ctx, http.MethodPost, defaultPath, nil, bytes.NewReader(body))
-	if err != nil {
-		return ImpactResponse{}, fmt.Errorf("build gametheory request: %w", err)
+	headers := map[string]string{
+		"Content-Type": "application/json",
+		"Accept":       "application/json",
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
 	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
-		req.Header.Set("X-Request-ID", requestID)
+		headers["X-Request-ID"] = requestID
 	}
 
-	resp, err := c.baseClient.Do(req)
+	status, responseBody, err := c.ipcClient.Do(ctx, http.MethodPost, defaultPath, body, headers)
 	if err != nil {
 		return ImpactResponse{}, fmt.Errorf("gametheory request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode >= http.StatusBadRequest {
-		return ImpactResponse{}, fmt.Errorf("gametheory upstream status %d", resp.StatusCode)
+	if status >= http.StatusBadRequest {
+		return ImpactResponse{}, fmt.Errorf("gametheory upstream status %d", status)
 	}
 
 	var parsed ImpactResponse
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+	if err := json.Unmarshal(responseBody, &parsed); err != nil {
 		return ImpactResponse{}, fmt.Errorf("decode gametheory response: %w", err)
 	}
 	if strings.TrimSpace(parsed.Source) == "" {

@@ -40,7 +40,7 @@ func NewGeoMapSourcePack(cfg PackConfig) *GeoMapSourcePack {
 		dataDir = "data"
 	}
 	sanctionsDir := filepath.Join(dataDir, "sanctions")
-	_ = os.MkdirAll(sanctionsDir, 0755)
+	_ = os.MkdirAll(sanctionsDir, 0o750)
 
 	ofacPath := filepath.Join(sanctionsDir, "ofac_sdn.json")
 	unPath := filepath.Join(sanctionsDir, "un_consolidated.json")
@@ -66,19 +66,18 @@ func (p *GeoMapSourcePack) FetchAndMapToCandidates(ctx context.Context) ([]Candi
 	}
 	results := make([]*base.DiffResult, len(p.watchers))
 	g, gctx := errgroup.WithContext(ctx)
-	for i, w := range p.watchers {
-		i, w := i, w
+	for i, watcher := range p.watchers {
 		g.Go(func() error {
-			result, err := w.CheckForUpdates(gctx)
+			result, err := watcher.CheckForUpdates(gctx)
 			if err != nil {
-				return err
+				return fmt.Errorf("check sanctions watcher %d for updates: %w", i, err)
 			}
 			results[i] = result
 			return nil
 		})
 	}
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetch geomap source pack updates: %w", err)
 	}
 	var all []Candidate
 	for i, result := range results {

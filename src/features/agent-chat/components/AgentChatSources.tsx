@@ -53,7 +53,10 @@ function SourceCard({ source }: { source: SourceItem }) {
 		<div className="flex flex-col gap-0.5">
 			<div className="flex items-center gap-1.5 min-w-0">
 				{source.favicon ? (
-					<img src={source.favicon} alt="" className="h-3 w-3 shrink-0 rounded-sm" />
+					<>
+						{/* biome-ignore lint/performance/noImgElement: external favicon from arbitrary domains cannot be whitelisted in next.config.ts; 12x12px has no optimization benefit */}
+						<img src={source.favicon} alt="" className="h-3 w-3 shrink-0 rounded-sm" />
+					</>
 				) : (
 					<Globe className="h-3 w-3 shrink-0 text-muted-foreground/60" />
 				)}

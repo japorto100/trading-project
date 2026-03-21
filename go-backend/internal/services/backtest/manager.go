@@ -215,7 +215,7 @@ func (m *Manager) StrategyExamples() ([]string, error) {
 	}
 	entries, err := os.ReadDir(m.strategyDir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read strategy directory %s: %w", m.strategyDir, err)
 	}
 	result := make([]string, 0, len(entries))
 	for _, entry := range entries {
@@ -372,6 +372,7 @@ func simulateResult(req RunRequest) RunResult {
 	netReturn := (float64(seed%2800) / 100.0) - 8.0
 	sharpe := float64(seed%220)/100.0 + 0.2
 	maxDrawdown := float64(seed%1800)/100.0 + 3.0
+	//nolint:gosec // bounded to [12,151] by construction from seed%140.
 	trades := int(seed%140) + 12
 	return RunResult{
 		NetReturn:   round2(netReturn),
@@ -388,7 +389,7 @@ func round2(value float64) float64 {
 func newRunID() string {
 	buf := make([]byte, 8)
 	now := time.Now().UnixNano()
-	for i := 0; i < len(buf); i++ {
+	for i := range len(buf) {
 		buf[i] = byte((now >> (i * 8)) & 0xff)
 	}
 	return "bt_" + strings.ToLower(hex.EncodeToString(buf))

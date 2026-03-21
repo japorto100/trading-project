@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -54,7 +55,7 @@ func NewSanctionsWatcher(storePath string, httpClient *http.Client) *base.DiffWa
 func parseSECOSanctionsJSON(r io.Reader) ([]map[string]any, error) {
 	payload, err := io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read seco sanctions payload: %w", err)
 	}
 	trimmed := bytes.TrimSpace(payload)
 	if len(trimmed) > 0 && trimmed[0] == '<' {
@@ -62,7 +63,7 @@ func parseSECOSanctionsJSON(r io.Reader) ([]map[string]any, error) {
 	}
 	var raw any
 	if err := json.NewDecoder(bytes.NewReader(trimmed)).Decode(&raw); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode seco sanctions json: %w", err)
 	}
 	switch v := raw.(type) {
 	case []any:
@@ -117,7 +118,7 @@ type secoXMLObject struct {
 func parseSECOSanctionsXML(r io.Reader) ([]map[string]any, error) {
 	var list secoXMLList
 	if err := xml.NewDecoder(r).Decode(&list); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode seco sanctions xml: %w", err)
 	}
 	result := make([]map[string]any, 0, len(list.Targets))
 	for _, target := range list.Targets {

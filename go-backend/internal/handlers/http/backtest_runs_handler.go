@@ -267,8 +267,11 @@ func serveBacktestRunStream(w http.ResponseWriter, r *http.Request, manager back
 func writeBacktestSSEEvent(w http.ResponseWriter, event string, payload any) error {
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal backtest sse event %s: %w", event, err)
 	}
 	_, err = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
-	return err
+	if err != nil {
+		return fmt.Errorf("write backtest sse event %s: %w", event, err)
+	}
+	return nil
 }

@@ -4,6 +4,7 @@ package cftc
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -50,7 +51,7 @@ func parseCOTCSV(r io.Reader) ([]any, error) {
 	reader := csv.NewReader(r)
 	records, err := reader.ReadAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read cftc cot csv: %w", err)
 	}
 	result := make([]any, 0, len(records))
 	for _, row := range records {

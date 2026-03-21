@@ -109,7 +109,12 @@ export async function enableTOTP(formData: FormData): Promise<ChangePasswordResu
 	const userId = session.user.id;
 
 	try {
-		const codes = Array.from({ length: 8 }, () => crypto.randomUUID().split("-")[0].toUpperCase());
+		const codes = Array.from(
+			{ length: 8 },
+			() =>
+				crypto.randomUUID().split("-")[0]?.toUpperCase() ??
+				crypto.randomUUID().slice(0, 8).toUpperCase(),
+		);
 		await postGoAuthAction<{ success: true }>(
 			"/api/v1/auth/actions/totp-enable",
 			{

@@ -134,6 +134,17 @@ Prinzipien:
 - Fehler mit Kontext wrappen
 - keine stummen Fehlerpfade
 - parallele Fehler aggregieren statt verschlucken
+- Fehlerketten muessen `errors.Is` / `errors.As` faehig bleiben (`%w`)
+
+Boundary-Regel:
+
+- An Gateway-, Connector-, Handler-, Messaging- und Storage-Grenzen werden
+  externe oder Interface-basierte Fehler nicht nackt weitergereicht.
+- Standardform fuer Kontext ist:
+
+```go
+return fmt.Errorf("scope: %w", err)
+```
 
 Optionen / relevante Standards, die ausdrücklich erhalten bleiben:
 

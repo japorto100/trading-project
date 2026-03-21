@@ -71,18 +71,15 @@ try {
     }
     Pop-Location
 
-    if (-not $SkipYfinance) {
-        $yDir = Join-Path $pythonBackendRoot "services/finance-bridge"
-        $services += Start-ServiceProcess -WorkingDir $yDir -Name "finance-bridge" -App "app:app" -Port 8081
-    }
+    # finance-bridge REMOVED (20.03.2026) — Go Gateway handles market data fetch natively
 
     if (-not $SkipSoftSignals) {
-        $gDir = Join-Path $pythonBackendRoot "services/geopolitical-soft-signals"
+        $gDir = Join-Path $pythonBackendRoot "python-compute/geopolitical-soft-signals"
         $services += Start-ServiceProcess -WorkingDir $gDir -Name "geopolitical-soft-signals" -App "app:app" -Port 8091
     }
 
     if (-not $SkipIndicatorService) {
-        $iDir = Join-Path $pythonBackendRoot "services/indicator-service"
+        $iDir = Join-Path $pythonBackendRoot "python-compute/indicator_engine"
         $services += Start-ServiceProcess -WorkingDir $iDir -Name "indicator-service" -App "app:app" -Port 8092
     }
 

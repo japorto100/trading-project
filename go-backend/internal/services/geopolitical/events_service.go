@@ -98,7 +98,7 @@ func (s *EventsService) ListEvents(ctx context.Context, query Query) ([]Event, e
 			Limit:        normalized.Limit,
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("fetch acled events: %w", err)
 		}
 		result := make([]Event, 0, len(items))
 		for _, item := range items {
@@ -135,7 +135,7 @@ func (s *EventsService) ListEvents(ctx context.Context, query Query) ([]Event, e
 			Limit:        normalized.Limit,
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("fetch gdelt events: %w", err)
 		}
 		result := make([]Event, 0, len(items))
 		for _, item := range items {

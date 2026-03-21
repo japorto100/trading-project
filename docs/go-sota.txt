@@ -1,0 +1,234 @@
+ich :
+gebe mir alle sota best practice techniken, methoden, packages für golang usw. vorallem wenn es darum geht über 100 + quellen zu fetchen (cocurrency) , verbindungs backend für rust oder python indikatoren, simulation engine und auch für python agenten und alles drum herum. go 1.26.1 benutze ich
+
+chatgpt:
+Wörtlich **„alle“** gibt es nicht sinnvoll. Was ich dir geben kann, ist die **vollständige praxisrelevante Shortlist**, also das Zeug, das ich für ein modernes Go-Backend 2026 real ernsthaft in Betracht ziehen würde.
+
+## Mein klares Urteil
+
+Für deinen Use Case würde ich **Go als I/O-, Orchestrierungs- und Control-Plane** nehmen und nicht als Ort, an dem du jede numerische Speziallogik erzwingst. Für **100+ Quellen parallel fetchen** ist der Standardweg weiterhin **`net/http` + wiederverwendeter `http.Client`/`Transport` + `errgroup` + `semaphore` + `x/time/rate`**. Für **interne RPCs** würde ich **Connect oder gRPC** nehmen. Für **schnelles Messaging** **NATS**, für **durable/langlaufende Workflows** **Temporal**, für **tabellarische Hochdurchsatzdaten** **Arrow/Parquet/ClickHouse**, und für **transaktionalen App-State** **Postgres mit pgx**. Du bist mit **Go 1.26.1** auf einer aktuellen Basis; Go 1.25/1.26 bringen u. a. container-aware `GOMAXPROCS`, `testing/synctest`, Flight Recorder und in 1.26 ein experimentelles SIMD-Paket. ([go.dev][1])
+
+## 1) Für 100+ Quellen parallel fetchen: was heute wirklich Sinn macht
+
+**Nimm standardmäßig `net/http`, nicht `fasthttp`.** Die Standardbibliothek ist der Default, weil `Transport` und `Client` wiederverwendet und concurrent genutzt werden sollen, HTTP/2 nativ unterstützt wird, und selbst `fasthttp` im eigenen README sagt, dass für die meisten Fälle `net/http` besser ist und die meisten Leute den Performance-Unterschied nicht merken. `fasthttp` ist ein Edge-Case-Tool, kein Default für normale Service-Backends. ([pkg.go.dev][2])
+
+**Das Concurrency-Grundmuster ist:** `errgroup` für Fan-out/Fan-in mit Fehlerweitergabe und Cancel, `semaphore.Weighted` für globale oder gewichtete Limits, `x/time/rate` für Token-Bucket-Rate-Limits. Genau diese drei Bausteine decken 90 % der echten Produktionsprobleme ab: globale Parallelität, per-host Limits und Backpressure. Worker-Pool-Frameworks brauchst du dafür meistens nicht. ([pkg.go.dev][3])
+
+**Best Practice bei 100+ Quellen:** ein geteilter `http.Client`, ein geteilter `Transport`, globale Concurrency plus **per-host** Limits, immer `context`-Timeouts, Retries nur für idempotente Calls und nur bei transienten Fehlern, sowie getrennte Limits für „günstige“ und „teure“ Quellen. Wenn du eine Quelle mit JS-Rendering hast, gehört die **nicht** in denselben schnellen Fetch-Pool wie normale JSON/HTML-Endpunkte. Diese Trennung ist wichtiger als jede einzelne Library. ([pkg.go.dev][2])
+
+## 2) Pakete für HTTP-Fetching und Scraping
+
+**Meine Default-Liste für Fetching/APIs:**
+
+* **stdlib `net/http`** als Basis. ([pkg.go.dev][2])
+* **`golang.org/x/sync/errgroup`** für parallele Subtasks mit sauberem Fehler-/Cancel-Verhalten. ([pkg.go.dev][3])
+* **`golang.org/x/sync/semaphore`** für gewichtete Parallelitätslimits. ([pkg.go.dev][4])
+* **`golang.org/x/time/rate`** für globales oder per-host Throttling. ([pkg.go.dev][5])
+* **`github.com/hashicorp/go-retryablehttp`** wenn du auf `net/http` bleiben, aber saubere Retries/Backoff willst. ([pkg.go.dev][6])
+* **`github.com/go-resty/resty/v2`** oder **`resty.dev/v3`** wenn du eine bequemere API, Middleware und höheren Komfort willst. ([pkg.go.dev][7])
+* **`github.com/sony/gobreaker/v2`** für Circuit Breaker vor wackligen Quellen. ([pkg.go.dev][8])
+* **`github.com/redis/go-redis/v9`** für dedupe/cache/rate state. ([pkg.go.dev][9])
+
+**Für HTML/Scraping statt APIs:**
+
+* **Colly** für klassische Crawler/Scraper mit hoher Parallelität. ([go-colly.org][10])
+* **goquery** für HTML-Auswahl und Parsing. ([pkg.go.dev][11])
+* **chromedp** für JS-renderte Seiten, wenn du echtes Browser-Verhalten brauchst. ([pkg.go.dev][12])
+* **rod** als Alternative für Browser-Automation/Scraping auf CDP-Basis. ([pkg.go.dev][13])
+
+**Mein Rat:** 80–90 % der Quellen zuerst mit **plain HTTP + JSON/HTML parsing** abdecken. **chromedp/rod** nur für die Minderheit nehmen, die ohne echten Browser nicht geht. Sonst machst du dein System unnötig langsam, teuer und fragil. ([pkg.go.dev][12])
+
+## 3) HTTP-Server, interne APIs und Service-Grenzen
+
+**Für HTTP-APIs in Go** würde ich heute meist **stdlib + chi** oder direkt **Connect** nehmen. **chi** ist klein, idiomatisch und composable; **Gin** funktioniert auch, ist aber für viele Architekturen unnötig schwerer. ([pkg.go.dev][14])
+
+**Für interne RPCs:**
+
+* **`google.golang.org/grpc`** wenn du klassisches gRPC willst. ([pkg.go.dev][15])
+* **`connectrpc.com/connect` / connect-go** wenn du **gRPC + gRPC-Web + Connect-Protokoll** mit HTTP-freundlicherer Oberfläche willst; Connect unterstützt zudem idempotente GET-Requests/Caching für passende Calls. Das ist für Browsernähe und API-Gateways oft sauberer als pures gRPC. ([Protobuf RPC that works][16])
+
+**Meine Default-Entscheidung:** intern meist **Connect** statt reinem gRPC, außer du bist in einer Umgebung, die bereits hart auf klassisches gRPC standardisiert ist. Connect ist für gemischte Clients oft angenehmer, ohne dir das Protobuf/RPC-Modell wegzunehmen. ([Protobuf RPC that works][16])
+
+## 4) Go ↔ Python ↔ Rust: so würde ich es aufbauen
+
+**Zwischen Go und Python/Rust standardmäßig keine wilde FFI-Suppe bauen.** Der saubere Produktions-Default ist eine **Service-Grenze über gRPC/Connect**. Das gibt dir Versionierung, Timeouts, Retries, Telemetrie und saubere Failure-Isolation. Für Python ist gRPC offiziell dokumentiert; für Go sowieso. ([pkg.go.dev][15])
+
+**Wenn du große tabellarische Datenblöcke zwischen Komponenten schiebst**, ist **Arrow Flight** hochinteressant. Flight ist ein RPC-Framework für hochperformante Datendienste auf Basis von Arrow-Daten, gebaut auf gRPC und IPC; das ist deutlich passender als JSON, wenn du Spalten-/Batchdaten zwischen Go, Python und Rust bewegst. ([Apache Arrow][17])
+
+**Rust würde ich an zwei Stellen einsetzen:**
+
+1. als **separaten Compute-Service** hinter gRPC/Connect für harte numerische Hotspots, oder
+2. als **Python-Erweiterung über PyO3 + maturin**, wenn dein Python-Ökosystem bleiben soll, aber die Rechenkernsachen in Rust laufen sollen. PyO3 ist genau dafür da, Rust-Code für Python zu wrappen; maturin ist der saubere Build-/Packaging-Weg dafür. ([pyo3.rs][18])
+
+**Kurzform:**
+
+* **Go ↔ Python**: gRPC/Connect.
+* **Go ↔ Rust**: meistens auch gRPC/Connect.
+* **Python ↔ Rust innerhalb eines Python-Indicators**: PyO3 + maturin.
+  Das ist deutlich wartbarer als Go direkt mit CPython oder ad-hoc cgo-Magie zu verkleben. ([pkg.go.dev][15])
+
+## 5) Für Python-Agenten und Tooling: was ich 2026 nehmen würde
+
+**Für externe Tool-/Context-Integration ist MCP inzwischen relevant**, und es gibt offizielle Python- und Go-SDKs. Die Docs führen offizielle SDKs, die Python-Server-Doku verlangt Python 3.10+ und Python MCP SDK 1.2.0+, und es gibt auch ein offizielles Go-SDK. ([modelcontextprotocol.io][19])
+
+**Aber:** ich würde **MCP nicht als deinen internen Hochleistungs-Datenpfad** missbrauchen. MCPs Streamable-HTTP-Transport hat laut offizieller Roadmap bei Skalierung reale Spannungen mit stateful Sessions, Load Balancern und horizontaler Skalierung. Für Plugin-/Tool-Grenzen ist MCP stark; für dein internes Low-Latency-Service-Mesh würde ich weiter **gRPC/Connect/NATS** nehmen. ([modelcontextprotocol.io][20])
+
+## 6) Messaging, Queueing, Eventing, Orchestrierung
+
+**Wenn du schnelle Service-zu-Service-Kommunikation brauchst, ist NATS sehr stark.** Die NATS-Doku positioniert NATS als simples, sicheres, performantes Data Layer für Cloud-native Apps. **Core NATS** ist ideal für schnelle Request/Reply-Pfade, bei denen deine Anwendung selbst mit Timeouts/Resends umgeht; **JetStream** ist die eingebaute Persistenzschicht für Speichern und Replay. ([NATS Docs][21])
+
+**Für durable/langlaufende Agent- oder Workflow-Prozesse** ist **Temporal** eine andere Liga als „nur Queue + Worker“. Temporal hat offizielle Go- und Python-SDKs; im Go-SDK gibt es deterministische Workflow-Concurrency, Test-Suite und Worker-Mechaniken, und im Python-SDK gibt es explizit Sandbox-/Determinism-Hinweise. Das ist für mehrstufige Agenten, Retries, Timers, Human-in-the-loop und Recoverability sehr stark. ([Temporal Dokumentation][22])
+
+**Meine Faustregel:**
+
+* **Core NATS** für schnellen transienten Traffic. ([NATS Docs][23])
+* **JetStream** wenn du Persistenz und Replay brauchst. ([NATS Docs][24])
+* **Temporal** wenn du echte langlebige Orchestrierung, Retries, Timeouts, Resumption und Auditierbarkeit willst. ([Temporal Dokumentation][22])
+
+## 7) Kafka/Redpanda: falls du Stream-Ökosystem brauchst
+
+Wenn du **Kafka/Redpanda** brauchst, würde ich 2026 eher **franz-go** als First Choice ansehen. `franz-go` beschreibt sich als umfassenden, effizienten Kafka-Client mit Support für Transaktionen, moderne Partitionierungsstrategien und breite KIP-Abdeckung; Redpanda zeigt in aktuellen Go-Beispielen explizit **franz-go**. **kafka-go** ist weiter brauchbar, besonders wenn du die stdlib-nahe API magst, aber wenn du Feature-Tiefe willst, ist `franz-go` meist die stärkere Wette. ([pkg.go.dev][25])
+
+**Watermill** ist gut, wenn du in Go event-driven/CQRS sauber modellieren willst und unterschiedliche Pub/Sub-Backends abstrahieren möchtest. Für nackte Maximalleistung ersetzt es keinen guten Broker, aber als Application-Layer ist es sehr ordentlich. ([Watermill][26])
+
+## 8) Datenhaltung für deine Art von System
+
+**Postgres/pgx** für transaktionalen Zustand, Jobs, Konfiguration, Nutzer, Rechte, Laufstatus. `pgx` ist ein performanter PostgreSQL-Treiber/Toolkit, und `pgxpool` ist concurrency-safe. Für echte App-Backends ist das oft der richtige Default. ([pkg.go.dev][27])
+
+**ClickHouse** würde ich für analytische, große, append-lastige Daten ernsthaft anschauen. Die offiziellen Docs sagen, dass es für Go zwei offizielle Clients gibt; `clickhouse-go` bedient `database/sql` oder die native Schnittstelle, `ch-go` ist die low-level native Variante. Wenn du viele historische Markt-/Event-/Result-Daten abfragst, ist das sehr attraktiv. ([ClickHouse][28])
+
+**Parquet/Arrow** sind für Files, Batches, Backtests und Offline-Pipelines oft besser als „alles in JSON irgendwo reinschieben“. Arrow definiert ein sprachunabhängiges spaltenorientiertes In-Memory-Format mit Zero-Copy/IPC, und Parquet ist der passende spaltenorientierte Speicherlayer. ([pkg.go.dev][29])
+
+## 9) Numerik, Indikatoren, Simulation
+
+Wenn du in Go selbst numerische Sachen machen willst, ist **Gonum** der offensichtliche Startpunkt. Gonum deckt Matrizen, lineare Algebra, Statistik, Optimierung, Sampling und mehr ab. Für eine reine Go-Simulation ist das die erste Library, bevor du nach exotischen Dingen greifst. ([pkg.go.dev][30])
+
+**Meine Empfehlung für eine Simulation Engine:**
+
+* **Event-driven Core** separat vom API-Layer.
+* **Deterministische Inputs** und klare Clock/Replay-Modelle.
+* Große Resultsets als **Arrow/Parquet** oder in **ClickHouse**.
+* Rechen-Hotspots nach Profiling entweder in **Rust-Service** oder als **Rust-Python-Extension**, nicht blind in Go „optimieren“.
+* Das neue experimentelle **SIMD** in Go 1.26 ist interessant, aber ich würde es 2026 nur für isolierte, klar gemessene Hotspots einsetzen, nicht als Architekturgrundlage. ([pkg.go.dev][30])
+
+## 10) Logging, Metrics, Tracing, Profiling
+
+**Pflichtpakete für Produktionsbetrieb:**
+
+* **OpenTelemetry Go** für Traces/Metrics APIs. ([pkg.go.dev][31])
+* **Prometheus `client_golang`** für Metriken/Exposition. ([pkg.go.dev][32])
+* **`zap`** oder **`zerolog`** für strukturiertes Logging; `zap` ist klassisch stark für Hot-Path-Logging, `zerolog` ist sehr leichtgewichtig und JSON-zentriert. ([pkg.go.dev][33])
+
+**Für Performance/Diagnostik in Go 1.25+/1.26:**
+
+* **`net/http/pprof`** / `runtime/pprof` für Live-Profile. ([pkg.go.dev][34])
+* **Flight Recorder** für ring-buffer-basierte Trace-Snapshots der letzten Sekunden vor einem Vorfall. Das ist für intermittierende Produktionsprobleme sehr wertvoll. ([go.dev][35])
+
+## 11) Tests und Perf-Checks, die du wirklich einbauen solltest
+
+**Pflicht für concurrent Go-Code:**
+
+* **`testing/synctest`** für concurrent Tests in isolierten „bubbles“. ([pkg.go.dev][36])
+* **`go.uber.org/goleak`** gegen Goroutine-Leaks. ([pkg.go.dev][37])
+* **`testcontainers-go`** für echte Integrations-/Smoke-Tests mit Redis, Postgres, Kafka, NATS usw. ([pkg.go.dev][38])
+* **`golang.org/x/perf/cmd/benchstat`** für seriöse Benchmark-Vergleiche statt Bauchgefühl. ([pkg.go.dev][39])
+
+## 12) WebSockets und Live-Feeds
+
+Wenn du Marktfeeds oder andere Live-Streams ziehst, nimm für neue Projekte eher **`github.com/coder/websocket`** oder **`github.com/gorilla/websocket`**. `nhooyr.io/websocket` ist inzwischen als deprecated markiert und verweist auf `coder/websocket`. Gorilla ist stabil und weit verbreitet; Coder ist die natürliche Weiterführung der nhooyr-Linie. ([pkg.go.dev][40])
+
+## 13) JSON: kein Perf-Theater ohne Messung
+
+Mit Go 1.25 gibt es experimentelles **`encoding/json/v2`**, aber offiziell weiter unter `GOEXPERIMENT`; es ist **nicht** Teil der normalen Stabilitätsgarantie. Für Hotspots kannst du **`goccy/go-json`** oder **`bytedance/sonic`** anschauen, aber nur **nach Profiling**. Für den Großteil des Systems reicht Standard-JSON oder Protobuf vollkommen. Viele Systeme verschwenden Zeit mit JSON-Mikrooptimierung, obwohl das eigentliche Problem Connection-Management, Retry-Verhalten oder schlechte Batch-Grenzen sind. ([go.dev][41])
+
+## 14) Was ich an deiner Stelle konkret bauen würde
+
+**Meine Default-Architektur wäre:**
+
+1. **Go Gateway / Control Backend** mit `chi` oder Connect-HTTP-Server. ([pkg.go.dev][14])
+2. **Shared Fetch Layer** auf `net/http` mit `errgroup` + `semaphore` + `rate` + Retry/Circuit Breaker. ([pkg.go.dev][2])
+3. **NATS Core** für schnellen internen Request/Reply-Verkehr, **JetStream** wo Persistenz/Replay gebraucht wird. ([NATS Docs][23])
+4. **Temporal** für Agent-Orchestrierung, lange Jobs, Retries, Schedules, Human-in-the-loop. ([Temporal Dokumentation][22])
+5. **Python-Agenten** als getrennte Worker hinter gRPC/Connect; **MCP** nur an Plugin-/Tool-Grenzen. ([gRPC][42])
+6. **Rust** für harte Compute-Kerne entweder als Service oder via PyO3/maturin in Python-Indikatoren. ([pyo3.rs][18])
+7. **Postgres/pgx** für operativen State, **ClickHouse + Parquet/Arrow** für große Analytics-/Backtest-Daten. ([pkg.go.dev][27])
+8. **OTel + Prometheus + zap/zerolog + pprof + Flight Recorder** von Anfang an, nicht erst „später“. ([pkg.go.dev][31])
+
+## 15) Meine harte Priorisierung: nehmen / eher nicht / nur bei Sonderfall
+
+**Sehr wahrscheinlich nehmen:**
+
+* `net/http`
+* `errgroup`, `semaphore`, `x/time/rate`
+* Connect oder gRPC
+* NATS + JetStream
+* Temporal
+* pgx
+* OTel + Prometheus
+* zap oder zerolog
+* testcontainers-go, goleak, synctest, pprof/Flight Recorder ([pkg.go.dev][2])
+
+**Situativ sehr gut:**
+
+* Colly, goquery, chromedp
+* ClickHouse
+* Arrow Flight
+* franz-go
+* Watermill
+* coder/websocket / gorilla/websocket
+* Resty / retryablehttp / gobreaker / go-redis ([go-colly.org][10])
+
+**Nur wenn du einen klaren Grund hast:**
+
+* `fasthttp`
+* experimentelles `encoding/json/v2`
+* experimentelles Go-SIMD
+* tiefe FFI-Verschraubung zwischen Go und Python statt sauberer Service-Grenzen ([GitHub][43])
+
+Unterm Strich: **Go soll bei dir die Maschine für Netzwerk, Scheduling, Control, Queues, RPC und Observability sein.** **Python** bleibt da, wo das Agent-/ML-Ökosystem stark ist. **Rust** kommt dahin, wo Profiling zeigt, dass du echte Compute-Hotspots hast. Genau diese Arbeitsteilung ist heute meistens die technisch sauberste und langfristig billigste.
+
+Ich kann dir daraus als Nächstes eine **konkrete Referenz-Architektur für dein Setup** schreiben: Go-Gateway, Fetcher-Pool, Python-Agenten, Rust-Indikator-Service, NATS/Temporal, Datenbanken und API-Grenzen.
+
+[1]: https://go.dev/blog/go1.26?utm_source=chatgpt.com "Go 1.26 is released"
+[2]: https://pkg.go.dev/net/http?utm_source=chatgpt.com "net/http"
+[3]: https://pkg.go.dev/golang.org/x/sync/errgroup?utm_source=chatgpt.com "errgroup package - golang.org/x/sync ..."
+[4]: https://pkg.go.dev/golang.org/x/sync/semaphore?utm_source=chatgpt.com "semaphore package - golang.org/x/sync ..."
+[5]: https://pkg.go.dev/golang.org/x/time/rate?utm_source=chatgpt.com "rate package - golang.org/x/time/rate"
+[6]: https://pkg.go.dev/github.com/hashicorp/go-retryablehttp?utm_source=chatgpt.com "retryablehttp package - github.com/hashicorp ..."
+[7]: https://pkg.go.dev/github.com/go-resty/resty/v2?utm_source=chatgpt.com "resty"
+[8]: https://pkg.go.dev/github.com/sony/gobreaker/v2?utm_source=chatgpt.com "gobreaker package - github.com/sony/gobreaker/v2"
+[9]: https://pkg.go.dev/github.com/redis/go-redis/v9?utm_source=chatgpt.com "redis package - github.com/redis/go-redis/v9 - Go Packages"
+[10]: https://go-colly.org/docs/?utm_source=chatgpt.com "Documentation"
+[11]: https://pkg.go.dev/github.com/PuerkitoBio/goquery?utm_source=chatgpt.com "goquery package - github.com/PuerkitoBio ..."
+[12]: https://pkg.go.dev/github.com/chromedp/chromedp?utm_source=chatgpt.com "chromedp package - github.com/chromedp/chromedp"
+[13]: https://pkg.go.dev/github.com/go-rod/rod?utm_source=chatgpt.com "rod"
+[14]: https://pkg.go.dev/github.com/go-chi/chi/v5?utm_source=chatgpt.com "chi package - github.com/go-chi/chi/v5"
+[15]: https://pkg.go.dev/google.golang.org/grpc?utm_source=chatgpt.com "grpc package - google.golang.org/grpc"
+[16]: https://connectrpc.com/docs/go/getting-started/?utm_source=chatgpt.com "Getting started - Connect RPC"
+[17]: https://arrow.apache.org/docs/format/Flight.html?utm_source=chatgpt.com "Arrow Flight RPC — Apache Arrow v23.0.1"
+[18]: https://pyo3.rs/?utm_source=chatgpt.com "Introduction - PyO3 user guide"
+[19]: https://modelcontextprotocol.io/docs/sdk?utm_source=chatgpt.com "SDKs - Model Context Protocol"
+[20]: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports?utm_source=chatgpt.com "Transports"
+[21]: https://docs.nats.io/?utm_source=chatgpt.com "NATS Docs: Welcome"
+[22]: https://docs.temporal.io/develop/go?utm_source=chatgpt.com "Go SDK developer guide | Temporal Platform Documentation"
+[23]: https://docs.nats.io/using-nats/developer/develop_jetstream?utm_source=chatgpt.com "JetStream - NATS Docs"
+[24]: https://docs.nats.io/nats-concepts/jetstream?utm_source=chatgpt.com "JetStream - NATS Docs"
+[25]: https://pkg.go.dev/github.com/twmb/franz-go/pkg/kgo?utm_source=chatgpt.com "kgo package - github.com/twmb/franz- ..."
+[26]: https://watermill.io/docs/?utm_source=chatgpt.com "Docs | Watermill | Event-Driven in Go"
+[27]: https://pkg.go.dev/github.com/jackc/pgx/v5?utm_source=chatgpt.com "pgx package - github.com/jackc/pgx/v5"
+[28]: https://clickhouse.com/docs/integrations/go?utm_source=chatgpt.com "ClickHouse Go"
+[29]: https://pkg.go.dev/github.com/apache/arrow-go/v18?utm_source=chatgpt.com "arrow-go module - github.com/apache/arrow-go/v18"
+[30]: https://pkg.go.dev/gonum.org/v1/gonum?utm_source=chatgpt.com "gonum package - gonum.org/v1/gonum"
+[31]: https://pkg.go.dev/go.opentelemetry.io/otel?utm_source=chatgpt.com "otel package - go.opentelemetry.io/otel"
+[32]: https://pkg.go.dev/github.com/prometheus/client_golang/prometheus?utm_source=chatgpt.com "prometheus package - github.com ..."
+[33]: https://pkg.go.dev/go.uber.org/zap?utm_source=chatgpt.com "zap package - go.uber.org/zap - Go ..."
+[34]: https://pkg.go.dev/net/http/pprof?utm_source=chatgpt.com "net/http/pprof"
+[35]: https://go.dev/blog/flight-recorder?utm_source=chatgpt.com "Flight Recorder in Go 1.25"
+[36]: https://pkg.go.dev/testing/synctest?utm_source=chatgpt.com "testing/synctest"
+[37]: https://pkg.go.dev/go.uber.org/goleak?utm_source=chatgpt.com "goleak package - go.uber.org/goleak"
+[38]: https://pkg.go.dev/github.com/testcontainers/testcontainers-go?utm_source=chatgpt.com "testcontainers - Go Packages"
+[39]: https://pkg.go.dev/golang.org/x/perf/cmd/benchstat?utm_source=chatgpt.com "benchstat command - golang.org/x/perf/cmd ..."
+[40]: https://pkg.go.dev/nhooyr.io/websocket?utm_source=chatgpt.com "websocket package - nhooyr.io/websocket"
+[41]: https://go.dev/blog/jsonv2-exp?utm_source=chatgpt.com "A new experimental Go API for JSON"
+[42]: https://grpc.io/docs/languages/python/basics/?utm_source=chatgpt.com "Basics tutorial | Python"
+[43]: https://github.com/valyala/fasthttp?utm_source=chatgpt.com "valyala/fasthttp"

@@ -6,27 +6,28 @@ import { geoPath } from "d3-geo";
 import { select } from "d3-selection";
 import { timer } from "d3-timer";
 import { zoom, zoomIdentity } from "d3-zoom";
-import { Minus, Plus, RotateCcw } from "lucide-react";
-import { type MouseEvent, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getGeoMapBodyVisualConfig } from "@/features/geopolitical/bodies";
-import {
-	type GeoViewportSelectionBox,
-	getGeoBoxSelectedMarkerIds,
-	normalizeGeoViewportSelectionBox,
-} from "@/features/geopolitical/box-selection";
 import { buildGeoMapStatsSummary } from "@/features/geopolitical/d3/geoMapStats";
 import {
 	createCountryStyleResolver,
-	getMarkerSeverityColor,
 	getSoftSignalVisualStyle,
 } from "@/features/geopolitical/d3/scales";
-import type { GeoFlatViewBounds } from "@/features/geopolitical/flat-view-handoff";
+import type { GeoFlatViewBounds } from "@/features/geopolitical/flat-view/flat-view-handoff";
 import { useMacroOverlayData } from "@/features/geopolitical/hooks/useMacroOverlayData";
-import { getMarkerSymbolPath, MARKER_SYMBOL_LEGEND } from "@/features/geopolitical/markerSymbols";
+import { buildGeoMarkerPopupModel } from "@/features/geopolitical/markers/marker-view-model";
+import { MapCanvasDrawingOverlays } from "@/features/geopolitical/rendering/MapCanvasDrawingOverlays";
+import { MapCanvasMarkerLayer } from "@/features/geopolitical/rendering/MapCanvasMarkerLayer";
+import {
+	MapCanvasControlsOverlay,
+	MapCanvasEventPopupOverlay,
+	MapCanvasMarkerLegendOverlay,
+	MapCanvasStatsOverlay,
+} from "@/features/geopolitical/rendering/MapCanvasOverlays";
 import { useGeoMapCanvasBasemapStage } from "@/features/geopolitical/rendering/useGeoMapCanvasBasemapStage";
 import { useGeoMapCanvasBodyPointLayersStage } from "@/features/geopolitical/rendering/useGeoMapCanvasBodyPointLayersStage";
 import { useGeoMapCanvasCountryStage } from "@/features/geopolitical/rendering/useGeoMapCanvasCountryStage";
+import { useGeoMapCanvasInteractions } from "@/features/geopolitical/rendering/useGeoMapCanvasInteractions";
 import { useGeoMapMarkerClusters } from "@/features/geopolitical/rendering/useGeoMapMarkerClusters";
 import { useGeoMapMarkerVoronoi } from "@/features/geopolitical/rendering/useGeoMapMarkerVoronoi";
 import {
@@ -107,8 +108,6 @@ export const MapCanvas = memo(function MapCanvas({
 	const [popupEventId, setPopupEventId] = useState<string | null>(null);
 	const [hoverEventId, setHoverEventId] = useState<string | null>(null);
 	const [isAutoRotating, setIsAutoRotating] = useState(true);
-	const [previewPoint, setPreviewPoint] = useState<{ lat: number; lng: number } | null>(null);
-	const [selectionBox, setSelectionBox] = useState<GeoViewportSelectionBox | null>(null);
 	const bodyVisualConfig = useMemo(() => getGeoMapBodyVisualConfig(mapBody), [mapBody]);
 	const maxCountryIntensity = useMemo(() => {
 		const intensityMap = new Map<string, number>();
@@ -240,69 +239,6 @@ export const MapCanvas = memo(function MapCanvas({
 		};
 	}, [drawingMode]);
 
-	const selectedEventIdSet = useMemo(() => new Set(selectedEventIds), [selectedEventIds]);
-
-	const resolvePointerCoordinates = useCallback((event: MouseEvent<SVGSVGElement>) => {
-		const svg = svgRef.current;
-		if (!svg) return null;
-		const rect = svg.getBoundingClientRect();
-		return {
-			x: (event.clientX - rect.left) * (MAP_WIDTH / rect.width),
-			y: (event.clientY - rect.top) * (MAP_HEIGHT / rect.height),
-		};
-	}, []);
-
-	const handleSelectionBoxStart = useCallback(
-		(event: MouseEvent<SVGSVGElement>) => {
-			if (!event.shiftKey || isDrawingInteractionActive) return;
-			const point = resolvePointerCoordinates(event);
-			if (!point) return;
-			event.preventDefault();
-			event.stopPropagation();
-			setIsAutoRotating(false);
-			setSelectionBox({
-				startX: point.x,
-				startY: point.y,
-				endX: point.x,
-				endY: point.y,
-			});
-		},
-		[isDrawingInteractionActive, resolvePointerCoordinates],
-	);
-
-	const handleSelectionBoxMove = useCallback(
-		(event: MouseEvent<SVGSVGElement>) => {
-			if (!selectionBox) return;
-			const point = resolvePointerCoordinates(event);
-			if (!point) return;
-			event.preventDefault();
-			setSelectionBox((current) =>
-				current
-					? {
-							...current,
-							endX: point.x,
-							endY: point.y,
-						}
-					: current,
-			);
-		},
-		[resolvePointerCoordinates, selectionBox],
-	);
-
-	const handleSelectionBoxEnd = useCallback(
-		(event: MouseEvent<SVGSVGElement>) => {
-			if (!selectionBox) return;
-			const markerIds = getGeoBoxSelectedMarkerIds({
-				box: selectionBox,
-				markers: mapModel.markers,
-			});
-			setSelectionBox(null);
-			if (markerIds.length === 0) return;
-			onSelectEvents?.(markerIds, event.metaKey || event.ctrlKey ? "append" : "replace");
-		},
-		[mapModel.markers, onSelectEvents, selectionBox],
-	);
-
 	const handleZoomIn = () => {
 		setIsAutoRotating(false);
 		setScale((prev) => Math.min(prev * 1.5, INITIAL_SCALE * 10));
@@ -409,110 +345,39 @@ export const MapCanvas = memo(function MapCanvas({
 		animateViewportTo(focusTarget.rotation, focusTarget.scale, 320);
 	}, [animateViewportTo, mapBody, mapModel.markers, scale, selectedEventId]);
 
-	const handleBackgroundClick = useCallback(
-		(event: MouseEvent<SVGSVGElement>) => {
-			if (!svgRef.current) return;
-			if (event.shiftKey || selectionBox) return;
-			setIsAutoRotating(false);
-
-			const rect = event.currentTarget.getBoundingClientRect();
-			const mouseX = event.clientX - rect.left;
-			const mouseY = event.clientY - rect.top;
-
-			const x = mouseX * (MAP_WIDTH / rect.width);
-			const y = mouseY * (MAP_HEIGHT / rect.height);
-
-			const invert = mapModel.projection.invert;
-			if (!invert) return;
-
-			const inverted = invert([x, y]);
-			if (!inverted) return;
-
-			const [lng, lat] = inverted;
-			if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-			if (isDrawingInteractionActive) {
-				setPopupEventId(null);
-				onMapClick({
-					lat: Number(lat.toFixed(6)),
-					lng: Number(lng.toFixed(6)),
-				});
-				return;
-			}
-
-			const nearestMarkerId = markerVoronoi.findNearestMarkerIdAtScreenPoint(x, y, 14);
-			if (nearestMarkerId) {
-				setPopupEventId(nearestMarkerId);
-				onSelectEvent(nearestMarkerId);
-				return;
-			}
-
-			setPopupEventId(null);
-
-			onMapClick({
-				lat: Number(lat.toFixed(6)),
-				lng: Number(lng.toFixed(6)),
-			});
-		},
-		[
-			isDrawingInteractionActive,
-			mapModel.projection,
-			markerVoronoi,
-			onMapClick,
-			onSelectEvent,
-			selectionBox,
-		],
-	);
-
-	const handleSvgMouseMove = (event: MouseEvent<SVGSVGElement>) => {
-		const rect = event.currentTarget.getBoundingClientRect();
-		const mouseX = event.clientX - rect.left;
-		const mouseY = event.clientY - rect.top;
-		const x = mouseX * (MAP_WIDTH / rect.width);
-		const y = mouseY * (MAP_HEIGHT / rect.height);
-		if (isDrawingInteractionActive) {
-			setHoverEventId((previous) => (previous === null ? previous : null));
-		} else {
-			const nearestMarkerId = markerVoronoi.findNearestMarkerIdAtScreenPoint(x, y, 10);
-			setHoverEventId((previous) => (previous === nearestMarkerId ? previous : nearestMarkerId));
-		}
-
-		// Track mouse position as geo coords for drawing preview.
-		if (
-			(drawingMode === "line" || drawingMode === "polygon") &&
-			(drawingMode !== "line" || pendingLineStart) &&
-			mapModel.projection.invert
-		) {
-			const inverted = mapModel.projection.invert([x, y]);
-			if (inverted) {
-				const [lng, lat] = inverted;
-				if (Number.isFinite(lat) && Number.isFinite(lng)) {
-					setPreviewPoint({ lat, lng });
-				}
-			}
-		} else if (previewPoint !== null) {
-			setPreviewPoint(null);
-		}
-	};
-
-	const handleSvgMouseLeave = () => {
-		setHoverEventId(null);
-		setPreviewPoint(null);
-		setSelectionBox(null);
-	};
+	const {
+		previewPoint,
+		selectionBox,
+		handleBackgroundClick,
+		handleSelectionBoxEnd,
+		handleSelectionBoxMove,
+		handleSelectionBoxStart,
+		handleSvgMouseLeave,
+		handleSvgMouseMove,
+	} = useGeoMapCanvasInteractions({
+		svgRef,
+		mapWidth: MAP_WIDTH,
+		mapHeight: MAP_HEIGHT,
+		projection: mapModel.projection,
+		markers: mapModel.markers,
+		drawingMode,
+		pendingLineStart,
+		isDrawingInteractionActive,
+		findNearestMarkerIdAtScreenPoint: markerVoronoi.findNearestMarkerIdAtScreenPoint,
+		onMapClick,
+		onSelectEvent,
+		onSelectEvents,
+		setIsAutoRotating,
+		setPopupEventId,
+		setHoverEventId,
+	});
 
 	const activePopupMarker = useMemo(() => {
 		if (!popupEventId) return null;
-		return mapModel.markers.find((m) => m.id === popupEventId && m.visible);
+		const marker = mapModel.markers.find((entry) => entry.id === popupEventId && entry.visible);
+		return marker ? buildGeoMarkerPopupModel(marker) : null;
 	}, [popupEventId, mapModel.markers]);
 	const severityLevels = [1, 2, 3, 4, 5] as const;
-	const markerSymbolPathByEventId = useMemo(() => {
-		const pathById = new Map<string, string>();
-		for (const marker of mapModel.markers) {
-			pathById.set(marker.id, getMarkerSymbolPath(marker.symbol, 95));
-		}
-		return pathById;
-	}, [mapModel.markers]);
 	const showCountryPolygons = showRegionLayer && bodyVisualConfig.countryLayerEnabled;
 	const enableCanvasBasemapStage = true;
 	const enableCanvasCountryStage = true;
@@ -545,236 +410,31 @@ export const MapCanvas = memo(function MapCanvas({
 			className="relative h-full w-full overflow-hidden bg-background text-foreground group"
 			data-testid="geopolitical-map-container"
 		>
-			<div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[21rem] rounded-lg border border-border/50 bg-card/80 p-2 text-[10px] text-foreground shadow-lg backdrop-blur">
-				<div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
-					Marker Legend
-				</div>
-				<div className="mb-2 flex flex-wrap gap-1">
-					{severityLevels.map((severity) => (
-						<span
-							key={`map-severity-${severity}`}
-							className="inline-flex items-center gap-1 rounded border border-border/80 px-1.5 py-0.5"
-						>
-							<span
-								className="h-2 w-2 rounded-full"
-								style={{ backgroundColor: getMarkerSeverityColor(severity) }}
-							/>
-							S{severity}
-						</span>
-					))}
-				</div>
-				<div className="grid grid-cols-2 gap-1.5">
-					{MARKER_SYMBOL_LEGEND.slice(0, 8).map((entry) => (
-						<div
-							key={`map-legend-${entry.symbol}`}
-							className="inline-flex items-center gap-1 rounded border border-border/60 bg-background/60 px-1 py-0.5"
-							title={entry.label}
-						>
-							<svg viewBox="0 0 24 24" className="h-3.5 w-3.5" aria-hidden="true">
-								<path
-									d={getMarkerSymbolPath(entry.symbol, 80)}
-									transform="translate(12, 12)"
-									fill="#e2e8f0"
-									stroke="#0f172a"
-									strokeWidth={0.8}
-								/>
-							</svg>
-							<span className="truncate text-[9px] text-muted-foreground">{entry.label}</span>
-						</div>
-					))}
-				</div>
-			</div>
-
-			{/* Globe Controls Overlay */}
-			<div className="absolute right-4 top-4 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-				<Button
-					size="icon"
-					variant="secondary"
-					className="h-8 w-8 rounded-full shadow-lg bg-card/80 backdrop-blur border border-border/50"
-					onClick={handleZoomIn}
-					title="Zoom In"
-				>
-					<Plus className="h-4 w-4" />
-				</Button>
-				<Button
-					size="icon"
-					variant="secondary"
-					className="h-8 w-8 rounded-full shadow-lg bg-card/80 backdrop-blur border border-border/50"
-					onClick={handleZoomOut}
-					title="Zoom Out"
-				>
-					<Minus className="h-4 w-4" />
-				</Button>
-				<Button
-					size="icon"
-					variant="secondary"
-					className="h-8 w-8 rounded-full shadow-lg bg-card/80 backdrop-blur border border-border/50"
-					onClick={handleReset}
-					title="Reset View"
-				>
-					<RotateCcw className="h-4 w-4" />
-				</Button>
-				{mapBody === "earth" ? (
-					<div className="mt-1 rounded-lg border border-border/50 bg-card/80 p-1 shadow-lg backdrop-blur">
-						<div className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-							Layer
-						</div>
-						<div className="flex flex-col gap-1">
-							<button
-								type="button"
-								onClick={() => onChangeEarthChoroplethMode?.("severity")}
-								className={
-									earthChoroplethMode === "severity"
-										? "rounded bg-success/20 px-2 py-1 text-left text-[10px] font-medium text-success"
-										: "rounded bg-foreground/5 px-2 py-1 text-left text-[10px] font-medium text-muted-foreground hover:bg-foreground/10"
-								}
-								aria-pressed={earthChoroplethMode === "severity"}
-								title="Country choropleth by event severity intensity"
-							>
-								Severity
-							</button>
-							<button
-								type="button"
-								onClick={() => onChangeEarthChoroplethMode?.("regime")}
-								className={
-									earthChoroplethMode === "regime"
-										? "rounded bg-success/20 px-2 py-1 text-left text-[10px] font-medium text-success"
-										: "rounded bg-foreground/5 px-2 py-1 text-left text-[10px] font-medium text-muted-foreground hover:bg-foreground/10"
-								}
-								aria-pressed={earthChoroplethMode === "regime"}
-								title="Country choropleth by derived regime-state classification"
-							>
-								Regime
-							</button>
-							<button
-								type="button"
-								onClick={() => onChangeEarthChoroplethMode?.("macro")}
-								className={
-									earthChoroplethMode === "macro"
-										? "rounded bg-success/20 px-2 py-1 text-left text-[10px] font-medium text-success"
-										: "rounded bg-foreground/5 px-2 py-1 text-left text-[10px] font-medium text-muted-foreground hover:bg-foreground/10"
-								}
-								aria-pressed={earthChoroplethMode === "macro"}
-								title="Country choropleth by policy rate (macro overlay)"
-							>
-								Macro
-							</button>
-						</div>
-						<div className="mt-1 rounded border border-border/60 bg-background/60 px-2 py-1 text-[9px] text-muted-foreground">
-							{earthChoroplethMode === "severity"
-								? "Country fill = event severity intensity (bright = higher)."
-								: earthChoroplethMode === "regime"
-									? "Country fill = regime state (calm/watch/escalating/critical)."
-									: "Country fill = macro overlay (policy-rate proxy, bright = higher)."}
-						</div>
-					</div>
-				) : null}
-			</div>
-
-			<div className="pointer-events-none absolute left-1/2 top-24 z-10 -translate-x-1/2 rounded-lg border border-border/50 bg-card/75 p-2 text-[10px] text-foreground shadow-lg backdrop-blur">
-				<div className="mb-1 font-semibold uppercase tracking-wide text-muted-foreground">
-					Geo Stats
-				</div>
-				<div className="grid grid-cols-2 gap-x-3 gap-y-1">
-					<span className="text-muted-foreground">Visible markers</span>
-					<span className="text-right tabular-nums">{geoMapStats.visibleMarkersLabel}</span>
-					<span className="text-muted-foreground">Clusters</span>
-					<span className="text-right tabular-nums">{geoMapStats.clusterLabel}</span>
-					<span className="text-muted-foreground">Avg severity</span>
-					<span className="text-right tabular-nums">{geoMapStats.avgSeverityLabel}</span>
-					<span className="text-muted-foreground">Max intensity</span>
-					<span className="text-right tabular-nums">{geoMapStats.maxCountryIntensityLabel}</span>
-					<span className="text-muted-foreground">Latest hour</span>
-					<span className="text-right tabular-nums">{geoMapStats.latestHourBucketLabel}</span>
-				</div>
-			</div>
-
-			{/* Info Popup Overlay */}
-			{activePopupMarker && (
-				<div
-					className="absolute z-20 pointer-events-none"
-					style={{
-						left: `${(activePopupMarker.x / MAP_WIDTH) * 100}%`,
-						top: `${(activePopupMarker.y / MAP_HEIGHT) * 100}%`,
-						transform: "translate(-50%, -110%)",
-					}}
-				>
-					<div className="bg-card/95 border border-success/50 rounded-lg shadow-chromatic p-4 w-72 pointer-events-auto backdrop-blur-md animate-in fade-in zoom-in duration-200">
-						<div className="flex items-start justify-between mb-2">
-							<h3 className="font-bold text-sm text-foreground line-clamp-2 pr-4">
-								{activePopupMarker.title}
-							</h3>
-							<button
-								type="button"
-								className="text-muted-foreground hover:text-foreground transition-colors"
-								onClick={(e) => {
-									e.stopPropagation();
-									setPopupEventId(null);
-								}}
-							>
-								<Plus className="h-4 w-4 rotate-45" />
-							</button>
-						</div>
-
-						<div className="flex items-center gap-2 mb-3">
-							<div
-								className="h-2 w-2 rounded-full"
-								style={{ backgroundColor: getMarkerSeverityColor(activePopupMarker.severity) }}
-							/>
-							<span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-								Severity {activePopupMarker.severity} •{" "}
-								{activePopupMarker.raw.category.replace(/_/g, " ")}
-							</span>
-						</div>
-
-						<div className="max-h-40 overflow-y-auto pr-1 scrollbar-hide text-xs text-muted-foreground leading-relaxed space-y-3 mb-3">
-							<p>
-								{activePopupMarker.raw.summary || "No detailed summary available for this event."}
-							</p>
-
-							{activePopupMarker.raw.sources.length > 0 && (
-								<div className="pt-2 border-t border-border">
-									<p className="font-bold text-muted-foreground mb-1 uppercase text-[9px]">
-										Sources:
-									</p>
-									<ul className="space-y-1">
-										{activePopupMarker.raw.sources.map((src) => (
-											<li key={src.id}>
-												<a
-													href={src.url}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="text-success hover:underline flex items-center gap-1 truncate"
-												>
-													<Plus className="h-2 w-2" />
-													{src.title || src.provider}
-												</a>
-											</li>
-										))}
-									</ul>
-								</div>
-							)}
-						</div>
-
-						<div className="flex justify-between items-center pt-2 border-t border-border">
-							<span className="text-[10px] text-muted-foreground/60 font-mono">
-								{new Date(activePopupMarker.raw.updatedAt).toLocaleDateString()}
-							</span>
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-6 text-[10px] text-success hover:text-success/80 p-0"
-								onClick={() => {
-									onSelectEvent(activePopupMarker.id);
-								}}
-							>
-								Focus in Sidebar
-							</Button>
-						</div>
-					</div>
-					<div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[8px] border-t-card/95 mx-auto -mt-[1px]" />
-				</div>
-			)}
+			<MapCanvasMarkerLegendOverlay severityLevels={severityLevels} />
+			<MapCanvasControlsOverlay
+				mapBody={mapBody}
+				earthChoroplethMode={earthChoroplethMode}
+				onChangeEarthChoroplethMode={onChangeEarthChoroplethMode}
+				onZoomIn={handleZoomIn}
+				onZoomOut={handleZoomOut}
+				onReset={handleReset}
+			/>
+			<MapCanvasStatsOverlay
+				visibleMarkersLabel={geoMapStats.visibleMarkersLabel}
+				clusterLabel={geoMapStats.clusterLabel}
+				avgSeverityLabel={geoMapStats.avgSeverityLabel}
+				maxCountryIntensityLabel={geoMapStats.maxCountryIntensityLabel}
+				latestHourBucketLabel={geoMapStats.latestHourBucketLabel}
+			/>
+			{activePopupMarker ? (
+				<MapCanvasEventPopupOverlay
+					marker={activePopupMarker}
+					mapWidth={MAP_WIDTH}
+					mapHeight={MAP_HEIGHT}
+					onClose={() => setPopupEventId(null)}
+					onFocusSidebar={onSelectEvent}
+				/>
+			) : null}
 
 			<canvas
 				ref={basemapCanvasRef}
@@ -970,6 +630,7 @@ export const MapCanvas = memo(function MapCanvas({
 
 						if (drawing.type === "text" && drawing.projected.length >= 1) {
 							const anchor = drawing.projected[0];
+							if (!anchor) return null;
 							const visible = mapModel.projection.invert
 								? geoPath(mapModel.projection)({
 										type: "Point",
@@ -1006,88 +667,15 @@ export const MapCanvas = memo(function MapCanvas({
 					})}
 				</g>
 
-				{selectionBox
-					? (() => {
-							const normalizedSelectionBox = normalizeGeoViewportSelectionBox(selectionBox);
-							return (
-								<rect
-									x={normalizedSelectionBox.startX}
-									y={normalizedSelectionBox.startY}
-									width={normalizedSelectionBox.endX - normalizedSelectionBox.startX}
-									height={normalizedSelectionBox.endY - normalizedSelectionBox.startY}
-									fill="rgba(56, 189, 248, 0.12)"
-									stroke="#38bdf8"
-									strokeDasharray="6 4"
-									strokeWidth={1.5}
-									pointerEvents="none"
-								/>
-							);
-						})()
-					: null}
-
-				{/* Line drawing preview: dashed line from pendingLineStart to current mouse position */}
-				{drawingMode === "line" &&
-					pendingLineStart &&
-					previewPoint &&
-					(() => {
-						const startProjected = mapModel.projection([
-							pendingLineStart.lng,
-							pendingLineStart.lat,
-						]);
-						const endProjected = mapModel.projection([previewPoint.lng, previewPoint.lat]);
-						if (!startProjected || !endProjected) return null;
-						return (
-							<line
-								x1={startProjected[0]}
-								y1={startProjected[1]}
-								x2={endProjected[0]}
-								y2={endProjected[1]}
-								stroke={drawingColor}
-								strokeWidth={1.5}
-								strokeDasharray="5,4"
-								opacity={0.75}
-								pointerEvents="none"
-							/>
-						);
-					})()}
-				{/* Polygon drawing preview: collected points + live cursor segment */}
-				{drawingMode === "polygon" &&
-					pendingPolygonPoints.length > 0 &&
-					(() => {
-						const previewPoints = [...pendingPolygonPoints];
-						if (previewPoint) {
-							previewPoints.push(previewPoint);
-						}
-						const projected = previewPoints
-							.map((point) => mapModel.projection([point.lng, point.lat]))
-							.filter((point): point is [number, number] => Array.isArray(point));
-						if (projected.length === 0) return null;
-						const polylinePoints = projected.map(([x, y]) => `${x},${y}`).join(" ");
-						return (
-							<g pointerEvents="none">
-								<polyline
-									points={polylinePoints}
-									fill={pendingPolygonPoints.length >= 3 ? drawingColor : "none"}
-									fillOpacity={pendingPolygonPoints.length >= 3 ? 0.14 : 0}
-									stroke={drawingColor}
-									strokeWidth={1.6}
-									strokeDasharray="5,4"
-									opacity={0.85}
-								/>
-								{projected.map(([x, y], index) => (
-									<circle
-										key={`pending-polygon-point-${previewPoints[index]?.lat ?? y}-${previewPoints[index]?.lng ?? x}`}
-										cx={x}
-										cy={y}
-										r={3}
-										fill={drawingColor}
-										stroke="#020617"
-										strokeWidth={0.8}
-									/>
-								))}
-							</g>
-						);
-					})()}
+				<MapCanvasDrawingOverlays
+					selectionBox={selectionBox}
+					drawingMode={drawingMode}
+					pendingLineStart={pendingLineStart}
+					pendingPolygonPoints={pendingPolygonPoints}
+					previewPoint={previewPoint}
+					drawingColor={drawingColor}
+					projection={mapModel.projection}
+				/>
 
 				<g data-render-stage="soft-signals">
 					{showSoftSignals &&
@@ -1151,139 +739,22 @@ export const MapCanvas = memo(function MapCanvas({
 					)}
 				</g>
 
-				<g data-render-stage="markers">
-					{markerClusters.clusteringActive &&
-						markerClusters.clusters.map((cluster) => (
-							<g
-								key={cluster.id}
-								transform={`translate(${cluster.x}, ${cluster.y})`}
-								role="button"
-								tabIndex={0}
-								aria-label={`Cluster with ${cluster.count} events`}
-								className="cursor-pointer"
-								onDoubleClick={(event) => {
-									event.stopPropagation();
-									handleClusterOpenInFlat(cluster.bounds);
-								}}
-								onClick={(event) => {
-									event.stopPropagation();
-									if (event.shiftKey) {
-										onSelectEvents?.(
-											cluster.markerIds,
-											event.metaKey || event.ctrlKey ? "append" : "replace",
-										);
-										return;
-									}
-									handleClusterFocus(cluster);
-								}}
-								onKeyDown={(event) => {
-									if (event.key !== "Enter" && event.key !== " ") return;
-									event.preventDefault();
-									event.stopPropagation();
-									if (event.shiftKey) {
-										handleClusterOpenInFlat(cluster.bounds);
-										return;
-									}
-									handleClusterFocus(cluster);
-								}}
-							>
-								<circle r={16} fill="#0f172a" stroke="#38bdf8" strokeWidth={1.5} opacity={0.92} />
-								<circle r={11} fill="#1e293b" stroke="#7dd3fc" strokeWidth={1} opacity={0.95} />
-								<text
-									y={4}
-									textAnchor="middle"
-									fill="#e2e8f0"
-									fontSize={10}
-									fontWeight={800}
-									style={{ pointerEvents: "none", userSelect: "none" }}
-								>
-									{cluster.count > 99 ? "99+" : String(cluster.count)}
-								</text>
-								<title>{`Cluster: ${cluster.count} events. Click to focus, double-click or Shift+Enter to inspect in flat view.`}</title>
-							</g>
-						))}
-					{mapModel.markers.map((marker) => {
-						if (!marker.visible) return null;
-						if (
-							markerClusters.clusteringActive &&
-							!markerClusters.unclusteredMarkerIds.has(marker.id) &&
-							marker.id !== selectedEventId
-						) {
-							return null;
-						}
-						const selected = marker.id === selectedEventId;
-						const multiSelected = selectedEventIdSet.has(marker.id);
-						const hovered = marker.id === hoverEventId;
-						const markerColor = getMarkerSeverityColor(marker.severity);
-						return (
-							<g
-								key={marker.id}
-								transform={`translate(${marker.x}, ${marker.y})`}
-								role="button"
-								tabIndex={0}
-								aria-label={`Marker ${marker.title} severity ${marker.severity}`}
-								onClick={(event) => {
-									event.stopPropagation();
-									setPopupEventId(marker.id);
-									onSelectEvent(marker.id);
-								}}
-								pointerEvents={isDrawingInteractionActive ? "none" : "all"}
-								className="cursor-pointer outline-none focus-visible:outline-none"
-							>
-								{(selected || hovered || multiSelected) && (
-									<g>
-										<circle
-											r={selected ? 25 : multiSelected ? 22 : 20}
-											fill="url(#halo-gradient)"
-											opacity={selected ? 1 : multiSelected ? 0.8 : 0.6}
-										/>
-										<circle
-											r={selected ? 20 : multiSelected ? 18 : 17}
-											fill="none"
-											stroke={selected ? "#10b981" : multiSelected ? "#f59e0b" : "#7dd3fc"}
-											strokeWidth={selected ? 2 : 1.25}
-											opacity={selected ? 0.8 : 0.65}
-										>
-											<animate
-												attributeName="r"
-												from={selected ? "18" : "15"}
-												to={selected ? "22" : "19"}
-												dur="1.5s"
-												repeatCount="indefinite"
-											/>
-											<animate
-												attributeName="opacity"
-												from="0.8"
-												to="0.4"
-												dur="1.5s"
-												repeatCount="indefinite"
-											/>
-										</circle>
-									</g>
-								)}
-								<circle
-									r={14}
-									fill={markerColor}
-									stroke="#020617"
-									strokeWidth={2}
-									className="drop-shadow-lg"
-								/>
-								<path
-									d={
-										markerSymbolPathByEventId.get(marker.id) ??
-										getMarkerSymbolPath(marker.symbol, 95)
-									}
-									transform="translate(0, 1)"
-									fill="#f8fafc"
-									stroke="#0f172a"
-									strokeWidth={0.8}
-									style={{ pointerEvents: "none" }}
-								/>
-								<title>{marker.title}</title>
-							</g>
-						);
-					})}
-				</g>
+				<MapCanvasMarkerLayer
+					scale={scale}
+					clusteringActive={markerClusters.clusteringActive}
+					clusters={markerClusters.clusters}
+					unclusteredMarkerIds={markerClusters.unclusteredMarkerIds}
+					markers={mapModel.markers}
+					selectedEventId={selectedEventId}
+					selectedEventIds={selectedEventIds}
+					hoverEventId={hoverEventId}
+					isDrawingInteractionActive={isDrawingInteractionActive}
+					onSelectEvent={onSelectEvent}
+					onSelectEvents={onSelectEvents}
+					onClusterFocus={handleClusterFocus}
+					onClusterOpenInFlat={handleClusterOpenInFlat}
+					onMarkerPopupChange={setPopupEventId}
+				/>
 			</svg>
 		</div>
 	);

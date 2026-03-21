@@ -2,6 +2,7 @@ package news
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -34,9 +35,7 @@ func NewFinvizClient(cfg FinvizClientConfig) *FinvizClient {
 		baseURL = DefaultFinvizBaseURL
 	}
 	retries := cfg.RequestRetries
-	if retries < 0 {
-		retries = 0
-	}
+	retries = max(retries, 0)
 	return &FinvizClient{
 		baseURL:        baseURL,
 		requestRetries: retries,
@@ -67,7 +66,7 @@ func (c *FinvizClient) Fetch(ctx context.Context, symbol string, limit int) ([]m
 	for attempt := 1; attempt <= attempts; attempt++ {
 		req, err := c.baseClient.NewRequest(ctx, http.MethodGet, requestURL, nil, nil)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("build finviz request for %s: %w", symbol, err)
 		}
 		req.Header.Set("Accept", "application/xml")
 		req.Header.Set("User-Agent", "tradeview-fusion-go-backend/1.0")
@@ -76,18 +75,18 @@ func (c *FinvizClient) Fetch(ctx context.Context, symbol string, limit int) ([]m
 		if err != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("finviz retry backoff canceled for %s: %w", symbol, ctx.Err())
 				}
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("request finviz feed for %s: %w", symbol, err)
 		}
 
 		if resp.StatusCode >= http.StatusInternalServerError {
 			_ = resp.Body.Close()
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("finviz server retry backoff canceled for %s: %w", symbol, ctx.Err())
 				}
 				continue
 			}
@@ -103,11 +102,11 @@ func (c *FinvizClient) Fetch(ctx context.Context, symbol string, limit int) ([]m
 		if parseErr != nil {
 			if attempt < attempts {
 				if !sleepWithContext(ctx, backoffDuration(attempt)) {
-					return nil, ctx.Err()
+					return nil, fmt.Errorf("finviz parse retry backoff canceled for %s: %w", symbol, ctx.Err())
 				}
 				continue
 			}
-			return nil, parseErr
+			return nil, fmt.Errorf("parse finviz feed for %s: %w", symbol, parseErr)
 		}
 		return items, nil
 	}

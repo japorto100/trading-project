@@ -8,23 +8,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	financebridge "tradeviewfusion/go-backend/internal/connectors/financebridge"
+	"tradeviewfusion/go-backend/internal/connectors/symbolcatalog"
 )
 
 type fakeSearchClient struct {
-	results []financebridge.SearchResult
+	results []symbolcatalog.SearchResult
 	err     error
 	lastQ   string
 }
 
-func (f *fakeSearchClient) Search(_ context.Context, query string) ([]financebridge.SearchResult, error) {
+func (f *fakeSearchClient) Search(_ context.Context, query string) ([]symbolcatalog.SearchResult, error) {
 	f.lastQ = query
 	return f.results, f.err
 }
 
 func TestSearchHandler_ReturnsStableContract(t *testing.T) {
 	client := &fakeSearchClient{
-		results: []financebridge.SearchResult{
+		results: []symbolcatalog.SearchResult{
 			{Symbol: "AAPL", Name: "Apple Inc.", Type: "stock"},
 		},
 	}
@@ -41,7 +41,7 @@ func TestSearchHandler_ReturnsStableContract(t *testing.T) {
 		Success bool                         `json:"success"`
 		Query   string                       `json:"query"`
 		Count   int                          `json:"count"`
-		Results []financebridge.SearchResult `json:"results"`
+		Results []symbolcatalog.SearchResult `json:"results"`
 	}
 	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
 		t.Fatalf("decode body: %v", err)

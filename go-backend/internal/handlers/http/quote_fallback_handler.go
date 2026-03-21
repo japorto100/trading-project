@@ -6,20 +6,20 @@ import (
 	"strings"
 	"time"
 
-	financebridge "tradeviewfusion/go-backend/internal/connectors/financebridge"
+	"tradeviewfusion/go-backend/internal/connectors/yahoo"
 	"tradeviewfusion/go-backend/internal/contracts"
 )
 
-type financeBridgeQuoteClient interface {
-	GetQuote(ctx context.Context, symbol string) (financebridge.Quote, error)
+type fallbackQuoteClient interface {
+	GetQuote(ctx context.Context, symbol string) (yahoo.Quote, error)
 }
 
-func FinanceBridgeQuoteFallbackHandler(client financeBridgeQuoteClient) http.HandlerFunc {
+func FinanceBridgeQuoteFallbackHandler(client fallbackQuoteClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if client == nil {
 			writeJSON(w, http.StatusServiceUnavailable, contracts.APIResponse[*contracts.Quote]{
 				Success: false,
-				Error:   "financebridge quote client unavailable",
+				Error:   "fallback quote client unavailable",
 			})
 			return
 		}
@@ -41,7 +41,7 @@ func FinanceBridgeQuoteFallbackHandler(client financeBridgeQuoteClient) http.Han
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, contracts.APIResponse[*contracts.Quote]{
 				Success: false,
-				Error:   "financebridge quote request failed",
+				Error:   "fallback quote request failed",
 			})
 			return
 		}
@@ -55,7 +55,7 @@ func FinanceBridgeQuoteFallbackHandler(client financeBridgeQuoteClient) http.Han
 			Success: true,
 			Data: &contracts.Quote{
 				Symbol:    strings.TrimSpace(quote.Symbol),
-				Exchange:  "finance-bridge",
+				Exchange:  "yahoo",
 				AssetType: assetType,
 				Last:      quote.Price,
 				Bid:       0,
@@ -64,7 +64,7 @@ func FinanceBridgeQuoteFallbackHandler(client financeBridgeQuoteClient) http.Han
 				Low:       quote.Low,
 				Volume:    quote.Volume,
 				Timestamp: timestamp,
-				Source:    "finance-bridge",
+				Source:    "yahoo",
 			},
 		})
 	}

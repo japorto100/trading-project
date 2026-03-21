@@ -1,5 +1,8 @@
 "use client";
 
+import { GeoPanelFrame } from "@/features/geopolitical/shell/panels/GeoPanelFrame";
+import { GeoPanelRuntimeMeta } from "@/features/geopolitical/shell/panels/GeoPanelRuntimeMeta";
+import { GeoPanelStateNotice } from "@/features/geopolitical/shell/panels/GeoPanelStateNotice";
 import type { GeoGameTheoryItem, GeoGameTheorySummary } from "@/features/geopolitical/shell/types";
 
 interface GeopoliticalGameTheoryPanelProps {
@@ -7,6 +10,7 @@ interface GeopoliticalGameTheoryPanelProps {
 	loading: boolean;
 	items: GeoGameTheoryItem[];
 	summary: GeoGameTheorySummary | null;
+	onRetry?: () => void;
 }
 
 function formatDate(raw: string): string {
@@ -30,28 +34,49 @@ export function GeopoliticalGameTheoryPanel({
 	loading,
 	items,
 	summary,
+	onRetry,
 }: GeopoliticalGameTheoryPanelProps) {
+	const panelStatus = !enabled
+		? "unavailable"
+		: loading
+			? "cached"
+			: items.length > 0
+				? "live"
+				: "unavailable";
 	return (
-		<section className="rounded-md border border-border bg-card p-3">
-			<div className="flex items-center justify-between gap-2">
-				<h2 className="text-sm font-semibold">GameTheory Impact</h2>
-				<span className="text-[10px] text-muted-foreground">heuristic v1</span>
-			</div>
-
-			<p className="mt-1 text-xs text-muted-foreground">
-				ACLED events to Python impact score to market bias and symbol basket.
-			</p>
-
+		<GeoPanelFrame
+			title="GameTheory Impact"
+			description="ACLED events to Python impact score to market bias and symbol basket."
+			status={panelStatus}
+			meta={
+				<GeoPanelRuntimeMeta
+					items={[
+						"impact snapshot",
+						"acled",
+						summary ? `${summary.analyzedEvents} analyzed` : `${items.length} items`,
+					]}
+				/>
+			}
+			badge={<span className="text-[10px] text-muted-foreground">heuristic v1</span>}
+		>
 			{!enabled ? (
-				<p className="mt-3 text-xs text-muted-foreground">
-					Enable ACLED source to load GameTheory impact analysis.
-				</p>
+				<GeoPanelStateNotice
+					message="Enable ACLED source to load GameTheory impact analysis."
+					tone="warning"
+				/>
 			) : loading ? (
-				<p className="mt-3 text-xs text-muted-foreground">Scoring geopolitical impact...</p>
+				<GeoPanelStateNotice
+					message="Scoring geopolitical impact..."
+					onRetry={onRetry}
+					retryLabel="Reload"
+				/>
 			) : items.length === 0 ? (
-				<p className="mt-3 text-xs text-muted-foreground">
-					No impact items for the current ACLED filters.
-				</p>
+				<GeoPanelStateNotice
+					message="No impact items for the current ACLED filters."
+					tone="warning"
+					onRetry={onRetry}
+					retryLabel="Reload"
+				/>
 			) : (
 				<>
 					{summary ? (
@@ -103,6 +128,6 @@ export function GeopoliticalGameTheoryPanel({
 					</div>
 				</>
 			)}
-		</section>
+		</GeoPanelFrame>
 	);
 }

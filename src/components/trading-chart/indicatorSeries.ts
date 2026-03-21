@@ -79,13 +79,15 @@ function syncSeriesGroup(
 	}
 
 	for (let i = 0; i < specs.length; i++) {
+		const spec = specs[i];
+		if (!spec) continue;
 		if (!ref.current[i]) {
-			const created = helpers.addLineSeries(specs[i].options);
+			const created = helpers.addLineSeries(spec.options);
 			if (!created) continue;
 			ref.current[i] = created;
 		}
 
-		ref.current[i]?.setData(specs[i].data);
+		ref.current[i]?.setData(spec.data);
 	}
 }
 

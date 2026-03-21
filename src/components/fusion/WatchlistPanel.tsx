@@ -262,6 +262,7 @@ export function WatchlistPanel({
 						<div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: "relative" }}>
 							{rowVirtualizer.getVirtualItems().map((vRow) => {
 								const symbol = visibleSymbols[vRow.index];
+								if (!symbol) return null;
 								return (
 									<div
 										key={vRow.key}

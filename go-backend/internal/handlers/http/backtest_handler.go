@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -65,7 +66,7 @@ func BacktestCapabilitiesHandler(strategyDir string) http.HandlerFunc {
 func listStrategyExamples(directory string) ([]string, error) {
 	entries, err := os.ReadDir(directory)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read strategy examples from %s: %w", directory, err)
 	}
 
 	result := make([]string, 0, len(entries))

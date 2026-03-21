@@ -3,7 +3,9 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -249,9 +251,7 @@ func handleLocalCandidateReclassify(
 	}
 	candidateID := strings.TrimSpace(stringFieldCandidateMap(candidate, "id"))
 	updated := map[string]any{}
-	for k, v := range candidate {
-		updated[k] = v
-	}
+	maps.Copy(updated, candidate)
 	if category := trimStringForAPI(stringFieldCandidateMap(body, "category"), 80); category != "" {
 		updated["category"] = category
 	}
@@ -764,7 +764,10 @@ func syncCandidateStoreFromResponse(store geopoliticalCandidateQueueStore, paylo
 		return nil
 	}
 	if candidateRaw, ok := parsed["candidate"].(map[string]any); ok {
-		return store.UpsertCandidate(candidateRaw)
+		if err := store.UpsertCandidate(candidateRaw); err != nil {
+			return fmt.Errorf("upsert geopolitical candidate from proxy response: %w", err)
+		}
+		return nil
 	}
 	if candidatesRaw, ok := parsed["candidates"].([]any); ok {
 		candidates := make([]map[string]any, 0, len(candidatesRaw))
@@ -774,7 +777,10 @@ func syncCandidateStoreFromResponse(store geopoliticalCandidateQueueStore, paylo
 			}
 		}
 		if len(candidates) > 0 {
-			return store.UpsertCandidates(candidates)
+			if err := store.UpsertCandidates(candidates); err != nil {
+				return fmt.Errorf("upsert %d geopolitical candidates from proxy response: %w", len(candidates), err)
+			}
+			return nil
 		}
 	}
 	return nil
@@ -805,7 +811,10 @@ func syncCandidateAcceptTimelineFromResponse(
 		Actor:       actor,
 		DiffSummary: "Candidate " + candidateID + " accepted into event " + eventID,
 	})
-	return err
+	if err != nil {
+		return fmt.Errorf("append candidate acceptance timeline entry for %s: %w", candidateID, err)
+	}
+	return nil
 }
 
 func mapGeopoliticalCandidatesProxyPath(r *http.Request) (string, bool) {

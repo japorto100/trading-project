@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strings"
 
-	financebridge "tradeviewfusion/go-backend/internal/connectors/financebridge"
+	"tradeviewfusion/go-backend/internal/connectors/symbolcatalog"
 )
 
 type searchClient interface {
-	Search(ctx context.Context, query string) ([]financebridge.SearchResult, error)
+	Search(ctx context.Context, query string) ([]symbolcatalog.SearchResult, error)
 }
 
 func SearchHandler(client searchClient) http.HandlerFunc {
@@ -35,7 +35,7 @@ func SearchHandler(client searchClient) http.HandlerFunc {
 			Success bool                         `json:"success"`
 			Query   string                       `json:"query"`
 			Count   int                          `json:"count"`
-			Results []financebridge.SearchResult `json:"results"`
+			Results []symbolcatalog.SearchResult `json:"results"`
 		}{
 			Success: true,
 			Query:   query,

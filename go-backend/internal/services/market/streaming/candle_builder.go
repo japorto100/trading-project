@@ -52,10 +52,7 @@ func NewCandleBuilder(timeframe string, opts CandleBuilderOptions) (*CandleBuild
 	if maxCandles < 8 {
 		maxCandles = 256
 	}
-	maxOoo := opts.MaxOutOfOrderBuckets
-	if maxOoo < 0 {
-		maxOoo = 0
-	}
+	maxOoo := max(opts.MaxOutOfOrderBuckets, 0)
 	if maxOoo == 0 {
 		maxOoo = 2
 	}

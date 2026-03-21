@@ -2,16 +2,17 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
 	"strings"
 
-	financebridge "tradeviewfusion/go-backend/internal/connectors/financebridge"
+	"tradeviewfusion/go-backend/internal/connectors/yahoo"
 )
 
 type ohlcvClient interface {
-	GetOHLCV(ctx context.Context, req financebridge.OHLCVRequest) ([]financebridge.Candle, error)
+	GetOHLCV(ctx context.Context, req yahoo.OHLCVRequest) ([]yahoo.Candle, error)
 }
 
 func OHLCVHandler(client ohlcvClient) http.HandlerFunc {
@@ -58,7 +59,7 @@ func OHLCVHandler(client ohlcvClient) http.HandlerFunc {
 			return
 		}
 
-		req := financebridge.OHLCVRequest{
+		req := yahoo.OHLCVRequest{
 			Symbol:    symbol,
 			Timeframe: timeframe,
 			Limit:     limit,
@@ -79,20 +80,20 @@ func OHLCVHandler(client ohlcvClient) http.HandlerFunc {
 		rows = normalizeOHLCVCandles(rows)
 
 		response := struct {
-			Success   bool                   `json:"success"`
-			Symbol    string                 `json:"symbol"`
-			Timeframe string                 `json:"timeframe"`
-			Provider  string                 `json:"provider"`
-			Limit     int                    `json:"limit"`
-			Start     *int64                 `json:"start"`
-			End       *int64                 `json:"end"`
-			Count     int                    `json:"count"`
-			Data      []financebridge.Candle `json:"data"`
+			Success   bool           `json:"success"`
+			Symbol    string         `json:"symbol"`
+			Timeframe string         `json:"timeframe"`
+			Provider  string         `json:"provider"`
+			Limit     int            `json:"limit"`
+			Start     *int64         `json:"start"`
+			End       *int64         `json:"end"`
+			Count     int            `json:"count"`
+			Data      []yahoo.Candle `json:"data"`
 		}{
 			Success:   true,
 			Symbol:    symbol,
 			Timeframe: timeframe,
-			Provider:  "finance-bridge",
+			Provider:  "yahoo",
 			Limit:     limit,
 			Count:     len(rows),
 			Data:      rows,
@@ -115,7 +116,7 @@ func parseOptionalInt64(raw string) (int64, bool, error) {
 	}
 	parsed, err := strconv.ParseInt(trimmed, 10, 64)
 	if err != nil {
-		return 0, false, err
+		return 0, false, fmt.Errorf("parse optional int64 %q: %w", trimmed, err)
 	}
 	return parsed, true, nil
 }
@@ -125,11 +126,11 @@ func normalizeOHLCVTimeframe(value string) string {
 	if trimmed == "" {
 		return "1H"
 	}
-	if strings.HasSuffix(trimmed, "MIN") {
-		return strings.TrimSuffix(trimmed, "MIN") + "M"
+	if prefix, ok := strings.CutSuffix(trimmed, "MIN"); ok {
+		return prefix + "M"
 	}
-	if strings.HasSuffix(trimmed, "HR") {
-		return strings.TrimSuffix(trimmed, "HR") + "H"
+	if prefix, ok := strings.CutSuffix(trimmed, "HR"); ok {
+		return prefix + "H"
 	}
 	switch trimmed {
 	case "1M", "3M", "5M", "15M", "30M", "45M":
@@ -143,17 +144,17 @@ func normalizeOHLCVTimeframe(value string) string {
 	}
 }
 
-func normalizeOHLCVCandles(rows []financebridge.Candle) []financebridge.Candle {
+func normalizeOHLCVCandles(rows []yahoo.Candle) []yahoo.Candle {
 	if len(rows) <= 1 {
 		return rows
 	}
 
-	byTime := make(map[int64]financebridge.Candle, len(rows))
+	byTime := make(map[int64]yahoo.Candle, len(rows))
 	for _, row := range rows {
 		byTime[row.Time] = row
 	}
 
-	out := make([]financebridge.Candle, 0, len(byTime))
+	out := make([]yahoo.Candle, 0, len(byTime))
 	for _, row := range byTime {
 		out = append(out, row)
 	}

@@ -147,7 +147,11 @@ func (e *GCTExecutor) client(ctx context.Context) (backtesterRPCClient, error) {
 		return e.grpcClient, nil
 	}
 
-	tlsConfig := &tls.Config{InsecureSkipVerify: e.cfg.InsecureSkipVerifyTLS}
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		//nolint:gosec // Explicit config-controlled escape hatch for local/dev debugging.
+		InsecureSkipVerify: e.cfg.InsecureSkipVerifyTLS,
+	}
 	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 	}

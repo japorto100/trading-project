@@ -46,6 +46,7 @@ export function ImagePreviewModal({ attachment, onClose }: ImagePreviewModalProp
 				onClick={(e) => e.stopPropagation()}
 				onKeyDown={(e) => e.stopPropagation()}
 			>
+				{/* biome-ignore lint/performance/noImgElement: blob: URL + CSS zoom transform — Next.js <Image> cannot optimize blob: URLs and wraps in div which breaks scale() */}
 				<img
 					src={attachment.previewUrl}
 					alt={attachment.name}

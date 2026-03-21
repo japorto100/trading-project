@@ -218,7 +218,7 @@ func (s *CandidateReviewStore) readLocked() (candidateReviewStoreFile, error) {
 
 func (s *CandidateReviewStore) writeLocked(store candidateReviewStoreFile) error {
 	dir := filepath.Dir(s.filePath)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("mkdir candidate review store dir: %w", err)
 	}
 	encoded, err := json.MarshalIndent(store, "", "  ")
@@ -226,7 +226,7 @@ func (s *CandidateReviewStore) writeLocked(store candidateReviewStoreFile) error
 		return fmt.Errorf("encode candidate review store: %w", err)
 	}
 	tmpPath := s.filePath + ".tmp"
-	if err := os.WriteFile(tmpPath, encoded, 0o644); err != nil {
+	if err := os.WriteFile(tmpPath, encoded, 0o600); err != nil {
 		return fmt.Errorf("write candidate review temp file: %w", err)
 	}
 	if err := os.Rename(tmpPath, s.filePath); err != nil {

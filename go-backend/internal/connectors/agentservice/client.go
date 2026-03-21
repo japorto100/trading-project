@@ -5,12 +5,11 @@ package agentservice
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
-	"tradeviewfusion/go-backend/internal/connectors/base"
+	"tradeviewfusion/go-backend/internal/connectors/ipc"
+	connectorregistry "tradeviewfusion/go-backend/internal/connectors/registry"
 	"tradeviewfusion/go-backend/internal/requestctx"
 )
 
@@ -18,11 +17,13 @@ const DefaultBaseURL = "http://127.0.0.1:8094"
 
 type Config struct {
 	BaseURL        string
+	GrpcAddress    string
 	RequestTimeout time.Duration
+	Registry       *connectorregistry.Registry
 }
 
 type Client struct {
-	baseClient *base.Client
+	ipcClient *ipc.Client
 }
 
 func NewClient(cfg Config) *Client {
@@ -35,11 +36,13 @@ func NewClient(cfg Config) *Client {
 		timeout = 5 * time.Second
 	}
 	return &Client{
-		baseClient: base.NewClient(base.Config{
-			BaseURL:    baseURL,
-			Timeout:    timeout,
-			RetryCount: 0,
-		}),
+		ipcClient: ipc.NewClient(ipc.ConfigWithRegistry(
+			cfg.Registry,
+			"agentservice",
+			baseURL,
+			strings.TrimSpace(cfg.GrpcAddress),
+			timeout,
+		)),
 	}
 }
 
@@ -47,47 +50,31 @@ func (c *Client) Post(ctx context.Context, path string, body []byte) (int, []byt
 	if c == nil {
 		return 0, nil, fmt.Errorf("agentservice client unavailable")
 	}
-	req, err := c.baseClient.NewRequest(ctx, http.MethodPost, path, nil, strings.NewReader(string(body)))
-	if err != nil {
-		return 0, nil, fmt.Errorf("agentservice build POST %s: %w", path, err)
+	headers := map[string]string{
+		"Content-Type": "application/json",
+		"Accept":       "application/json",
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
 	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
-		req.Header.Set("X-Request-ID", requestID)
+		headers["X-Request-ID"] = requestID
 	}
-	resp, err := c.baseClient.Do(req)
+	status, respBody, err := c.ipcClient.Do(ctx, "POST", path, body, headers)
 	if err != nil {
 		return 0, nil, fmt.Errorf("agentservice POST %s: %w", path, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return resp.StatusCode, nil, err
-	}
-	return resp.StatusCode, respBody, nil
+	return status, respBody, nil
 }
 
 func (c *Client) Get(ctx context.Context, path string) (int, []byte, error) {
 	if c == nil {
 		return 0, nil, fmt.Errorf("agentservice client unavailable")
 	}
-	req, err := c.baseClient.NewRequest(ctx, http.MethodGet, path, nil, nil)
-	if err != nil {
-		return 0, nil, fmt.Errorf("agentservice build GET %s: %w", path, err)
-	}
-	req.Header.Set("Accept", "application/json")
+	headers := map[string]string{"Accept": "application/json"}
 	if requestID := strings.TrimSpace(requestctx.RequestID(ctx)); requestID != "" {
-		req.Header.Set("X-Request-ID", requestID)
+		headers["X-Request-ID"] = requestID
 	}
-	resp, err := c.baseClient.Do(req)
+	status, body, err := c.ipcClient.Get(ctx, path, nil, headers)
 	if err != nil {
 		return 0, nil, fmt.Errorf("agentservice GET %s: %w", path, err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return resp.StatusCode, nil, err
-	}
-	return resp.StatusCode, body, nil
+	return status, body, nil
 }

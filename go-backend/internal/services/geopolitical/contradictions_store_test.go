@@ -57,13 +57,13 @@ func TestContradictionsStore_CreateListUpdateAndTimeline(t *testing.T) {
 		t.Fatalf("unexpected updated contradiction: %+v", updated)
 	}
 
-	if _, err := timeline.Append(GeoTimelineEntry{
+	if _, appendErr := timeline.Append(GeoTimelineEntry{
 		EventID:     "contradiction:" + created.ID,
 		Action:      "contradiction_resolved",
 		Actor:       "analyst",
 		DiffSummary: "resolved",
-	}); err != nil {
-		t.Fatalf("append timeline entry: %v", err)
+	}); appendErr != nil {
+		t.Fatalf("append timeline entry: %v", appendErr)
 	}
 	timelineItems, err := timeline.List("contradiction:"+created.ID, 10)
 	if err != nil {
@@ -100,15 +100,15 @@ func TestContradictionsAndTimelineStore_ReplaceAll(t *testing.T) {
 		t.Fatalf("unexpected contradictions after replace: %+v", items)
 	}
 
-	if err := timeline.ReplaceAll([]GeoTimelineEntry{{
+	if replaceErr := timeline.ReplaceAll([]GeoTimelineEntry{{
 		ID:          "gt_seed1",
 		EventID:     "contradiction:gctrd_seed1",
 		Action:      "contradiction_created",
 		Actor:       "seed",
 		At:          "2026-02-23T10:00:00Z",
 		DiffSummary: "seeded",
-	}}); err != nil {
-		t.Fatalf("replace timeline: %v", err)
+	}}); replaceErr != nil {
+		t.Fatalf("replace timeline: %v", replaceErr)
 	}
 	timelineItems, err := timeline.List("", 10)
 	if err != nil {

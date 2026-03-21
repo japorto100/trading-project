@@ -46,11 +46,10 @@ Port source of truth: `scripts/dev-stack.ps1` (comment line: *"Map ports per API
 |:---|:---|:---|:---|:---|
 | **Frontend** | TypeScript (Next.js 16, React 19) | 3000 | `src/` | Aktiv |
 | **Go Gateway** | Go 1.26 | 9060 | `go-backend/` | Aktiv |
-| **indicator-service** | Python 3.12+ (FastAPI) | 8092 | `python-backend/services/indicator-service/` | Aktiv |
-| **geopolitical-soft-signals** | Python 3.12+ (FastAPI) | 8091 | `python-backend/services/geopolitical-soft-signals/` | Aktiv |
-| **finance-bridge** | Python 3.12+ (FastAPI) | 8081 | `python-backend/services/finance-bridge/` | Aktiv |
-| **memory-service** | Python 3.12+ (FastAPI) | 8093 | `python-backend/services/memory-service/` | Aktiv |
-| **agent-service** | Python 3.12+ (FastAPI) | 8094 | `python-backend/services/agent-service/` | Aktiv (WS scaffold) |
+| **indicator-service** | Python 3.12+ (FastAPI) | 8092 | `python-backend/python-compute/indicator_engine/` | Aktiv |
+| **geopolitical-soft-signals** | Python 3.12+ (FastAPI) | 8091 | `python-backend/python-compute/geopolitical-soft-signals/` | Aktiv |
+| **memory-service** | Python 3.12+ (FastAPI) | 8093 | `python-backend/python-agent/memory/` | Aktiv |
+| **agent-service** | Python 3.12+ (FastAPI) | 8094 | `python-backend/python-agent/agent/` | Aktiv (WS scaffold) |
 | **Rust Core** | Rust (PyO3) | — (lib) | `python-backend/rust_core/` | Aktiv |
 | **GCT** | Go | 9052 (gRPC), 9053 (proxy) | `go-backend/go-crypto-trader/` | Aktiv |
 | **SeaweedFS** | — | 8333 (S3), 9333 (master), 8888 (filer) | `tools/seaweedfs/` | Aktiv (local dev) |
@@ -184,7 +183,7 @@ git submodule update --remote --merge -- $(git submodule | awk '{print $2}' | gr
 <!-- gitnexus:start -->
 # GitNexus MCP
 
-This project is indexed by GitNexus as **tradeview-fusion** (36017 symbols, 107371 relationships, 300 execution flows).
+This project is indexed by GitNexus as **tradeview-fusion** (199581 symbols, 611987 relationships, 300 execution flows).
 
 ## Always Start Here
 

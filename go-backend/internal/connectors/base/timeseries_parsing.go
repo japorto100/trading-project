@@ -22,13 +22,29 @@ func ParseSeriesTime(format, value string) (time.Time, error) {
 	}
 	switch strings.TrimSpace(format) {
 	case DateFormatISODate:
-		return time.Parse("2006-01-02", raw)
+		parsed, err := time.Parse("2006-01-02", raw)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("parse %s date %q: %w", DateFormatISODate, raw, err)
+		}
+		return parsed, nil
 	case DateFormatSlashDMY:
-		return time.Parse("02/01/2006", raw)
+		parsed, err := time.Parse("02/01/2006", raw)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("parse %s date %q: %w", DateFormatSlashDMY, raw, err)
+		}
+		return parsed, nil
 	case DateFormatYYYYMM:
-		return time.Parse("200601", raw)
+		parsed, err := time.Parse("200601", raw)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("parse %s date %q: %w", DateFormatYYYYMM, raw, err)
+		}
+		return parsed, nil
 	case DateFormatYYYY:
-		return time.Parse("2006", raw)
+		parsed, err := time.Parse("2006", raw)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("parse %s date %q: %w", DateFormatYYYY, raw, err)
+		}
+		return parsed, nil
 	case DateFormatQuarterCode:
 		if len(raw) != 6 || raw[4] != 'Q' {
 			return time.Time{}, fmt.Errorf("invalid quarter code %q", raw)

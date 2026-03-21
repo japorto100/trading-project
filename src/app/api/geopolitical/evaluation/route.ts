@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import type { GeoEvaluationSummary } from "@/lib/geopolitical/phase12-types";
+import type { GeoEvaluationSummary } from "@/lib/geopolitical/operations-types";
 import { listGeoCandidates } from "@/lib/server/geopolitical-candidates-store";
 import { listGeoContradictions } from "@/lib/server/geopolitical-contradictions-store";
 import { listGeoEvents } from "@/lib/server/geopolitical-events-store";

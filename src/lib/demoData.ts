@@ -186,7 +186,7 @@ export function getAllSymbols(): Array<{
 			config.symbol.includes("/") &&
 			!config.symbol.includes("XAU") &&
 			!config.symbol.includes("XAG")
-				? config.symbol.split("/")[1] === "USD" && config.symbol.split("/")[0].length <= 3
+				? config.symbol.split("/")[1] === "USD" && (config.symbol.split("/")[0]?.length ?? 0) <= 3
 					? "fx"
 					: "crypto"
 				: config.symbol.startsWith("XAU") ||

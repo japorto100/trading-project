@@ -183,10 +183,10 @@ func (w *DiffWatcher) CheckForUpdates(ctx context.Context) (*DiffResult, error) 
 	if strings.TrimSpace(w.cfg.StorePath) != "" {
 		dir := filepath.Dir(w.cfg.StorePath)
 		if dir != "" {
-			_ = os.MkdirAll(dir, 0755)
+			_ = os.MkdirAll(dir, 0o750)
 		}
 		if data, err := json.MarshalIndent(fresh, "", "  "); err == nil {
-			_ = os.WriteFile(w.cfg.StorePath, data, 0644)
+			_ = os.WriteFile(w.cfg.StorePath, data, 0o600)
 		}
 	}
 	return &DiffResult{Added: added, Removed: removed, Changed: changed}, nil

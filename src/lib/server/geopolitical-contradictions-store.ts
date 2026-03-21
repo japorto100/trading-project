@@ -139,6 +139,7 @@ export async function updateGeoContradictionState(
 		const index = store.contradictions.findIndex((item) => item.id === contradictionId);
 		if (index < 0) return null;
 		const current = store.contradictions[index];
+		if (!current) return null;
 		const now = new Date().toISOString();
 		let nextEvidence = [...(current.evidence ?? [])];
 		if (options?.addEvidence && options.addEvidence.length > 0) {

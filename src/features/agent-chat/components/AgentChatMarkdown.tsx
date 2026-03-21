@@ -324,8 +324,11 @@ function splitThinkBlocks(raw: string): Segment[] {
 			segments.push({ type: "markdown", content: raw.slice(last, m.index), key: `md-${pos}` });
 			pos++;
 		}
-		segments.push({ type: "think", content: m[1].trim(), key: `think-${pos}` });
-		pos++;
+		const thinkContent = m[1];
+		if (typeof thinkContent === "string") {
+			segments.push({ type: "think", content: thinkContent.trim(), key: `think-${pos}` });
+			pos++;
+		}
 		last = m.index + m[0].length;
 	}
 	if (last < raw.length) {

@@ -73,8 +73,10 @@ export function updateAlert(id: string, updates: Partial<PriceAlert>): PriceAler
 	const index = alerts.findIndex((alert) => alert.id === id);
 
 	if (index === -1) return null;
+	const current = alerts[index];
+	if (!current) return null;
 
-	alerts[index] = { ...alerts[index], ...updates };
+	alerts[index] = { ...current, ...updates };
 	saveAlerts(alerts);
 
 	return alerts[index];

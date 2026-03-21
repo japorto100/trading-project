@@ -340,6 +340,7 @@ async function updatePaperOrderStatusFile(
 		}
 
 		const current = store.orders[index];
+		if (!current) return null;
 		const next: PaperOrder = {
 			...current,
 			status,
